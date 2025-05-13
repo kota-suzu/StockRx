@@ -13,13 +13,18 @@ default: &default
   adapter: mysql2
   encoding: utf8mb4
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  username: root
-  password: <%= ENV.fetch("MYSQL_ROOT_PASSWORD") { "password" } %>
-  host: db
+  username: <%= ENV.fetch("DATABASE_USERNAME") { "root" } %>
+  password: <%= ENV.fetch("DATABASE_PASSWORD") { "password" } %>
+  host: <%= ENV.fetch("DATABASE_HOST") { "db" } %>
+  # パブリックネットワークの場合はSSL接続を推奨
+  # TODO: 本番環境ではSSL設定を有効化
 
 development:
   <<: *default
-  database: app_development
+  database: app_db
+  # 開発環境でのデバッグを容易にするための設定
+  variables:
+    sql_mode: TRADITIONAL
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -51,6 +56,9 @@ test:
 production:
   <<: *default
   database: app_production
-  username: root
-  password: <%= ENV.fetch("MYSQL_ROOT_PASSWORD") { "password" } %>
-  host: db
+  username: <%= ENV.fetch("PROD_DATABASE_USERNAME") { "root" } %>
+  password: <%= ENV.fetch("PROD_DATABASE_PASSWORD") { ENV.fetch("DATABASE_PASSWORD") { "password" } } %>
+  host: <%= ENV.fetch("PROD_DATABASE_HOST") { ENV.fetch("DATABASE_HOST") { "db" } } %>
+  # TODO: 本番環境ではセキュリティ設定を追加
+  # ssl_mode: REQUIRED
+  # sslca: /path/to/ca-cert.pem

@@ -6,14 +6,22 @@
 
 # Make sure RUBY_VERSION matches the Ruby version in .ruby-version
 ARG RUBY_VERSION=3.3.8
-FROM docker.io/library/ruby:$RUBY_VERSION-slim AS base
+FROM docker.io/library/ruby:$RUBY_VERSION-slim
 
 # Rails app lives here
 WORKDIR /rails
 
 # Install base packages
 RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y curl default-mysql-client libjemalloc2 libvips && \
+    apt-get install --no-install-recommends -y \
+    build-essential \
+    curl \
+    default-mysql-client \
+    libjemalloc2 \
+    libvips \
+    libmariadb-dev \
+    libyaml-dev \
+    git && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Set production environment
@@ -22,28 +30,11 @@ ENV RAILS_ENV="production" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development"
 
-# == Builder stage ==
-FROM ruby:3.3-slim AS builder
-WORKDIR /app
-RUN apt-get update -qq && apt-get install -y --no-install-recommends build-essential libmariadb-dev libyaml-dev git
-COPY Gemfile Gemfile.lock ./
-RUN bundle install -j$(nproc)
-
-# == Runtime stage ==
-FROM ruby:3.3-slim AS runtime
-WORKDIR /app
-ENV RAILS_ENV=production
-RUN apt-get update -qq && apt-get install -y --no-install-recommends libmariadb-dev libyaml-dev git
-COPY --from=builder /usr/local/bundle /usr/local/bundle
+# Copy application code
 COPY . .
-CMD ["bash", "-c", "bin/rails db:migrate && exec puma -C config/puma.rb"]
 
-# Final stage for app image
-FROM base
-
-# Copy built artifacts: gems, application
-COPY --from=builder /usr/local/bundle "${BUNDLE_PATH}"
-COPY --from=builder /rails /rails
+# Install gems
+RUN bundle install -j$(nproc)
 
 # Run and own only the runtime files as a non-root user for security
 RUN groupadd --system --gid 1000 rails && \

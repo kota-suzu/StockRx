@@ -5,6 +5,12 @@ set -e
 
 host="$1"
 shift
+
+# --引数を処理してスキップする
+if [ "$1" = "--" ]; then
+  shift
+fi
+
 cmd="$@"
 
 until mysql -h "$host" -u root -ppassword -e 'SELECT 1'; do
