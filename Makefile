@@ -45,7 +45,10 @@ ci: security-scan lint test-all
 
 security-scan:
 	docker compose run --rm web bin/brakeman --no-pager
-	docker compose run --rm web bin/importmap audit
+	# importmapがインストールされていない場合は次のコマンドをコメントアウトしてください
+	# docker compose run --rm web bin/importmap audit
+	@echo "注意: JavaScriptの依存関係スキャンは現在無効化されています。有効化するには importmap をインストールしてください。"
+	@echo "    $ bundle exec rails importmap:install"
 
 lint:
 	docker compose run --rm web bin/rubocop
