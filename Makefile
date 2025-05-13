@@ -54,7 +54,9 @@ lint:
 	docker compose run --rm web bin/rubocop
 
 test-all:
-	docker compose run --rm web bin/rails db:test:prepare test test:system
+	docker compose run --rm -e DISABLE_DATABASE_ENVIRONMENT_CHECK=1 web bin/rails db:test:prepare
+	docker compose run --rm web bin/rails test
+	docker compose run --rm web bin/rails test:system
 
 # 開発用コマンド
 console:
