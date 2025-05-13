@@ -1,0 +1,23 @@
+<%- if controller_name != 'sessions' %>
+  <%= link_to "ログイン", new_session_path(resource_name) %><br />
+<% end %>
+
+<%# 管理者登録機能は無効化済み %>
+
+<%- if devise_mapping.recoverable? && controller_name != 'passwords' && controller_name != 'registrations' %>
+  <%= link_to "パスワードを忘れましたか？", new_password_path(resource_name) %><br />
+<% end %>
+
+<%- if devise_mapping.confirmable? && controller_name != 'confirmations' %>
+  <%= link_to "確認メールが届いていませんか？", new_confirmation_path(resource_name) %><br />
+<% end %>
+
+<%- if devise_mapping.lockable? && resource_class.unlock_strategy_enabled?(:email) && controller_name != 'unlocks' %>
+  <%= link_to "アカウントロック解除のメールが届いていませんか？", new_unlock_path(resource_name) %><br />
+<% end %>
+
+<%- if devise_mapping.omniauthable? %>
+  <%- resource_class.omniauth_providers.each do |provider| %>
+    <%= button_to "#{OmniAuth::Utils.camelize(provider)}でログイン", omniauth_authorize_path(resource_name, provider), data: { turbo: false } %><br />
+  <% end %>
+<% end %> 

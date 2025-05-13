@@ -1,4 +1,4 @@
-.PHONY: build up down restart logs ps clean db-create db-migrate db-reset bundle-install test
+.PHONY: build up down restart logs ps clean db-create db-migrate db-reset db-seed db-setup bundle-install test
 
 # Docker Compose コマンド
 build:
@@ -33,6 +33,12 @@ db-migrate:
 db-reset:
 	docker compose run --rm web bin/rails db:drop db:create db:migrate
 
+db-seed:
+	docker compose run --rm web bin/rails db:seed
+
+db-setup:
+	docker compose run --rm web bin/rails db:setup
+
 # アプリケーション関連コマンド
 bundle-install:
 	docker compose run --rm web bundle install
@@ -52,6 +58,12 @@ security-scan:
 
 lint:
 	docker compose run --rm web bin/rubocop
+
+lint-fix:
+	docker compose run --rm web bin/rubocop -a
+
+lint-fix-unsafe:
+	docker compose run --rm web bin/rubocop -A
 
 test-all:
 	docker compose run --rm -e DISABLE_DATABASE_ENVIRONMENT_CHECK=1 web bin/rails db:test:prepare
@@ -85,11 +97,15 @@ help:
 	@echo "  make db-create     - データベースを作成"
 	@echo "  make db-migrate    - マイグレーションを実行"
 	@echo "  make db-reset      - データベースをリセット"
+	@echo "  make db-seed       - シードデータを投入"
+	@echo "  make db-setup      - データベース作成、マイグレーション、シードを一括実行"
 	@echo "  make bundle-install - 依存関係をインストール"
 	@echo "  make test          - テストを実行"
 	@echo "  make ci            - CIチェックをすべて実行（セキュリティスキャン、リント、テスト）"
 	@echo "  make security-scan - セキュリティスキャンを実行"
 	@echo "  make lint          - リントチェックを実行"
+	@echo "  make lint-fix      - 安全な自動修正を適用"
+	@echo "  make lint-fix-unsafe - すべての自動修正を適用（注意：破壊的変更の可能性あり）"
 	@echo "  make test-all      - すべてのテストを実行"
 	@echo "  make console       - Railsコンソールを起動"
 	@echo "  make routes        - ルーティングを表示"
