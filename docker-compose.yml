@@ -1,0 +1,70 @@
+version: "3.9"
+
+services:
+  web:
+    build: .
+    command: ./wait-for db:3306 -- bin/rails server -b '0.0.0.0'
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - bundle_cache:/usr/local/bundle
+    environment:
+      - RAILS_MAX_THREADS=5
+      - MYSQL_ROOT_PASSWORD=password
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app
+
+  db:
+    image: mysql:8.4
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=app_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app
+
+  redis:
+    image: redis:7
+    volumes:
+      - redis_data:/data
+    networks:
+      - app
+
+  backup:
+    image: mysql:8.4
+    volumes:
+      - ./backup:/backup
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=app_db
+    command: >
+      bash -c "
+        while true; do
+          sleep 86400;
+          mysqldump -h db -u root -ppassword app_db > /backup/backup-$$(date +%Y%m%d).sql;
+        done
+      "
+    depends_on:
+      - db
+    networks:
+      - app
+
+volumes:
+  mysql_data:
+  redis_data:
+  bundle_cache:
+
+networks:
+  app:
+    driver: bridge
