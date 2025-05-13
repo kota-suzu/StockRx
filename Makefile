@@ -40,6 +40,19 @@ bundle-install:
 test:
 	docker compose run --rm web bin/rails test
 
+# CI関連コマンド
+ci: security-scan lint test-all
+
+security-scan:
+	docker compose run --rm web bin/brakeman --no-pager
+	docker compose run --rm web bin/importmap audit
+
+lint:
+	docker compose run --rm web bin/rubocop
+
+test-all:
+	docker compose run --rm web bin/rails db:test:prepare test test:system
+
 # 開発用コマンド
 console:
 	docker compose run --rm web bin/rails console
@@ -69,6 +82,10 @@ help:
 	@echo "  make db-reset      - データベースをリセット"
 	@echo "  make bundle-install - 依存関係をインストール"
 	@echo "  make test          - テストを実行"
+	@echo "  make ci            - CIチェックをすべて実行（セキュリティスキャン、リント、テスト）"
+	@echo "  make security-scan - セキュリティスキャンを実行"
+	@echo "  make lint          - リントチェックを実行"
+	@echo "  make test-all      - すべてのテストを実行"
 	@echo "  make console       - Railsコンソールを起動"
 	@echo "  make routes        - ルーティングを表示"
 	@echo "  make backup        - データベースをバックアップ"
