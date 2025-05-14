@@ -18,6 +18,12 @@ module AdminControllers
       new_admin_session_path
     end
 
+    # TODO: 将来的な機能拡張
+    # - ログイン履歴の記録と表示
+    # - ブルートフォース攻撃対策の強化
+    # - 2要素認証の実装（devise-two-factor gem）
+    # - 同時セッション数の制限
+
     protected
 
     # セッションタイムアウト対応
