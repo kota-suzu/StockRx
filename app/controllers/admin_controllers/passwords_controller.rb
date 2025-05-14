@@ -8,6 +8,12 @@ module AdminControllers
     # Turbo対応: Rails 7でDeviseとTurboの互換性を確保
     # https://github.com/heartcombo/devise/issues/5439
 
+    # TODO: 将来的な機能拡張
+    # - パスワード有効期限の設定と管理（devise-securityと連携）
+    # - パスワード変更履歴の記録
+    # - パスワードリセットの通知強化（管理者や上位権限者への通知）
+    # - パスワードポリシーの段階的な強化
+
     protected
 
     # パスワードリセット後のリダイレクト先

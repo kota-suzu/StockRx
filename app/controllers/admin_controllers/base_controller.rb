@@ -19,6 +19,12 @@ module AdminControllers
     # コントローラモジュール名には「Controllers」サフィックスを使用して区別する
     # 例: UserモデルとUserControllersモジュールなど
 
+    # TODO: 将来的な機能拡張
+    # - 管理者権限レベルによるアクセス制御（role-based authorization）
+    # - 管理操作の監査ログ記録
+    # - 共通エラーハンドリング機能の実装
+    # - 多言語対応の基盤整備
+
     private
 
     # 現在ログイン中の管理者情報をビューで参照できるよう設定
