@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module AdminNamespace
+module AdminControllers
   # 管理者パスワードリセット処理用コントローラ
   class PasswordsController < Devise::PasswordsController
     layout "admin"
