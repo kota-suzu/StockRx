@@ -57,3 +57,11 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
+
+# 認証
+gem "devise", "~> 4.9"            # Rails 7.1 / Hotwire 対応版
+gem "devise-security", "~> 0.18"  # パスワード期限、強度検証機能など
+gem "devise-i18n", "~> 1.12"      # 日本語対応
+
+# 将来的な拡張用（コメントアウト状態）
+# gem 'devise-two-factor', '~> 5.1'  # 2要素認証（TOTP）

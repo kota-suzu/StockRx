@@ -1,0 +1,27 @@
+<div class="admin-change-password-container">
+  <h2>パスワードを変更する</h2>
+
+  <%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :put, data: { turbo: false } }) do |f| %>
+    <%= render "admin_controllers/shared/error_messages", resource: resource %>
+    <%= f.hidden_field :reset_password_token %>
+
+    <div class="field">
+      <%= f.label :password, "新しいパスワード" %><br />
+      <% if @minimum_password_length %>
+        <em>（<%= @minimum_password_length %>文字以上で、大文字・小文字・数字・記号を含めてください）</em><br />
+      <% end %>
+      <%= f.password_field :password, autofocus: true, autocomplete: "new-password" %>
+    </div>
+
+    <div class="field">
+      <%= f.label :password_confirmation, "新しいパスワード（確認用）" %><br />
+      <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
+    </div>
+
+    <div class="actions">
+      <%= f.submit "パスワードを変更する" %>
+    </div>
+  <% end %>
+
+  <%= render "admin_controllers/shared/links" %>
+</div> 

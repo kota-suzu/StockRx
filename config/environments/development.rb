@@ -43,6 +43,18 @@ Rails.application.configure do
 
   config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
 
+  # Devise用のメール設定を追加
+  config.action_mailer.delivery_method = :smtp
+  config.action_mailer.smtp_settings = {
+    address: ENV["SMTP_ADDRESS"] || "localhost",
+    port: ENV["SMTP_PORT"] || 1025,
+    domain: ENV["SMTP_DOMAIN"] || "localhost",
+    user_name: ENV["SMTP_USERNAME"],
+    password: ENV["SMTP_PASSWORD"],
+    authentication: ENV["SMTP_USERNAME"].present? ? "plain" : nil,
+    enable_starttls_auto: ENV["SMTP_USERNAME"].present?
+  }
+
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
 
