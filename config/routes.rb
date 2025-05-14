@@ -18,12 +18,12 @@ Rails.application.routes.draw do
              # :registerable は無効化するため不要
              skip: [ :registrations ],
              controllers: {
-               sessions: "admin_namespace/sessions",
-               passwords: "admin_namespace/passwords"
+               sessions: "admin_controllers/sessions",
+               passwords: "admin_controllers/passwords"
              }
 
   # 管理者ダッシュボード用のルーティング
-  namespace :admin, module: :admin_namespace do
+  namespace :admin, module: :admin_controllers do
     # ダッシュボードをルートに設定
     root "dashboard#index"
 

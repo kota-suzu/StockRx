@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module AdminNamespace
+module AdminControllers
   # 管理者ログイン・ログアウト処理用コントローラ
   class SessionsController < Devise::SessionsController
     layout "admin"

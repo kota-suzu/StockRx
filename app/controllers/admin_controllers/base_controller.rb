@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module AdminNamespace
+module AdminControllers
   # 管理者画面用のベースコントローラ
   # 全ての管理者向けコントローラはこのクラスを継承する
   class BaseController < ApplicationController
@@ -13,10 +13,11 @@ module AdminNamespace
     # 全ての管理者画面で共通のセットアップ処理
     before_action :set_admin_info
 
-    # TODO: コントローラの名前空間変更に伴い、今後以下の対応が必要
-    # 1. テスト（test/controllers/admin/）のディレクトリ構造も変更する
-    # 2. ビューのパス参照を修正する可能性を確認する
-    # 3. 管理者関連の権限機能を実装する際にコントローラ構造を見直す
+    # TODO: コントローラの命名規則
+    # AdminControllersモジュール名はAdminモデルとの名前衝突を避けるために使用
+    # 将来的な新しいモデル/コントローラの追加時にも同様の名前衝突に注意
+    # コントローラモジュール名には「Controllers」サフィックスを使用して区別する
+    # 例: UserモデルとUserControllersモジュールなど
 
     private
 
