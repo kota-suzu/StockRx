@@ -15,5 +15,11 @@ module AdminControllers
       # - 最近の注文一覧
       # - パフォーマンス指標のグラフ表示
     end
+
+    # TODO: コントローラディレクトリ構造の注意
+    # - コントローラファイルは app/controllers/admin_controllers/ 配下に配置する
+    # - モジュール名 AdminControllers と一致させること
+    # - ビューファイルも app/views/admin_controllers/ 配下に配置する
+    # - 新規コントローラ追加時も同様の構造を維持すること
   end
 end
