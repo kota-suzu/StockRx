@@ -1,5 +1,9 @@
 # TODO: Compose v2以降はversion属性不要。将来的な警告回避のため削除。
 # TODO: 環境変数は.envファイルに移動して管理する
+#       環境変数の管理方法：
+#       1. .env.templateファイルを.envにコピーする
+#       2. .envファイルに適切な値を設定する
+#       3. .envファイルはGit管理対象外（.gitignoreに追加済み）
 # TODO: バックアップの保存期間設定と古いバックアップの自動削除機能の追加
 # TODO: Redisのメモリ設定の最適化
 # TODO: セキュリティ強化（パスワードの環境変数化、SSL/TLS設定など）
@@ -34,6 +38,7 @@ services:
     networks:
       - app
     # TODO: 本番環境ではヘルスチェック追加
+    user: "1000:1000"  # rails ユーザーとして実行
 
   db:
     image: mysql:8.4
@@ -96,6 +101,8 @@ volumes:
   mysql_data:
   redis_data:
   bundle_cache:
+    # ホストマシンの設定に依存せず、Dockerボリュームを使用
+    # 権限問題を一般的な方法で解決
 
 networks:
   app:

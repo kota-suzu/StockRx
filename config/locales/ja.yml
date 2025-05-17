@@ -21,8 +21,55 @@ ja:
     am: "午前"
     pm: "午後"
 
+  number:
+    currency:
+      format:
+        unit: "¥"
+        format: "%u%n"
+        separator: "."
+        delimiter: ","
+        precision: 0
+        
   support:
     array:
       words_connector: "、"
       two_words_connector: "、"
-      last_word_connector: "、" 
+      last_word_connector: "、"
+      
+  # アクティブモデルのエラーメッセージ
+  activemodel:
+    errors:
+      messages:
+        too_short: "%{count}文字以上で入力してください"
+        missing_digit: "数字を含める必要があります"
+        missing_lower: "小文字を含める必要があります"
+        missing_upper: "大文字を含める必要があります"
+        missing_symbol: "記号を含める必要があります"
+  
+  # アクティブレコードのエラーメッセージ
+  activerecord:
+    models:
+      inventory: "在庫"
+      batch: "バッチ"
+      admin: "管理者"
+    attributes:
+      inventory:
+        name: "商品名"
+        quantity: "数量"
+        price: "価格"
+        status: "ステータス"
+      batch:
+        lot_code: "ロットコード"
+        quantity: "数量"
+        expires_on: "有効期限"
+      admin:
+        email: "メールアドレス"
+        password: "パスワード"
+        password_confirmation: "パスワード（確認）"
+    errors:
+      messages:
+        too_short: "%{count}文字以上で入力してください"
+        missing_digit: "数字を含める必要があります"
+        missing_lower: "小文字を含める必要があります"
+        missing_upper: "大文字を含める必要があります"
+        missing_symbol: "記号を含める必要があります" 
