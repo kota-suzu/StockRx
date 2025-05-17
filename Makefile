@@ -1,4 +1,4 @@
-.PHONY: build up down restart logs ps clean db-create db-migrate db-reset db-seed db-setup bundle-install test rspec
+.PHONY: build up down restart logs ps clean db-create db-migrate db-reset db-seed db-setup bundle-install test rspec perf-generate-csv perf-test-import perf-benchmark-batch
 
 # Docker Compose コマンド
 build:
@@ -92,6 +92,16 @@ backup:
 restore:
 	docker compose exec -T db mysql -u root -ppassword app_db < $(file)
 
+# パフォーマンステスト用コマンド
+perf-generate-csv:
+	docker compose run --rm web bin/rails performance:generate_csv
+
+perf-test-import:
+	docker compose run --rm web bin/rails performance:test_csv_import
+
+perf-benchmark-batch:
+	docker compose run --rm web bin/rails performance:benchmark_batch_sizes
+
 # ヘルプ
 help:
 	@echo "利用可能なコマンド:"
@@ -118,4 +128,7 @@ help:
 	@echo "  make console       - Railsコンソールを起動"
 	@echo "  make routes        - ルーティングを表示"
 	@echo "  make backup        - データベースをバックアップ"
-	@echo "  make restore file=FILE - バックアップから復元" 
+	@echo "  make restore file=FILE - バックアップから復元"
+	@echo "  make perf-generate-csv  - テスト用の1万行CSVファイルを生成"
+	@echo "  make perf-test-import   - CSVインポートのパフォーマンスをテスト"
+	@echo "  make perf-benchmark-batch - 異なるバッチサイズでCSVインポートをベンチマーク" 
