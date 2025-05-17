@@ -64,4 +64,18 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+
+  # テスト環境で許可するホスト
+  config.hosts << "www.example.com"
+
+  # Bulletの設定（テスト環境用）
+  config.after_initialize do
+    if defined?(Bullet)
+      Bullet.enable = true
+      Bullet.bullet_logger = true
+      Bullet.raise = true # N+1クエリが検出された場合に例外を発生させる
+      # 特定のN+1クエリを無視する場合はここで設定
+      # Bullet.add_safelist type: :n_plus_one_query, class_name: "Model", association: :association_name
+    end
+  end
 end

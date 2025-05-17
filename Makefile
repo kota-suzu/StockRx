@@ -1,4 +1,4 @@
-.PHONY: build up down restart logs ps clean db-create db-migrate db-reset db-seed db-setup bundle-install test
+.PHONY: build up down restart logs ps clean db-create db-migrate db-reset db-seed db-setup bundle-install test rspec
 
 # Docker Compose コマンド
 build:
@@ -41,13 +41,20 @@ db-setup:
 
 # アプリケーション関連コマンド
 bundle-install:
+	mkdir -p tmp/bundle_cache
+	chmod -R 777 tmp/bundle_cache
+	docker compose run --rm web bundle config set frozen false
 	docker compose run --rm web bundle install
 
 test:
 	docker compose run --rm web bin/rails test
 
+# RSpec関連コマンド
+rspec:
+	docker compose run --rm web bundle exec rspec
+
 # CI関連コマンド
-ci: security-scan lint test-all
+ci: bundle-install security-scan lint test-all
 
 security-scan:
 	docker compose run --rm web bin/brakeman --no-pager
@@ -69,6 +76,7 @@ test-all:
 	docker compose run --rm -e DISABLE_DATABASE_ENVIRONMENT_CHECK=1 web bin/rails db:test:prepare
 	docker compose run --rm web bin/rails test
 	docker compose run --rm web bin/rails test:system
+	docker compose run --rm web bundle exec rspec
 
 # 開発用コマンド
 console:
