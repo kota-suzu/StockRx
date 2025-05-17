@@ -33,6 +33,16 @@ Rails.application.routes.draw do
     # resources :settings
   end
 
+  # 在庫管理リソース（HTML/JSONレスポンス対応）
+  resources :inventories
+
+  # API用ルーティング（バージョニング対応）
+  namespace :api do
+    namespace :v1 do
+      resources :inventories, only: [ :index, :show, :create, :update, :destroy ]
+    end
+  end
+
   # アプリケーションのルートページ
   # 将来的にはユーザー向けページになる予定
   root "home#index"
