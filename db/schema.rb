@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_05_14_131442) do
+ActiveRecord::Schema[7.2].define(version: 2025_05_18_032901) do
   create_table "admins", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -54,5 +54,22 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_14_131442) do
     t.index ["name"], name: "index_inventories_on_name"
   end
 
+  create_table "inventory_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "inventory_id", null: false
+    t.integer "delta", null: false
+    t.string "operation_type", null: false
+    t.integer "previous_quantity", null: false
+    t.integer "current_quantity", null: false
+    t.text "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id"
+    t.index ["created_at"], name: "index_inventory_logs_on_created_at"
+    t.index ["inventory_id"], name: "index_inventory_logs_on_inventory_id"
+    t.index ["operation_type"], name: "index_inventory_logs_on_operation_type"
+    t.index ["user_id"], name: "index_inventory_logs_on_user_id"
+  end
+
   add_foreign_key "batches", "inventories", on_delete: :cascade
+  add_foreign_key "inventory_logs", "inventories"
 end

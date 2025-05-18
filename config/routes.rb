@@ -44,7 +44,17 @@ Rails.application.routes.draw do
   end
 
   # 在庫管理リソース（HTML/JSONレスポンス対応）
-  resources :inventories
+  resources :inventories do
+    resources :inventory_logs, only: [ :index ]
+  end
+
+  # 在庫ログリソース
+  resources :inventory_logs, only: [ :index, :show ] do
+    collection do
+      get :all
+      get "operation/:operation_type", to: "inventory_logs#by_operation", as: :operation
+    end
+  end
 
   # API用ルーティング（バージョニング対応）
   namespace :api do
