@@ -108,4 +108,38 @@ Rails.application.configure do
       # Bullet.skip_html_injection = false
     end
   end
+
+  # 開発環境でもエラーハンドリングをテスト可能にするための設定
+  # 特定のIPからのアクセス時だけ詳細エラーを表示（それ以外はproduction同様の動作に）
+
+  # ローカルIPまたは特定IPからのアクセス時のみ詳細エラー表示
+  local_ips = [ "127.0.0.1", "::1" ]  # localhost
+  config.web_console.permissions = local_ips
+
+  # デフォルトではローカルリクエストの場合に詳細なデバッグ情報を表示
+  # ここを false にするとプロダクション環境と同じエラーページが表示される
+  config.consider_all_requests_local = true
+
+  # 環境変数またはクエリパラメータでエラーページ表示モードを切り替え
+  # 例: http://localhost:3000/some_url?debug=0
+  config.after_initialize do
+    if ENV["ERROR_HANDLING_TEST"] == "1"
+      # ERROR_HANDLING_TEST=1 の場合は production 環境同様のエラーページ表示
+      config.consider_all_requests_local = false
+    end
+
+    ApplicationController.class_eval do
+      # デバッグクエリパラメータによる動的切替
+      prepend_before_action do
+        if params[:debug] == "0"
+          Rails.application.config.consider_all_requests_local = false
+        elsif params[:debug] == "1"
+          Rails.application.config.consider_all_requests_local = true
+        end
+      end
+    end
+  end
+
+  # エラーログの詳細度設定
+  config.log_level = :debug
 end
