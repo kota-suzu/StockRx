@@ -19,6 +19,12 @@ module AdminControllers
     # コントローラモジュール名には「Controllers」サフィックスを使用して区別する
     # 例: UserモデルとUserControllersモジュールなど
 
+    # TODO: エラーハンドリングとルーティングの注意点
+    # 1. 認証関連ルート（Devise）はカスタムエラーハンドリングルートより先に定義する
+    # 2. ワイルドカードルート（*path）は常に最後に定義する
+    # 3. 新規コントローラ追加時はルーティング順序に注意する
+    # 詳細は doc/error_handling_guide.md の「ルーティング順序の問題」を参照
+
     # TODO: 将来的な機能拡張
     # - 管理者権限レベルによるアクセス制御（role-based authorization）
     # - 管理操作の監査ログ記録
