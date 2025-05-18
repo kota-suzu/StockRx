@@ -1,0 +1,58 @@
+<%# 在庫フォーム %>
+<%= form_with(model: [:admin, inventory], class: "space-y-6") do |form| %>
+  <% if inventory.errors.any? %>
+    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-sm font-medium text-red-800">
+            入力内容にエラーがあります（<%= inventory.errors.count %>件）
+          </h3>
+          <div class="mt-2 text-sm text-red-700">
+            <ul class="list-disc pl-5">
+              <% inventory.errors.full_messages.each do |message| %>
+                <li><%= message %></li>
+              <% end %>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+      <%= form.label :name, "商品名", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= form.text_field :name, class: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
+    </div>
+
+    <div>
+      <%= form.label :status, "ステータス", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= form.select :status, Inventory::STATUSES.map { |k, _| [t("inventories.status.#{k}"), k] }, {}, class: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
+    </div>
+
+    <div>
+      <%= form.label :price, "価格", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <div class="relative rounded-md shadow-sm">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <span class="text-gray-500 sm:text-sm">￥</span>
+        </div>
+        <%= form.number_field :price, step: 1, min: 0, class: "pl-7 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
+      </div>
+    </div>
+
+    <div>
+      <%= form.label :quantity, "数量", class: "block text-sm font-medium text-gray-700 mb-1" %>
+      <%= form.number_field :quantity, step: 1, min: 0, class: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
+    </div>
+  </div>
+
+  <div class="flex justify-end space-x-3 pt-5">
+    <%= link_to "キャンセル", inventory.new_record? ? admin_inventories_path : admin_inventory_path(inventory), class: "py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+    <%= form.submit inventory.new_record? ? "登録する" : "更新する", class: "py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+  </div>
+<% end %> 

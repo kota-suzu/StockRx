@@ -15,10 +15,16 @@ class Admin < ApplicationRecord
   # 独自のパスワード強度チェックを追加
   validates :password, password_strength: true, if: :password_required?
 
-  # 将来的に追加したい機能:
-  # 1. Userモデルとの連携（ユーザーの作成・管理権限）
-  # 2. 2要素認証（devise-two-factor）
-  # 3. 権限レベル（admin/super_admin）による機能制限
+  # TODO: 認証・認可関連機能
+  # 1. ユーザーモデルの実装（一般スタッフ向け）
+  #    - Userモデルの作成と権限管理
+  #    - 管理者によるユーザーアカウント管理機能
+  # 2. 管理者権限レベルの実装
+  #    - admin/super_admin権限区分の追加
+  #    - 画面アクセス制御の詳細化
+  # 3. 2要素認証の導入
+  #    - devise-two-factor gemを利用
+  #    - QRコード生成とTOTPワンタイムパスワード
 
   private
 

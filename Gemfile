@@ -57,14 +57,14 @@ group :development, :test do
 
   # N+1問題検出
   gem "bullet"                         # N+1クエリ検出
+
+  # デコレータパターン実装用
+  gem "draper"                         # Decoratorパターン実装
 end
 
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
-
-  # デコレータパターン実装用
-  gem "draper"                         # Decoratorパターン実装
 end
 
 group :test do

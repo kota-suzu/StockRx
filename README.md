@@ -34,8 +34,13 @@ docker-compose exec web bin/rails db:setup
 ### コード構造
 
 - 管理者機能のコントローラは `AdminControllers` モジュール内に定義
-- モデルとコントローラの名前空間の衝突に注意（`Admin`モデルと`Admin`モジュールは共存できない）
-- モジュール名とディレクトリ構造を一致させる（例: `AdminControllers` → `app/controllers/admin_controllers/`）
+- 管理者向けヘルパーは `AdminHelpers` モジュール内に定義
+- モデルとコントローラ/ヘルパーの名前空間の衝突に注意
+  - `Admin`モデルと`Admin`モジュールは共存できない → `AdminControllers`や`AdminHelpers`を使用
+  - 同様に、他のモデル名と同名のモジュールを避ける（例: `User`モデルと`User`モジュール）
+- **重要**: モジュール名とディレクトリ構造を一致させる必要がある（Zeitwerk規約）
+  - `AdminControllers` → `app/controllers/admin_controllers/`
+  - `AdminHelpers` → `app/helpers/admin_helpers/`
 - 詳細な設計ガイドラインは `docs/design/` ディレクトリを参照
 
 ### 命名規則
@@ -44,10 +49,30 @@ docker-compose exec web bin/rails db:setup
 - コントローラ: 複数形、キャメルケース（例: `AdminControllers::ItemsController`）
 - テーブル: 複数形、スネークケース（例: `admins`, `inventory_items`）
 
+### パフォーマンステスト
+
+StockRxには大量データ処理のパフォーマンステストが含まれています：
+
+```bash
+# テスト用の1万行CSVファイルを生成
+make perf-generate-csv
+
+# CSVインポートの性能テスト実行（目標: 30秒以内で1万行処理）
+make perf-test-import
+
+# 異なるバッチサイズでのパフォーマンス比較
+make perf-benchmark-batch
+```
+
+前回のパフォーマンステスト結果：
+- CSVインポート（1万行）: 0.68秒
+- 最適バッチサイズ: 1000レコード（0.47秒）
+
 ## 重要な注意事項
 
-- **名前空間とディレクトリ構造**: Railsのオートロード機能は名前空間とディレクトリ構造の一致を前提としています
+- **名前空間とディレクトリ構造**: Railsの自動ロード機能（Zeitwerk）は名前空間とディレクトリ構造の一致を厳格に要求します
   - コントローラ名前空間はファイルパスに反映する必要があります
+  - ヘルパー名前空間もディレクトリ構造に合わせる必要があります
   - ビューディレクトリもコントローラの名前空間に合わせる必要があります
 
 ## 残タスク
@@ -62,13 +87,26 @@ docker-compose exec web bin/rails db:setup
 - [x] ロット管理 - モデル定義（Batchモデル）
 - [x] 商品マスタ管理（登録・編集・削除）UI実装
 - [x] 在庫入出庫管理 UI実装
+- [x] CSVインポート機能の実装と最適化
 - [ ] 在庫アラート機能（在庫切れ・期限切れ）
+  - [ ] メール通知機能
+  - [ ] 在庫切れ商品の自動レポート生成
+  - [ ] アラート閾値の設定インターフェース
 - [ ] バーコードスキャン対応
+  - [ ] バーコードでの商品検索機能
+  - [ ] QRコード生成機能
+  - [ ] モバイルスキャンアプリとの連携
 
 ### レポート機能
 - [ ] 在庫レポート生成
 - [ ] 利用状況分析
 - [ ] データエクスポート機能（CSV/Excel）
+
+### 高度な在庫分析機能
+- [ ] 在庫回転率の計算
+- [ ] 発注点（Reorder Point）の計算と通知
+- [ ] 需要予測と最適在庫レベルの提案
+- [ ] 履歴データに基づく季節変動分析
 
 ### インフラ関連
 - [ ] バックアップの保存期間設定と古いバックアップの自動削除
@@ -81,6 +119,11 @@ docker-compose exec web bin/rails db:setup
 - [x] レスポンシブデザイン対応
 - [ ] ダークモード対応
 - [ ] ユーザビリティテスト実施
+
+### テスト環境の整備
+- [ ] CapybaraとSeleniumの設定改善
+- [ ] Docker環境でのUIテスト対応
+- [ ] E2Eテストの実装
 
 ## ライセンス
 

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# ヘルパーモジュールの定義はhelpers.rbに移動しました
+
 # Draperのデコレータ設定
 if defined?(Draper) && defined?(ApplicationController)
   Draper.configure do |config|

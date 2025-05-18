@@ -27,8 +27,18 @@ Rails.application.routes.draw do
     # ダッシュボードをルートに設定
     root "dashboard#index"
 
+    # 在庫管理
+    resources :inventories do
+      collection do
+        get :import_form
+        post :import
+      end
+    end
+
+    # ジョブステータス確認用API
+    resources :job_statuses, only: [ :show ]
+
     # 今後の機能として追加予定のリソース
-    # resources :inventories
     # resources :reports
     # resources :settings
   end

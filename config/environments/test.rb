@@ -17,6 +17,10 @@ Rails.application.configure do
   # loading is working properly before deploying your code.
   config.eager_load = ENV["CI"].present?
 
+  # Zeitwerk関連の設定
+  config.autoloader = :zeitwerk
+  config.add_autoload_paths_to_load_path = false
+
   # Configure public file server for tests with Cache-Control for performance.
   config.public_file_server.headers = { "Cache-Control" => "public, max-age=#{1.hour.to_i}" }
 

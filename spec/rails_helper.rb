@@ -3,7 +3,22 @@
 # This file is copied to spec/ when you run 'rails generate rspec:install'
 require 'spec_helper'
 ENV['RAILS_ENV'] ||= 'test'
-require_relative '../config/environment'
+
+# 環境読み込み時のエラー対策
+begin
+  require_relative '../config/environment'
+rescue FrozenError => e
+  puts "警告: 凍結エラーが発生しました。キャッシュをクリアして再試行します。"
+  puts e.message
+  # キャッシュディレクトリを作成（存在しない場合）
+  require 'fileutils'
+  FileUtils.mkdir_p('tmp/cache') unless Dir.exist?('tmp/cache')
+  # キャッシュをクリア
+  FileUtils.rm_rf(Dir.glob('tmp/cache/*'))
+  # 再試行
+  require_relative '../config/environment'
+end
+
 # Prevent database truncation if the environment is production
 abort("The Rails environment is running in production mode!") if Rails.env.production?
 require 'rspec/rails'
@@ -20,6 +35,12 @@ SimpleCov.start 'rails' do
   add_filter '/vendor/'
   add_filter '/lib/tasks/'
 end
+
+# ヘルパーはアプリケーション起動時に自動読み込みされる
+# テスト実行時に特定のヘルパーを明示的に読み込む必要がある場合は
+# 以下のように追加：
+# require Rails.root.join('app/helpers/batches_helper')
+# require Rails.root.join('app/helpers/inventories_helper')
 
 # Requires supporting ruby files with custom matchers and macros, etc, in
 # spec/support/ and its subdirectories. Files matching `spec/**/*_spec.rb` are
@@ -61,6 +82,9 @@ RSpec.configure do |config|
   config.include Devise::Test::IntegrationHelpers, type: :request
   config.include Devise::Test::IntegrationHelpers, type: :system
   config.include Devise::Test::IntegrationHelpers, type: :feature
+
+  # Draper用のヘルパー設定
+  config.include Draper::ViewHelpers, type: :decorator
 
   # DatabaseCleaner設定
   config.before(:suite) do

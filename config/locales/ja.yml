@@ -72,4 +72,29 @@ ja:
         missing_digit: "数字を含める必要があります"
         missing_lower: "小文字を含める必要があります"
         missing_upper: "大文字を含める必要があります"
-        missing_symbol: "記号を含める必要があります" 
+        missing_symbol: "記号を含める必要があります"
+  
+  # 在庫管理関連の翻訳
+  inventories:
+    status:
+      active: "有効"
+      archived: "アーカイブ"
+    alert:
+      out_of_stock: "在庫切れ"
+      low_stock: "在庫残りわずか"
+      expired: "期限切れ"
+      expiring_soon: "期限間近"
+    import:
+      success: "%{count}件のデータがインポートされました"
+      invalid_records: "%{count}件の無効なデータがありました"
+      no_file: "ファイルを選択してください"
+      started: "CSVインポートを開始しました。処理完了後に通知されます"
+      completed: "CSVインポートが完了しました（処理時間: %{duration}秒）"
+      error: "CSVインポート中にエラーが発生しました: %{message}"
+      
+  # バッチ関連の翻訳
+  batches:
+    status:
+      normal: "正常"
+      expired: "期限切れ"
+      expiring_soon: "期限間近" 
