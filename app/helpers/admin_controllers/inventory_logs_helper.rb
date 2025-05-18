@@ -1,0 +1,2 @@
+module AdminControllers::InventoryLogsHelper
+end

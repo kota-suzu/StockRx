@@ -87,3 +87,5 @@ gem "devise-i18n", "~> 1.12"      # 日本語対応
 # gem "ransack"                      # 高度な検索機能
 # gem "paper_trail"                  # モデル変更履歴管理
 # gem "attr_encrypted"               # 属性の暗号化
+
+gem "kaminari", "~> 1.2"            # ページネーション

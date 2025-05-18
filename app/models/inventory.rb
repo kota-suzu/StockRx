@@ -2,6 +2,7 @@ require "csv"
 
 class Inventory < ApplicationRecord
   has_many :batches, dependent: :destroy
+  has_many :inventory_logs, dependent: :destroy
 
   # ステータス定義（Rails 8.0向けに更新）
   enum :status, { active: 0, archived: 1 }
@@ -11,6 +12,9 @@ class Inventory < ApplicationRecord
   validates :name, presence: true
   validates :price, numericality: { greater_than_or_equal_to: 0 }
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }
+
+  # コールバック
+  after_save :log_inventory_changes, if: :saved_change_to_quantity?
 
   # スコープ
   scope :active, -> { where(status: :active) }
@@ -23,14 +27,19 @@ class Inventory < ApplicationRecord
     # @param file [ActionDispatch::Http::UploadedFile|String] CSVファイルまたはファイルパス
     # @param options [Hash] インポートオプション
     # @option options [Integer] :batch_size バッチサイズ（デフォルト1000件）
+    # @option options [Boolean] :update_existing 既存レコードを更新するかどうか（デフォルトfalse）
+    # @option options [String] :unique_key 既存レコード識別に使用するキー（デフォルト'name'）
     # @return [Hash] インポート結果
     def import_from_csv(file, options = {})
       # オプションの初期値設定
       batch_size = options[:batch_size] || 1000
+      update_existing = options[:update_existing] || false
+      unique_key = options[:unique_key] || "name"
 
       # CSVデータの検証
       valid_records = []
       invalid_records = []
+      update_records = []
 
       # ファイルパスまたはアップロードされたファイルを処理
       file_path = file.respond_to?(:path) ? file.path : file
@@ -44,31 +53,71 @@ class Inventory < ApplicationRecord
             status_value = "active" # デフォルト値を使用
           end
 
-          inventory = new(
-            name: row["name"],
-            quantity: row["quantity"].to_i,
-            price: row["price"].to_f,
-            status: status_value
-          )
-
-          if inventory.valid?
-            valid_records << inventory
-          else
-            invalid_records << { row: row, errors: inventory.errors.full_messages }
+          # 既存レコードの検索（更新モードの場合）
+          existing_record = nil
+          if update_existing && row[unique_key].present?
+            # 安全なクエリのために許可されたカラム名かチェック
+            if %w[name code sku barcode].include?(unique_key)
+              # シンボルをカラム名として使用することでSQLインジェクションを防止
+              existing_record = where({ unique_key.to_sym => row[unique_key] }).first
+            else
+              # 許可されていないカラム名の場合はデフォルトのnameを使用
+              Rails.logger.warn("不正なunique_keyが指定されました: #{unique_key} - デフォルトの'name'を使用します")
+              existing_record = where(name: row["name"]).first
+            end
           end
 
-          # バッチサイズに達したらバルクインサート実行
+          if existing_record
+            # 既存レコードを更新
+            existing_record.assign_attributes(
+              quantity: row["quantity"].to_i,
+              price: row["price"].to_f,
+              status: status_value
+            )
+
+            if existing_record.valid?
+              update_records << existing_record
+            else
+              invalid_records << { row: row, errors: existing_record.errors.full_messages }
+            end
+          else
+            # 新規レコードを作成
+            inventory = new(
+              name: row["name"],
+              quantity: row["quantity"].to_i,
+              price: row["price"].to_f,
+              status: status_value
+            )
+
+            if inventory.valid?
+              valid_records << inventory
+            else
+              invalid_records << { row: row, errors: inventory.errors.full_messages }
+            end
+          end
+
+          # バッチサイズに達したら処理実行
           if valid_records.size >= batch_size
             bulk_insert(valid_records)
             valid_records = [] # バッファをクリア
           end
+
+          if update_records.size >= batch_size
+            bulk_update(update_records)
+            update_records = [] # バッファをクリア
+          end
         end
 
-        # 残りのレコードをバルクインサート
+        # 残りのレコードを処理
         bulk_insert(valid_records) if valid_records.present?
+        bulk_update(update_records) if update_records.present?
       end
 
-      { valid_count: valid_records.size, invalid_records: invalid_records }
+      {
+        valid_count: valid_records.size,
+        update_count: update_records.size,
+        invalid_records: invalid_records
+      }
     end
 
     private
@@ -78,18 +127,76 @@ class Inventory < ApplicationRecord
     def bulk_insert(records)
       return if records.blank?
 
-      # Rails 6+の場合はinsert_allを使用
-      Inventory.insert_all(
-        records.map { |record|
-          record.attributes.except("id", "created_at", "updated_at").merge(
-            created_at: Time.current,
-            updated_at: Time.current
-          )
-        }
-      )
+      # 挿入レコードの属性を収集
+      inventory_attributes = records.map do |record|
+        record.attributes.except("id", "created_at", "updated_at").merge(
+          created_at: Time.current,
+          updated_at: Time.current
+        )
+      end
 
-      # TODO: activerecord-importを使用する場合の実装（必要に応じて）
-      # 例: Inventory.import records, validate: false
+      # Rails 6+の場合はinsert_allを使用
+      result = Inventory.insert_all(inventory_attributes)
+
+      # 在庫ログ用のデータを作成（bulk_insertでは通常のコールバックが動作しないため）
+      create_bulk_inventory_logs(records, result.rows) if result.rows.present?
+
+      result
+    end
+
+    # バルクインサート後の在庫ログ一括作成
+    # @param records [Array<Inventory>] インサートしたInventoryオブジェクト
+    # @param inserted_ids [Array<Array>] insert_allの戻り値（主キーの配列）
+    def create_bulk_inventory_logs(records, inserted_ids)
+      return if records.blank? || inserted_ids.blank?
+
+      # ログ用の属性を作成
+      inventory_log_attributes = []
+
+      inserted_ids.each_with_index do |id_array, idx|
+        inventory_id = id_array.first  # MySQLの場合は一次元配列
+        record = records[idx]
+        next if record.blank?
+
+        inventory_log_attributes << {
+          inventory_id: inventory_id,
+          delta: record.quantity,  # 新規作成なので全量がdelta
+          operation_type: "add",   # 新規作成は常に追加
+          previous_quantity: 0,    # 新規なので前の数量は0
+          current_quantity: record.quantity,
+          user_id: defined?(Current) && Current.respond_to?(:user) ? Current.user&.id : nil,
+          note: "CSVインポートによる自動作成",
+          created_at: Time.current,
+          updated_at: Time.current
+        }
+      end
+
+      # ログをバルクインサート
+      InventoryLog.insert_all(inventory_log_attributes) if inventory_log_attributes.present?
+    rescue => e
+      # ログインサートエラーはメインの処理に影響を与えないよう捕捉
+      Rails.logger.error("CSVインポート後のログ記録エラー: #{e.message}")
+    end
+
+    # 既存レコードをバルク更新するプライベートメソッド
+    # @param records [Array<Inventory>] 更新するInventoryオブジェクトの配列
+    def bulk_update(records)
+      return if records.blank?
+
+      records.each do |record|
+        # 変更内容を保存
+        old_quantity = record.quantity_was || 0
+        new_quantity = record.quantity
+
+        # レコード更新（after_saveコールバックが発火）
+        record.save!
+
+        # 注：ここではlog_inventory_changesコールバックが自動で呼ばれるため、
+        # 明示的なログ追加は不要
+      end
+    rescue => e
+      Rails.logger.error("バルク更新エラー: #{e.message}")
+      raise e # トランザクションをロールバックするため再スロー
     end
   end
 
@@ -124,6 +231,54 @@ class Inventory < ApplicationRecord
     batches.expiring_soon(days)
   end
 
+  # 在庫数量変更時にログを記録するコールバックメソッド
+  private
+
+  def log_inventory_changes
+    previous_quantity = saved_change_to_quantity.first || 0
+    current_quantity = quantity
+    delta = current_quantity - previous_quantity
+
+    inventory_logs.create!(
+      delta: delta,
+      operation_type: determine_operation_type(delta),
+      previous_quantity: previous_quantity,
+      current_quantity: current_quantity,
+      # Current.userが設定されていない場合はnilのままでOK（optional: true）
+      user_id: defined?(Current) && Current.respond_to?(:user) ? Current.user&.id : nil,
+      note: "自動記録：数量変更"
+    )
+  rescue => e
+    # ログ記録に失敗しても在庫更新自体は続行する（エラーログに記録）
+    Rails.logger.error("在庫ログ記録エラー: #{e.message}")
+  end
+
+  def determine_operation_type(delta)
+    case
+    when delta > 0 then "add"
+    when delta < 0 then "remove"
+    else "adjust"
+    end
+  end
+
+  # ============================================
+  # TODO: 在庫ログ機能の拡張
+  # ============================================
+  # 1. アクティビティ分析機能
+  #    - 在庫変動パターンの可視化
+  #    - 操作の多いユーザーや製品の特定
+  #    - 操作頻度のレポート生成
+  #
+  # 2. アラート機能との連携
+  #    - 異常な在庫減少時の通知
+  #    - 指定閾値を超える減少操作の検出
+  #    - 定期的な在庫ログレポート生成
+  #
+  # 3. 監査証跡の強化
+  #    - ログのエクスポート機能強化（PDF形式など）
+  #    - 変更理由の入力機能
+  #    - ログの改ざん防止機能（ハッシュチェーンなど）
+  #
   # ============================================
   # TODO: 在庫アラート機能の実装
   # ============================================
