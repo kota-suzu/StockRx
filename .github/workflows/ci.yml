@@ -94,17 +94,18 @@ jobs:
 
       - name: Prepare cache directories
         run: |
-          # Rails 7.2対応：キャッシュ関連のディレクトリを準備
-          mkdir -p tmp/cache
-          mkdir -p tmp/cache/assets
-          mkdir -p tmp/storage
-          mkdir -p tmp/pids
-          # パーミッション問題を解決
-          chmod -R 777 tmp/cache
-          # bootsnap cacheを削除して確実に再ロード
-          rm -rf tmp/cache/bootsnap-*
+          # 完全にキャッシュを削除して問題を解決
+          rm -rf tmp/cache tmp/bootsnap* tmp/caching-dev.txt
+          
+          # 必要なディレクトリを作成
+          mkdir -p tmp/cache/assets tmp/storage tmp/pids
+          chmod -R 777 tmp/cache tmp/storage tmp/pids
+          
           # Zeitwerkのオートロード問題を回避
           touch tmp/restart.txt
+          
+          # Zeitwerkの自動ロードチェックを実行
+          bundle exec rails zeitwerk:check || true
 
       - name: Run tests
         env:
