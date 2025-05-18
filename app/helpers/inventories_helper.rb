@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
+# 在庫関連のヘルパーメソッド
+# admin_helpers/inventories_helper.rbから移行
 module InventoriesHelper
-  # 管理画面の在庫関連ヘルパーメソッド
   # 在庫状態に応じた行のスタイルクラスを返す
   # @param inventory [Inventory] 在庫オブジェクト
   # @return [String] CSSクラス

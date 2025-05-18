@@ -45,6 +45,11 @@ COPY . .
 # 権限設定
 RUN chmod 666 Gemfile.lock
 
+# Rails 7.2対応: キャッシュディレクトリの作成と権限設定
+RUN mkdir -p tmp/cache tmp/cache/assets tmp/pids tmp/storage && \
+    chmod -R 777 tmp/cache && \
+    touch tmp/restart.txt
+
 # Switch to the rails user for bundle install
 USER rails
 
