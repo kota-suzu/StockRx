@@ -1,0 +1,24 @@
+en:
+  errors:
+    # HTTP status code messages
+    status:
+      400: "Bad Request"
+      401: "Unauthorized"
+      403: "Forbidden"
+      404: "Not Found"
+      409: "Conflict"
+      422: "Unprocessable Entity"
+      429: "Too Many Requests"
+      500: "Internal Server Error"
+      503: "Service Unavailable"
+    
+    # Error code messages
+    code:
+      resource_not_found: "The requested resource was not found"
+      validation_error: "There were validation errors"
+      parameter_missing: "Required parameter is missing"
+      forbidden: "You don't have permission to perform this action"
+      bad_request: "The request contains invalid parameters"
+      too_many_requests: "You have made too many requests. Please wait before trying again"
+      internal_server_error: "An internal server error occurred"
+      conflict: "The operation conflicts with the current state. Please refresh and try again" 

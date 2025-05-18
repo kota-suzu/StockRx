@@ -1,4 +1,4 @@
-.PHONY: build up down restart logs ps clean db-create db-migrate db-reset db-seed db-setup bundle-install test rspec perf-generate-csv perf-test-import perf-benchmark-batch
+.PHONY: build up down restart logs ps clean db-create db-migrate db-reset db-seed db-setup bundle-install test rspec perf-generate-csv perf-test-import perf-benchmark-batch test-error-handling
 
 # Docker Compose コマンド
 build:
@@ -12,6 +12,9 @@ down:
 
 restart:
 	docker compose restart
+
+setup:
+	docker compose run --rm web bin/rails db:create db:migrate db:seed
 
 logs:
 	docker compose logs -f
@@ -78,6 +81,15 @@ test-all:
 	docker compose run --rm web bin/rails test:system
 	docker compose run --rm web bundle exec rspec
 
+# エラーハンドリングテスト用コマンド
+test-error-handling:
+	@echo "=== 本番エラーページ表示モードで開発サーバー起動 ==="
+	@echo "ブラウザでエラーを発生させるURLを開いてテストしてください:"
+	@echo "  - 404エラー: http://localhost:3000/nonexistent"
+	@echo "  - 422エラー: Railsコンソールで invalid.save!"
+	@echo "  - 500エラー: http://localhost:3000/rails/info/routes?raise=true"
+	docker compose run --rm -e ERROR_HANDLING_TEST=1 -p 3000:3000 web bin/rails server -b 0.0.0.0
+
 # 開発用コマンド
 console:
 	docker compose run --rm web bin/rails console
@@ -131,4 +143,5 @@ help:
 	@echo "  make restore file=FILE - バックアップから復元"
 	@echo "  make perf-generate-csv  - テスト用の1万行CSVファイルを生成"
 	@echo "  make perf-test-import   - CSVインポートのパフォーマンスをテスト"
-	@echo "  make perf-benchmark-batch - 異なるバッチサイズでCSVインポートをベンチマーク" 
+	@echo "  make perf-benchmark-batch - 異なるバッチサイズでCSVインポートをベンチマーク"
+	@echo "  make test-error-handling - エラーハンドリング動作確認用サーバー起動" 

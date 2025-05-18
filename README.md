@@ -43,6 +43,48 @@ docker-compose exec web bin/rails db:setup
   - `AdminHelpers` → `app/helpers/admin_helpers/`
 - 詳細な設計ガイドラインは `docs/design/` ディレクトリを参照
 
+### HTTPステータスコードとエラーハンドリング
+
+本アプリケーションでは以下の方針に基づいたモジュラーなエラーハンドリングを実装しています：
+
+#### 方針
+
+1. **業務エラー** (入力ミス・権限不足等) → 4xx / バリデーションメッセージを返却
+2. **システムエラー** (バグ・外部障害等) → 5xx / 詳細はログと通知サービスへ
+3. `config.exceptions_app = routes` で **全例外をRailsルート配下で処理**
+4. **JSON API形式を統一** し、フロントエンドは `code` パラメータで判定可能
+5. HTML 422は描画せず、フォームは同一ページ再描画でUXを向上
+
+#### 実装フェーズと進捗
+
+| Phase | 内容 | 状態 | 成果物 |
+|-------|------|------|--------|
+| **1 基盤** | config.exceptions_app設定 / ErrorHandlersモジュール / 静的エラーページ | ✅ 完了 | app/controllers/concerns/error_handlers.rb<br>app/controllers/errors_controller.rb<br>app/views/errors/* |
+| **2 拡張** | 409,429対応 / JSON統一 / i18nメッセージ | ✅ 完了 | app/lib/custom_error.rb<br>config/locales/*.errors.yml |
+| **3 運用強化** | ログ強化 / Sentry連携 / レート制限 | 🔄 進行中 | - |
+| **4 将来** | 多言語エラーページ / キャッシュ戦略 | 📅 計画中 | - |
+
+#### 利用サンプル
+
+シンプルなエラーハンドリングの例：
+
+```ruby
+# 変更前：手動でエラーチェック
+def show
+  @inventory = Inventory.find_by(id: params[:id])
+  return head 404 if @inventory.nil?
+  # ...処理...
+end
+
+# 変更後：findメソッドの例外を活用
+def show
+  @inventory = Inventory.find(params[:id])  # RecordNotFound → 自動404
+  # ...処理...
+end
+```
+
+詳細な実装例は `doc/examples/error_handling_examples.rb` を参照してください。
+
 ### 命名規則
 
 - モデル: 単数形、キャメルケース（例: `Admin`, `InventoryItem`）
@@ -104,6 +146,17 @@ make perf-benchmark-batch
   - [ ] QRコード生成機能
   - [ ] モバイルスキャンアプリとの連携
 
+### エラーハンドリング関連
+- [x] ErrorHandlersモジュール実装
+- [x] エラーページコントローラ実装
+- [x] 静的エラーページ（404, 403, 500など）
+- [x] JSON API用エラーレスポンス統一
+- [x] i18n対応エラーメッセージ
+- [x] カスタムエラークラス実装
+- [ ] 運用監視強化（ログ・通知連携）
+- [ ] レート制限実装（429対応）
+- [ ] 多言語HTML対応
+
 ### レポート機能
 - [ ] 在庫レポート生成
 - [ ] 利用状況分析
@@ -131,6 +184,7 @@ make perf-benchmark-batch
 - [ ] CapybaraとSeleniumの設定改善
 - [ ] Docker環境でのUIテスト対応
 - [ ] E2Eテストの実装
+- [ ] エラーハンドリング用共通テスト実装
 
 ## 開発ガイドライン（追加）
 
