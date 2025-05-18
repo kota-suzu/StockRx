@@ -2,7 +2,7 @@
 
 module Api
   module V1
-    class InventoriesController < ApplicationController
+    class InventoriesController < Api::ApiController
       before_action :authenticate_admin!
       protect_from_forgery with: :null_session
       before_action :set_inventory, only: %i[show update destroy]
@@ -15,32 +15,66 @@ module Api
 
       # GET /api/v1/inventories/1
       def show
+        # すでにset_inventoryで@inventoryが設定されている
+        # エラーハンドリングはset_inventoryとErrorHandlersによって処理される
         render :show, formats: :json
       end
 
       # POST /api/v1/inventories
       def create
+        # 新規在庫を作成
         @inventory = Inventory.new(inventory_params)
 
-        if @inventory.save
-          render :show, status: :created, formats: :json
-        else
-          render json: { errors: @inventory.errors.full_messages }, status: :unprocessable_entity
+        # デモ用：レート制限チェック（ランダムに制限トリガー）
+        if rand(100) == 1 # 1%の確率でRateLimitExceededエラー発生
+          raise CustomError::RateLimitExceeded.new(
+            "短時間に多くのリクエストが行われました",
+            [ "30秒後に再試行してください" ]
+          )
         end
+
+        # save!はバリデーションエラーでActiveRecord::RecordInvalidが発生し、
+        # ErrorHandlersが422ハンドリングしてくれる
+        @inventory.save!
+
+        # 成功時は201 Created + リソースの内容を返却
+        render :show, status: :created, formats: :json
+      rescue ActiveRecord::RecordInvalid => e
+        # ErrorHandlersがこのエラーをハンドルするため、
+        # ここでのrescueは不要だが、デモ用に追加
+        raise e
       end
 
       # PATCH/PUT /api/v1/inventories/1
       def update
-        if @inventory.update(inventory_params)
-          render :show, formats: :json
-        else
-          render json: { errors: @inventory.errors.full_messages }, status: :unprocessable_entity
+        # すでにset_inventoryで@inventoryが設定されている
+
+        # 楽観的ロックのバージョンチェック（競合検出）
+        if params[:inventory][:lock_version].present? &&
+           params[:inventory][:lock_version].to_i != @inventory.lock_version
+
+          # カスタムエラーで409 Conflictを発生
+          raise CustomError::ResourceConflict.new(
+            "他のユーザーがこの在庫を更新しました。最新の情報で再試行してください。",
+            [ "同時編集が検出されました。画面をリロードして最新データを取得してください。" ]
+          )
         end
+
+        # update!はバリデーションエラーでActiveRecord::RecordInvalidが発生
+        @inventory.update!(inventory_params)
+
+        # 成功時は200 OK + 更新後リソースの内容を返却
+        render :show, formats: :json
       end
 
       # DELETE /api/v1/inventories/1
       def destroy
-        @inventory.destroy!
+        # すでにset_inventoryで@inventoryが設定されている
+
+        # 物理削除ではなく論理削除（ステータスを非アクティブに）
+        @inventory.archived!
+
+        # 成功時は204 No Content + 空ボディを返却
         head :no_content
       end
 
@@ -86,11 +120,13 @@ module Api
       private
 
       def set_inventory
+        # findメソッドはレコードが見つからない場合にActiveRecord::RecordNotFoundを発生させ、
+        # ErrorHandlersが404ハンドリングしてくれる
         @inventory = Inventory.find(params[:id]).decorate
       end
 
       def inventory_params
-        params.require(:inventory).permit(:name, :quantity, :price, :status)
+        params.require(:inventory).permit(:name, :quantity, :price, :status, :lock_version)
       end
     end
   end
