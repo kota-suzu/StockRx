@@ -92,13 +92,31 @@ jobs:
       - name: Install dependencies
         run: bundle install
 
+      - name: Prepare cache directories
+        run: |
+          # Rails 7.2対応：キャッシュ関連のディレクトリを準備
+          mkdir -p tmp/cache
+          mkdir -p tmp/cache/assets
+          mkdir -p tmp/storage
+          mkdir -p tmp/pids
+          # パーミッション問題を解決
+          chmod -R 777 tmp/cache
+          # bootsnap cacheを削除して確実に再ロード
+          rm -rf tmp/cache/bootsnap-*
+          # Zeitwerkのオートロード問題を回避
+          touch tmp/restart.txt
+
       - name: Run tests
         env:
           RAILS_ENV: test
           DATABASE_URL: mysql2://root@127.0.0.1:3306/stock_rx_test
           # REDIS_URL: redis://localhost:6379/0
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+          # Rails 7.2対応：環境変数で明示的に設定
+          RAILS_ZEITWERK_MISMATCHES: error
         run: |
+          # キャッシュをクリアして凍結エラーを回避
+          DISABLE_SPRING=1 bundle exec rails runner 'Rails.autoloaders.main.reload' || true
           bin/rails db:test:prepare
           bundle exec rspec
 

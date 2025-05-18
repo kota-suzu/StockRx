@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
+# バッチ関連のヘルパーメソッド
+# admin_helpers/batches_helper.rbから移行
 module BatchesHelper
-  # 管理画面のバッチ関連ヘルパーメソッド
   # バッチの状態に応じた行のスタイルクラスを返す
   # @param batch [Batch] バッチオブジェクト
   # @return [String] CSSクラス
