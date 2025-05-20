@@ -3,7 +3,7 @@ module CsvImportable
 
   module ClassMethods
     def import_from_csv(file_path, options = {})
-      require 'csv'
+      require "csv"
 
       default_options = {
         batch_size: 1000,
@@ -20,20 +20,20 @@ module CsvImportable
 
       Rails.logger.info("CSVインポート開始: #{file_path}")
 
-      CSV.foreach(file_path, headers: options[:headers], encoding: 'UTF-8') do |row|
+      CSV.foreach(file_path, headers: options[:headers], encoding: "UTF-8") do |row|
         attributes = row_to_attributes(row, options[:column_mapping])
         begin
           record = new(attributes)
 
           if record.valid?
-            records << record.attributes.except('id', 'created_at', 'updated_at')
+            records << record.attributes.except("id", "created_at", "updated_at")
           else
             invalid_records << { row: row.to_h, errors: record.errors.full_messages }
             # TODO: options[:skip_invalid] が true の場合、ここで next するか検討。
             # 現在のデフォルトは false なので、エラーがあっても処理は続行される（エラーとして記録される）。
           end
         rescue ArgumentError => e # enumなどで不正な値が来た場合
-          invalid_records << { row: row.to_h, errors: [e.message] }
+          invalid_records << { row: row.to_h, errors: [ e.message ] }
           # TODO: 同様に options[:skip_invalid] の挙動を考慮。
         end
 
@@ -60,7 +60,7 @@ module CsvImportable
         attribute_name = column_mapping[header] || header.to_s.underscore
         if column_names.include?(attribute_name)
           # statusカラムの場合、小文字に変換し前後の空白を除去してenumが正しく処理できるようにする
-          processed_value = (attribute_name == 'status' && value.is_a?(String)) ? value.strip.downcase : value
+          processed_value = (attribute_name == "status" && value.is_a?(String)) ? value.strip.downcase : value
           attributes[attribute_name] = processed_value
         end
       end
@@ -69,7 +69,7 @@ module CsvImportable
     end
 
     def export_to_csv(records = nil, options = {})
-      require 'csv'
+      require "csv"
 
       records ||= all
 

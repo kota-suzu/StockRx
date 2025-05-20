@@ -42,7 +42,7 @@ RSpec.describe Inventory, type: :model do
       file.close
       file.unlink
     end
-    
+
     it 'CSVデータを一括インポートできること' do
       result = Inventory.import_from_csv(file.path)
 

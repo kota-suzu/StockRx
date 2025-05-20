@@ -5,7 +5,7 @@ class Inventory < ApplicationRecord
   include BatchManageable
 
   # TODO: 2025-06 リリースまでに LOW_STOCK_THRESHOLD を settings テーブルへ移行
-  LOW_STOCK_THRESHOLD = ENV.fetch('LOW_STOCK_THRESHOLD', 5).to_i
+  LOW_STOCK_THRESHOLD = ENV.fetch("LOW_STOCK_THRESHOLD", 5).to_i
 
   # ステータス定義（Rails 8.0向けに更新）
   enum :status, { active: 0, archived: 1 }
@@ -21,9 +21,9 @@ class Inventory < ApplicationRecord
   # InventoryStatistics concern で定義されているスコープと重複する可能性があるため、
   # InventoryStatistics側の定義を優先するか、こちらでオーバーライドするかを検討。
   # ユーザー指示のコード片に基づき、こちらに定義します。
-  scope :out_of_stock, -> { where('quantity <= 0') }
-  scope :low_stock,    ->(t = LOW_STOCK_THRESHOLD) { where('quantity > 0 AND quantity <= ?', t) }
-  scope :normal_stock, ->(t = LOW_STOCK_THRESHOLD) { where('quantity > ?', t) }
+  scope :out_of_stock, -> { where("quantity <= 0") }
+  scope :low_stock,    ->(t = LOW_STOCK_THRESHOLD) { where("quantity > 0 AND quantity <= ?", t) }
+  scope :normal_stock, ->(t = LOW_STOCK_THRESHOLD) { where("quantity > ?", t) }
 
   # 在庫切れかどうかを判定するメソッド
   # InventoryStatistics concern のメソッドをオーバーライド
@@ -142,25 +142,25 @@ class Inventory < ApplicationRecord
   # TODO: CSV.import_from_csv → バッチ処理化して Sidekiq Queue 'imports' へ
   # TODO: 大量データインポート時のパフォーマンス改善のため activerecord-import gem の利用を検討
   def self.import_from_csv(file_path) # file_path を受け取るように変更 (RSpecのテストに合わせる)
-    require 'csv'
+    require "csv"
     imported_count = 0
     invalid_records = []
     # RSpecのテストでは file.path を渡しているため、file_path をそのまま使用
-    CSV.foreach(file_path, headers: true, encoding: 'UTF-8') do |row| # encoding指定を追加
+    CSV.foreach(file_path, headers: true, encoding: "UTF-8") do |row| # encoding指定を追加
       begin
         # status が enum で定義された値以外の場合、ArgumentError が発生するためハンドリング
-        status_value = row['status']
+        status_value = row["status"]
         # statusがnilまたは空文字の場合は'active'をデフォルトとする
-        status_value = 'active' if status_value.blank?
+        status_value = "active" if status_value.blank?
 
         inv = new(
-          name:     row['name'],
-          quantity: row['quantity'].to_i,
-          price:    row['price'].to_f,
+          name:     row["name"],
+          quantity: row["quantity"].to_i,
+          price:    row["price"].to_f,
           status:   status_value
         )
       rescue ArgumentError => e # 不正なstatus値の場合
-        invalid_records << { row: row.to_h, errors: [e.message] }
+        invalid_records << { row: row.to_h, errors: [ e.message ] }
         next # 次の行へ
       end
       inv.save ? imported_count += 1 : invalid_records << { row: row.to_h, errors: inv.errors.full_messages }

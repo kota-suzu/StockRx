@@ -25,7 +25,7 @@ module BatchManageable
     batches.order(:expires_on).each do |batch|
       break if remaining <= 0
 
-      use_from_batch = [batch.quantity, remaining].min
+      use_from_batch = [ batch.quantity, remaining ].min
       batch.update!(quantity: batch.quantity - use_from_batch)
       remaining -= use_from_batch
     end
@@ -39,11 +39,11 @@ module BatchManageable
   end
 
   def nearest_expiry_date
-    batches.where('quantity > 0').order(:expires_on).first&.expires_on
+    batches.where("quantity > 0").order(:expires_on).first&.expires_on
   end
 
   def expiring_batches(days = 30)
-    batches.expiring_soon(days).where('quantity > 0')
+    batches.expiring_soon(days).where("quantity > 0")
   end
 
   alias_method :expiring_soon_batches, :expiring_batches
@@ -65,17 +65,17 @@ module BatchManageable
   module ClassMethods
     def with_expiring_batches(days = 30)
       joins(:batches)
-        .where('batches.expires_on <= ?', Date.current + days.days)
-        .where('batches.quantity > 0')
+        .where("batches.expires_on <= ?", Date.current + days.days)
+        .where("batches.quantity > 0")
         .distinct
     end
 
     def batch_expiry_report
       joins(:batches)
-        .where('batches.quantity > 0')
-        .group('inventories.id')
-        .select('inventories.*, MIN(batches.expires_on) as nearest_expiry')
-        .order('nearest_expiry')
+        .where("batches.quantity > 0")
+        .group("inventories.id")
+        .select("inventories.*, MIN(batches.expires_on) as nearest_expiry")
+        .order("nearest_expiry")
     end
   end
 end

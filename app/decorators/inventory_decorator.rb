@@ -7,11 +7,11 @@ class InventoryDecorator < ApplicationDecorator
   # TODO: バッジの文言と色はi18n化を検討
   def alert_badge
     if object.out_of_stock?
-      badge('在庫切れ', 'bg-red-200 text-red-700')
+      badge("在庫切れ", "bg-red-200 text-red-700")
     elsif object.low_stock? # Inventoryモデルのlow_stock?が使われる
-      badge('要補充',  'bg-amber-200 text-red-600')
+      badge("要補充",  "bg-amber-200 text-red-600")
     else
-      badge('OK',    'bg-green-200 text-green-700')
+      badge("OK",    "bg-green-200 text-green-700")
     end
   end
 
@@ -31,16 +31,16 @@ class InventoryDecorator < ApplicationDecorator
 
   # 金額を通貨形式でフォーマットするメソッド
   def formatted_price
-    h.number_to_currency(object.price, unit: '¥', precision: 0) # RSpecのテスト `expect(inventory.formatted_price).to eq('¥1,234')` に合わせる
+    h.number_to_currency(object.price, unit: "¥", precision: 0) # RSpecのテスト `expect(inventory.formatted_price).to eq('¥1,234')` に合わせる
   end
 
   # ステータスに応じたバッジを返すメソッド
   def status_badge
     case object.status
-    when 'active'
-      badge('有効', 'bg-blue-200 text-blue-700') # 色は適宜調整
-    when 'archived'
-      badge('アーカイブ', 'bg-gray-200 text-gray-700') # 色は適宜調整
+    when "active"
+      badge("有効", "bg-blue-200 text-blue-700") # 色は適宜調整
+    when "archived"
+      badge("アーカイブ", "bg-gray-200 text-gray-700") # 色は適宜調整
     end
   end
 

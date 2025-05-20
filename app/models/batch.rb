@@ -1,6 +1,6 @@
 class Batch < ApplicationRecord
   include InventoryStatistics
-  
+
   belongs_to :inventory, optional: false
 
   # バリデーション
@@ -39,7 +39,7 @@ class Batch < ApplicationRecord
   def expired?
     expires_on.present? && expires_on < Date.current
   end
-  
+
   # 期限切れが近いかどうかを判定するメソッド（InventoryStatisticsでの実装を上書き）
   def expiring_soon?(days_threshold = 30)
     expires_on.present? && !expired? && expires_on <= Date.current + days_threshold.days

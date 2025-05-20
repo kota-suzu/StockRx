@@ -23,7 +23,7 @@ module InventoryLoggable
     delta = new_quantity - quantity
     return if delta.zero?
 
-    operation_type = delta.positive? ? 'add' : 'remove'
+    operation_type = delta.positive? ? "add" : "remove"
 
     with_transaction do
       update!(quantity: new_quantity)
@@ -45,7 +45,7 @@ module InventoryLoggable
       previous_quantity: previous_quantity,
       current_quantity: current_quantity,
       user_id: defined?(Current) && Current.respond_to?(:user) ? Current.user&.id : nil,
-      note: '自動記録：数量変更'
+      note: "自動記録：数量変更"
     )
   rescue => e
     Rails.logger.error("在庫ログ記録エラー: #{e.message}")
@@ -53,9 +53,9 @@ module InventoryLoggable
 
   def determine_operation_type(delta)
     case
-    when delta > 0 then 'add'
-    when delta < 0 then 'remove'
-    else 'adjust'
+    when delta > 0 then "add"
+    when delta < 0 then "remove"
+    else "adjust"
     end
   end
 
@@ -67,15 +67,15 @@ module InventoryLoggable
     def recent_operations(limit = 50)
       includes(:inventory_logs, :batches)
         .joins(:inventory_logs)
-        .order('inventory_logs.created_at DESC')
+        .order("inventory_logs.created_at DESC")
         .limit(limit)
     end
 
     def operation_summary(start_date = 30.days.ago, end_date = Time.current)
       joins(:inventory_logs)
-        .where('inventory_logs.created_at BETWEEN ? AND ?', start_date, end_date)
-        .group('inventory_logs.operation_type')
-        .select('inventory_logs.operation_type, COUNT(*) as count, SUM(ABS(inventory_logs.delta)) as total_quantity')
+        .where("inventory_logs.created_at BETWEEN ? AND ?", start_date, end_date)
+        .group("inventory_logs.operation_type")
+        .select("inventory_logs.operation_type, COUNT(*) as count, SUM(ABS(inventory_logs.delta)) as total_quantity")
     end
   end
 end
