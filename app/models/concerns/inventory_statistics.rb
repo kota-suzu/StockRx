@@ -1,14 +1,24 @@
 module InventoryStatistics
   extend ActiveSupport::Concern
 
+  # TODO: Consider making LOW_STOCK_DEFAULT_THRESHOLD a configurable application-wide setting
+  #       or ensure all models using this concern define `self.low_stock_threshold_value`.
+  LOW_STOCK_DEFAULT_THRESHOLD = 5
+
   included do
-    # Inventory モデル側でスコープが再定義されるため、ここではコメントアウトまたは削除を検討。
-    # ユーザー指示のコード片にはスコープ定義がないため、既存のものを残し、
-    # Inventory モデル側の定義が優先されることを期待します。
-    # ただし、Inventory モデルの LOW_STOCK_THRESHOLD を参照するように変更します。
-    scope :low_stock, ->(threshold = Inventory::LOW_STOCK_THRESHOLD) { where("quantity > 0 AND quantity <= ?", threshold) }
+    # These scopes provide default implementations.
+    # Including models (like Inventory) can override them if specific logic or thresholds are needed.
+    # The threshold parameter allows overriding on a per-call basis.
+    # For default threshold, it tries to call `self.low_stock_threshold_value` on the including class.
+    scope :low_stock, ->(custom_threshold = nil) {
+      threshold = custom_threshold || (respond_to?(:low_stock_threshold_value) ? low_stock_threshold_value : LOW_STOCK_DEFAULT_THRESHOLD)
+      where("quantity > 0 AND quantity <= ?", threshold)
+    }
     scope :out_of_stock, -> { where("quantity <= 0") } # Inventoryモデルの定義に合わせる
-    scope :normal_stock, ->(threshold = Inventory::LOW_STOCK_THRESHOLD) { where("quantity > ?", threshold) }
+    scope :normal_stock, ->(custom_threshold = nil) {
+      threshold = custom_threshold || (respond_to?(:low_stock_threshold_value) ? low_stock_threshold_value : LOW_STOCK_DEFAULT_THRESHOLD)
+      where("quantity > ?", threshold)
+    }
   end
 
   def low_stock?(threshold = nil)
