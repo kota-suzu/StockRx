@@ -137,6 +137,40 @@ class Inventory < ApplicationRecord
   #    - データ準備の自動化
   #    - テストカバレッジ向上策
 
-  # CSV 一括インポート機能はCsvImportableコンサーンから継承
-  # 冗長実装を避けるために独自実装を削除
+  # テスト互換性のため、元の実装に基づいたimport_from_csvを提供
+  def self.import_from_csv(file_path)
+    require "csv"
+    imported_count = 0
+    invalid_records = []
+    
+    CSV.foreach(file_path, headers: true, encoding: "UTF-8") do |row|
+      begin
+        # status が enum で定義された値以外の場合、ArgumentError が発生するためハンドリング
+        status_value = row["status"]
+        # statusがnilまたは空文字の場合は'active'をデフォルトとする
+        status_value = "active" if status_value.blank?
+
+        inv = new(
+          name:     row["name"],
+          quantity: row["quantity"].to_i,
+          price:    row["price"].to_f,
+          status:   status_value
+        )
+      rescue ArgumentError => e # 不正なstatus値の場合
+        invalid_records << { row: row.to_h, errors: [ e.message ] }
+        next # 次の行へ
+      end
+      inv.save ? imported_count += 1 : invalid_records << { row: row.to_h, errors: inv.errors.full_messages }
+    end
+    { imported: imported_count, invalid: invalid_records }
+  end
+
+  # CsvImportable concern に切り替えるための準備
+  # TODO: テストと互換性を持つように修正した後、CsvImportableの実装に切り替える
+  # CsvImportableのバルクインサート機能は以下の書き方で実行可能：
+  # Inventory.import_from_csv(file_path, { 
+  #   batch_size: 1000, 
+  #   headers: true,
+  #   column_mapping: { 'name' => 'name', 'quantity' => 'quantity', 'price' => 'price', 'status' => 'status' }
+  # })
 end

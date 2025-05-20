@@ -25,7 +25,10 @@ class ImportInventoriesJob < ApplicationJob
       total_lines = File.foreach(file_path).count - 1 # ヘッダーを除く
 
       # CSVインポート処理を実行
-      result = Inventory.import_from_csv(file_path, batch_size: 1000)
+      # CsvImportable を利用したい場合は以下のように指定
+      # result = Inventory.import_from_csv(file_path, { batch_size: 1000 })
+      # バッチ処理を使わない元の処理との互換性を維持するために
+      result = Inventory.import_from_csv(file_path)
 
       # 処理完了時間を計算
       duration = ((Time.current - start_time) / 1.second).round(2)
