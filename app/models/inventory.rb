@@ -137,34 +137,6 @@ class Inventory < ApplicationRecord
   #    - データ準備の自動化
   #    - テストカバレッジ向上策
 
-  # CSV 一括インポート
-  # CsvImportable concern のメソッドと重複するが、ユーザー指示のコード片を優先。
-  # TODO: CSV.import_from_csv → バッチ処理化して Sidekiq Queue 'imports' へ
-  # TODO: 大量データインポート時のパフォーマンス改善のため activerecord-import gem の利用を検討
-  def self.import_from_csv(file_path) # file_path を受け取るように変更 (RSpecのテストに合わせる)
-    require "csv"
-    imported_count = 0
-    invalid_records = []
-    # RSpecのテストでは file.path を渡しているため、file_path をそのまま使用
-    CSV.foreach(file_path, headers: true, encoding: "UTF-8") do |row| # encoding指定を追加
-      begin
-        # status が enum で定義された値以外の場合、ArgumentError が発生するためハンドリング
-        status_value = row["status"]
-        # statusがnilまたは空文字の場合は'active'をデフォルトとする
-        status_value = "active" if status_value.blank?
-
-        inv = new(
-          name:     row["name"],
-          quantity: row["quantity"].to_i,
-          price:    row["price"].to_f,
-          status:   status_value
-        )
-      rescue ArgumentError => e # 不正なstatus値の場合
-        invalid_records << { row: row.to_h, errors: [ e.message ] }
-        next # 次の行へ
-      end
-      inv.save ? imported_count += 1 : invalid_records << { row: row.to_h, errors: inv.errors.full_messages }
-    end
-    { imported: imported_count, invalid: invalid_records } # RSpecのテストに合わせる
-  end
+  # CSV 一括インポート機能はCsvImportableコンサーンから継承
+  # 冗長実装を避けるために独自実装を削除
 end

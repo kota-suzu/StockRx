@@ -39,15 +39,13 @@ module CsvImportable
 
         # バッチサイズに達したらバルクインサート
         if records.size >= options[:batch_size]
-          imported_count += bulk_insert(records).rows.count
+          imported_count += bulk_insert(records).count
           records = []
         end
       end
 
-      imported_count += bulk_insert(records).rows.count if records.any?
-      # TODO: bulk_insert(records).count の方が ActiveRecord 7.0 以降ではより正確かもしれません。
-      #       insert_all の返り値である ActiveRecord::Result オブジェクトの count メソッドは挿入された行数を返します。
-      #       現状の .rows.count でも動作するはずですが、ドキュメントと照らし合わせて確認を推奨します。
+      imported_count += bulk_insert(records).count if records.any?
+      # ActiveRecord 7.0 以降では.countメソッドで挿入された行数を取得
       Rails.logger.info("CSVインポート完了: #{imported_count}件取込, #{invalid_records.size}件エラー")
 
       { imported: imported_count, invalid: invalid_records }

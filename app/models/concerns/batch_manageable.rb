@@ -3,7 +3,8 @@ module BatchManageable
 
   included do
     has_many :batches, dependent: :destroy
-    after_save :sync_total_quantity, if: :saved_change_to_quantity?
+    # 直接 quantity を変更した場合に batches から計算し直すコールバックは削除
+    # add_batch, consume_batch で明示的に sync_total_quantity を呼び出すため
   end
 
   def add_batch(quantity, expiry_date = nil, batch_number = nil)
