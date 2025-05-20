@@ -155,13 +155,11 @@ RSpec.describe Inventory, type: :model do
   describe '#low_stock?' do
     it 'デフォルト閾値以下の場合はtrueを返すこと' do
       inventory = create(:inventory, quantity: 3)
-      allow(inventory).to receive(:low_stock_threshold).and_return(5)
       expect(inventory.low_stock?).to be true
     end
 
     it 'デフォルト閾値より多い場合はfalseを返すこと' do
       inventory = create(:inventory, quantity: 10)
-      allow(inventory).to receive(:low_stock_threshold).and_return(5)
       expect(inventory.low_stock?).to be false
     end
 
