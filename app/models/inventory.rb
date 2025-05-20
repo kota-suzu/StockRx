@@ -7,7 +7,9 @@ class Inventory < ApplicationRecord
   # TODO: 2025-06 リリースまでに LOW_STOCK_THRESHOLD を settings テーブルへ移行
   LOW_STOCK_THRESHOLD = ENV.fetch("LOW_STOCK_THRESHOLD", 5).to_i
 
-  # ステータス定義（Rails 8.0向けに更新）
+  # ステータス定義
+  # これにより :active, :archived スコープ (e.g., Inventory.active) 及び
+  # インスタンスメソッド (e.g., inventory.active?) が自動生成されます。
   enum :status, { active: 0, archived: 1 }
   STATUSES = statuses.keys.freeze # 不変保証
 
@@ -15,9 +17,7 @@ class Inventory < ApplicationRecord
   validates :name, presence: true
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }
   validates :price,    numericality: { greater_than_or_equal_to: 0 }
-
-  # スコープ
-  scope :active, -> { where(status: :active) }
+  # scope :active は上記の enum 定義により自動生成されます。
   # InventoryStatistics concern で定義されているスコープと重複する可能性があるため、
   # InventoryStatistics側の定義を優先するか、こちらでオーバーライドするかを検討。
   # ユーザー指示のコード片に基づき、こちらに定義します。
@@ -140,6 +140,9 @@ class Inventory < ApplicationRecord
   # CSV 一括インポート
   # CsvImportable concern のメソッドと重複するが、ユーザー指示のコード片を優先。
   # TODO: CSV.import_from_csv → バッチ処理化して Sidekiq Queue 'imports' へ
+  # TODO: CsvImportable concern の import_from_csv メソッドとの機能重複を解消し、
+  #       concern側の高機能な実装に寄せることを検討する。
+  #       現状は Inventory モデル独自の簡易的な実装が優先されている。
   # TODO: 大量データインポート時のパフォーマンス改善のため activerecord-import gem の利用を検討
   def self.import_from_csv(file_path) # file_path を受け取るように変更 (RSpecのテストに合わせる)
     require "csv"

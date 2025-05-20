@@ -1,7 +1,8 @@
 module InventoryStatistics
   extend ActiveSupport::Concern
 
-  # TODO: Consider making LOW_STOCK_DEFAULT_THRESHOLD a configurable application-wide setting
+  # TODO: LOW_STOCK_DEFAULT_THRESHOLD をアプリケーション全体で設定可能な値にするか、
+  #       Inventory モデルの LOW_STOCK_THRESHOLD との整合性を図り、設定を一元管理する (例: settings テーブルや設定ファイル)。
   #       or ensure all models using this concern define `self.low_stock_threshold_value`.
   LOW_STOCK_DEFAULT_THRESHOLD = 5
 
@@ -23,7 +24,10 @@ module InventoryStatistics
 
   def low_stock?(threshold = nil)
     # Inventoryモデル側でオーバーライドされる想定
-    threshold ||= respond_to?(:low_stock_threshold) ? low_stock_threshold : Inventory::LOW_STOCK_THRESHOLD
+    # TODO: Inventory::LOW_STOCK_THRESHOLD の直接参照は避けるべき。
+    #       代わりに、self.class.try(:low_stock_threshold_value) や self.try(:low_stock_threshold) を使用し、
+    #       それが未定義の場合に LOW_STOCK_DEFAULT_THRESHOLD を使うように修正する。
+    threshold ||= respond_to?(:low_stock_threshold) ? self.low_stock_threshold : Inventory::LOW_STOCK_THRESHOLD
     quantity > 0 && quantity <= threshold
   end
 
