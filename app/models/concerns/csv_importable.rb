@@ -31,7 +31,7 @@ module CsvImportable
         if attributes.empty? && row.fields.any?(&:present?)
           error_message = "Row resulted in empty attributes after mapping. CSV row: #{row.to_h}"
           Rails.logger.warn("CSV Import Warning for #{self.name}: #{error_message}")
-          invalid_record_details << { row: row.to_h, errors: [error_message], type: :mapping_error }
+          invalid_record_details << { row: row.to_h, errors: [ error_message ], type: :mapping_error }
           # Even if skip_invalid is false, an empty attribute hash won't create a valid record.
           # So, we skip attempting to instantiate it.
           next
@@ -50,7 +50,7 @@ module CsvImportable
             end
           end
         rescue ArgumentError => e # enumなどで不正な値が来た場合
-          invalid_record_details << { row: row.to_h, errors: [e.message], type: :argument_error }
+          invalid_record_details << { row: row.to_h, errors: [ e.message ], type: :argument_error }
           if options[:skip_invalid]
             Rails.logger.info "CSV Import for #{self.name}: Skipping record due to ArgumentError. Row: #{row.to_h}, Error: #{e.message}"
             next
@@ -136,7 +136,7 @@ module CsvImportable
       records_with_timestamps = records_attributes_array.map do |attrs|
         # Ensure all keys are strings for insert_all, consistent with record.attributes
         # and model column names.
-        attrs.stringify_keys.merge('created_at' => timestamp, 'updated_at' => timestamp)
+        attrs.stringify_keys.merge("created_at" => timestamp, "updated_at" => timestamp)
       end
       # TODO: Verify if .count is the correct method for the ActiveRecord::Result returned by insert_all
       # or if the direct return value (number of rows) is universally supported by the adapter.

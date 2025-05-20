@@ -35,13 +35,13 @@ class ImportInventoriesJob < ApplicationJob
         # Assuming CSV headers are lowercase and match model attributes directly.
         # If CSV headers are different (e.g., 'Product Name', 'Stock Quantity'),
         # update the keys here accordingly.
-        'name' => 'name',
-        'quantity' => 'quantity',
-        'price' => 'price',
-        'status' => 'status'
+        "name" => "name",
+        "quantity" => "quantity",
+        "price" => "price",
+        "status" => "status"
       }
       inventory_value_transformers = {
-        'status' => ->(value) {
+        "status" => ->(value) {
           # Example transformer: handles common string representations for status.
           normalized_value = value.to_s.downcase
           Inventory.statuses.key?(normalized_value) ? normalized_value : value
@@ -57,7 +57,7 @@ class ImportInventoriesJob < ApplicationJob
 
       # 処理完了時間を計算
       duration = ((Time.current - start_time) / 1.second).round(2)
-      
+
       # 処理完了を通知
       admin = Admin.find_by(id: admin_id)
       if admin.present?
