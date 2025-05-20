@@ -1,6 +1,8 @@
 require "csv"
 
 class Inventory < ApplicationRecord
+  include InventoryStatistics
+
   has_many :batches, dependent: :destroy
   has_many :inventory_logs, dependent: :destroy
 
@@ -18,8 +20,6 @@ class Inventory < ApplicationRecord
 
   # スコープ
   scope :active, -> { where(status: :active) }
-  scope :out_of_stock, -> { where(quantity: 0) }
-  scope :low_stock, ->(threshold = nil) { where("quantity > 0 AND quantity <= ?", threshold || 5) }
 
   # バルク登録用クラスメソッド
   class << self
@@ -205,21 +205,6 @@ class Inventory < ApplicationRecord
     batches.sum(:quantity)
   end
 
-  # 在庫切れかどうかを判定するメソッド
-  def out_of_stock?
-    quantity == 0
-  end
-
-  # 在庫が少ないかどうかを判定するメソッド（デフォルト閾値は5）
-  def low_stock?(threshold = nil)
-    threshold ||= low_stock_threshold
-    quantity > 0 && quantity <= threshold
-  end
-
-  # 在庫アラート閾値の設定（将来的には設定から取得するなど拡張予定）
-  def low_stock_threshold
-    5 # デフォルト値
-  end
 
   # 期限切れのバッチを取得するメソッド
   def expired_batches
