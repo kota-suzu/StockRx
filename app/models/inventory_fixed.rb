@@ -1,11 +1,9 @@
+# filepath: /Users/kota.suzuki/www/kota/StockRx/app/models/inventory.rb
 class Inventory < ApplicationRecord
   include InventoryStatistics
   include CsvImportable
   include InventoryLoggable
   include BatchManageable
-
-  # TODO: 2025-06 リリースまでに LOW_STOCK_THRESHOLD を settings テーブルへ移行
-  LOW_STOCK_THRESHOLD = ENV.fetch('LOW_STOCK_THRESHOLD', 5).to_i
 
   # ステータス定義（Rails 8.0向けに更新）
   enum :status, { active: 0, archived: 1 }
@@ -13,34 +11,72 @@ class Inventory < ApplicationRecord
 
   # バリデーション
   validates :name, presence: true
+  validates :price, numericality: { greater_than_or_equal_to: 0 }
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }
-  validates :price,    numericality: { greater_than_or_equal_to: 0 }
 
   # スコープ
   scope :active, -> { where(status: :active) }
-  # InventoryStatistics concern で定義されているスコープと重複する可能性があるため、
-  # InventoryStatistics側の定義を優先するか、こちらでオーバーライドするかを検討。
-  # ユーザー指示のコード片に基づき、こちらに定義します。
-  scope :out_of_stock, -> { where('quantity <= 0') }
-  scope :low_stock,    ->(t = LOW_STOCK_THRESHOLD) { where('quantity > 0 AND quantity <= ?', t) }
-  scope :normal_stock, ->(t = LOW_STOCK_THRESHOLD) { where('quantity > ?', t) }
+
+  # 在庫アラート閾値の設定（将来的には設定から取得するなど拡張予定）
+  def low_stock_threshold
+    5 # デフォルト値
+  end
+
+  # バッチの合計数量を取得するメソッド
+  def total_batch_quantity
+    batches.sum(:quantity)
+  end
 
   # 在庫切れかどうかを判定するメソッド
-  # InventoryStatistics concern のメソッドをオーバーライド
   def out_of_stock?
-    quantity <= 0
+    quantity == 0
   end
 
   # 在庫が少ないかどうかを判定するメソッド（デフォルト閾値は5）
-  # InventoryStatistics concern のメソッドをオーバーライド
   def low_stock?(threshold = nil)
-    threshold ||= LOW_STOCK_THRESHOLD
-    quantity.positive? && quantity <= threshold
+    threshold ||= low_stock_threshold
+    quantity > 0 && quantity <= threshold
   end
-  # BatchManageable concern に total_batch_quantity, expired_batches, expiring_soon_batches が定義されているため、
-  # Inventory モデル内の同名メソッドは削除します。
-  # InventoryLoggable concern に log_inventory_changes, determine_operation_type が定義されているため、
-  # Inventory モデル内の同名メソッドは削除します。
+
+  # 期限切れのバッチを取得するメソッド
+  def expired_batches
+    batches.expired
+  end
+
+  # 期限切れが近いバッチを取得するメソッド
+  def expiring_soon_batches(days = 30)
+    batches.expiring_soon(days)
+  end
+
+  # 在庫数量変更時にログを記録するコールバックメソッド
+  private
+
+  def log_inventory_changes
+    previous_quantity = saved_change_to_quantity.first || 0
+    current_quantity = quantity
+    delta = current_quantity - previous_quantity
+
+    inventory_logs.create!(
+      delta: delta,
+      operation_type: determine_operation_type(delta),
+      previous_quantity: previous_quantity,
+      current_quantity: current_quantity,
+      # Current.userが設定されていない場合はnilのままでOK（optional: true）
+      user_id: defined?(Current) && Current.respond_to?(:user) ? Current.user&.id : nil,
+      note: "自動記録：数量変更"
+    )
+  rescue => e
+    # ログ記録に失敗しても在庫更新自体は続行する（エラーログに記録）
+    Rails.logger.error("在庫ログ記録エラー: #{e.message}")
+  end
+
+  def determine_operation_type(delta)
+    case
+    when delta > 0 then "add"
+    when delta < 0 then "remove"
+    else "adjust"
+    end
+  end
 
   # ============================================
   # TODO: 在庫ログ機能の拡張
@@ -77,7 +113,7 @@ class Inventory < ApplicationRecord
   #    - 商品ごとのカスタム閾値設定
   #    - カテゴリごとの一括設定機能
   #    - 在庫回転率に基づく推奨閾値自動計算
-
+  #
   # ============================================
   # TODO: バーコードスキャン対応
   # ============================================
@@ -136,35 +172,4 @@ class Inventory < ApplicationRecord
   #    - 複雑な業務フローのE2Eテスト
   #    - データ準備の自動化
   #    - テストカバレッジ向上策
-
-  # CSV 一括インポート
-  # CsvImportable concern のメソッドと重複するが、ユーザー指示のコード片を優先。
-  # TODO: CSV.import_from_csv → バッチ処理化して Sidekiq Queue 'imports' へ
-  # TODO: 大量データインポート時のパフォーマンス改善のため activerecord-import gem の利用を検討
-  def self.import_from_csv(file_path) # file_path を受け取るように変更 (RSpecのテストに合わせる)
-    require 'csv'
-    imported_count = 0
-    invalid_records = []
-    # RSpecのテストでは file.path を渡しているため、file_path をそのまま使用
-    CSV.foreach(file_path, headers: true, encoding: 'UTF-8') do |row| # encoding指定を追加
-      begin
-        # status が enum で定義された値以外の場合、ArgumentError が発生するためハンドリング
-        status_value = row['status']
-        # statusがnilまたは空文字の場合は'active'をデフォルトとする
-        status_value = 'active' if status_value.blank?
-
-        inv = new(
-          name:     row['name'],
-          quantity: row['quantity'].to_i,
-          price:    row['price'].to_f,
-          status:   status_value
-        )
-      rescue ArgumentError => e # 不正なstatus値の場合
-        invalid_records << { row: row.to_h, errors: [e.message] }
-        next # 次の行へ
-      end
-      inv.save ? imported_count += 1 : invalid_records << { row: row.to_h, errors: inv.errors.full_messages }
-    end
-    { imported: imported_count, invalid: invalid_records } # RSpecのテストに合わせる
-  end
 end

@@ -38,8 +38,8 @@ namespace :performance do
     # 結果を表示
     puts "インポート完了："
     puts "  処理時間: #{duration} 秒"
-    puts "  成功件数: #{result[:valid_count]}"
-    puts "  失敗件数: #{result[:invalid_records].size}"
+    puts "  成功件数: #{result[:imported]}"
+    puts "  失敗件数: #{result[:invalid].size}"
     puts "  現在のインベントリ数: #{Inventory.count} (#{Inventory.count - initial_count} 件追加)"
 
     # 結果検証
@@ -83,12 +83,12 @@ namespace :performance do
       duration = (Time.current - start_time).round(2)
       results[batch_size] = {
         duration: duration,
-        valid_count: result[:valid_count],
-        invalid_count: result[:invalid_records].size
+        valid_count: result[:imported],
+        invalid_count: result[:invalid].size
       }
 
       puts "  処理時間: #{duration} 秒"
-      puts "  成功件数: #{result[:valid_count]}"
+      puts "  成功件数: #{result[:imported]}"
 
       # 次のテストの前に少し待機
       sleep 1

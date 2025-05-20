@@ -28,27 +28,25 @@ class ImportInventoriesJob < ApplicationJob
       result = Inventory.import_from_csv(file_path, batch_size: 1000)
 
       # 処理完了時間を計算
-      duration = ((Time.current - start_time) / 1.second).round(2)
+      duration = ((Time.current - start_time) / 1.second).round(2)        # 処理完了を通知
+        admin = Admin.find_by(id: admin_id)
+        if admin.present?
+          message = I18n.t("inventories.import.completed", duration: duration) + "\n" +
+                   I18n.t("inventories.import.success", count: result[:imported]) + " " +
+                   I18n.t("inventories.import.invalid_records", count: result[:invalid].size)
 
-      # 処理完了を通知
-      admin = Admin.find_by(id: admin_id)
-      if admin.present?
-        message = I18n.t("inventories.import.completed", duration: duration) + "\n" +
-                  I18n.t("inventories.import.success", count: result[:valid_count]) + " " +
-                  I18n.t("inventories.import.invalid_records", count: result[:invalid_records].size)
+          # ActionCableで通知（実装されていれば）
+          # ActionCable.server.broadcast("admin_#{admin_id}", { type: "csv_import_complete", message: message })
 
-        # ActionCableで通知（実装されていれば）
-        # ActionCable.server.broadcast("admin_#{admin_id}", { type: "csv_import_complete", message: message })
+          # TODO: メール通知機能を追加（大きなインポート処理向け）
+          # AdminMailer.csv_import_complete(admin, result).deliver_later
+        end
 
-        # TODO: メール通知機能を追加（大きなインポート処理向け）
-        # AdminMailer.csv_import_complete(admin, result).deliver_later
-      end
+        # 進捗100%を通知
+        notify_progress(100, admin_id, status_key)
 
-      # 進捗100%を通知
-      notify_progress(100, admin_id, status_key)
-
-      # ログに記録
-      Rails.logger.info "CSV import completed: #{result[:valid_count]} valid, #{result[:invalid_records].size} invalid. Duration: #{duration}s"
+        # ログに記録
+        Rails.logger.info "CSV import completed: #{result[:imported]} valid, #{result[:invalid].size} invalid. Duration: #{duration}s"
 
       # 一時ファイルを削除（必要に応じて）
       File.delete(file_path) if File.exist?(file_path) && !Rails.env.development?

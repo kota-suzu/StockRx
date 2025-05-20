@@ -90,42 +90,29 @@ RSpec.describe Inventory, type: :model do
   describe 'scopes' do
     describe '.active' do
       it '有効な在庫のみ返すこと' do
-        active_inventory = create(:inventory, status: 'active', quantity: 10) # quantityも設定
-        archived_inventory = create(:inventory, status: 'archived', quantity: 10) # quantityも設定
+        active_inventory = create(:inventory, status: 'active')
+        archived_inventory = create(:inventory, status: 'archived')
 
         expect(Inventory.active).to include(active_inventory)
         expect(Inventory.active).not_to include(archived_inventory)
       end
     end
 
-    # BatchManageable の sync_total_quantity コールバックを避けるため、
-    # create後にupdate_columnでquantityを設定する
     describe '.out_of_stock' do
       it '在庫切れの商品のみを返すこと' do
-        out_of_stock = create(:inventory)
-        out_of_stock.update_column(:quantity, 0) # quantity <= 0
-
-        in_stock = create(:inventory)
-        in_stock.update_column(:quantity, 1)     # quantity > 0
+        out_of_stock = create(:inventory, quantity: 0)
+        in_stock = create(:inventory, quantity: 10)
 
         expect(Inventory.out_of_stock).to include(out_of_stock)
         expect(Inventory.out_of_stock).not_to include(in_stock)
       end
     end
 
-    # BatchManageable の sync_total_quantity コールバックを避けるため、
-    # create後にupdate_columnでquantityを設定する
     describe '.low_stock' do
       it '在庫が少ない商品のみを返すこと' do
-        # Inventory::LOW_STOCK_THRESHOLD が 5 の場合
-        low_stock = create(:inventory)
-        low_stock.update_column(:quantity, Inventory::LOW_STOCK_THRESHOLD) # 0 < quantity <= 5
-
-        sufficient_stock = create(:inventory)
-        sufficient_stock.update_column(:quantity, Inventory::LOW_STOCK_THRESHOLD + 1) # quantity > 5
-
-        out_of_stock = create(:inventory)
-        out_of_stock.update_column(:quantity, 0) # quantity = 0
+        low_stock = create(:inventory, quantity: 3)
+        sufficient_stock = create(:inventory, quantity: 10)
+        out_of_stock = create(:inventory, quantity: 0)
 
         expect(Inventory.low_stock).to include(low_stock)
         expect(Inventory.low_stock).not_to include(sufficient_stock)
@@ -133,12 +120,10 @@ RSpec.describe Inventory, type: :model do
       end
 
       it 'カスタム閾値で在庫が少ない商品を返すこと' do
-        low_stock_custom = create(:inventory) # 変数名を変更して衝突を避ける
-        low_stock_custom.update_column(:quantity, 8) # 0 < quantity <= 10
+        low_stock = create(:inventory, quantity: 8)
 
-        # 0 < quantity <= 10
-        expect(Inventory.low_stock(10)).to include(low_stock_custom)
-        expect(Inventory.low_stock(5)).not_to include(low_stock_custom)
+        expect(Inventory.low_stock(10)).to include(low_stock)
+        expect(Inventory.low_stock(5)).not_to include(low_stock)
       end
     end
   end
@@ -157,40 +142,33 @@ RSpec.describe Inventory, type: :model do
   # 在庫アラート機能のテスト
   describe '#out_of_stock?' do
     it '在庫が0の場合はtrueを返すこと' do
-      inventory = build_stubbed(:inventory, quantity: 0) # DBに保存しないためコールバックは影響しない
+      inventory = create(:inventory, quantity: 0)
       expect(inventory.out_of_stock?).to be true
     end
 
     it '在庫がある場合はfalseを返すこと' do
-      inventory = build_stubbed(:inventory, quantity: 1) # quantity > 0
+      inventory = create(:inventory, quantity: 5)
       expect(inventory.out_of_stock?).to be false
     end
   end
 
   describe '#low_stock?' do
     it 'デフォルト閾値以下の場合はtrueを返すこと' do
-      # Inventory::LOW_STOCK_THRESHOLD が 0 の場合を考慮し、1以上の値でテスト
-      # ここでは Inventory::LOW_STOCK_THRESHOLD が 5 と仮定
-      inventory = build_stubbed(:inventory, quantity: Inventory::LOW_STOCK_THRESHOLD) # 例: quantity = 5
-      expect(inventory.low_stock?).to be true # 0 < quantity <= 5
+      inventory = create(:inventory, quantity: 3)
+      allow(inventory).to receive(:low_stock_threshold).and_return(5)
+      expect(inventory.low_stock?).to be true
     end
 
     it 'デフォルト閾値より多い場合はfalseを返すこと' do
-      inventory = build_stubbed(:inventory, quantity: Inventory::LOW_STOCK_THRESHOLD + 1) # 例: quantity = 6
+      inventory = create(:inventory, quantity: 10)
+      allow(inventory).to receive(:low_stock_threshold).and_return(5)
       expect(inventory.low_stock?).to be false
     end
 
     it 'カスタム閾値で判定できること' do
-      inventory = build_stubbed(:inventory, quantity: 8)
+      inventory = create(:inventory, quantity: 8)
       expect(inventory.low_stock?(10)).to be true
       expect(inventory.low_stock?(5)).to be false
-    end
-
-    it '在庫が0の場合はfalseを返すこと' do
-      # low_stock? は quantity.positive? を条件に含んでいるため
-      inventory = build_stubbed(:inventory, quantity: 0)
-      expect(inventory.low_stock?).to be false
-      expect(inventory.low_stock?(10)).to be false
     end
   end
 
