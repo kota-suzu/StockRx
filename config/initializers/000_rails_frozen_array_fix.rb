@@ -20,7 +20,7 @@ module Rails
   class Engine
     class << self
       alias_method :original_paths, :paths
-      
+
       def paths
         @paths ||= begin
           paths = original_paths
@@ -35,7 +35,7 @@ module Rails
       end
     end
   end
-  
+
   class Application
     # configオブジェクトを安全に扱うためのメソッドを追加
     def self.safe_config
@@ -64,7 +64,7 @@ module ArrayFreezeGuard
   def <<(obj)
     # 凍結されている場合は、新しい配列を作成して処理
     if frozen?
-      self.class.new(to_a + [obj])
+      self.class.new(to_a + [ obj ])
     else
       super
     end
@@ -74,17 +74,17 @@ end
 # 初期化時に明示的に対応
 if Rails.env.test? || Rails.env.development?
   puts "Rails 7.2用の凍結配列対策を有効化しています..."
-  
+
   # autoload_pathsが凍結されていれば安全なコピーを作成
   if Rails.application.config.autoload_paths.frozen?
     Rails.application.config.autoload_paths = Rails.application.config.autoload_paths.dup
   end
-  
+
   # eager_load_pathsが凍結されていれば安全なコピーを作成
   if Rails.application.config.eager_load_paths.frozen?
     Rails.application.config.eager_load_paths = Rails.application.config.eager_load_paths.dup
   end
-  
+
   # 全ての初期化ファイルが機能する前に凍結配列対策を実施
   begin
     # パッチ適用を試みる
