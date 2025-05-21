@@ -88,24 +88,26 @@ jobs:
         with:
           ruby-version: .ruby-version
           bundler-cache: true
-
+      
       - name: Install dependencies
         run: bundle install
 
+      - name: Clear Bootsnap cache # CIフリーズ対策 (FrozenError) のため追加
+        run: bin/rails bootsnap:clear
+
       - name: Prepare cache directories
         run: |
-          # 完全にキャッシュを削除して問題を解決
-          rm -rf tmp/cache tmp/bootsnap* tmp/caching-dev.txt
+          # キャッシュディレクトリを準備
+          rm -rf tmp/cache tmp/caching-dev.txt
           
           # 必要なディレクトリを作成
           mkdir -p tmp/cache/assets tmp/storage tmp/pids
-          chmod -R 777 tmp/cache tmp/storage tmp/pids
           
           # Zeitwerkのオートロード問題を回避
           touch tmp/restart.txt
           
-          # Zeitwerkの自動ロードチェックを実行
-          bundle exec rails zeitwerk:check || true
+      - name: Zeitwerk check
+        run: bundle exec rails zeitwerk:check || true
 
       - name: Run tests
         env:
