@@ -15,7 +15,7 @@ class Batch < ApplicationRecord
   scope :not_expired, -> { where("expires_on >= ? OR expires_on IS NULL", Date.current) }
   scope :expiring_soon, ->(days = 30) { where("expires_on BETWEEN ? AND ?", Date.current, Date.current + days.days) }
   scope :out_of_stock, -> { where(quantity: 0) }
-  scope :low_stock, ->(threshold = nil) { where("quantity > 0 AND quantity <= ?", threshold || 5) }
+  scope :low_stock, ->(threshold = Inventory::LOW_STOCK_THRESHOLD) { where("quantity > 0 AND quantity <= ?", threshold) }
   scope :normal_stock, ->(threshold = 5) { where("quantity > ?", threshold) }
 
   # TODO: 期限切れアラート機能の実装
@@ -45,8 +45,14 @@ class Batch < ApplicationRecord
     expires_on.present? && !expired? && expires_on <= Date.current + days_threshold.days
   end
 
-  # 在庫アラート閾値の設定
+  # 在庫が少ないかどうかを判定するメソッド
+  def low_stock?(threshold = nil)
+    threshold ||= low_stock_threshold
+    quantity.positive? && quantity <= threshold
+  end
+
+  # 低在庫しきい値を取得するメソッド
   def low_stock_threshold
-    5 # デフォルト値
+    Inventory::LOW_STOCK_THRESHOLD
   end
 end

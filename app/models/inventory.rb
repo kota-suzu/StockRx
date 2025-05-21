@@ -1,3 +1,5 @@
+require "csv" # CSVライブラリの読み込みをファイルの先頭に移動
+
 class Inventory < ApplicationRecord
   include InventoryStatistics
   include CsvImportable
@@ -5,11 +7,16 @@ class Inventory < ApplicationRecord
   include BatchManageable
 
   # TODO: 2025-06 リリースまでに LOW_STOCK_THRESHOLD を settings テーブルへ移行
-  LOW_STOCK_THRESHOLD = ENV.fetch("LOW_STOCK_THRESHOLD", 5).to_i
+  # To ensure consistent behavior for low stock calculations across all environments (local CI, GitHub Actions, etc.),
+  # we explicitly set LOW_STOCK_THRESHOLD to 5. This aligns with the previous default
+  # and removes potential discrepancies caused by differing ENV variable settings.
+  # If a configurable threshold is needed in the future, ensure the ENV variable is consistently set across all environments,
+  # or proceed with the TODO to move this to a settings table.
+  LOW_STOCK_THRESHOLD = 5
 
   # ステータス定義
   # これにより :active, :archived スコープ (e.g., Inventory.active) 及び
-  # インスタンスメソッド (e.g., inventory.active?) が自動生成されます。
+  # インスタンスメソッド (e.g., inventory.status_active?) が自動生成されます。
   enum :status, { active: 0, archived: 1 }
   STATUSES = statuses.keys.freeze # 不変保証
 
@@ -17,10 +24,11 @@ class Inventory < ApplicationRecord
   validates :name, presence: true
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }
   validates :price,    numericality: { greater_than_or_equal_to: 0 }
-  # scope :active は上記の enum 定義により自動生成されます。
-  # InventoryStatistics concern で定義されているスコープと重複する可能性があるため、
-  # InventoryStatistics側の定義を優先するか、こちらでオーバーライドするかを検討。
-  # ユーザー指示のコード片に基づき、こちらに定義します。
+
+  # スコープ定義
+  # enum :status により status_active, status_archived スコープが自動生成されます。
+  # activeスコープを追加
+  scope :active, -> { where(status: :active) }
   scope :out_of_stock, -> { where("quantity <= 0") }
   scope :low_stock,    ->(t = LOW_STOCK_THRESHOLD) { where("quantity > 0 AND quantity <= ?", t) }
   scope :normal_stock, ->(t = LOW_STOCK_THRESHOLD) { where("quantity > ?", t) }
@@ -139,13 +147,15 @@ class Inventory < ApplicationRecord
 
   # CSV 一括インポート
   # CsvImportable concern のメソッドと重複するが、ユーザー指示のコード片を優先。
-  # TODO: CSV.import_from_csv → バッチ処理化して Sidekiq Queue 'imports' へ
-  # TODO: CsvImportable concern の import_from_csv メソッドとの機能重複を解消し、
-  #       concern側の高機能な実装に寄せることを検討する。
-  #       現状は Inventory モデル独自の簡易的な実装が優先されている。
-  # TODO: 大量データインポート時のパフォーマンス改善のため activerecord-import gem の利用を検討
+  # TODO: [CSV Import Refactor]
+  #   - CsvImportable concern の import_from_csv メソッドとの機能重複を解消する。
+  #     - 現状は Inventory モデル独自の簡易的な実装が優先されているが、
+  #       concern側のより堅牢で汎用的な実装 (エラーハンドリング、ログ記録、コールバックなど) に統合することを検討する。
+  #     - どちらの実装を主とするか、または両者の良い点を組み合わせるかを決定する。
+  #   - 大量データインポート時のパフォーマンス改善のため activerecord-import gem の利用を検討する。
+  #   - CSV.import_from_csv の処理をバックグラウンドジョブ (例: Sidekiq) に移行し、
+  #     専用のキュー (例: 'imports') で処理することを検討する (特にファイルサイズが大きい場合)。
   def self.import_from_csv(file_path) # file_path を受け取るように変更 (RSpecのテストに合わせる)
-    require "csv"
     imported_count = 0
     invalid_records = []
     # RSpecのテストでは file.path を渡しているため、file_path をそのまま使用
