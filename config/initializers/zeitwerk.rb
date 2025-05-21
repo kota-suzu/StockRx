@@ -3,15 +3,8 @@
 # Zeitwerk設定ファイル
 # Rails 7.2以降の名前空間解決と凍結配列問題への対応
 
-# 1. Rails 7.2のfrozen array問題対策
-# --------------------------------
-# Rails 7.2以降で配列オブジェクトが凍結されるようになり、
-# autoload_pathsの変更が制限されるようになった問題への対策
-Rails.autoloaders.each do |autoloader|
-  def autoloader.mutate_autoload_paths
-    # frozen error回避のためのパッチ：何もしないオーバーライド
-  end
-end
+# 注意: Rails 7.2以降では初期化後のautoload_paths変更は不可となりました
+# 必要なパスの設定はconfig/application.rbで行ってください
 
 # 2. ディレクトリとモジュール構造のマッピング
 # ----------------------------------

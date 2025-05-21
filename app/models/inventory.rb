@@ -15,8 +15,7 @@ class Inventory < ApplicationRecord
   LOW_STOCK_THRESHOLD = 5
 
   # ステータス定義
-  # これにより :active, :archived スコープ (e.g., Inventory.active) 及び
-  # インスタンスメソッド (e.g., inventory.status_active?) が自動生成されます。
+  # インスタンスメソッド (e.g., inventory.active?) が自動生成されます
   enum :status, { active: 0, archived: 1 }
   STATUSES = statuses.keys.freeze # 不変保証
 
