@@ -19,19 +19,26 @@ end
 module Rails
   class Engine
     class << self
-      alias_method :original_paths, :paths
+      if method_defined?(:paths)
+        alias_method :original_paths, :paths
 
-      def paths
-        @paths ||= begin
-          paths = original_paths
-          # パスコレクションのデフォルトが凍結されているかチェック
-          if paths.default.frozen?
-            # 安全なコピーを作成
-            new_default = paths.default.dup
-            paths.instance_variable_set(:@default, new_default)
+        def paths
+          @paths ||= begin
+            paths = original_paths
+            # パスコレクションのデフォルトが凍結されているかチェック
+            if paths.respond_to?(:default) && paths.default.frozen?
+              # 安全なコピーを作成
+              new_default = paths.default.dup
+              paths.instance_variable_set(:@default, new_default)
+            end
+            paths
           end
-          paths
         end
+      else
+        # Rails 7.2.2.1以降では paths メソッドの構造が変わっている可能性があるため、
+        # 警告ログを出力して処理をスキップ
+        Rails.logger.warn "Rails::Engine does not have a 'paths' method. Skipping patch." rescue nil
+        puts "注意: Rails::Engine に 'paths' メソッドが存在しません。パッチをスキップします。"
       end
     end
   end

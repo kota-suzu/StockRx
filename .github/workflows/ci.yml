@@ -119,16 +119,21 @@ jobs:
           # bootsnapキャッシュクリアRakeタスクを実行（上記の手動削除がバックアップ）
           DISABLE_BOOTSNAP=true bin/rails bootsnap:clear || true
 
+      - name: Prepare for Rails 7.2 frozen array issue
+        run: |
+          # 既存の問題のある初期化ファイルをリネーム
+          if [ -f config/initializers/000_rails_frozen_array_fix.rb ]; then
+            mv config/initializers/000_rails_frozen_array_fix.rb config/initializers/000_rails_frozen_array_fix.rb.bak
+          fi
+          
       - name: Prepare cache directories
         run: |
           # 必要なディレクトリを作成
           mkdir -p tmp/cache/assets tmp/storage tmp/pids
           chmod -R 777 tmp
-          
+
       - name: Zeitwerk check
         run: bundle exec rails zeitwerk:check || true
-
-      - name: Run tests
         env:
           RAILS_ENV: test
           DATABASE_URL: mysql2://root@127.0.0.1:3306/stock_rx_test
