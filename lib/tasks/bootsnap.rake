@@ -11,16 +11,29 @@ namespace :bootsnap do
       "bootsnap-load-path-cache"
     ]
 
+    # 一度Bootsnapの無効化を試みる（可能であれば）
+    if defined?(Bootsnap) && Bootsnap.respond_to?(:unload)
+      puts "Unloading Bootsnap..."
+      Bootsnap.unload rescue nil
+    end
+
+    # キャッシュディレクトリの処理
+    puts "Removing all Bootsnap cache files..."
     bootsnap_dirs.each do |dir|
       target_dir = File.join(cache_dir, dir)
       if Dir.exist?(target_dir)
         puts "Clearing #{target_dir}..."
         # ディレクトリ内の全ファイルを削除
-        Dir.glob(File.join(target_dir, "**/*")).each do |cache_file|
-          File.delete(cache_file) if File.file?(cache_file)
-        end
+        FileUtils.rm_rf(target_dir) rescue nil
+        # ディレクトリを再作成して権限を設定
+        FileUtils.mkdir_p(target_dir) rescue nil
+        FileUtils.chmod(0777, target_dir) rescue nil
       end
     end
+
+    # Rails 7.2向けの追加対応：restart.txtの作成
+    restart_file = Rails.root.join("tmp/restart.txt")
+    FileUtils.touch(restart_file) if defined?(FileUtils)
 
     # Zeitwerkの再起動をサポート
     if defined?(Rails.autoloaders)
@@ -30,10 +43,9 @@ namespace :bootsnap do
       end
     end
 
-    # Rails 7.2向けの追加対応
-    restart_file = Rails.root.join("tmp/restart.txt")
-    FileUtils.touch(restart_file) if defined?(FileUtils)
+    puts "Bootsnap cache cleared. Application restart recommended."
 
-    puts "Bootsnap cache cleared."
+    # TODO: 2025年7月リリース後にRails 7.3以降の対応を追加
+    # Zeitwerk 3.0以降とBootsnap 2.0以降の互換性向上対応
   end
 end

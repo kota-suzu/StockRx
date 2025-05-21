@@ -17,7 +17,7 @@ class Inventory < ApplicationRecord
   # ステータス定義
   # prefixオプションを追加して、status_active?などのメソッド名に変更
   # これにより、active?メソッドが生成されず、モジュールとの競合を防ぎます
-  enum :status, { active: 0, archived: 1 }, _prefix: true
+  enum :status, { active: 0, archived: 1 }, prefix: true
   STATUSES = statuses.keys.freeze # 不変保証
 
   # バリデーション

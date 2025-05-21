@@ -17,7 +17,7 @@ RSpec.describe Inventory, type: :model do
 
   # enumのテスト
   describe 'enums' do
-    it { should define_enum_for(:status).with_values(active: 0, archived: 1) }
+    it { should define_enum_for(:status).with_values(active: 0, archived: 1).with_prefix }
   end
 
   # CSVインポート機能のテスト

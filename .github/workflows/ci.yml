@@ -96,21 +96,27 @@ jobs:
         run: |
           # まずtmpディレクトリが確実に存在することを確認
           mkdir -p tmp/cache
-          # bootsnapキャッシュクリア
-          bin/rails bootsnap:clear || true
-          # バックアップ手段として手動でbootsnapキャッシュディレクトリをクリア
+          
+          # すべてのbootsnapキャッシュディレクトリを強制的に削除
           rm -rf tmp/cache/bootsnap* || true
+          
+          # キャッシュディレクトリを再作成して権限を設定
+          mkdir -p tmp/cache/bootsnap
+          mkdir -p tmp/cache/bootsnap-compile-cache
+          mkdir -p tmp/cache/bootsnap-load-path-cache
+          chmod -R 777 tmp/cache
+          
+          # restart.txtを作成してアプリケーション再起動を促す
+          touch tmp/restart.txt
+          
+          # bootsnapキャッシュクリアRakeタスクを実行（上記の手動削除がバックアップ）
+          DISABLE_BOOTSNAP=true bin/rails bootsnap:clear || true
 
       - name: Prepare cache directories
         run: |
-          # キャッシュディレクトリを準備
-          rm -rf tmp/cache tmp/caching-dev.txt
-          
           # 必要なディレクトリを作成
           mkdir -p tmp/cache/assets tmp/storage tmp/pids
-          
-          # Zeitwerkのオートロード問題を回避
-          touch tmp/restart.txt
+          chmod -R 777 tmp
           
       - name: Zeitwerk check
         run: bundle exec rails zeitwerk:check || true
@@ -125,8 +131,12 @@ jobs:
           RAILS_ZEITWERK_MISMATCHES: error
         run: |
           # キャッシュをクリアして凍結エラーを回避
-          DISABLE_SPRING=1 bundle exec rails runner 'Rails.autoloaders.main.reload' || true
+          DISABLE_SPRING=1 DISABLE_BOOTSNAP=true bundle exec rails runner 'Rails.autoloaders.main.reload rescue nil' || true
+          
+          # データベース準備
           bin/rails db:test:prepare
+          
+          # テスト実行
           bundle exec rspec
 
       - name: Keep screenshots from failed system tests
