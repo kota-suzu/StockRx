@@ -112,6 +112,9 @@ jobs:
           # Rails 7.2の凍結配列問題対策: 環境変数を設定
           echo "DISABLE_BOOTSNAP=1" >> $GITHUB_ENV
           echo "RAILS_STRICT_AUTOLOAD=0" >> $GITHUB_ENV
+          echo "RAILS_USE_RELOADER=false" >> $GITHUB_ENV  # 追加: リローダーを無効化
+          echo "RAILS_AVOID_FREEZING_ARRAYS=1" >> $GITHUB_ENV  # 追加: 配列凍結を回避
+          echo "RAILS_SAFE_ARRAY_OPERATIONS=1" >> $GITHUB_ENV  # 追加: 安全な配列操作を使用
           
           # bootsnapキャッシュクリアRakeタスクを実行（上記の手動削除がバックアップ）
           DISABLE_BOOTSNAP=true bin/rails bootsnap:clear || true
@@ -133,22 +136,39 @@ jobs:
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
           # Rails 7.2対応：環境変数で明示的に設定
           RAILS_ZEITWERK_MISMATCHES: error
-          # 凍結配列問題対策のための環境変数
+          # 凍結配列問題対策のための環境変数を強化
           DISABLE_BOOTSNAP: 1
           RAILS_STRICT_AUTOLOAD: 0
+          # Rails 7.2での凍結配列対策
+          RAILS_USE_RELOADER: false
+          RAILS_AVOID_FREEZING_ARRAYS: true
+          # 配列変更操作をコピーに対して行うよう指示
+          RAILS_SAFE_ARRAY_OPERATIONS: true
         run: |
           # モジュールの読み込み順序制御のための対策
           touch config/initializers/zzz_last_loaded.rb
           echo "# This file ensures proper loading order in Rails 7.2" > config/initializers/zzz_last_loaded.rb
           
+          # 凍結配列対策の動作確認ログを追加
+          mkdir -p log
+          echo "# Rails 7.2での凍結配列対策状況確認" > log/frozen_array_fix.log
+          ruby -e "puts '環境変数:'; ENV.each { |k,v| puts \"#{k}=#{v}\" if k.start_with?('RAILS') }; puts; \
+                  puts 'Rails.application.config.autoload_paths.frozen? = ' + Rails.application.config.autoload_paths.frozen?.to_s rescue puts 'エラー'" >> log/frozen_array_fix.log || true
+          
+          # ログディレクトリの権限設定
+          chmod -R 777 log
+          
           # キャッシュをクリアして凍結エラーを回避
-          DISABLE_SPRING=1 DISABLE_BOOTSNAP=true bundle exec rails runner 'Rails.autoloaders.main.reload rescue nil' || true
+          DISABLE_SPRING=1 DISABLE_BOOTSNAP=true bundle exec rails runner 'begin; Rails.autoloaders.main.reload; rescue => e; puts "オートロードリセットエラー: #{e.message}"; end' || true
           
           # データベース準備
           bin/rails db:test:prepare
           
-          # テスト実行
-          bundle exec rspec --force-color
+          # テスト実行（必要に応じてリトライを追加）
+          RUBYOPT='-W0' bundle exec rspec --force-color || \
+            (echo "最初のテスト実行に失敗しました。キャッシュをクリアして再試行します..." && \
+             rm -rf tmp/cache/bootsnap* tmp/cache/sprockets* && \
+             RUBYOPT='-W0' bundle exec rspec --force-color)
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4

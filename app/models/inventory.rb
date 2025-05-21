@@ -17,7 +17,7 @@ class Inventory < ApplicationRecord
   # ステータス定義
   # prefixオプションを追加して、status_active?などのメソッド名に変更
   # これにより、active?メソッドが生成されず、モジュールとの競合を防ぎます
-  enum :status, { active: 0, archived: 1 }, prefix: true
+  enum status: { active: 0, archived: 1 }, prefix: true
   STATUSES = statuses.keys.freeze # 不変保証
 
   # バリデーション
@@ -26,7 +26,7 @@ class Inventory < ApplicationRecord
   validates :price,    numericality: { greater_than_or_equal_to: 0 }
 
   # スコープ定義
-  # enum :status により status_active, status_archived スコープが自動生成されます。
+  # enum status: により status_active, status_archived スコープが自動生成されます。
   # activeスコープをstatus_activeスコープを使用するように変更
   scope :active, -> { status_active }
   scope :out_of_stock, -> { where("quantity <= 0") }
