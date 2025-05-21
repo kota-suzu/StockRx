@@ -10,10 +10,10 @@ class InventoryFixed < ApplicationRecord
   include BatchManageable
 
   # ステータス定義（Rails 8.0向けに更新）
-  enum :status, { active: 0, archived: 1 }
+  enum status: { active: 0, archived: 1 }
 
   # STATUSESは定数なので、クラス名が異なる場合のみ定義可能（競合回避）
-  STATUSES = status.keys.freeze # 不変保証
+  STATUSES = statuses.keys.freeze # 不変保証
 
   # バリデーション
   validates :name, presence: true

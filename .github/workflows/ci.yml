@@ -147,8 +147,8 @@ jobs:
           # データベース準備
           bin/rails db:test:prepare
           
-          # テスト実行（--forcefully-orderオプションを追加して読み込み順序を制御）
-          bundle exec rspec --force-color --forcefully-order
+          # テスト実行
+          bundle exec rspec --force-color
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4
