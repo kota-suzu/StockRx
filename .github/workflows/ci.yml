@@ -92,8 +92,14 @@ jobs:
       - name: Install dependencies
         run: bundle install
 
-      - name: Clear Bootsnap cache # CIフリーズ対策 (FrozenError) のため追加
-        run: bin/rails bootsnap:clear
+      - name: Clear Bootsnap cache and reset Zeitwerk # CIフリーズ対策 (FrozenError) のため追加
+        run: |
+          # まずtmpディレクトリが確実に存在することを確認
+          mkdir -p tmp/cache
+          # bootsnapキャッシュクリア
+          bin/rails bootsnap:clear || true
+          # バックアップ手段として手動でbootsnapキャッシュディレクトリをクリア
+          rm -rf tmp/cache/bootsnap* || true
 
       - name: Prepare cache directories
         run: |

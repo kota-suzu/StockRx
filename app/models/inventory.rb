@@ -15,8 +15,9 @@ class Inventory < ApplicationRecord
   LOW_STOCK_THRESHOLD = 5
 
   # ステータス定義
-  # インスタンスメソッド (e.g., inventory.active?) が自動生成されます
-  enum :status, { active: 0, archived: 1 }
+  # prefixオプションを追加して、status_active?などのメソッド名に変更
+  # これにより、active?メソッドが生成されず、モジュールとの競合を防ぎます
+  enum :status, { active: 0, archived: 1 }, _prefix: true
   STATUSES = statuses.keys.freeze # 不変保証
 
   # バリデーション
@@ -26,8 +27,8 @@ class Inventory < ApplicationRecord
 
   # スコープ定義
   # enum :status により status_active, status_archived スコープが自動生成されます。
-  # activeスコープを追加
-  scope :active, -> { where(status: :active) }
+  # activeスコープをstatus_activeスコープを使用するように変更
+  scope :active, -> { status_active }
   scope :out_of_stock, -> { where("quantity <= 0") }
   scope :low_stock,    ->(t = LOW_STOCK_THRESHOLD) { where("quantity > 0 AND quantity <= ?", t) }
   scope :normal_stock, ->(t = LOW_STOCK_THRESHOLD) { where("quantity > ?", t) }

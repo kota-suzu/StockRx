@@ -3,24 +3,37 @@ namespace :bootsnap do
   task clear: :environment do
     require "bootsnap"
     cache_dir = Rails.root.join("tmp/cache")
-
-    # Bootsnap 1.18.4+では CompileCache::Store クラスが存在しないため、
-    # 直接キャッシュディレクトリを操作します
-    if Dir.exist?(cache_dir)
-      # bootsnap キャッシュファイルをクリア
-      Dir.glob(File.join(cache_dir, "bootsnap/**/*.bin")).each do |cache_file|
-        File.delete(cache_file) if File.exist?(cache_file)
-      end
-
-      # bootsnap-compile-cache ディレクトリをクリア
-      bootsnap_cache_dir = File.join(cache_dir, "bootsnap-compile-cache")
-      if Dir.exist?(bootsnap_cache_dir)
-        Dir.glob(File.join(bootsnap_cache_dir, "**/*")).each do |cache_file|
+    
+    # bootsnapのキャッシュをより包括的にクリア
+    bootsnap_dirs = [
+      "bootsnap",
+      "bootsnap-compile-cache",
+      "bootsnap-load-path-cache"
+    ]
+    
+    bootsnap_dirs.each do |dir|
+      target_dir = File.join(cache_dir, dir)
+      if Dir.exist?(target_dir)
+        puts "Clearing #{target_dir}..."
+        # ディレクトリ内の全ファイルを削除
+        Dir.glob(File.join(target_dir, "**/*")).each do |cache_file|
           File.delete(cache_file) if File.file?(cache_file)
         end
       end
     end
-
+    
+    # Zeitwerkの再起動をサポート
+    if defined?(Rails.autoloaders)
+      if Rails.autoloaders.respond_to?(:main)
+        puts "Reloading Zeitwerk autoloader..."
+        Rails.autoloaders.main.reload rescue nil
+      end
+    end
+    
+    # Rails 7.2向けの追加対応
+    restart_file = Rails.root.join("tmp/restart.txt")
+    FileUtils.touch(restart_file) if defined?(FileUtils)
+    
     puts "Bootsnap cache cleared."
   end
 end
