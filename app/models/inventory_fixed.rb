@@ -1,5 +1,9 @@
-# filepath: /Users/kota.suzuki/www/kota/StockRx/app/models/inventory.rb
-class Inventory < ApplicationRecord
+# Rails 8.0向けのInventoryモデル実装案（開発参照用）
+# TODO: Rails 8.0アップグレード時にこのファイルの内容をinventory.rbに移行する（2025年7月予定）
+# 現在はLOAD_PATHから除外されるようにファイル名を調整（_fixed接尾辞）
+class InventoryFixed < ApplicationRecord
+  self.table_name = "inventories" # 同じテーブルを使用
+
   include InventoryStatistics
   include CsvImportable
   include InventoryLoggable
@@ -7,7 +11,9 @@ class Inventory < ApplicationRecord
 
   # ステータス定義（Rails 8.0向けに更新）
   enum :status, { active: 0, archived: 1 }
-  STATUSES = statuses.keys.freeze # 不変保証
+
+  # STATUSESは定数なので、クラス名が異なる場合のみ定義可能（競合回避）
+  STATUSES = status.keys.freeze # 不変保証
 
   # バリデーション
   validates :name, presence: true

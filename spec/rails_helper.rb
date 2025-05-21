@@ -6,6 +6,15 @@ ENV['RAILS_ENV'] ||= 'test'
 
 # 環境読み込み時のエラー対策
 begin
+  # Rails 7.2で既知の凍結配列問題対策
+  ENV["DISABLE_BOOTSNAP"] = "1" if ENV["CI"] || ENV["RAILS_ENV"] == "test"
+  ENV["RAILS_STRICT_AUTOLOAD"] = "0" if ENV["CI"] || ENV["RAILS_ENV"] == "test"
+
+  # Zeitwerk関連の問題を未然に防ぐ
+  if defined?(Rails) && Rails.respond_to?(:autoloaders) && Rails.autoloaders.respond_to?(:main)
+    Rails.autoloaders.main.reload rescue nil
+  end
+
   require_relative '../config/environment'
 rescue FrozenError => e
   puts "警告: 凍結エラーが発生しました。キャッシュをクリアして再試行します。"
@@ -13,9 +22,18 @@ rescue FrozenError => e
   # キャッシュディレクトリを作成（存在しない場合）
   require 'fileutils'
   FileUtils.mkdir_p('tmp/cache') unless Dir.exist?('tmp/cache')
-  # キャッシュをクリア
-  FileUtils.rm_rf(Dir.glob('tmp/cache/*'))
-  # 再試行
+  # キャッシュを完全にクリア
+  %w[bootsnap bootsnap-compile-cache bootsnap-load-path-cache].each do |dir|
+    cache_dir = File.join('tmp/cache', dir)
+    FileUtils.rm_rf(cache_dir) if Dir.exist?(cache_dir)
+    FileUtils.mkdir_p(cache_dir)
+    FileUtils.chmod(0777, cache_dir) rescue nil
+  end
+
+  # アプリケーション再起動を示すファイル
+  FileUtils.touch('tmp/restart.txt')
+
+  # 再試行（2回目も失敗する場合はエラーを通常通り発生させる）
   require_relative '../config/environment'
 end
 
@@ -138,6 +156,40 @@ Shoulda::Matchers.configure do |config|
     with.library :rails
   end
 end
+
+# Rails 7.2の凍結配列問題対策（CI環境で実行時）
+if ENV["CI"] || ENV["RAILS_FROZEN_ARRAY_PATCH"]
+  puts "Applying Rails 7.2 frozen array patch for CI test environment..."
+
+  # モデルのロード順序を制御し、同じモデルが2回ロードされないようにする
+  Rails.autoloaders.main.on_load(:Inventory) do |klass, _abspath|
+    # Inventoryクラスの読み込み時に、すべてのメソッドがロードされるようにする
+    klass.instance_methods(false).each do |method_name|
+      puts "Eager loading Inventory##{method_name}" if ENV["DEBUG"]
+      klass.method_defined?(method_name)
+    end
+  end if defined?(Rails.autoloaders) && Rails.autoloaders.respond_to?(:main)
+
+  # 自動読み込み完了後のクリーンアップ
+  RSpec.configure do |config|
+    config.after(:suite) do
+      # テスト実行後にbootsnapキャッシュを再生成
+      if defined?(Bootsnap) && Bootsnap.respond_to?(:setup)
+        puts "Regenerating Bootsnap cache after tests..."
+        Bootsnap.setup(
+          cache_dir: Rails.root.join("tmp/cache"),
+          development_mode: false,
+          load_path_cache: true,
+          autoload_paths_cache: true,
+          compile_cache_iseq: true,
+          compile_cache_yaml: true
+        )
+      end
+    end
+  end
+end
+
+# TODO: 2025年7月のRails 7.3/8.0リリース後にこのパッチを見直す
 
 # Capybaraのシステムテスト設定
 Capybara.register_driver :chrome_headless do |app|

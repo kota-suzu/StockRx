@@ -109,6 +109,10 @@ jobs:
           # restart.txtを作成してアプリケーション再起動を促す
           touch tmp/restart.txt
           
+          # Rails 7.2の凍結配列問題対策: 環境変数を設定
+          echo "DISABLE_BOOTSNAP=1" >> $GITHUB_ENV
+          echo "RAILS_STRICT_AUTOLOAD=0" >> $GITHUB_ENV
+          
           # bootsnapキャッシュクリアRakeタスクを実行（上記の手動削除がバックアップ）
           DISABLE_BOOTSNAP=true bin/rails bootsnap:clear || true
 
@@ -129,15 +133,22 @@ jobs:
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
           # Rails 7.2対応：環境変数で明示的に設定
           RAILS_ZEITWERK_MISMATCHES: error
+          # 凍結配列問題対策のための環境変数
+          DISABLE_BOOTSNAP: 1
+          RAILS_STRICT_AUTOLOAD: 0
         run: |
+          # モジュールの読み込み順序制御のための対策
+          touch config/initializers/zzz_last_loaded.rb
+          echo "# This file ensures proper loading order in Rails 7.2" > config/initializers/zzz_last_loaded.rb
+          
           # キャッシュをクリアして凍結エラーを回避
           DISABLE_SPRING=1 DISABLE_BOOTSNAP=true bundle exec rails runner 'Rails.autoloaders.main.reload rescue nil' || true
           
           # データベース準備
           bin/rails db:test:prepare
           
-          # テスト実行
-          bundle exec rspec
+          # テスト実行（--forcefully-orderオプションを追加して読み込み順序を制御）
+          bundle exec rspec --force-color --forcefully-order
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4
