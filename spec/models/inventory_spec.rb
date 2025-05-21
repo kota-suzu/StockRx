@@ -44,10 +44,10 @@ RSpec.describe Inventory, type: :model do
     end
 
     it 'CSVデータを一括インポートできること' do
-      result = Inventory.import_from_csv(file)
+      result = Inventory.import_from_csv(file.path)
 
-      expect(result[:valid_count]).to eq(3)
-      expect(result[:invalid_records]).to be_empty
+      expect(result[:imported]).to eq(3)
+      expect(result[:invalid]).to be_empty
 
       expect(Inventory.count).to eq(3)
       expect(Inventory.find_by(name: '商品A')).not_to be_nil
@@ -78,10 +78,10 @@ RSpec.describe Inventory, type: :model do
       end
 
       it '無効なレコードを報告すること' do
-        result = Inventory.import_from_csv(invalid_file)
+        result = Inventory.import_from_csv(invalid_file.path)
 
-        expect(result[:valid_count]).to eq(0)
-        expect(result[:invalid_records].size).to eq(3)
+        expect(result[:imported]).to eq(0)
+        expect(result[:invalid].size).to eq(3)
       end
     end
   end
