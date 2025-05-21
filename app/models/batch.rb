@@ -1,5 +1,7 @@
 class Batch < ApplicationRecord
-  belongs_to :inventory
+  include InventoryStatistics
+
+  belongs_to :inventory, optional: false
 
   # バリデーション
   validates :lot_code, presence: true
@@ -13,7 +15,8 @@ class Batch < ApplicationRecord
   scope :not_expired, -> { where("expires_on >= ? OR expires_on IS NULL", Date.current) }
   scope :expiring_soon, ->(days = 30) { where("expires_on BETWEEN ? AND ?", Date.current, Date.current + days.days) }
   scope :out_of_stock, -> { where(quantity: 0) }
-  scope :low_stock, ->(threshold = nil) { where("quantity > 0 AND quantity <= ?", threshold || 5) }
+  scope :low_stock, ->(threshold = Inventory::LOW_STOCK_THRESHOLD) { where("quantity > 0 AND quantity <= ?", threshold) }
+  scope :normal_stock, ->(threshold = 5) { where("quantity > ?", threshold) }
 
   # TODO: 期限切れアラート機能の実装
   # TODO: バッチ詳細表示機能の追加
@@ -32,29 +35,24 @@ class Batch < ApplicationRecord
   # - 温度管理要件の設定と監視
   # - バッチごとの安全性情報の記録
 
-  # 期限切れかどうかを判定するメソッド
+  # 期限切れかどうかを判定するメソッド（InventoryStatisticsでの実装を上書き）
   def expired?
     expires_on.present? && expires_on < Date.current
   end
 
-  # 期限切れが近いかどうかを判定するメソッド（デフォルト30日前）
+  # 期限切れが近いかどうかを判定するメソッド（InventoryStatisticsでの実装を上書き）
   def expiring_soon?(days_threshold = 30)
-    expires_on.present? && !expired? && expires_on < Date.current + days_threshold.days
+    expires_on.present? && !expired? && expires_on <= Date.current + days_threshold.days
   end
 
-  # 在庫切れかどうかを判定するメソッド
-  def out_of_stock?
-    quantity == 0
-  end
-
-  # 在庫が少ないかどうかを判定するメソッド（デフォルト閾値は5）
+  # 在庫が少ないかどうかを判定するメソッド
   def low_stock?(threshold = nil)
     threshold ||= low_stock_threshold
-    quantity > 0 && quantity <= threshold
+    quantity.positive? && quantity <= threshold
   end
 
-  # 在庫アラート閾値の設定（将来的には設定から取得するなど拡張予定）
+  # 低在庫しきい値を取得するメソッド
   def low_stock_threshold
-    5 # デフォルト値
+    Inventory::LOW_STOCK_THRESHOLD
   end
 end
