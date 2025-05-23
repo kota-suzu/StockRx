@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_05_18_032901) do
+ActiveRecord::Schema[7.2].define(version: 2025_05_23_074454) do
   create_table "admins", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -30,6 +30,26 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_18_032901) do
     t.index ["email"], name: "index_admins_on_email", unique: true
     t.index ["reset_password_token"], name: "index_admins_on_reset_password_token", unique: true
     t.index ["unlock_token"], name: "index_admins_on_unlock_token", unique: true
+  end
+
+  create_table "audit_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.string "auditable_type", null: false
+    t.bigint "auditable_id", null: false
+    t.bigint "user_id"
+    t.string "action", null: false
+    t.text "message", null: false
+    t.text "details"
+    t.string "ip_address"
+    t.text "user_agent"
+    t.string "operation_source"
+    t.string "operation_type"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["action"], name: "index_audit_logs_on_action"
+    t.index ["auditable_type", "auditable_id"], name: "index_audit_logs_on_auditable"
+    t.index ["auditable_type", "auditable_id"], name: "index_audit_logs_on_auditable_type_and_auditable_id"
+    t.index ["created_at"], name: "index_audit_logs_on_created_at"
+    t.index ["user_id"], name: "index_audit_logs_on_user_id"
   end
 
   create_table "batches", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -70,6 +90,41 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_18_032901) do
     t.index ["user_id"], name: "index_inventory_logs_on_user_id"
   end
 
+  create_table "receipts", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "inventory_id", null: false
+    t.integer "quantity"
+    t.string "source"
+    t.date "receipt_date"
+    t.integer "receipt_status"
+    t.string "batch_number"
+    t.string "purchase_order"
+    t.decimal "cost_per_unit", precision: 10
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["inventory_id"], name: "index_receipts_on_inventory_id"
+  end
+
+  create_table "shipments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "inventory_id", null: false
+    t.integer "quantity"
+    t.string "destination"
+    t.date "scheduled_date"
+    t.integer "shipment_status"
+    t.string "tracking_number"
+    t.string "carrier"
+    t.text "notes"
+    t.integer "return_quantity"
+    t.string "return_reason"
+    t.date "return_date"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["inventory_id"], name: "index_shipments_on_inventory_id"
+  end
+
+  add_foreign_key "audit_logs", "admins", column: "user_id", on_delete: :nullify
   add_foreign_key "batches", "inventories", on_delete: :cascade
   add_foreign_key "inventory_logs", "inventories"
+  add_foreign_key "receipts", "inventories"
+  add_foreign_key "shipments", "inventories"
 end

@@ -25,12 +25,6 @@ class Current < ActiveSupport::CurrentAttributes
   # 在庫操作タイプ（手動、自動、バルク、等）
   attribute :operation_type
 
-  # 操作元情報（例: 'web', 'api', 'batch', 'console'）
-  attribute :operation_source
-
-  # 操作種別（例: 'create', 'update', 'delete', 'bulk_import'）
-  attribute :operation_type
-
   # リクエスト情報の設定
   # @param request [ActionDispatch::Request] リクエストオブジェクト
   def set_request_info(request)
