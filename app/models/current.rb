@@ -18,7 +18,7 @@ class Current < ActiveSupport::CurrentAttributes
 
   # 操作の理由（オプション、管理操作の監査証跡に利用）
   attribute :reason
-  
+
   # 在庫操作ソース（アプリ、API、バッチ処理、インポート等）
   attribute :operation_source
 
@@ -71,21 +71,21 @@ class Current < ActiveSupport::CurrentAttributes
     self.ip_address = request.remote_ip
     self.user_agent = request.user_agent
   end
-  
+
   # 在庫操作情報を設定
   def self.set_operation_info(source, type = nil, reason = nil)
     self.operation_source = source
     self.operation_type = type if type
     self.reason = reason if reason
   end
-  
+
   # バッチ処理用の操作情報を設定
   def self.set_batch_operation(job_name, reason = nil)
-    set_operation_info('batch', 'automated', reason || "バッチ処理: #{job_name}")
+    set_operation_info("batch", "automated", reason || "バッチ処理: #{job_name}")
   end
-  
+
   # インポート操作情報を設定
   def self.set_import_operation(import_type, reason = nil)
-    set_operation_info('import', import_type, reason || "データインポート: #{import_type}")
+    set_operation_info("import", import_type, reason || "データインポート: #{import_type}")
   end
 end
