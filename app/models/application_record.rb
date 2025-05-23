@@ -2,6 +2,6 @@
 
 class ApplicationRecord < ActiveRecord::Base
   include DataPortable
-  
+
   primary_abstract_class
 end

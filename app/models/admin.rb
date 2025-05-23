@@ -2,7 +2,7 @@
 
 class Admin < ApplicationRecord
   include Auditable
-  
+
   # :database_authenticatable = メール・パスワード認証
   # :recoverable = パスワードリセット
   # :rememberable = ログイン状態記憶
