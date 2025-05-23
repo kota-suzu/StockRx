@@ -1,4 +1,8 @@
+# frozen_string_literal: true
+
 class Batch < ApplicationRecord
+  include InventoryStatistics
+
   belongs_to :inventory
 
   # バリデーション
