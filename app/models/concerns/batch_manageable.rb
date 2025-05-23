@@ -57,7 +57,7 @@ module BatchManageable
   end
 
   def expiring_batches(days = 30)
-    batches.where("expires_on <= ?", Date.current + days.days)
+    batches.where("expires_on > ? AND expires_on <= ?", Date.current, Date.current + days.days)
            .where("quantity > 0")
            .order(:expires_on)
   end
@@ -77,7 +77,11 @@ module BatchManageable
   private
 
   def sync_total_quantity
-    update_column(:quantity, total_batch_quantity) if total_batch_quantity != quantity
+    # バッチが存在しない場合は同期しない（初期作成時など）
+    return if batches.count == 0
+
+    new_quantity = total_batch_quantity
+    update_column(:quantity, new_quantity) if new_quantity != quantity
   end
 
   def generate_batch_number

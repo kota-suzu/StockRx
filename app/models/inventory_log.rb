@@ -5,17 +5,27 @@ class InventoryLog < ApplicationRecord
   belongs_to :user, optional: true
 
   # バリデーション
-  validates :delta, presence: true
+  validates :delta, presence: true, numericality: true
   validates :operation_type, presence: true
-  validates :previous_quantity, presence: true
-  validates :current_quantity, presence: true
+  validates :previous_quantity, presence: true, numericality: { greater_than_or_equal_to: 0 }
+  validates :current_quantity, presence: true, numericality: { greater_than_or_equal_to: 0 }
 
   # 操作種別の定数定義
-  OPERATION_TYPES = %w[add remove adjust].freeze
+  OPERATION_TYPES = %w[add remove adjust ship receive].freeze
+
+  # 操作種別のenum定義
+  enum operation_type: {
+    add: "add",
+    remove: "remove",
+    adjust: "adjust",
+    ship: "ship",
+    receive: "receive"
+  }
 
   # スコープ
   scope :recent, -> { order(created_at: :desc) }
-  scope :by_operation, ->(type) { where(operation_type: type) }
+  scope :by_operation_type, ->(type) { where(operation_type: type) }
+  scope :by_operation, ->(type) { where(operation_type: type) } # 後方互換性のため残す
   scope :by_date_range, ->(start_date, end_date) {
     start_date = start_date.beginning_of_day if start_date
     end_date = end_date.end_of_day if end_date
@@ -30,6 +40,8 @@ class InventoryLog < ApplicationRecord
   scope :additions, -> { by_operation("add") }
   scope :removals, -> { by_operation("remove") }
   scope :adjustments, -> { by_operation("adjust") }
+  scope :shipments, -> { by_operation("ship") }
+  scope :receipts, -> { by_operation("receive") }
   scope :this_month, -> { by_date_range(Time.current.beginning_of_month, Time.current) }
   scope :previous_month, -> { by_date_range(1.month.ago.beginning_of_month, 1.month.ago.end_of_month) }
   scope :this_year, -> { by_date_range(Time.current.beginning_of_year, Time.current) }
@@ -70,14 +82,9 @@ class InventoryLog < ApplicationRecord
 
   # 統計メソッド
   def self.operation_summary(start_date = 30.days.ago, end_date = Time.current)
-    operation_data = by_date_range(start_date, end_date)
+    by_date_range(start_date, end_date)
       .group(:operation_type)
       .select("operation_type, COUNT(*) as count, SUM(ABS(delta)) as total_quantity")
-
-    {
-      total_operations: operation_data.sum(&:count),
-      operations_by_type: operation_data.index_by(&:operation_type)
-    }
   end
 
   def self.daily_transaction_summary(days = 30)
@@ -98,5 +105,22 @@ class InventoryLog < ApplicationRecord
       .select("inventory_id, inventories.name, COUNT(*) as operation_count")
       .order("operation_count DESC")
       .limit(limit)
+  end
+
+  # 日時フォーマット
+  def formatted_created_at
+    created_at.strftime("%Y年%m月%d日 %H:%M:%S")
+  end
+
+  # 操作タイプの日本語表示名
+  def operation_display_name
+    case operation_type
+    when "add" then "\u8FFD\u52A0"
+    when "remove" then "\u524A\u9664"
+    when "adjust" then "\u8ABF\u6574"
+    when "ship" then "\u51FA\u8377"
+    when "receive" then "\u5165\u8377"
+    else operation_type
+    end
   end
 end

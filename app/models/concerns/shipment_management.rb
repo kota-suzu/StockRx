@@ -6,25 +6,6 @@ module ShipmentManagement
   included do
     has_many :shipments, dependent: :destroy
     has_many :receipts, dependent: :destroy
-
-    # 配送ステータスの列挙型
-    enum shipment_status: {
-      pending: 0,      # 出荷準備中
-      processing: 1,   # 処理中
-      shipped: 2,      # 出荷済み
-      delivered: 3,    # 配達済み
-      returned: 4,     # 返品
-      cancelled: 5     # キャンセル
-    }
-
-    # 入荷ステータスの列挙型
-    enum receipt_status: {
-      expected: 0,     # 入荷予定
-      partial: 1,      # 一部入荷
-      completed: 2,    # 入荷完了
-      rejected: 3,     # 受入拒否
-      delayed: 4       # 入荷遅延
-    }
   end
 
   # インスタンスメソッド

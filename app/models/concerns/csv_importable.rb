@@ -154,6 +154,14 @@ module CsvImportable
         invalid_records << { row: row, errors: record.errors.full_messages }
         nil if skip_invalid
       end
+    rescue ArgumentError => e
+      # enum値エラーの場合
+      if e.message.include?("is not a valid")
+        invalid_records << { row: row, errors: [ e.message ] }
+      else
+        raise e
+      end
+      nil if skip_invalid
     end
 
     # 有効なレコードをバルクインサートするメソッド

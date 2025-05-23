@@ -203,4 +203,69 @@ RSpec.describe Inventory, type: :model do
       expect(inventory.expiring_soon_batches(40)).not_to include(batch)
     end
   end
+
+  # ShipmentManagement統合テスト
+  describe 'ShipmentManagement integration' do
+    let(:inventory) { create(:inventory, quantity: 100) }
+
+    describe '#create_shipment' do
+      it '有効な出荷を作成できること' do
+        result = inventory.create_shipment(20, "東京都", { tracking_number: "TEST123" })
+
+        expect(result).to be true
+        expect(inventory.shipments.count).to eq(1)
+        expect(inventory.reload.quantity).to eq(80) # 在庫が減少
+      end
+
+      it '在庫不足の場合は失敗すること' do
+        result = inventory.create_shipment(150, "東京都")
+
+        expect(result).to be false
+        expect(inventory.shipments.count).to eq(0)
+        expect(inventory.reload.quantity).to eq(100) # 在庫は変わらず
+      end
+    end
+
+    describe '#create_receipt' do
+      it '有効な入荷を作成できること' do
+        result = inventory.create_receipt(50, "サプライヤーA", { purchase_order: "PO123" })
+
+        expect(result).to be true
+        expect(inventory.receipts.count).to eq(1)
+        expect(inventory.reload.quantity).to eq(150) # 在庫が増加
+      end
+    end
+
+    describe '#cancel_shipment' do
+      let!(:shipment) { create(:shipment, inventory: inventory, quantity: 20, shipment_status: :pending) }
+
+      before do
+        inventory.update!(quantity: 80) # 出荷済み状態をシミュレート
+      end
+
+      it '出荷準備中の出荷をキャンセルできること' do
+        result = inventory.cancel_shipment(shipment.id, "顧客都合")
+
+        expect(result).to be true
+        expect(shipment.reload.cancelled?).to be true
+        expect(inventory.reload.quantity).to eq(100) # 在庫が戻る
+      end
+    end
+  end
+
+  # TODO: ShipmentManagement統合テストの拡張
+  # 1. 複雑なシナリオテスト
+  #    - 複数出荷・入荷の同時処理テスト
+  #    - 在庫移動の連鎖テスト
+  #    - バッチ管理との連携テスト
+  #
+  # 2. エラーハンドリングテスト
+  #    - トランザクション失敗時のロールバックテスト
+  #    - 外部キー制約違反の処理テスト
+  #    - 並行処理での競合状態テスト
+  #
+  # 3. パフォーマンステスト
+  #    - 大量データでの処理性能テスト
+  #    - メモリ使用量の最適化テスト
+  #    - データベース負荷テスト
 end
