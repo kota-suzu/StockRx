@@ -44,6 +44,9 @@ RSpec.describe Inventory, type: :model do
     end
 
     it 'CSVデータを一括インポートできること' do
+      # テスト前に既存のInventoryをクリア
+      Inventory.destroy_all
+
       result = Inventory.import_from_csv(file)
 
       expect(result[:valid_count]).to eq(3)

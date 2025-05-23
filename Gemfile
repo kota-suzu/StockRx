@@ -72,7 +72,6 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
   gem "timecop"
-  gem "database_cleaner-active_record"
 
   # テストカバレッジ計測
   gem "simplecov", require: false      # コードカバレッジ計測
