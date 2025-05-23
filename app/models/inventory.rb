@@ -2,14 +2,16 @@
 require "csv"
 
 class Inventory < ApplicationRecord
-  # 機能モジュールのインクルード
-  include InventoryStatistics
-  include CsvImportable
+  # コンサーンの組み込み
+  include Auditable
   include BatchManageable
+  include CsvImportable
+  include DataPortable
   include InventoryLoggable
-  include ShipmentManagement
+  include InventoryStatistics
   include Reportable
-  
+  include ShipmentManagement
+
   # ステータス定義（Rails 8.0向けに更新）
   enum :status, { active: 0, archived: 1 }
   STATUSES = statuses.keys.freeze # 不変保証
@@ -18,16 +20,6 @@ class Inventory < ApplicationRecord
   validates :name, presence: true
   validates :price, numericality: { greater_than_or_equal_to: 0 }
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }
-
-  # スコープ
-  scope :active, -> { where(status: :active) }
-  scope :search_by_name, ->(query) { where("name LIKE ?", "%#{query}%") }
-  scope :search_by_code, ->(code) { where(code: code) }
-  
-  # 在庫アラート閾値の設定（将来的には設定から取得するなど拡張予定）
-  def low_stock_threshold
-    5 # デフォルト値
-  end
 
   # ============================================
   # TODO: 在庫ログ機能の拡張
@@ -124,4 +116,26 @@ class Inventory < ApplicationRecord
   #    - データ準備の自動化
   #    - テストカバレッジ向上策
   #
+  # ============================================
+  # TODO: データセキュリティ向上
+  # ============================================
+  # 1. コマンドインジェクション対策の強化
+  #    - Shellwordsの活用
+  #    - 安全なシステムコマンド実行パターンの統一
+  #    - ユーザー入力のエスケープ処理の厳格化
+  #
+  # 2. N+1クエリ問題の検出と改善
+  #    - bullet gemの導入
+  #    - クエリの事前一括取得パターンの適用
+  #    - クエリキャッシュの活用
+  #
+  # 3. メソッド分割によるコード可読性向上
+  #    - 責務ごとのメソッド分割
+  #    - プライベートヘルパーメソッドの活用
+  #    - スタイルガイドに準拠した実装
+  #
+  # 4. バルクオペレーションの最適化
+  #    - バッチサイズの最適化
+  #    - DBパフォーマンスモニタリング
+  #    - インデックス最適化
 end

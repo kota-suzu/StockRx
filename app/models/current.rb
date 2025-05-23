@@ -25,6 +25,12 @@ class Current < ActiveSupport::CurrentAttributes
   # 在庫操作タイプ（手動、自動、バルク、等）
   attribute :operation_type
 
+  # 操作元情報（例: 'web', 'api', 'batch', 'console'）
+  attribute :operation_source
+
+  # 操作種別（例: 'create', 'update', 'delete', 'bulk_import'）
+  attribute :operation_type
+
   # リクエスト情報の設定
   # @param request [ActionDispatch::Request] リクエストオブジェクト
   def set_request_info(request)
@@ -32,6 +38,19 @@ class Current < ActiveSupport::CurrentAttributes
     self.request_id = request.uuid
     self.ip_address = request.remote_ip
     self.user_agent = request.user_agent
+
+    # デフォルトの操作元をwebに設定
+    self.operation_source ||= "web"
+  end
+
+  # 操作情報の設定
+  # @param source [String] 操作元情報
+  # @param type [String] 操作種別
+  # @param reason [String] 操作理由
+  def set_operation_info(source: nil, type: nil, reason: nil)
+    self.operation_source = source if source
+    self.operation_type = type if type
+    self.reason = reason if reason
   end
 
   # ActiveSupport::CurrentAttributes#resetをオーバーライド
