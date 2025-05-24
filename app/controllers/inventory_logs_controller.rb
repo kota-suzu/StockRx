@@ -6,11 +6,17 @@ class InventoryLogsController < ApplicationController
   def index
     base_query = @inventory ? @inventory.inventory_logs.recent : InventoryLog.recent
 
-    # 日付範囲フィルター
-    if params[:start_date].present? || params[:end_date].present?
-      start_date = Date.parse(params[:start_date]) rescue nil
-      end_date = Date.parse(params[:end_date]) rescue nil
-      base_query = base_query.by_date_range(start_date, end_date)
+    # 日付範囲フィルター（不正な日付形式はスキップ）
+    begin
+      if params[:start_date].present? || params[:end_date].present?
+        start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : nil
+        end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : nil
+        base_query = base_query.by_date_range(start_date, end_date)
+      end
+    rescue Date::Error => e
+      # 不正な日付形式の場合はflashメッセージを表示してフィルターをスキップ
+      flash.now[:alert] = "日付の形式が正しくありません。フィルターは適用されませんでした。"
+      Rails.logger.info("Invalid date format in inventory logs filter: #{e.message}")
     end
 
     @logs = base_query.includes(:inventory).page(params[:page]).per(PER_PAGE)
@@ -24,7 +30,7 @@ class InventoryLogsController < ApplicationController
 
   # 特定のログ詳細を表示
   def show
-    @log = InventoryLog.find(params[:id])
+    @log = InventoryLog.find(params[:id])  # RecordNotFoundはErrorHandlersが404で処理
   end
 
   # システム全体のログを表示

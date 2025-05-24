@@ -28,6 +28,44 @@ module ErrorHandlers
     # 3. 新規機能追加時は、既存ルートとの競合可能性に注意する
     # 4. ルーティング順序を変更した場合は、認証機能とエラーページの動作を必ず確認する
     # 詳細は doc/error_handling_guide.md の「ルーティング順序の問題」を参照
+
+    # TODO: Phase 3実装予定（高優先度）
+    # 1. Sentry/DataDog連携によるエラー追跡・アラート機能
+    #    - 本番環境での500エラー自動通知
+    #    - エラー頻度・パターン分析ダッシュボード
+    #    - スタックトレース詳細とコンテキスト情報記録
+    #    - パフォーマンス劣化検知機能
+    #
+    # 2. Pundit認可システム連携
+    #    - 403 Forbiddenエラーハンドリング完全実装
+    #    - ロールベースアクセス制御
+    #    - 管理者・一般ユーザー権限分離
+    #    - 操作履歴とセキュリティ監査
+    #
+    # 3. レート制限機能（Rack::Attack）
+    #    - API呼び出し頻度制限
+    #    - ブルートフォース攻撃対策
+    #    - 地域別アクセス制限
+    #    - 429 Too Many Requestsエラー統合
+
+    # TODO: Phase 4実装予定（中優先度）
+    # 1. 国際化完全対応
+    #    - 全エラーメッセージの多言語化（英語・中国語・韓国語）
+    #    - ロケール自動検出機能
+    #    - タイムゾーン対応エラーログ
+    #    - 地域別エラーページカスタマイズ
+    #
+    # 2. キャッシュ戦略最適化
+    #    - エラーページの適切なキャッシュ設定
+    #    - CDN連携によるエラーページ配信高速化
+    #    - Redis活用エラー情報一時保存
+    #    - エラー発生パターンのメモ化
+    #
+    # 3. 詳細ログ・監査機能
+    #    - ユーザー操作フロー追跡
+    #    - エラー前後のコンテキスト情報記録
+    #    - IP・UserAgent詳細分析
+    #    - 不正アクセス検知・自動ブロック機能
   end
 
   private
@@ -123,8 +161,28 @@ module ErrorHandlers
 
     Rails.logger.send(severity) { log_data.to_json }
 
-    # Phase 3: Sentry/DataDog連携はここに追加
-    # Sentry.capture_exception(exception) if status >= 500
+    # TODO: Phase 3実装予定 - 外部監視サービス連携
+    # 1. Sentry連携（エラー追跡・アラート）
+    #    if status >= 500
+    #      Sentry.capture_exception(exception, extra: {
+    #        request_id: request.request_id,
+    #        user_id: current_user&.id,
+    #        path: request.fullpath,
+    #        params: filtered_parameters
+    #      })
+    #    end
+    #
+    # 2. DataDog APM連携（パフォーマンス監視）
+    #    Datadog::Tracing.trace("error_handling") do |span|
+    #      span.set_tag("http.status_code", status)
+    #      span.set_tag("error.type", exception.class.name)
+    #      span.set_tag("user.id", current_user&.id) if current_user
+    #    end
+    #
+    # 3. Slack通知連携（重要エラーの即座な通知）
+    #    if status >= 500 && Rails.env.production?
+    #      ErrorNotificationJob.perform_later(exception, log_data)
+    #    end
   end
 
   # JSON APIエラーレスポンスの生成

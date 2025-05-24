@@ -29,6 +29,69 @@ docker-compose exec web bin/rails db:setup
 2. 管理者としてログイン（デフォルト：admin@example.com / Password1234!）
 3. ダッシュボードから各機能にアクセス
 
+## トラブルシューティング
+
+### 接続エラー（ERR_CONNECTION_REFUSED）
+
+**症状**: ブラウザで `ERR_CONNECTION_REFUSED` エラーが表示される
+
+**原因**: webコンテナが起動していない（最も一般的）
+
+**解決手順**:
+```bash
+# 1. 状況確認
+make diagnose
+
+# 2. 自動修復を試行
+make fix-connection
+
+# 3. 手動での確認・修復
+docker compose ps              # コンテナ状態確認
+docker compose logs web        # webコンテナのログ確認
+docker compose up -d web       # webコンテナ再起動
+```
+
+### SSL/HTTPS接続エラー
+
+**症状**: Pumaログに "SSL connection to a non-SSL Puma" エラー
+
+**原因**: ブラウザが `https://localhost:3000` でアクセスしている
+
+**解決方法**:
+```bash
+# 対処法の表示
+make fix-ssl-error
+
+# 正しいアクセス方法
+# ✅ http://localhost:3000
+# ❌ https://localhost:3000
+```
+
+### よくある問題と解決策
+
+| 問題 | 原因 | 解決方法 |
+|------|------|----------|
+| webコンテナが起動しない | Dockerfile/依存関係エラー | `docker compose build web` でリビルド |
+| ポート3000が使用中 | 他のプロセスがポート占有 | `lsof -i :3000` で確認後、プロセス終了 |
+| データベース接続エラー | dbコンテナ未起動 | `docker compose up -d db` |
+| ブラウザキャッシュ問題 | 古いHTTPS設定が残存 | Ctrl+Shift+R（強制リロード） |
+
+### 診断コマンド
+
+```bash
+# システム全体の診断
+make diagnose
+
+# 接続問題の自動修復
+make fix-connection
+
+# SSL問題の対処法表示
+make fix-ssl-error
+
+# 詳細ログ確認
+docker compose logs -f web
+```
+
 ## 開発ガイドライン
 
 ### コード構造
