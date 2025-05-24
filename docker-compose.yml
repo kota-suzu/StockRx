@@ -39,8 +39,6 @@
 #    - 不要なパッケージの除去
 #    - セキュリティパッチの自動適用
 
-version: '3.8'
-
 services:
   web:
     build: .
@@ -50,6 +48,7 @@ services:
       - db
       - redis
     environment:
+      - RAILS_ENV=development
       - DATABASE_URL=mysql2://root:password@db:3306/app_db
       - REDIS_URL=redis://redis:6379/0
       # TODO: セキュリティ強化 - 環境変数化
@@ -64,6 +63,13 @@ services:
       # - ./storage:/rails/storage
     stdin_open: true
     tty: true
+    command: ["./bin/rails", "server", "-b", "0.0.0.0"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   db:
     image: mysql:8.4
