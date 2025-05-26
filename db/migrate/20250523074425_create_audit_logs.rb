@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 class CreateAuditLogs < ActiveRecord::Migration[7.2]
   def change
     create_table :audit_logs do |t|
       # ポリモーフィック関連
       t.references :auditable, polymorphic: true, null: false, index: true
 
-      # ユーザー関連
+      # ユーザー関連（外部キー制約は後で追加）
       t.bigint :user_id, null: true
 
       # 監査情報
@@ -29,7 +31,9 @@ class CreateAuditLogs < ActiveRecord::Migration[7.2]
     add_index :audit_logs, :created_at
     add_index :audit_logs, [ :auditable_type, :auditable_id ]
 
-    # 外部キー制約
-    add_foreign_key :audit_logs, :admins, column: :user_id, on_delete: :nullify
+    # TODO: 外部キー制約は別のマイグレーションで追加
+    # 理由：adminsテーブルとの循環依存を回避し、安全なデータベース再構築を可能にする
+    # 実装予定：db/migrate/add_foreign_keys_to_audit_logs.rb
+    # add_foreign_key :audit_logs, :admins, column: :user_id, on_delete: :nullify
   end
 end

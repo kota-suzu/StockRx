@@ -3,8 +3,8 @@
 class Shipment < ApplicationRecord
   belongs_to :inventory
 
-  # 配送ステータスの列挙型
-  enum shipment_status: {
+  # 配送ステータスの列挙型（Rails 8 対応：位置引数使用）
+  enum :shipment_status, {
     pending: 0,      # 出荷準備中
     processing: 1,   # 処理中
     shipped: 2,      # 出荷済み

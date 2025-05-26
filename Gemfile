@@ -21,7 +21,7 @@ gem "jbuilder"
 # Use CSV library (included in Ruby 3.4+)
 gem "csv"
 # Use Redis adapter to run Action Cable in production
-# gem "redis", ">= 4.0.1"
+gem "redis", ">= 4.0.1"
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
@@ -90,3 +90,8 @@ gem "devise-i18n", "~> 1.12"      # 日本語対応
 # gem "attr_encrypted"               # 属性の暗号化
 
 gem "kaminari", "~> 1.2"            # ページネーション
+
+# Background Job Processing
+gem "sidekiq", "~> 7.2"
+gem "sidekiq-scheduler", "~> 5.0"  # TODO: 将来の定期実行ジョブ用（月次レポート生成など）
+gem "rack-protection", "~> 4.0"   # Sidekiq Web UI のセキュリティ強化
