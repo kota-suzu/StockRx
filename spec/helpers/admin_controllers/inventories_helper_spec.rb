@@ -141,4 +141,4 @@ RSpec.describe AdminControllers::InventoriesHelper, type: :helper do
       end
     end
   end
-end 
+end
