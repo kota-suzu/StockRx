@@ -11,7 +11,7 @@
 # It's strongly recommended that you check this file into your version control system.
 
 ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
-  create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
     t.string "delivery_method", null: false, comment: "配信方法（email, actioncable等）"
@@ -37,7 +37,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
     t.index ["priority"], name: "index_admin_notification_settings_on_priority"
   end
 
-  create_table "admins", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "admins", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
     t.string "reset_password_token"
@@ -58,7 +58,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
     t.index ["unlock_token"], name: "index_admins_on_unlock_token", unique: true
   end
 
-  create_table "audit_logs", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "audit_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "auditable_type", null: false
     t.bigint "auditable_id", null: false
     t.bigint "user_id"
@@ -78,7 +78,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
     t.index ["user_id"], name: "index_audit_logs_on_user_id"
   end
 
-  create_table "batches", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "batches", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.string "lot_code", null: false
     t.date "expires_on"
@@ -90,7 +90,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
     t.index ["inventory_id"], name: "index_batches_on_inventory_id"
   end
 
-  create_table "inventories", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "inventories", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.integer "quantity", default: 0, null: false
     t.decimal "price", precision: 10, scale: 2, default: "0.0", null: false
@@ -100,7 +100,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
     t.index ["name"], name: "index_inventories_on_name"
   end
 
-  create_table "inventory_logs", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "inventory_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "delta", null: false
     t.string "operation_type", null: false
@@ -116,7 +116,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
     t.index ["user_id"], name: "index_inventory_logs_on_user_id"
   end
 
-  create_table "receipts", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "receipts", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "quantity"
     t.string "source"
@@ -131,7 +131,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
     t.index ["inventory_id"], name: "index_receipts_on_inventory_id"
   end
 
-  create_table "shipments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+  create_table "shipments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "quantity"
     t.string "destination"
