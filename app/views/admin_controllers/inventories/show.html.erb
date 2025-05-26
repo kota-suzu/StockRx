@@ -167,15 +167,5 @@
   </div>
 </div>
 
-<%# Helperメソッド - app/helpers/admin/batches_helper.rb に移動するとよい %>
-<% 
-  def batch_row_class(batch)
-    if batch.expired?
-      "bg-red-50"
-    elsif batch.expiring_soon?
-      "bg-yellow-50"
-    else
-      ""
-    end
-  end
-%> 
+<%# バッチ関連のヘルパーメソッドは app/helpers/admin_controllers/inventories_helper.rb に実装済み %>
+<%# TODO: バッチ詳細ページの実装とバッチCRUD機能の追加が必要 %> 

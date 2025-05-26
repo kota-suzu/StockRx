@@ -10,8 +10,34 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_05_23_074454) do
-  create_table "admins", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
+  create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "admin_id", null: false
+    t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
+    t.string "delivery_method", null: false, comment: "配信方法（email, actioncable等）"
+    t.boolean "enabled", default: true, null: false, comment: "通知の有効/無効"
+    t.integer "priority", default: 1, null: false, comment: "優先度（0:低 1:中 2:高 3:緊急）"
+    t.integer "frequency_minutes", comment: "通知頻度制限（分）"
+    t.datetime "last_sent_at", comment: "最後の通知送信日時"
+    t.integer "sent_count", default: 0, null: false, comment: "送信回数"
+    t.datetime "active_from", comment: "有効期間開始日時"
+    t.datetime "active_until", comment: "有効期間終了日時"
+    t.text "settings_json", comment: "詳細設定（JSON形式）"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["admin_id", "notification_type", "delivery_method"], name: "idx_admin_notification_unique", unique: true
+    t.index ["admin_id"], name: "index_admin_notification_settings_on_admin_id"
+    t.index ["delivery_method", "enabled"], name: "idx_delivery_method_enabled"
+    t.index ["delivery_method"], name: "index_admin_notification_settings_on_delivery_method"
+    t.index ["enabled"], name: "index_admin_notification_settings_on_enabled"
+    t.index ["last_sent_at"], name: "index_admin_notification_settings_on_last_sent_at"
+    t.index ["notification_type", "enabled"], name: "idx_notification_type_enabled"
+    t.index ["notification_type"], name: "index_admin_notification_settings_on_notification_type"
+    t.index ["priority", "enabled"], name: "idx_priority_enabled"
+    t.index ["priority"], name: "index_admin_notification_settings_on_priority"
+  end
+
+  create_table "admins", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
     t.string "reset_password_token"
@@ -32,7 +58,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074454) do
     t.index ["unlock_token"], name: "index_admins_on_unlock_token", unique: true
   end
 
-  create_table "audit_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "audit_logs", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "auditable_type", null: false
     t.bigint "auditable_id", null: false
     t.bigint "user_id"
@@ -52,7 +78,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074454) do
     t.index ["user_id"], name: "index_audit_logs_on_user_id"
   end
 
-  create_table "batches", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "batches", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.string "lot_code", null: false
     t.date "expires_on"
@@ -64,7 +90,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074454) do
     t.index ["inventory_id"], name: "index_batches_on_inventory_id"
   end
 
-  create_table "inventories", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "inventories", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.integer "quantity", default: 0, null: false
     t.decimal "price", precision: 10, scale: 2, default: "0.0", null: false
@@ -74,7 +100,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074454) do
     t.index ["name"], name: "index_inventories_on_name"
   end
 
-  create_table "inventory_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "inventory_logs", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "delta", null: false
     t.string "operation_type", null: false
@@ -90,7 +116,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074454) do
     t.index ["user_id"], name: "index_inventory_logs_on_user_id"
   end
 
-  create_table "receipts", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "receipts", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "quantity"
     t.string "source"
@@ -105,7 +131,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074454) do
     t.index ["inventory_id"], name: "index_receipts_on_inventory_id"
   end
 
-  create_table "shipments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "shipments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "quantity"
     t.string "destination"
@@ -122,6 +148,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074454) do
     t.index ["inventory_id"], name: "index_shipments_on_inventory_id"
   end
 
+  add_foreign_key "admin_notification_settings", "admins"
   add_foreign_key "audit_logs", "admins", column: "user_id", on_delete: :nullify
   add_foreign_key "batches", "inventories", on_delete: :cascade
   add_foreign_key "inventory_logs", "inventories"

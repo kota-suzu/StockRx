@@ -18,6 +18,8 @@ default: &default
   host: <%= ENV.fetch("DATABASE_HOST") { "db" } %>
   # パブリックネットワークの場合はSSL接続を推奨
   # TODO: 本番環境ではSSL設定を有効化
+  # ssl_mode: REQUIRED
+  # sslca: /path/to/ca-cert.pem
 
 development:
   <<: *default
@@ -25,6 +27,10 @@ development:
   # 開発環境でのデバッグを容易にするための設定
   variables:
     sql_mode: TRADITIONAL
+  # TODO: 開発環境でのパフォーマンス最適化
+  # reconnect: true
+  # pool_timeout: 5
+  # checkout_timeout: 5
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -32,7 +38,17 @@ development:
 test:
   <<: *default
   database: app_test
-  password: <%= ENV.fetch("DATABASE_PASSWORD") { "" } %>
+  # テスト環境: ローカル開発では localhost、Docker環境では環境変数で db を指定
+  host: <%= ENV.fetch("TEST_DATABASE_HOST", "127.0.0.1") %>
+  password: <%= ENV.fetch("DATABASE_PASSWORD", "password") %>
+  pool: <%= ENV.fetch("TEST_DATABASE_POOL", 5).to_i %>
+  timeout: <%= ENV.fetch("TEST_DATABASE_TIMEOUT", 5000).to_i %>
+  # TODO: テスト環境でのMySQL設定最適化（優先度：高）
+  # variables:
+  #   sql_mode: TRADITIONAL
+  #   innodb_flush_log_at_trx_commit: 2  # テスト速度向上のため
+  #   sync_binlog: 0                     # テスト環境ではバイナリログ同期無効
+  #   innodb_doublewrite: 0              # ダブルライト無効でパフォーマンス向上
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
@@ -60,6 +76,74 @@ production:
   username: <%= ENV.fetch("PROD_DATABASE_USERNAME") { "root" } %>
   password: <%= ENV.fetch("PROD_DATABASE_PASSWORD") { ENV.fetch("DATABASE_PASSWORD") { "password" } } %>
   host: <%= ENV.fetch("PROD_DATABASE_HOST") { ENV.fetch("DATABASE_HOST") { "db" } } %>
-  # TODO: 本番環境ではセキュリティ設定を追加
+  # TODO: 本番環境ではセキュリティ設定を追加（優先度：高）
   # ssl_mode: REQUIRED
   # sslca: /path/to/ca-cert.pem
+  # TODO: 本番環境でのパフォーマンス最適化（優先度：高）
+  # pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 25 } %>
+  # timeout: 5000
+  # reconnect: true
+  # variables:
+  #   sql_mode: TRADITIONAL
+  # TODO: 本番環境での接続プール設定（優先度：中）
+  # prepared_statements: false
+  # advisory_locks: false
+
+# ============================================
+# TODO: データベース設定の包括的最適化（優先度：高）
+# ============================================
+# 1. 環境別パフォーマンスチューニング
+#    - 開発環境: デバッグ優先の設定
+#      * クエリログ有効化
+#      * スロークエリログ設定
+#      * explain 自動実行
+#    - テスト環境: 速度優先の設定
+#      * トランザクション最適化
+#      * インデックス活用
+#      * メモリ設定調整
+#    - 本番環境: 安定性・セキュリティ優先
+#      * SSL/TLS暗号化
+#      * 接続プール最適化
+#      * 監視・アラート設定
+#
+# 2. セキュリティ強化設定
+#    - SSL/TLS接続の強制
+#      * ssl_mode: REQUIRED
+#      * 証明書検証設定
+#      * 暗号化方式の指定
+#    - アクセス制御
+#      * IPアドレス制限
+#      * ユーザー権限の最小化
+#      * 定期的なパスワード変更
+#    - 監査ログ設定
+#      * 全操作のログ記録
+#      * ログの外部保存
+#      * 異常検知アラート
+#
+# 3. 高可用性・災害復旧
+#    - レプリケーション設定
+#      * マスター・スレーブ構成
+#      * 読み込み専用レプリカ活用
+#      * 自動フェイルオーバー
+#    - バックアップ戦略
+#      * 定期的な自動バックアップ
+#      * ポイントインタイムリカバリ
+#      * クロスリージョンバックアップ
+#    - モニタリング
+#      * パフォーマンス監視
+#      * 容量監視
+#      * 異常検知
+#
+# 4. Docker環境での最適化
+#    - 永続化ボリューム設定
+#      * データの永続化
+#      * パフォーマンス最適化
+#      * バックアップ連携
+#    - ネットワーク設定
+#      * 内部ネットワーク分離
+#      * ポート公開の最小化
+#      * DNS解決最適化
+#    - リソース制限
+#      * メモリ使用量制限
+#      * CPU使用率制限
+#      * ディスクI/O制限

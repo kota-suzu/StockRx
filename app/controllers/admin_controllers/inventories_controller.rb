@@ -4,6 +4,14 @@ module AdminControllers
   class InventoriesController < BaseController
     before_action :set_inventory, only: %i[show edit update destroy]
 
+    # TODO: 以下の機能実装が必要
+    # - 在庫一括操作機能（一括ステータス変更、一括削除）
+    # - 在庫レポート機能（月次・年次レポート、在庫回転率）
+    # - 在庫アラート設定機能（最低在庫数設定、期限切れアラート）
+    # - エクスポート機能（PDF、Excel、CSV）
+    # - 在庫履歴・監査ログ機能
+    # - APIレート制限・認証機能強化
+
     # GET /admin/inventories
     def index
       @inventories = SearchQuery.call(params).includes(:batches).decorate
@@ -96,6 +104,12 @@ module AdminControllers
         redirect_to import_form_admin_inventories_path, alert: t("inventories.import.no_file")
         return
       end
+
+      # TODO: CSVファイル形式バリデーション機能の追加
+      # - ファイルサイズ制限（例：10MB）
+      # - MIME typeチェック
+      # - 文字エンコーディング検証（UTF-8、Shift_JIS対応）
+      # - カラム数・形式の事前検証
 
       # ジョブIDを生成
       job_id = SecureRandom.uuid
