@@ -16,13 +16,15 @@ class ImportInventoriesJob < ApplicationJob
   # ============================================
   # セキュリティ検証
   # ============================================
-  before_perform :validate_file_security
+  before_perform do |job|
+    validate_file_security(job.arguments.first)
+  end
 
   # @param file_path [String] CSVファイルのパス
   # @param admin_id [Integer] インポートを実行した管理者のID
   # @param job_id [String] ジョブを識別するID（オプション）
   def perform(file_path, admin_id, job_id = nil)
-    # セキュリティ検証を最初に実行
+    # セキュリティ検証を明示的に実行（before_performコールバック後の追加保護）
     validate_file_security(file_path)
 
     # Sidekiq job IDを優先的に使用
@@ -67,10 +69,7 @@ class ImportInventoriesJob < ApplicationJob
   # ============================================
   # セキュリティ検証
   # ============================================
-  def validate_file_security(file_path = nil)
-    # 引数として渡された場合はそれを使用、そうでなければargumentsから取得
-    file_path ||= arguments.first
-
+  def validate_file_security(file_path)
     # ファイル存在確認
     raise "File not found: #{file_path}" unless File.exist?(file_path)
 
