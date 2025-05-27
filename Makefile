@@ -1,213 +1,199 @@
-.PHONY: build up down restart logs ps clean db-create db-migrate db-reset db-seed db-setup bundle-install test rspec perf-generate-csv perf-test-import perf-benchmark-batch test-error-handling diagnose fix-connection fix-ssl-error
+\
+# ============================================================================
+# StockRx – Makefile (Refactored 2025-05-26)
+# Practical, DRY, and developer-friendly. Less yak-shaving, more coding.
+# ----------------------------------------------------------------------------
+# 使い方: `make <target>` で実行。例: `make up`, `make test-models` 等
+# ============================================================================
 
-# Docker Compose コマンド
+# --------------------------- 変数定義 --------------------------------------
+SHELL            := /usr/bin/env bash
+COMPOSE          := docker compose
+WEB_RUN          := $(COMPOSE) run --rm web
+WEB_UP           := $(COMPOSE) up -d
+HTTP_PORT        ?= 3000
+RSPEC            := $(WEB_RUN) bundle exec rspec
+BUNDLE           := $(WEB_RUN) bundle
+CURL             := curl -s -o /dev/null
+
+# --------------------------- ヘルパー関数 ----------------------------------
+define check_health
+	@echo "=== ヘルスチェック: http://localhost:$(HTTP_PORT) ==="
+	@if $(CURL) http://localhost:$(HTTP_PORT); then \
+	  echo "✅ Webサーバー正常稼働"; \
+	else \
+	  echo "❌ Webサーバー接続失敗 — \e[33m$(COMPOSE) logs web\e[0m で確認"; \
+	fi
+endef
+
+# --------------------------- デフォルトターゲット --------------------------
+.DEFAULT_GOAL := help
+
+# --------------------------- PHONY ターゲット ------------------------------
+.PHONY: build up down restart server logs ps clean \
+        db-create db-migrate db-reset db-seed db-setup \
+        setup bundle-install test rspec \
+        test-fast test-models test-requests test-jobs test-features test-integration \
+        test-failed test-parallel test-coverage test-profile test-skip-heavy \
+        test-unit-fast test-models-only \
+        ci security-scan lint lint-fix lint-fix-unsafe test-all \
+        console routes backup restore help diagnose fix-connection fix-ssl-error
+
+# --------------------------- Docker 基本操作 -------------------------------
 build:
-	docker compose build
+	$(COMPOSE) build
 
 up:
-	docker compose up -d
-	@echo "=== コンテナ起動確認中... ==="
-	@sleep 5
-	@docker compose ps
-	@echo ""
-	@echo "=== ヘルスチェック実行中... ==="
-	@if curl -s http://localhost:3000 > /dev/null; then \
-		echo "✅ Webサーバー正常稼働 - http://localhost:3000 でアクセス可能です"; \
-	else \
-		echo "❌ Webサーバー接続失敗 - ログを確認してください:"; \
-		echo "  docker compose logs web"; \
-	fi
-
-down:
-	docker compose down
+	$(WEB_UP)
+	@sleep 3
+	$(call check_health)
+	down:
+	$(COMPOSE) down
 
 restart:
-	docker compose restart
+	$(COMPOSE) restart
 
-setup:
-	docker compose run --rm web bin/rails db:create db:migrate db:seed
+server: up
+	@echo "🚀 開発サーバー起動完了 – http://localhost:$(HTTP_PORT)"
 
 logs:
-	docker compose logs -f
+	$(COMPOSE) logs -f
 
 ps:
-	docker compose ps
+	$(COMPOSE) ps
 
 clean:
-	docker compose down -v
+	$(COMPOSE) down -v
 	docker system prune -f
 
-# データベース関連コマンド
-db-create:
-	docker compose run --rm web bin/rails db:create
+# --------------------------- 初期セットアップ ------------------------------
+setup: db-setup bundle-install
 
-db-migrate:
-	docker compose run --rm web bin/rails db:migrate
-
-db-reset:
-	docker compose run --rm web bin/rails db:drop db:create db:migrate
-
-db-seed:
-	docker compose run --rm web bin/rails db:seed
-
-db-setup:
-	docker compose run --rm web bin/rails db:setup
-
-# アプリケーション関連コマンド
 bundle-install:
-	mkdir -p tmp/bundle_cache
-	chmod -R 777 tmp/bundle_cache
-	docker compose run --rm web bundle config set frozen false
-	docker compose run --rm web bundle install
+	mkdir -p tmp/bundle_cache && chmod -R 777 tmp/bundle_cache
+	$(BUNDLE) config set frozen false
+	$(BUNDLE) install
 
-test:
-	docker compose run --rm web bin/rails test
+# --------------------------- データベース操作 ------------------------------
+db-%:
+	$(WEB_RUN) bin/rails db:$*
 
-# RSpec関連コマンド
+# エイリアス
+.db-aliases: ;
+db-create   : db-create
+
+db-migrate  : db-migrate
+
+db-reset    : db-reset
+
+db-seed     : db-seed
+
+db-setup    : db-setup
+
+# --------------------------- テスト ----------------------------------------
+# 共通関数
+define run_rspec
+	@echo "=== $(1) テスト実行 ===";
+	$(RSPEC) $(2) --format $(3)
+endef
+
+# メタターゲット
+TEST_DOC      := documentation
+TEST_PROGRESS := progress
+
+test: rspec
+
 rspec:
-	docker compose run --rm web bundle exec rspec
+	$(RSPEC)
 
-# CI関連コマンド
+test-fast:
+	$(call run_rspec,高速, spec/models spec/requests spec/helpers spec/decorators spec/validators, $(TEST_PROGRESS))
+
+test-models:
+	$(call run_rspec,モデル, spec/models, $(TEST_DOC))
+
+test-requests:
+	$(call run_rspec,リクエスト, spec/requests, $(TEST_DOC))
+
+test-jobs:
+	$(call run_rspec,ジョブ, spec/jobs, $(TEST_DOC))
+
+test-features:
+	$(call run_rspec,フィーチャ, spec/features, $(TEST_PROGRESS))
+
+test-integration:
+	$(call run_rspec,統合, spec/features spec/jobs, $(TEST_PROGRESS))
+
+test-failed:
+	$(RSPEC) --only-failures --format $(TEST_DOC)
+
+test-parallel:
+	$(WEB_RUN) bundle exec parallel_rspec spec/models spec/requests spec/helpers spec/decorators
+
+test-coverage:
+	$(RSPEC) && echo "カバレッジ: coverage/index.html"
+
+test-profile:
+	$(RSPEC) --profile 10
+
+test-skip-heavy:
+	$(RSPEC) --tag ~slow --tag ~integration --tag ~js --format $(TEST_PROGRESS)
+
+test-unit-fast:
+	$(call run_rspec,軽量ユニット, spec/models spec/helpers spec/decorators spec/validators spec/jobs --tag ~slow, $(TEST_PROGRESS))
+
+test-models-only:
+	$(call run_rspec,モデル限定, spec/models spec/helpers spec/decorators spec/validators, $(TEST_PROGRESS))
+
+# --------------------------- CI / Lint / Security -------------------------
 ci: bundle-install security-scan lint test-all
 
 security-scan:
-	docker compose run --rm web bin/brakeman --no-pager
-	# importmapがインストールされていない場合は次のコマンドをコメントアウトしてください
-	# docker compose run --rm web bin/importmap audit
-	@echo "注意: JavaScriptの依存関係スキャンは現在無効化されています。有効化するには importmap をインストールしてください。"
-	@echo "    $ bundle exec rails importmap:install"
+	$(WEB_RUN) bin/brakeman --no-pager
 
 lint:
-	docker compose run --rm web bin/rubocop
+	$(WEB_RUN) bin/rubocop
 
 lint-fix:
-	docker compose run --rm web bin/rubocop -a
+	$(WEB_RUN) bin/rubocop -a
 
 lint-fix-unsafe:
-	docker compose run --rm web bin/rubocop -A
+	$(WEB_RUN) bin/rubocop -A
 
-test-all:
-	docker compose run --rm -e DISABLE_DATABASE_ENVIRONMENT_CHECK=1 web bin/rails db:test:prepare
-	docker compose run --rm web bin/rails test
-	docker compose run --rm web bin/rails test:system
-	docker compose run --rm web bundle exec rspec
-
-# エラーハンドリングテスト用コマンド
-test-error-handling:
-	@echo "=== 本番エラーページ表示モードで開発サーバー起動 ==="
-	@echo "ブラウザでエラーを発生させるURLを開いてテストしてください:"
-	@echo "  - 404エラー: http://localhost:3000/nonexistent"
-	@echo "  - 422エラー: Railsコンソールで invalid.save!"
-	@echo "  - 500エラー: http://localhost:3000/rails/info/routes?raise=true"
-	docker compose run --rm -e ERROR_HANDLING_TEST=1 -p 3000:3000 web bin/rails server -b 0.0.0.0
-
-# 開発用コマンド
+# --------------------------- その他ユーティリティ --------------------------
 console:
-	docker compose run --rm web bin/rails console
+	$(WEB_RUN) bin/rails console
 
 routes:
-	docker compose run --rm web bin/rails routes
+	$(WEB_RUN) bin/rails routes
 
-# バックアップ関連コマンド
 backup:
-	docker compose exec db mysqldump -u root -ppassword app_db > backup/backup-$$(date +%Y%m%d).sql
+	$(COMPOSE) exec db mysqldump -u root -ppassword app_db > backup/backup-$(shell date +%Y%m%d).sql
 
 restore:
-	docker compose exec -T db mysql -u root -ppassword app_db < $(file)
+	$(COMPOSE) exec -T db mysql -u root -ppassword app_db < $(file)
 
-# パフォーマンステスト用コマンド
-perf-generate-csv:
-	docker compose run --rm web bin/rails performance:generate_csv
-
-perf-test-import:
-	docker compose run --rm web bin/rails performance:test_csv_import
-
-perf-benchmark-batch:
-	docker compose run --rm web bin/rails performance:benchmark_batch_sizes
-
-# ヘルプ
+# --------------------------- ヘルプ ----------------------------------------
 help:
-	@echo "利用可能なコマンド:"
-	@echo "  make build          - Dockerイメージをビルド"
-	@echo "  make up            - コンテナを起動"
-	@echo "  make down          - コンテナを停止"
-	@echo "  make restart       - コンテナを再起動"
-	@echo "  make setup         - データベース作成、マイグレーション、シードを一括実行"
-	@echo "  make logs          - ログを表示"
-	@echo "  make ps            - コンテナの状態を表示"
-	@echo "  make clean         - コンテナとボリュームを削除"
-	@echo "  make db-create     - データベースを作成"
-	@echo "  make db-migrate    - マイグレーションを実行"
-	@echo "  make db-reset      - データベースをリセット"
-	@echo "  make db-seed       - シードデータを投入"
-	@echo "  make db-setup      - データベース作成、マイグレーション、シードを一括実行"
-	@echo "  make bundle-install - 依存関係をインストール"
-	@echo "  make test          - テストを実行"
-	@echo "  make ci            - CIチェックをすべて実行（セキュリティスキャン、リント、テスト）"
-	@echo "  make security-scan - セキュリティスキャンを実行"
-	@echo "  make lint          - リントチェックを実行"
-	@echo "  make lint-fix      - 安全な自動修正を適用"
-	@echo "  make lint-fix-unsafe - すべての自動修正を適用（注意：破壊的変更の可能性あり）"
-	@echo "  make test-all      - すべてのテストを実行"
-	@echo "  make console       - Railsコンソールを起動"
-	@echo "  make routes        - ルーティングを表示"
-	@echo "  make backup        - データベースをバックアップ"
-	@echo "  make restore file=FILE - バックアップから復元"
-	@echo "  make perf-generate-csv  - テスト用の1万行CSVファイルを生成"
-	@echo "  make perf-test-import   - CSVインポートのパフォーマンスをテスト"
-	@echo "  make perf-benchmark-batch - 異なるバッチサイズでCSVインポートをベンチマーク"
-	@echo "  make test-error-handling - エラーハンドリング動作確認用サーバー起動"
-	@echo ""
-	@echo "開発サーバー起動後は http://localhost:3000 でアクセス可能です"
+	@grep -E '^[a-zA-Z_\-]+:.*?##' $(MAKEFILE_LIST) | \
+		sed -e 's/^[^:]*://g' -e 's/##/📌/g' | \
+		column -t -s "📌" | \
+		sed -e 's/^/  /'
 
-# 診断・トラブルシューティング用コマンド
+# --------------------------- 診断 & 修復 ----------------------------------
 diagnose:
-	@echo "=== StockRx システム診断 ==="
-	@echo ""
-	@echo "1. コンテナ状態確認:"
-	docker compose ps
-	@echo ""
-	@echo "2. ポート使用状況確認:"
-	@lsof -i :3000 || echo "ポート3000は使用されていません"
-	@echo ""
-	@echo "3. Webサーバー接続テスト:"
-	@if curl -s -I http://localhost:3000 > /dev/null; then \
-		echo "✅ HTTP接続正常"; \
-	else \
-		echo "❌ HTTP接続失敗"; \
-	fi
-	@echo ""
-	@echo "4. 最新ログ確認:"
-	@echo "--- Web Container Logs (最新10行) ---"
-	@docker compose logs --tail=10 web 2>/dev/null || echo "webコンテナが起動していません"
-	@echo ""
+	@echo "=== StockRx システム診断 ===" && echo
+	$(COMPOSE) ps && echo
+	@lsof -i :$(HTTP_PORT) || echo "ポート$(HTTP_PORT)は使用されていません" && echo
+	@if $(CURL) -I http://localhost:$(HTTP_PORT); then echo "✅ HTTP接続正常"; else echo "❌ HTTP接続失敗"; fi && echo
+	@echo "--- Web Logs (最新10行) ---" && $(COMPOSE) logs --tail=10 web || true
 
-# 接続問題解決用コマンド
 fix-connection:
 	@echo "=== 接続問題の自動修復を試行中... ==="
-	@echo "1. webコンテナの再起動..."
-	docker compose restart web
-	@echo "2. 起動待機中..."
-	@sleep 10
-	@echo "3. 接続テスト..."
-	@if curl -s http://localhost:3000 > /dev/null; then \
-		echo "✅ 修復成功 - http://localhost:3000 でアクセス可能"; \
-	else \
-		echo "❌ 修復失敗 - 手動確認が必要:"; \
-		echo "  make diagnose"; \
-		echo "  docker compose logs web"; \
-	fi
+	$(COMPOSE) restart web
+	@sleep 5
+	$(call check_health)
 
-# SSL/HTTPS エラー対策用
 fix-ssl-error:
-	@echo "=== SSL接続エラーの対処法 ==="
-	@echo "ブラウザで https://localhost:3000 でアクセスしていませんか？"
-	@echo "StockRxは開発環境でHTTPで動作します。"
-	@echo ""
-	@echo "正しいアクセス方法:"
-	@echo "  ✅ http://localhost:3000"
-	@echo "  ❌ https://localhost:3000"
-	@echo ""
-	@echo "ブラウザキャッシュクリア方法:"
-	@echo "  Chrome: Ctrl+Shift+R (Windows) / Cmd+Shift+R (Mac)"
-	@echo "  Firefox: Ctrl+F5 (Windows) / Cmd+Shift+R (Mac)" 
+	@echo "=== SSL接続エラー対処 ===" && \
+	  echo "開発環境は HTTP で動作します。 https://localhost:$(HTTP_PORT) は使わず http://localhost:$(HTTP_PORT) をご利用下さい。"

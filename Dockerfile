@@ -23,7 +23,10 @@ RUN apt-get update -qq && \
     libyaml-dev \
     git \
     nodejs \
-    npm && \
+    npm \
+    netcat-openbsd \
+    telnet \
+    dnsutils && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
 # Create a non-root user for development

@@ -15,8 +15,8 @@ class AuditLog < ApplicationRecord
   scope :by_user, ->(user_id) { where(user_id: user_id) }
   scope :by_date_range, ->(start_date, end_date) { where(created_at: start_date..end_date) }
 
-  # 列挙型：操作タイプ
-  enum action: {
+  # 列挙型：操作タイプ（Rails 8 対応：位置引数使用）
+  enum :action, {
     create: "create",
     update: "update",
     delete: "delete",

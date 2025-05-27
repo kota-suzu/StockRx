@@ -13,8 +13,8 @@ class InventoryLog < ApplicationRecord
   # 操作種別の定数定義
   OPERATION_TYPES = %w[add remove adjust ship receive].freeze
 
-  # 操作種別のenum定義
-  enum operation_type: {
+  # 操作種別のenum定義（Rails 8 対応：位置引数使用）
+  enum :operation_type, {
     add: "add",
     remove: "remove",
     adjust: "adjust",

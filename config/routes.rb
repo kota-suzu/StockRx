@@ -22,6 +22,20 @@ Rails.application.routes.draw do
                passwords: "admin_controllers/passwords"
              }
 
+  # ============================================
+  # Sidekiq Web UI（管理者認証必須）
+  # ============================================
+  # Background job monitoring and management
+  authenticate :admin do
+    mount Sidekiq::Web => "/admin/sidekiq"
+  end
+
+  # TODO: 将来的な運用監視機能
+  # authenticate :admin do
+  #   mount RailsAdmin::Engine => '/admin/rails_admin', as: 'rails_admin'
+  #   mount Flipper::UI.app(Flipper) => '/admin/flipper'  # Feature flags
+  # end
+
   # 管理者ダッシュボード用のルーティング
   namespace :admin, module: :admin_controllers do
     # ダッシュボードをルートに設定

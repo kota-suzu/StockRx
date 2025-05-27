@@ -75,6 +75,28 @@ make fix-ssl-error
 | ポート3000が使用中 | 他のプロセスがポート占有 | `lsof -i :3000` で確認後、プロセス終了 |
 | データベース接続エラー | dbコンテナ未起動 | `docker compose up -d db` |
 | ブラウザキャッシュ問題 | 古いHTTPS設定が残存 | Ctrl+Shift+R（強制リロード） |
+| CSVインポートが動作しない | Sidekiqワーカー未起動 | `docker-compose exec web bundle exec sidekiq -C config/sidekiq.yml` |
+| Redis接続エラー | redisコンテナ未起動 | `docker compose up -d redis` |
+| ジョブが処理されない | Sidekiq設定エラー | `rails sidekiq:health` でヘルスチェック |
+
+### Sidekiq関連のトラブルシューティング
+
+```bash
+# Sidekiqヘルスチェック
+docker-compose exec web bin/rails sidekiq:health
+
+# キュー状況確認
+docker-compose exec web bin/rails sidekiq:queues
+
+# 失敗ジョブのクリア
+docker-compose exec web bin/rails sidekiq:clear_failed
+
+# Redis接続確認
+docker-compose exec redis redis-cli ping
+
+# Sidekiqワーカー情報表示
+docker-compose exec web bin/rails sidekiq:workers
+```
 
 ### 診断コマンド
 
@@ -249,6 +271,24 @@ make perf-benchmark-batch
 - [ ] E2Eテストの実装
 - [ ] エラーハンドリング用共通テスト実装
 
+### バックグラウンドジョブ処理
+- [x] Sidekiq導入とセットアップ
+  - [x] Redis設定とDocker Compose連携
+  - [x] ApplicationJob基盤の強化（リトライ・ログ・監視）
+  - [x] 3回リトライ機能実装
+  - [x] Sidekiq Web UI設定（管理者認証付き）
+- [x] ImportInventoriesJob Sidekiq対応
+  - [x] 進捗追跡機能（Redis + ActionCable）
+  - [x] セキュリティ検証強化
+  - [x] エラーハンドリング改善
+  - [x] テスト実装（単体・統合・パフォーマンス）
+- [x] 運用管理ツール
+  - [x] Rakeタスク（ヘルスチェック・監視・クリーンアップ）
+  - [x] 横展開例（StockAlertJob・MonthlyReportJob）
+- [ ] 定期実行ジョブ（sidekiq-scheduler）
+- [ ] メール通知ジョブ
+- [ ] 外部API連携ジョブ
+
 ## 開発ガイドライン（追加）
 
 ### Currentクラスの利用
@@ -265,6 +305,63 @@ make perf-benchmark-batch
 - すべてのデコレーターは`ApplicationDecorator`を継承します
 - ビューでは`.decorate`メソッドを使用してデコレーター化したオブジェクトを利用します（例：`@inventory.decorate`）
 - デコレーターのテストは`spec/decorators`ディレクトリに配置します
+
+## 効率的なテスト実行ガイド（開発者生産性向上）
+
+### テスト絞り込み戦略
+
+StockRxでは、開発効率を最大化するため、Google L8レベルのテスト戦略を採用しています。
+
+#### 🚀 最高速：ユニットテストのみ（推奨）
+```bash
+make test-unit-only    # モデル・ヘルパー・デコレータのみ（3.5秒）
+make test-models       # モデルテストのみ
+```
+
+#### ⚡ 高速：コア機能テスト
+```bash
+make test-fast         # モデル・コントローラー・ユニット
+make test-controllers  # コントローラーテスト
+```
+
+#### 🔧 問題解決：個別テスト
+```bash
+make test-failed       # 失敗したテストのみ再実行
+make test-profile      # 遅いテストの特定
+make test-skip-heavy   # 重いテストをスキップ
+```
+
+#### 📊 品質確保：包括的テスト
+```bash
+make test-coverage     # カバレッジ計測付き
+make test-integration  # 統合テスト（時間要注意）
+make test-features     # フィーチャーテスト（最重）
+```
+
+#### ⚙️ 高度な実行オプション
+```bash
+make test-parallel     # 並列実行（高速化）
+make test-jobs         # ジョブテスト（要修正）
+```
+
+### 開発ワークフロー推奨例
+
+1. **日常開発**: `make test-unit-only` （3.5秒で126例）
+2. **機能追加**: `make test-fast` 
+3. **リリース前**: `make test-coverage`
+4. **問題調査**: `make test-failed` → `make test-profile`
+
+### テスト問題の現状と対策
+
+#### 既知の問題（修正必要）
+- **ジョブテスト**: Redis接続・ActionCable統合の設定不備
+- **フィーチャーテスト**: Capybara設定最適化要
+- **Auditable concern**: エラーハンドリング修正要
+
+#### 修正優先度
+1. 🔥 **最高**: Redis接続設定の修正
+2. 🔴 **高**: Auditable concernエラー解決
+3. 🟡 **中**: ActionCable通知テスト改善
 
 ## ライセンス
 
@@ -430,3 +527,143 @@ Joel 流に言えば *"コードを書くより仕様を変える方が 100 倍�
 [9]: https://www.joelonsoftware.com/author/joelonsoftware/page/12/?utm_source=chatgpt.com "Joel Spolsky – Page 12 - Joel on Software"
 [10]: https://link.springer.com/chapter/10.1007/978-1-4302-0753-5_5?utm_source=chatgpt.com "Painless Functional Specifications Part 1: Why Bother? - SpringerLink"
 [11]: https://github.com/joelparkerhenderson/functional-specifications-template?utm_source=chatgpt.com "joelparkerhenderson/functional-specifications-template - GitHub"
+
+## 🔧 開発・運用計画
+
+### 📋 実装済み機能のTODO
+
+#### ヘルパー機能の改善（完了）
+- [x] ビューファイル内のヘルパーメソッド定義を適切なヘルパーファイルに移動
+- [x] AdminControllers::InventoriesHelper への統合
+- [x] ソートアイコン機能の追加
+- [x] 重複ヘルパーファイルの削除
+
+#### 緊急対応が必要な機能（優先度：高）
+
+##### 📊 CSVインポート機能の改善
+- [ ] ファイル形式バリデーション（サイズ制限：10MB、MIME type、文字エンコーディング）
+- [ ] カラム数・形式の事前検証
+- [ ] エラーハンドリングの強化（部分的失敗時の処理）
+- [ ] インポート進捗の詳細表示
+
+##### 🔔 在庫アラート機能
+- [ ] 在庫切れ時の自動メール送信（管理者・担当者向け）
+- [ ] 期限切れ商品のアラートメール（バッチ期限管理連携）
+- [ ] 低在庫アラート（設定可能な閾値ベース）
+- [ ] ActionMailer + Sidekiq による配信システム
+
+##### 🏷️ バッチ管理機能
+- [ ] バッチ詳細ページの実装
+- [ ] バッチCRUD機能の追加
+- [ ] 期限切れアラート機能
+- [ ] 先入先出（FIFO）自動消費機能
+
+#### 中期開発計画（優先度：中）
+
+##### 📈 レポート・分析機能
+- [ ] 在庫一括操作機能（一括ステータス変更、一括削除）
+- [ ] 在庫レポート機能（月次・年次レポート、在庫回転率）
+- [ ] エクスポート機能（PDF、Excel、CSV）
+- [ ] 在庫履歴・監査ログ機能
+- [ ] KPI ダッシュボード機能
+
+##### 🔐 セキュリティ・認証強化
+- [ ] APIレート制限機能
+- [ ] 認証機能強化（2FA対応）
+- [ ] 監査証跡の暗号化保存
+- [ ] ログの改ざん防止機能（ハッシュチェーン）
+
+##### 🌍 国際化・拡張性
+- [ ] 多言語対応（i18n）
+- [ ] 多通貨対応システム
+- [ ] タイムゾーン対応の強化
+- [ ] プラットフォーム非依存性の向上
+
+#### 長期開発計画（優先度：低）
+
+##### 🤖 AI・機械学習機能
+- [ ] 需要予測AIの実装
+- [ ] 異常検知・不正検出システム
+- [ ] 最適化アルゴリズムによる自動補充
+- [ ] 画像認識による在庫確認システム
+
+##### 🌐 IoT・ブロックチェーン連携
+- [ ] RFID/NFCタグとの連携
+- [ ] センサーによる自動在庫監視
+- [ ] ブロックチェーンによるサプライチェーン透明性
+- [ ] スマートコントラクトによる自動決済
+
+##### 🏗️ アーキテクチャ進化
+- [ ] マイクロサービス化
+- [ ] イベント駆動アーキテクチャの導入
+- [ ] ゼロトラストセキュリティアーキテクチャ
+- [ ] 量子暗号化対応
+
+### 🛠️ 技術的負債解消計画
+
+#### フロントエンド刷新
+- [ ] React/Vue.js による SPA 化
+- [ ] PWA (Progressive Web App) 対応
+- [ ] レスポンシブデザインの完全対応
+- [ ] アクセシビリティ向上（WCAG 2.1 AA準拠）
+
+#### バックエンド最適化
+- [ ] N+1クエリの完全解消
+- [ ] データベースインデックス最適化
+- [ ] キャッシュ戦略の実装（Redis活用）
+- [ ] 非同期処理の拡充（Sidekiq活用）
+
+#### インフラ・DevOps
+- [ ] コンテナ化の完全対応（Docker/Kubernetes）
+- [ ] CI/CD パイプラインの強化
+- [ ] 自動テストカバレッジ向上（目標：90%以上）
+- [ ] パフォーマンス監視システム構築
+
+### 📝 コード品質向上計画
+
+#### テスト戦略
+- [ ] 単体テストカバレッジ向上
+- [ ] 統合テストの充実
+- [ ] E2Eテストの自動化
+- [ ] パフォーマンステストの実装
+
+#### コードレビュー・静的解析
+- [ ] 静的解析ツールの導入（RuboCop、Brakeman）
+- [ ] 自動コードレビューの設定
+- [ ] コーディング規約の策定・遵守
+- [ ] 技術文書の充実
+
+### 🌱 持続可能性・ESG対応
+
+#### 環境配慮機能
+- [ ] カーボンフットプリント計算
+- [ ] 循環経済への対応機能
+- [ ] 廃棄物削減最適化
+- [ ] ESG報告書の自動生成
+
+#### コンプライアンス対応
+- [ ] GDPR対応（データポータビリティ、削除権）
+- [ ] SOX法対応（監査証跡）
+- [ ] 各国規制への対応機能
+- [ ] 定期的なコンプライアンスチェック
+
+### 📊 メトリクス・KPI
+
+#### 開発効率指標
+- [ ] コード品質メトリクス（複雑度、重複率）
+- [ ] デプロイ頻度・リードタイム
+- [ ] 障害復旧時間（MTTR）
+- [ ] テストカバレッジ率
+
+#### ビジネス指標
+- [ ] システム稼働率（目標：99.9%）
+- [ ] ユーザー満足度調査
+- [ ] 在庫管理効率向上率
+- [ ] コスト削減効果測定
+
+---
+
+**注意事項:**
+- 各機能の実装優先度は事業要件に応じて調整してください
+- セキュリティ関連機能は必ず実装前にセキュリティ監査を実施してください
+- 大規模な変更の際は必ずバックアップを取得し、段階的なロールアウトを実施してください

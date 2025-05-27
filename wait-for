@@ -1,22 +1,177 @@
 #!/bin/sh
-# wait-for.sh
+# wait-for.sh - 汎用的なホスト:ポート待機スクリプト（改善版）
+# Usage: ./wait-for host:port [--timeout=TIMEOUT] [-- command]
+# 
+# 改善点:
+# - より堅牢な接続テスト
+# - 詳細なデバッグ情報
+# - DNS解決の確認
+# - 複数の接続方法でフォールバック
 
 set -e
 
-host="$1"
-shift
+# デフォルト値
+timeout=15
+quiet=0
+debug=0
 
-# --引数を処理してスキップする
-if [ "$1" = "--" ]; then
-  shift
+# 引数解析
+while [ $# -gt 0 ]; do
+  case "$1" in
+    *:* )
+      hostport="$1"
+      shift
+      ;;
+    --timeout=*)
+      timeout="${1#*=}"
+      shift
+      ;;
+    --quiet)
+      quiet=1
+      shift
+      ;;
+    --debug)
+      debug=1
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    *)
+      echo "Unknown argument: $1"
+      exit 1
+      ;;
+  esac
+done
+
+if [ -z "$hostport" ]; then
+  echo "Error: You need to provide a host and port to test."
+  echo "Usage: $0 host:port [--timeout=TIMEOUT] [--quiet] [--debug] [-- command]"
+  exit 1
 fi
 
-cmd="$@"
+# ホストとポートを分離
+host="${hostport%:*}"
+port="${hostport#*:}"
 
-until mysql -h "$host" -u root -ppassword -e 'SELECT 1'; do
-  >&2 echo "MySQL is unavailable - sleeping"
+# デバッグ情報出力
+debug_log() {
+  if [ $debug -eq 1 ]; then
+    echo "DEBUG: $*" >&2
+  fi
+}
+
+# DNS解決確認
+check_dns() {
+  if command -v nslookup >/dev/null 2>&1; then
+    nslookup "$host" >/dev/null 2>&1
+  elif command -v getent >/dev/null 2>&1; then
+    getent hosts "$host" >/dev/null 2>&1
+  else
+    # フォールバック: pingで確認
+    ping -c 1 "$host" >/dev/null 2>&1
+  fi
+}
+
+# テスト関数（複数の方法でフォールバック）
+test_connection() {
+  local method=""
+  
+  # Method 1: netcat
+  if command -v nc >/dev/null 2>&1; then
+    method="netcat"
+    debug_log "Testing connection using netcat"
+    if nc -z "$host" "$port" >/dev/null 2>&1; then
+      debug_log "Connection successful via netcat"
+      return 0
+    fi
+    debug_log "Connection failed via netcat"
+  fi
+  
+  # Method 2: telnet
+  if command -v telnet >/dev/null 2>&1; then
+    method="telnet"
+    debug_log "Testing connection using telnet"
+    if (echo "quit" | telnet "$host" "$port") >/dev/null 2>&1; then
+      debug_log "Connection successful via telnet"
+      return 0
+    fi
+    debug_log "Connection failed via telnet"
+  fi
+  
+  # Method 3: /dev/tcp (bash/zsh)
+  if [ -n "$BASH_VERSION" ] || [ -n "$ZSH_VERSION" ]; then
+    method="/dev/tcp"
+    debug_log "Testing connection using /dev/tcp"
+    if (echo >/dev/tcp/"$host"/"$port") >/dev/null 2>&1; then
+      debug_log "Connection successful via /dev/tcp"
+      return 0
+    fi
+    debug_log "Connection failed via /dev/tcp"
+  fi
+  
+  # Method 4: curl (HTTP services)
+  if command -v curl >/dev/null 2>&1 && ([ "$port" = "80" ] || [ "$port" = "443" ] || [ "$port" = "3000" ]); then
+    method="curl"
+    debug_log "Testing connection using curl"
+    if curl -s --connect-timeout 2 "http://$host:$port" >/dev/null 2>&1; then
+      debug_log "Connection successful via curl"
+      return 0
+    fi
+    debug_log "Connection failed via curl"
+  fi
+  
+  debug_log "All connection methods failed for $host:$port"
+  return 1
+}
+
+# メイン待機ループ
+start_time=$(date +%s)
+if [ $quiet -eq 0 ]; then
+  echo "Waiting for $host:$port..."
+  if [ $debug -eq 1 ]; then
+    echo "DEBUG: Timeout set to $timeout seconds"
+    echo "DEBUG: Checking DNS resolution for $host..."
+    if check_dns; then
+      echo "DEBUG: DNS resolution successful for $host"
+    else
+      echo "DEBUG: DNS resolution failed for $host"
+    fi
+  fi
+fi
+
+while true; do
+  if test_connection; then
+    if [ $quiet -eq 0 ]; then
+      echo "$host:$port is available!"
+    fi
+    break
+  fi
+
+  current_time=$(date +%s)
+  elapsed=$((current_time - start_time))
+  
+  if [ $elapsed -ge $timeout ]; then
+    echo "Timeout occurred after waiting $timeout seconds for $host:$port"
+    if [ $debug -eq 1 ]; then
+      echo "DEBUG: Attempted connection methods: netcat, telnet, /dev/tcp, curl"
+      echo "DEBUG: DNS check status: $(check_dns && echo "OK" || echo "FAILED")"
+    fi
+    exit 1
+  fi
+
+  if [ $quiet -eq 0 ]; then
+    if [ $debug -eq 1 ]; then
+      echo "$host:$port is unavailable - sleeping (elapsed: ${elapsed}s)"
+    else
+      echo "$host:$port is unavailable - sleeping"
+    fi
+  fi
   sleep 1
 done
 
->&2 echo "MySQL is up - executing command"
-exec $cmd 
+# 残りのコマンドを実行
+if [ $# -gt 0 ]; then
+  exec "$@"
+fi 

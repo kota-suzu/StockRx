@@ -3,8 +3,8 @@
 class Receipt < ApplicationRecord
   belongs_to :inventory
 
-  # 入荷ステータスの列挙型
-  enum receipt_status: {
+  # 入荷ステータスの列挙型（Rails 8 対応：位置引数使用）
+  enum :receipt_status, {
     expected: 0,     # 入荷予定
     partial: 1,      # 一部入荷
     completed: 2,    # 入荷完了

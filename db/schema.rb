@@ -10,7 +10,33 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_05_23_074454) do
+ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
+  create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "admin_id", null: false
+    t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
+    t.string "delivery_method", null: false, comment: "配信方法（email, actioncable等）"
+    t.boolean "enabled", default: true, null: false, comment: "通知の有効/無効"
+    t.integer "priority", default: 1, null: false, comment: "優先度（0:低 1:中 2:高 3:緊急）"
+    t.integer "frequency_minutes", comment: "通知頻度制限（分）"
+    t.datetime "last_sent_at", comment: "最後の通知送信日時"
+    t.integer "sent_count", default: 0, null: false, comment: "送信回数"
+    t.datetime "active_from", comment: "有効期間開始日時"
+    t.datetime "active_until", comment: "有効期間終了日時"
+    t.text "settings_json", comment: "詳細設定（JSON形式）"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["admin_id", "notification_type", "delivery_method"], name: "idx_admin_notification_unique", unique: true
+    t.index ["admin_id"], name: "index_admin_notification_settings_on_admin_id"
+    t.index ["delivery_method", "enabled"], name: "idx_delivery_method_enabled"
+    t.index ["delivery_method"], name: "index_admin_notification_settings_on_delivery_method"
+    t.index ["enabled"], name: "index_admin_notification_settings_on_enabled"
+    t.index ["last_sent_at"], name: "index_admin_notification_settings_on_last_sent_at"
+    t.index ["notification_type", "enabled"], name: "idx_notification_type_enabled"
+    t.index ["notification_type"], name: "index_admin_notification_settings_on_notification_type"
+    t.index ["priority", "enabled"], name: "idx_priority_enabled"
+    t.index ["priority"], name: "index_admin_notification_settings_on_priority"
+  end
+
   create_table "admins", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -122,6 +148,7 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074454) do
     t.index ["inventory_id"], name: "index_shipments_on_inventory_id"
   end
 
+  add_foreign_key "admin_notification_settings", "admins"
   add_foreign_key "audit_logs", "admins", column: "user_id", on_delete: :nullify
   add_foreign_key "batches", "inventories", on_delete: :cascade
   add_foreign_key "inventory_logs", "inventories"

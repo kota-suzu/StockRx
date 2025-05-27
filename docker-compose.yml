@@ -45,12 +45,25 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     environment:
       - RAILS_ENV=development
       - DATABASE_URL=mysql2://root:password@db:3306/app_db
       - REDIS_URL=redis://redis:6379/0
+      # パフォーマンス最適化環境変数
+      - RAILS_MAX_THREADS=2
+      - WEB_CONCURRENCY=1
+      - MALLOC_ARENA_MAX=2
+      - RUBY_GC_HEAP_INIT_SLOTS=1000000
+      - RUBY_GC_HEAP_FREE_SLOTS=500000
+      - RUBY_GC_HEAP_GROWTH_FACTOR=1.1
+      - RUBY_GC_HEAP_GROWTH_MAX_SLOTS=10000
+      # 接続タイムアウト設定の追加
+      - DB_CONNECT_TIMEOUT=30
+      - REDIS_CONNECT_TIMEOUT=10
       # TODO: セキュリティ強化 - 環境変数化
       # - SECRET_KEY_BASE=${SECRET_KEY_BASE}
       # - DATABASE_PASSWORD=${DATABASE_PASSWORD}
@@ -58,24 +71,55 @@ services:
     volumes:
       - .:/rails
       - ./tmp/bundle_cache:/bundle
+      # パフォーマンス最適化：メモリマップファイル用
+      - /dev/shm:/dev/shm
       # TODO: ログ管理の改善
       # - ./log:/rails/log
       # - ./storage:/rails/storage
     stdin_open: true
     tty: true
-    command: ["./bin/rails", "server", "-b", "0.0.0.0"]
+    # 接続待機コマンドを改善（デバッグモード有効）
+    command: >
+      sh -c "
+        echo 'Starting Rails application...'
+        echo 'Checking service dependencies...'
+        ./wait-for db:3306 --timeout=90 --debug -- 
+        ./wait-for redis:6379 --timeout=60 --debug -- 
+        echo 'All dependencies are ready, starting Rails server...'
+        rm -f /rails/tmp/pids/server.pid
+        ./bin/rails server -b 0.0.0.0
+      "
+    # メモリ制限の追加（テスト環境での最適化）
+    mem_limit: 1g
+    memswap_limit: 1g
+    # CPU制限の追加
+    cpus: "1.0"
+    # ヘルスチェック設定の改善
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/up"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 120s  # Rails起動時間を考慮して延長
+    networks:
+      - stockrx_network
+    # 依存関係の再起動ポリシー
+    restart: unless-stopped
 
   db:
     image: mysql:8.4
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: app_db
+      # パフォーマンス最適化環境変数（MySQL 8.4対応）
+      MYSQL_INNODB_BUFFER_POOL_SIZE: 128M
+      MYSQL_INNODB_FLUSH_LOG_AT_TRX_COMMIT: 1
+      MYSQL_INNODB_FLUSH_METHOD: O_DIRECT
+      MYSQL_MAX_CONNECTIONS: 50
+      # 接続タイムアウト設定
+      MYSQL_CONNECT_TIMEOUT: 60
+      MYSQL_WAIT_TIMEOUT: 28800
+      MYSQL_INTERACTIVE_TIMEOUT: 28800
       # TODO: セキュリティ強化 - パスワード環境変数化
       # MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       # MYSQL_USER: ${MYSQL_USER}
@@ -84,15 +128,39 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      # 初期化用スクリプトの追加
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       # TODO: バックアップ機能の追加
       # - ./backup:/backup
-      # - ./mysql/init:/docker-entrypoint-initdb.d
-    # TODO: MySQL設定の最適化
-    # command: 
-    #   - --character-set-server=utf8mb4
-    #   - --collation-server=utf8mb4_unicode_ci
-    #   - --innodb_buffer_pool_size=256M
-    #   - --max_connections=200
+    # メモリとCPU制限の追加
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: "0.5"
+    # MySQL設定の最適化（MySQL 8.4最小限設定）
+    command: 
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb_buffer_pool_size=128M
+      - --max_connections=50
+      # テスト環境向け高速化設定
+      - --skip_name_resolve
+      - --sync_binlog=0
+      # 接続関連の設定追加
+      - --connect_timeout=60
+      - --wait_timeout=28800
+      - --interactive_timeout=28800
+      - --net_read_timeout=60
+      - --net_write_timeout=60
+    # ヘルスチェックを強化
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword", "--connect_timeout=10"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - stockrx_network
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
@@ -100,39 +168,57 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    # TODO: Redis設定の最適化
-    # command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    # Sidekiq向けRedis最適化設定（テスト環境向け軽量化）
+    command: redis-server --appendonly no --maxmemory 64mb --maxmemory-policy allkeys-lru --save "" --timeout 60 --tcp-keepalive 60
+    # メモリとCPU制限の追加
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: "0.25"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping", "||", "exit", "1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - stockrx_network
+    restart: unless-stopped
+    # TODO: 本番環境セキュリティ強化
     # environment:
     #   - REDIS_PASSWORD=${REDIS_PASSWORD}
+    #   - REDIS_USER=${REDIS_USER}
 
-  # TODO: 本番環境での追加サービス
-  # nginx:
-  #   image: nginx:alpine
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - ./nginx.conf:/etc/nginx/nginx.conf
-  #     - ./ssl:/etc/ssl/certs
+  # TODO: 本番環境でのSidekiqワーカー分離
+  # sidekiq:
+  #   build: .
   #   depends_on:
-  #     - web
-  #
-  # backup:
-  #   image: alpine:latest
-  #   volumes:
-  #     - mysql_data:/source/mysql
-  #     - redis_data:/source/redis
-  #     - ./backup:/backup
+  #     db:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
   #   environment:
-  #     - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-  #     - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-  #     - S3_BUCKET=${BACKUP_S3_BUCKET}
-  #   command: |
+  #     - RAILS_ENV=development
+  #     - DATABASE_URL=mysql2://root:password@db:3306/app_db
+  #     - REDIS_URL=redis://redis:6379/0
+  #   volumes:
+  #     - .:/rails
+  #     - ./tmp/bundle_cache:/bundle
+  #   command: >
   #     sh -c "
-  #       echo '0 2 * * * /backup/scripts/mysql_backup.sh' > /var/spool/cron/crontabs/root
-  #       echo '0 3 * * 0 /backup/scripts/cleanup_old_backups.sh' >> /var/spool/cron/crontabs/root
-  #       crond -f
+  #       ./wait-for db:3306 --timeout=90 --debug -- 
+  #       ./wait-for redis:6379 --timeout=60 --debug -- 
+  #       bundle exec sidekiq -C config/sidekiq.yml
   #     "
+  #   mem_limit: 512m
+  #   cpus: "0.5"
+  #   networks:
+  #     - stockrx_network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "sidekiqctl", "status"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
 
 volumes:
   mysql_data:
@@ -144,15 +230,88 @@ volumes:
     #   device: ":/backup/mysql"
   redis_data:
 
-# TODO: ネットワーク設定の追加
-# networks:
-#   stockrx_network:
-#     driver: bridge
-#     ipam:
-#       config:
-#         - subnet: 172.20.0.0/16
+# ネットワーク設定（サービス間通信の最適化）
+networks:
+  stockrx_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: stockrx_bridge
+      com.docker.network.driver.mtu: 1500
 
-# TODO: 監視・ヘルスチェック機能
+# TODO: 本番環境での追加サービス
+# nginx:
+#   image: nginx:alpine
+#   ports:
+#     - "80:80"
+#     - "443:443"
+#   volumes:
+#     - ./nginx.conf:/etc/nginx/nginx.conf
+#     - ./ssl:/etc/ssl/certs
+#   depends_on:
+#     web:
+#       condition: service_healthy
+#   mem_limit: 64m
+#   cpus: "0.25"
+#   networks:
+#     - stockrx_network
+#   restart: unless-stopped
+#
+# backup:
+#   image: alpine:latest
+#   volumes:
+#     - mysql_data:/source/mysql
+#     - redis_data:/source/redis
+#     - ./backup:/backup
+#   environment:
+#     - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+#     - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+#     - S3_BUCKET=${BACKUP_S3_BUCKET}
+#   command: |
+#     sh -c "
+#       echo '0 2 * * * /backup/scripts/mysql_backup.sh' > /var/spool/cron/crontabs/root
+#       echo '0 3 * * 0 /backup/scripts/cleanup_old_backups.sh' >> /var/spool/cron/crontabs/root
+#       crond -f
+#     "
+#   mem_limit: 128m
+#   cpus: "0.25"
+#   networks:
+#     - stockrx_network
+#   restart: unless-stopped
+
+# TODO: 監視・ヘルスチェック機能（優先度：中）
 # healthcheck 設定の追加
 # Prometheus + Grafana による監視
 # ELK Stack によるログ分析
+
+# TODO: テスト環境専用最適化（優先度：高）
+# ============================================
+# 1. テスト用データベース分離
+#    - 専用テストDB設定
+#    - インメモリデータベース検討
+#    - 並列テスト対応
+#
+# 2. テストデータ永続化回避
+#    - 一時ボリューム使用
+#    - tmpfs マウント活用
+#    - テスト後の自動クリーンアップ
+#
+# 3. リソース使用量最小化
+#    - メモリ制限の厳格化
+#    - CPU制限の最適化
+#    - ディスクI/O削減
+#
+# 4. 起動時間短縮
+#    - イメージレイヤーキャッシュ最適化
+#    - 依存関係の並列起動
+#    - ヘルスチェック間隔調整
+
+# TODO: 開発環境とテスト環境の分離（優先度：中）
+# ============================================
+# docker-compose.test.yml の作成
+# - テスト専用の軽量設定
+# - CI/CD環境での最適化
+# - パフォーマンステスト用設定
