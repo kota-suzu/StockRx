@@ -98,8 +98,6 @@ class ImportInventoriesJob < ApplicationJob
     respond_to?(:jid) ? jid : SecureRandom.uuid
   end
 
-  private
-
   # ============================================
   # セキュリティ検証
   # ============================================
@@ -172,293 +170,318 @@ class ImportInventoriesJob < ApplicationJob
   end
 
   # ============================================
-  # Redis接続管理
+  # エラーハンドリング
   # ============================================
-  def get_redis_connection
-    # テスト環境では Redis のモック接続またはnilを返す
-    if Rails.env.test?
-      # テスト環境ではRedisが設定されていない場合があるため、nilを許容
-      return nil unless defined?(Redis)
-
-      begin
-        # Redis接続テスト
-        redis = Redis.current
-        redis.ping  # 接続確認
-        return redis
-      rescue => e
-        Rails.logger.warn "Redis not available in test environment: #{e.message}"
-        return nil
-      end
-    end
-
-    # 本番環境・開発環境
-    begin
-      if defined?(Sidekiq) && Sidekiq.redis_pool
-        Sidekiq.redis { |conn| return conn }
-      else
-        # フォールバック: Redisが直接利用可能な場合
-        Redis.current
-      end
-    rescue => e
-      Rails.logger.warn "Redis connection failed, falling back to in-memory tracking: #{e.message}"
-      nil
-    end
+  def with_error_handling
+    yield
+  rescue => e
+    handle_import_error(e)
+    raise e  # Sidekiqリトライのために再発生
+  ensure
+    cleanup_after_import
   end
-
-  # ============================================
-  # 進捗追跡機能
-  # ============================================
-  def initialize_progress_tracking(redis, status_key, file_path, admin_id)
-    return unless redis
-
-    redis.hset(status_key,
-      "status", "running",
-      "started_at", Time.current.iso8601,
-      "file_path", File.basename(file_path),  # セキュリティ：パスではなくファイル名のみ
-      "progress", 0,
-      "admin_id", admin_id,
-      "job_class", self.class.name
-    )
-    redis.expire(status_key, 2.hours.to_i)  # 2時間後に自動削除
-
-    Rails.logger.info "Progress tracking initialized: #{status_key}"
-
-    # ActionCable経由でリアルタイム通知（初期化完了）
-    broadcast_to_admin(admin_id, {
-      type: "csv_import_initialized",
-      job_id: status_key.split(":").last,
-      status: "running",
-      progress: 0,
-      timestamp: Time.current.iso8601
-    })
+  
+  def handle_import_error(error)
+    log_import_error(error)
+    notify_import_error(error)
+    update_error_status(error)
   end
-
-  def update_progress(redis, status_key, progress, admin_id)
-    return unless redis
-
-    redis.hset(status_key, "progress", progress)
-
-    # ActionCable経由でリアルタイム通知（AdminChannelを使用）
-    broadcast_to_admin(admin_id, {
-      type: "csv_import_progress",
-      progress: progress,
-      status_key: status_key,
-      timestamp: Time.current.iso8601
-    })
-  end
-
-  # ============================================
-  # 成功時処理
-  # ============================================
-  def handle_success(result, admin_id, start_time, redis, status_key, duration)
-    # Redis status update
-    if redis
-      redis.hset(status_key,
-        "status", "completed",
-        "completed_at", Time.current.iso8601,
-        "duration", duration,
-        "valid_count", result[:valid_count],
-        "invalid_count", result[:invalid_records].size
-      )
-      redis.expire(status_key, 24.hours.to_i)  # 監査用に24時間保持
-    end
-
-    # 通知メッセージ作成
-    admin = Admin.find_by(id: admin_id)
-    if admin.present?
-      message = I18n.t("inventories.import.completed", duration: duration) + "\n" +
-                I18n.t("inventories.import.success", count: result[:valid_count]) + " " +
-                I18n.t("inventories.import.invalid_records", count: result[:invalid_records].size)
-
-      # ActionCable通知（AdminChannelを使用）
-      broadcast_to_admin(admin_id, {
-        type: "csv_import_complete",
-        message: message,
-        result: result,
-        job_id: status_key.split(":").last,
-        duration: duration,
-        timestamp: Time.current.iso8601
-      })
-
-      # TODO: メール通知機能（大きなインポート処理向け）
-      # AdminMailer.csv_import_complete(admin, result).deliver_later if result[:valid_count] > 1000
-    end
-
-    # 構造化ログ出力
-    Rails.logger.info({
-      event: "csv_import_completed",
-      admin_id: admin_id,
-      job_id: status_key.split(":").last,
-      duration: duration,
-      valid_count: result[:valid_count],
-      invalid_count: result[:invalid_records].size,
-      status_key: status_key
-    }.to_json)
-  end
-
-  # ============================================
-  # エラー時処理
-  # ============================================
-  def handle_error(exception, admin_id, file_path, redis, status_key)
-    # リトライ回数の取得（Sidekiq環境とテスト環境で異なる）
-    retry_count = if respond_to?(:executions)
-                    executions
-    elsif defined?(jid) && jid.present?
-                    # Sidekiq環境でのリトライ回数取得を試行
-                    job_data = Sidekiq::RetrySet.new.find_job(jid)
-                    job_data ? job_data["retry_count"] || 0 : 0
-    else
-                    0  # テスト環境など
-    end
-
-    # Redis status update
-    if redis
-      redis.hset(status_key,
-        "status", "failed",
-        "failed_at", Time.current.iso8601,
-        "error_message", exception.message,
-        "error_class", exception.class.name,
-        "retry_count", retry_count
-      )
-      redis.expire(status_key, 24.hours.to_i)  # エラー監査用に24時間保持
-    end
-
-    # 管理者への通知（AdminChannelを使用）
-    admin = Admin.find_by(id: admin_id)
-    if admin.present?
-      broadcast_to_admin(admin_id, {
-        type: "csv_import_error",
-        message: I18n.t("inventories.import.error", message: exception.message),
-        error_class: exception.class.name,
-        retry_count: retry_count,
-        max_retries: 3,
-        job_id: status_key.split(":").last,
-        timestamp: Time.current.iso8601
-      })
-    end
-
-    # 構造化ログ出力
+  
+  def log_import_error(error)
     Rails.logger.error({
       event: "csv_import_failed",
-      admin_id: admin_id,
-      job_id: status_key.split(":").last,
-      error_class: exception.class.name,
-      error_message: exception.message,
-      retry_count: retry_count,
-      file_path: File.basename(file_path),  # セキュリティ対応
-      timestamp: Time.current.iso8601
+      job_id: @job_id,
+      admin_id: @admin_id,
+      error_class: error.class.name,
+      error_message: error.message,
+      error_backtrace: error.backtrace&.first(5),
+      duration: calculate_duration
     }.to_json)
-
-    # TODO: 重要なエラーについて管理者に即座にメール通知
-    # if retry_count >= 3
-    #   AdminMailer.csv_import_failed(admin, exception, file_path).deliver_now
-    # end
+  end
+  
+  def cleanup_after_import
+    cleanup_temp_file
+    finalize_progress_tracking
+  end
+  
+  def cleanup_temp_file
+    return unless @file_path && File.exist?(@file_path)
+    return if Rails.env.development? # 開発環境では削除しない
+    
+    File.delete(@file_path)
+    Rails.logger.info "Temporary file cleaned up: #{File.basename(@file_path)}"
+  rescue => e
+    Rails.logger.warn "Failed to cleanup temp file: #{e.message}"
   end
 
   # ============================================
-  # クリーンアップ処理
+  # 進捗追跡
   # ============================================
-  def cleanup_resources(file_path, redis, status_key)
-    # 一時ファイルを削除（テスト環境では条件により削除）
-    if File.exist?(file_path)
-      # 本番環境では常に削除、テスト・開発環境では条件によって削除
-      should_delete = Rails.env.production? ||
-                     Rails.env.test? ||  # テスト環境でも削除をテスト
-                     ENV["DELETE_TEMP_FILES"] == "true"
+  def setup_progress_tracking
+    @redis = get_redis_connection
+    @status_key = "csv_import:#{@job_id}"
+    
+    initialize_progress_in_redis if @redis
+    broadcast_import_started
+  end
+  
+  def initialize_progress_in_redis
+    @redis.hset(@status_key, 
+      "status", "running",
+      "started_at", @start_time.iso8601,
+      "file_name", File.basename(@file_path),
+      "admin_id", @admin_id,
+      "job_class", self.class.name,
+      "progress", 0
+    )
+    @redis.expire(@status_key, PROGRESS_TTL)
+  end
+  
+  def update_import_progress(progress_percentage, message = nil)
+    return unless @redis
+    
+    @redis.hset(@status_key, "progress", progress_percentage)
+    @redis.hset(@status_key, "message", message) if message
+    
+    broadcast_progress_update(progress_percentage, message)
+  end
+  
+  def finalize_progress_tracking
+    return unless @redis && @status_key
+    
+    @redis.expire(@status_key, COMPLETED_TTL)
+  end
 
-      if should_delete
-        File.delete(file_path)
-        Rails.logger.info "Temporary file deleted: #{File.basename(file_path)}"
-      else
-        Rails.logger.info "Temporary file preserved for debugging: #{File.basename(file_path)}"
+  # ============================================
+  # CSVインポート実行
+  # ============================================
+  def execute_csv_import
+    log_import_start
+    
+    # バッチ処理でCSVをインポート
+    result = Inventory.import_from_csv(@file_path, batch_size: IMPORT_BATCH_SIZE) do |progress|
+      # 進捗更新（PROGRESS_REPORT_INTERVAL%ごとに通知）
+      if progress % PROGRESS_REPORT_INTERVAL == 0
+        update_import_progress(progress)
       end
     end
-
-    # TODO: 将来的な拡張クリーンアップ
-    # - 古い進捗データの定期削除
-    # - ファイルアップロード履歴の管理
-    # - メモリ使用量の最適化
-  rescue => e
-    Rails.logger.warn "Cleanup failed: #{e.message}"
+    
+    log_import_complete(result)
+    result
+  end
+  
+  def log_import_start
+    Rails.logger.info({
+      event: "csv_import_started",
+      job_id: @job_id,
+      admin_id: @admin_id,
+      file_name: File.basename(@file_path)
+    }.to_json)
+  end
+  
+  def log_import_complete(result)
+    Rails.logger.info({
+      event: "csv_import_completed",
+      job_id: @job_id,
+      duration: calculate_duration,
+      valid_count: result[:valid_count],
+      invalid_count: result[:invalid_records].size
+    }.to_json)
   end
 
   # ============================================
-  # ActionCable通知の共通メソッド
+  # 通知
   # ============================================
-  def broadcast_to_admin(admin_id, data)
-    begin
-      # AdminChannelを使用してブロードキャスト
-      AdminChannel.broadcast_to(
-        Admin.find(admin_id),
-        data
-      )
-    rescue => e
-      Rails.logger.warn "AdminChannel broadcast failed: #{e.message}"
+  def notify_import_success(result)
+    update_success_status(result)
+    broadcast_import_complete(result)
+    send_completion_message(result)
+  end
+  
+  def update_success_status(result)
+    return unless @redis
+    
+    @redis.hset(@status_key,
+      "status", "completed",
+      "completed_at", Time.current.iso8601,
+      "duration", calculate_duration,
+      "valid_count", result[:valid_count],
+      "invalid_count", result[:invalid_records].size
+    )
+  end
+  
+  def send_completion_message(result)
+    admin = Admin.find_by(id: @admin_id)
+    return unless admin
+    
+    message = build_completion_message(result)
+    
+    ActionCable.server.broadcast("admin_#{@admin_id}", {
+      type: "csv_import_complete",
+      message: message,
+      result: {
+        valid_count: result[:valid_count],
+        invalid_count: result[:invalid_records].size,
+        duration: calculate_duration
+      }
+    })
+  end
+  
+  def notify_import_error(error)
+    return unless @redis
+    
+    @redis.hset(@status_key,
+      "status", "failed",
+      "failed_at", Time.current.iso8601,
+      "error_message", error.message,
+      "error_class", error.class.name
+    )
+    
+    broadcast_import_error(error)
+  end
+  
+  def update_error_status(error)
+    admin = Admin.find_by(id: @admin_id)
+    return unless admin
+    
+    ActionCable.server.broadcast("admin_#{@admin_id}", {
+      type: "csv_import_error",
+      message: I18n.t("inventories.import.error", message: error.message),
+      error: {
+        class: error.class.name,
+        message: error.message
+      }
+    })
+  end
 
-      # フォールバック：従来の方法を使用
-      ActionCable.server.broadcast("admin_#{admin_id}", data)
-    rescue => fallback_error
-      Rails.logger.error "ActionCable broadcast completely failed: #{fallback_error.message}"
+  # ============================================
+  # ブロードキャスト
+  # ============================================
+  def broadcast_import_started
+    broadcast_to_admin({
+      type: "csv_import_initialized",
+      job_id: @job_id,
+      status: "running",
+      progress: 0
+    })
+  end
+  
+  def broadcast_progress_update(progress, message = nil)
+    data = {
+      type: "csv_import_progress",
+      job_id: @job_id,
+      progress: progress,
+      status_key: @status_key
+    }
+    data[:message] = message if message
+    
+    broadcast_to_admin(data)
+  end
+  
+  def broadcast_import_complete(result)
+    broadcast_to_admin({
+      type: "csv_import_complete",
+      job_id: @job_id,
+      valid_count: result[:valid_count],
+      invalid_count: result[:invalid_records].size,
+      duration: calculate_duration
+    })
+  end
+  
+  def broadcast_import_error(error)
+    broadcast_to_admin({
+      type: "csv_import_error",
+      job_id: @job_id,
+      error_message: error.message,
+      error_class: error.class.name
+    })
+  end
+  
+  def broadcast_to_admin(data)
+    data[:timestamp] = Time.current.iso8601
+    
+    # AdminChannelを使用（可能な場合）
+    admin = Admin.find_by(id: @admin_id)
+    if admin
+      begin
+        AdminChannel.broadcast_to(admin, data)
+      rescue
+        # フォールバック
+        ActionCable.server.broadcast("admin_#{@admin_id}", data)
+      end
     end
   end
 
-  # TODO: 将来的な機能拡張
   # ============================================
-  # 1. 進捗通知の高度化
-  #    - WebSocket経由のリアルタイム更新
-  #    - プログレスバーの詳細表示
-  #    - 処理速度の推定表示
+  # ユーティリティメソッド
+  # ============================================
+  def get_redis_connection
+    return get_test_redis if Rails.env.test?
+    get_production_redis
+  end
+  
+  def get_test_redis
+    return nil unless defined?(Redis)
+    
+    Redis.current.tap(&:ping)
+  rescue => e
+    Rails.logger.warn "Redis not available in test: #{e.message}"
+    nil
+  end
+  
+  def get_production_redis
+    if defined?(Sidekiq) && Sidekiq.redis_pool
+      Sidekiq.redis { |conn| return conn }
+    else
+      Redis.current
+    end
+  rescue => e
+    Rails.logger.warn "Redis connection failed: #{e.message}"
+    nil
+  end
+  
+  def calculate_duration
+    return 0 unless @start_time
+    ((Time.current - @start_time) / 1.second).round(2)
+  end
+  
+  def build_completion_message(result)
+    duration = calculate_duration
+    valid_count = result[:valid_count]
+    invalid_count = result[:invalid_records].size
+    
+    message = I18n.t("inventories.import.completed", duration: duration)
+    message += "\n#{I18n.t('inventories.import.success', count: valid_count)}"
+    message += " #{I18n.t('inventories.import.invalid_records', count: invalid_count)}" if invalid_count > 0
+    
+    message
+  end
+
+  # ============================================
+  # TODO: 将来的な機能拡張（優先度：高）
+  # ============================================
+  # 1. インポートのプレビュー機能
+  #    - 最初の10行を表示して確認
+  #    - カラムマッピングのカスタマイズ
+  #    - データ変換ルールの設定
   #
-  # 2. エラーハンドリングの改善
-  #    - エラー種別ごとの詳細対応
-  #    - 部分的な成功データの保存
-  #    - エラー行の特定と修正支援
+  # 2. インポート履歴管理
+  #    - インポート履歴の永続化
+  #    - 再実行機能
+  #    - ロールバック機能
   #
-  # 3. パフォーマンス最適化
-  #    - 並列処理による高速化
-  #    - メモリ使用量の監視と最適化
-  #    - バルクインサート・アップデートの実装
-  #    - キューイング戦略の最適化
+  # 3. 高度なバリデーション
+  #    - カスタムバリデーションルール
+  #    - 重複チェックの最適化
+  #    - 関連データの整合性チェック
   #
-  # 4. セキュリティ強化（優先度：高）
-  #    - ファイル内容の詳細検証（マルウェアスキャン）
-  #    - データサニタイゼーション強化
-  #    - アップロード元IPの記録・制限
-  #    - ファイルサイズ・形式の動的制限
+  # 4. パフォーマンス最適化
+  #    - 並列処理対応
+  #    - ストリーミング処理
+  #    - メモリ使用量の最適化
   #
-  # 5. 監査・トレーサビリティ強化
-  #    - インポート履歴の詳細記録
-  #    - データ変更の前後比較
-  #    - ユーザー操作ログの詳細化
-  #    - コンプライアンス対応（GDPR等）
-  #
-  # 6. 高可用性・災害復旧対応
-  #    - インポート処理中断時の自動復旧
-  #    - 重複処理の防止機構
-  #    - バックアップ機能連携
-  #    - クロスリージョン対応
-  #
-  # 7. ビジネスロジック拡張
-  #    - 在庫自動補充ルールの適用
-  #    - 価格変動アラートの生成
-  #    - 需要予測データとの連携
-  #    - 仕入先情報の自動マッピング
-  #
-  # 8. 運用効率化
-  #    - スケジュール化されたインポート
-  #    - APIベースのインポート機能
-  #    - テンプレート機能（列マッピング保存）
-  #    - バリデーションルールのカスタマイズ
-  #
-  # 9. 国際化・多言語対応
-  #    - 多言語CSVヘッダー対応
-  #    - 地域別データフォーマット対応
-  #    - 通貨・数値形式の自動変換
-  #    - タイムゾーンの考慮
-  #
-  # 10. 統合・連携機能
-  #     - 外部システムとのAPI連携
-  #     - ERPシステムとの同期
-  #     - 在庫管理システムとの双方向連携
-  #     - 分析ツールへのデータエクスポート
+  # 5. 通知機能の拡張
+  #    - メール通知（大規模インポート時）
+  #    - Slack/Teams連携
+  #    - 詳細レポートの生成
 end
