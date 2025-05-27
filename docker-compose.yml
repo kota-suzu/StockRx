@@ -1,0 +1,93 @@
+# TODO: Compose v2以降はversion属性不要。将来的な警告回避のため削除。
+# TODO: 環境変数は.envファイルに移動して管理する
+# TODO: バックアップの保存期間設定と古いバックアップの自動削除機能の追加
+# TODO: Redisのメモリ設定の最適化
+# TODO: セキュリティ強化（パスワードの環境変数化、SSL/TLS設定など）
+# TODO: ログローテーション設定の追加
+# TODO: ヘルスチェックの間隔とタイムアウト値の最適化
+# TODO: 本番環境向けのDockerfile最適化（マルチステージビルド導入）
+
+services:
+  web:
+    build: 
+      context: .
+      args:
+        RUBY_VERSION: 3.3.8
+    command: bash -c "./wait-for db && bin/rails server -b '0.0.0.0'"
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/rails
+      - bundle_cache:/usr/local/bundle
+    environment:
+      - RAILS_MAX_THREADS=5
+      - MYSQL_ROOT_PASSWORD=password
+      - RAILS_ENV=development
+      - DATABASE_HOST=db
+      - DATABASE_USERNAME=root
+      - DATABASE_PASSWORD=password
+      # Disable Bootsnap in development for easier debugging
+      - DISABLE_BOOTSNAP=true
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app
+    # TODO: 本番環境ではヘルスチェック追加
+
+  db:
+    image: mysql:8.4
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=app_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "3306:3306"
+    networks:
+      - app
+
+  redis:
+    image: redis:7
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - app
+    # TODO: 本番環境向けRedis設定ファイル追加
+
+  backup:
+    image: mysql:8.4
+    volumes:
+      - ./backup:/backup
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=app_db
+    command: >
+      bash -c "
+        while true; do
+          sleep 86400;
+          mysqldump -h db -u root -ppassword app_db > /backup/backup-$$(date +%Y%m%d).sql;
+        done
+      "
+    depends_on:
+      - db
+    networks:
+      - app
+    # TODO: バックアップローテーション機能の追加
+
+volumes:
+  mysql_data:
+  redis_data:
+  bundle_cache:
+
+networks:
+  app:
+    driver: bridge
