@@ -63,6 +63,15 @@ services:
       - app
     # TODO: 本番環境向けRedis設定ファイル追加
 
+  # メール送信テスト用のサービス（開発環境用）
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "8025:8025" # Web UI
+      - "1025:1025" # SMTP Server
+    networks:
+      - app
+
   backup:
     image: mysql:8.4
     volumes:

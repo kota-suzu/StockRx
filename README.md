@@ -1,24 +1,85 @@
-# README
+# StockRx - 在庫管理システム
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+StockRxは薬局・医療機関向けの在庫管理システムです。商品の入出庫管理、在庫レベルの監視、レポート作成などの機能を提供します。
 
-Things you may want to cover:
+## 技術スタック
 
-* Ruby version
+* Ruby 3.3.8
+* Rails 7.2.2
+* MySQL 8.4
+* Docker / Docker Compose
 
-* System dependencies
+## 開発環境セットアップ
 
-* Configuration
+```bash
+# リポジトリのクローン
+git clone [repository-url]
+cd StockRx
 
-* Database creation
+# Docker環境の起動
+docker-compose up -d
 
-* Database initialization
+# データベースのセットアップ
+docker-compose exec web bin/rails db:setup
+```
 
-* How to run the test suite
+## 基本的な使い方
 
-* Services (job queues, cache servers, search engines, etc.)
+1. ブラウザで http://localhost:3000 にアクセス
+2. 管理者としてログイン（デフォルト：admin@example.com / Password1234!）
+3. ダッシュボードから各機能にアクセス
 
-* Deployment instructions
+## 開発ガイドライン
 
-* ...
+### コード構造
+
+- 管理者機能のコントローラは `AdminControllers` モジュール内に定義
+- モデルとコントローラの名前空間の衝突に注意（`Admin`モデルと`Admin`モジュールは共存できない）
+- モジュール名とディレクトリ構造を一致させる（例: `AdminControllers` → `app/controllers/admin_controllers/`）
+- 詳細な設計ガイドラインは `docs/design/` ディレクトリを参照
+
+### 命名規則
+
+- モデル: 単数形、キャメルケース（例: `Admin`, `InventoryItem`）
+- コントローラ: 複数形、キャメルケース（例: `AdminControllers::ItemsController`）
+- テーブル: 複数形、スネークケース（例: `admins`, `inventory_items`）
+
+## 重要な注意事項
+
+- **名前空間とディレクトリ構造**: Railsのオートロード機能は名前空間とディレクトリ構造の一致を前提としています
+  - コントローラ名前空間はファイルパスに反映する必要があります
+  - ビューディレクトリもコントローラの名前空間に合わせる必要があります
+
+## 残タスク
+
+### 認証・認可関連
+- [ ] ユーザーモデルの実装（一般スタッフ向け）
+- [ ] 管理者権限レベルの実装（admin/super_admin）
+- [ ] 2要素認証の導入
+
+### 在庫管理機能
+- [ ] 商品マスタ管理（登録・編集・削除）
+- [ ] 在庫入出庫管理
+- [ ] 在庫アラート機能（在庫切れ・期限切れ）
+- [ ] バーコードスキャン対応
+
+### レポート機能
+- [ ] 在庫レポート生成
+- [ ] 利用状況分析
+- [ ] データエクスポート機能（CSV/Excel）
+
+### インフラ関連
+- [ ] バックアップの保存期間設定と古いバックアップの自動削除
+- [ ] Redisのメモリ設定の最適化
+- [ ] セキュリティ強化（パスワードの環境変数化、SSL/TLS設定）
+- [ ] ログローテーション設定
+- [ ] 本番環境向けのDockerfile最適化（マルチステージビルド）
+
+### UI/UX改善
+- [ ] レスポンシブデザイン対応
+- [ ] ダークモード対応
+- [ ] ユーザビリティテスト実施
+
+## ライセンス
+
+[ライセンス情報]
