@@ -1,0 +1,162 @@
+# ============================================
+# Sidekiq Configuration for StockRx
+# ============================================
+# Background job processing configuration
+# 在庫管理システム向けの最適化設定
+
+# ワーカー並行度（CPU集約的処理に適した設定）
+:concurrency: <%= ENV.fetch("SIDEKIQ_CONCURRENCY", 5).to_i %>
+
+# ジョブタイムアウト（大きなCSVファイル処理対応）
+:timeout: <%= ENV.fetch("SIDEKIQ_TIMEOUT", 300).to_i %>
+
+# ログレベル設定
+:verbose: <%= Rails.env.development? %>
+
+# キュー設定（優先度順）
+:queues:
+  - critical     # 緊急処理（システムアラート等）
+  - imports      # CSVインポート等の重要処理
+  - default      # 通常処理
+  - notifications # 通知メール等
+  - reports      # レポート生成等の低優先度処理
+
+# リトライ設定（要求仕様：3回リトライ）
+:retry: 3
+
+# Dead Job設定
+:dead_jobs_limit: 100
+:dead_jobs_timeout: 7776000  # 90 days
+
+# プロダクション環境向け設定
+:environment: <%= Rails.env %>
+
+# TODO: 本番環境での追加設定
+# :max_retries: 3
+# :dead_max_jobs: 1000
+# :dead_timeout_in_seconds: 7776000
+# :dead_jobs_limit: 100
+
+# ============================================
+# Sidekiq-Scheduler定期実行ジョブ設定
+# ============================================
+# 在庫管理システムの定期バックグラウンド処理
+# NOTE: テスト環境では定期ジョブを無効化
+
+<%- unless Rails.env.test? -%>
+:scheduler:
+  # 在庫アラート監視（毎日朝6時）
+  stock_alert_daily:
+    description: "在庫不足アラートの日次チェック"
+    cron: "0 6 * * *"
+    class: StockAlertJob
+    args: [10]
+    queue: notifications
+    
+  # 期限切れ商品チェック（毎日朝7時）
+  expiry_check_daily:
+    description: "期限切れ商品の日次チェック"
+    cron: "0 7 * * *"
+    class: ExpiryCheckJob
+    queue: notifications
+    
+  # 月次レポート生成（毎月1日朝8時）
+  monthly_report:
+    description: "月次在庫レポート自動生成"
+    cron: "0 8 1 * *"
+    class: MonthlyReportJob
+    queue: reports
+    
+  # 古いログクリーンアップ（毎週日曜2時）
+  cleanup_old_logs:
+    description: "古いInventoryLogの週次クリーンアップ"
+    cron: "0 2 * * 0"
+    class: CleanupOldLogsJob
+    queue: default
+    
+  # Sidekiqメンテナンス（毎日深夜3時）
+  sidekiq_maintenance:
+    description: "Sidekiq統計とキューの日次メンテナンス"
+    cron: "0 3 * * *"
+    class: SidekiqMaintenanceJob
+    queue: default
+<%- end -%>
+
+# ============================================
+# TODO: 定期ジョブ追加候補（優先度：中）
+# ============================================
+# 1. データベースバックアップ（優先度：高）
+# backup_database:
+#   description: "データベース日次バックアップ"
+#   cron: "0 1 * * *"
+#   class: DatabaseBackupJob
+#   queue: critical
+#   args: [{ compress: true, s3_upload: true }]
+#
+# 2. 外部システム連携（優先度：中）
+# sync_external_inventory:
+#   description: "外部在庫システムとの同期"
+#   cron: "*/30 * * * *"
+#   class: ExternalInventorySyncJob
+#   queue: default
+#   args: [{ timeout: 60, retry_on_failure: true }]
+#
+# 3. メトリクス・分析（優先度：中）
+# generate_daily_metrics:
+#   description: "日次メトリクス集計"
+#   cron: "0 23 * * *"
+#   class: DailyMetricsJob
+#   queue: reports
+#   args: [{ include_predictions: true }]
+#
+# 4. セキュリティ・監査（優先度：高）
+# security_audit_weekly:
+#   description: "週次セキュリティ監査"
+#   cron: "0 4 * * 1"
+#   class: SecurityAuditJob
+#   queue: critical
+#   args: [{ full_scan: true, generate_report: true }]
+#
+# 5. パフォーマンス監視（優先度：中）
+# performance_health_check:
+#   description: "システムヘルスチェック"
+#   cron: "*/15 * * * *"
+#   class: PerformanceHealthCheckJob
+#   queue: default
+#   args: [{ alert_threshold: 0.8, metrics: ["cpu", "memory", "disk"] }]
+#
+# 6. データクリーンアップ（優先度：低）
+# archive_old_data:
+#   description: "古いデータのアーカイブ処理"
+#   cron: "0 5 1 * *"
+#   class: DataArchiveJob
+#   queue: reports
+#   args: [{ older_than_months: 12, compress: true }]
+
+# ============================================
+# TODO: 本番環境での高度な設定（優先度：中）
+# ============================================
+# 1. Redis設定最適化
+# :redis:
+#   url: <%= ENV['REDIS_URL'] %>
+#   size: <%= ENV.fetch('REDIS_POOL_SIZE', 25).to_i %>
+#   pool_timeout: <%= ENV.fetch('REDIS_POOL_TIMEOUT', 5).to_i %>
+#   network_timeout: <%= ENV.fetch('REDIS_NETWORK_TIMEOUT', 5).to_i %>
+#   reconnect_attempts: <%= ENV.fetch('REDIS_RECONNECT_ATTEMPTS', 3).to_i %>
+#
+# 2. メトリクス・ログ設定
+# :log_formatter: Sidekiq::Logging::Json::Logger
+# :logfile: ./log/sidekiq.log
+# :log_level: <%= Rails.env.production? ? :info : :debug %>
+#
+# 3. プロセス監視設定
+# :pidfile: ./tmp/pids/sidekiq.pid
+# :lifecycle_events:
+#   startup: [SidekiqStartupNotificationJob]
+#   shutdown: [SidekiqShutdownNotificationJob]
+#
+# 4. エラーハンドリング設定
+# :error_handlers:
+#   - SentryErrorHandler
+#   - SlackNotificationHandler
+#   - CustomMetricsHandler 

@@ -18,8 +18,10 @@ gem "turbo-rails"
 gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
+# Use CSV library (included in Ruby 3.4+)
+gem "csv"
 # Use Redis adapter to run Action Cable in production
-# gem "redis", ">= 4.0.1"
+gem "redis", ">= 4.0.1"
 
 # Use Kredis to get higher-level data types in Redis [https://github.com/rails/kredis]
 # gem "kredis"
@@ -45,6 +47,19 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # RSpec for testing
+  gem "rspec-rails", "~> 6.1.0"        # RSpecテストフレームワーク
+  gem "factory_bot_rails"              # テストデータ作成
+  gem "shoulda-matchers", "~> 6.0"     # RSpecマッチャー拡張
+  gem "faker"                          # ダミーデータ生成
+  gem "database_cleaner-active_record" # テスト間のDB掃除
+
+  # N+1問題検出
+  gem "bullet"                         # N+1クエリ検出
+
+  # デコレータパターン実装用
+  gem "draper"                         # Decoratorパターン実装
 end
 
 group :development do
@@ -56,4 +71,27 @@ group :test do
   # Use system testing [https://guides.rubyonrails.org/testing.html#system-testing]
   gem "capybara"
   gem "selenium-webdriver"
+  gem "timecop"
+
+  # テストカバレッジ計測
+  gem "simplecov", require: false      # コードカバレッジ計測
 end
+
+# 認証
+gem "devise", "~> 4.9"            # Rails 7.1 / Hotwire 対応版
+gem "devise-security", "~> 0.18"  # パスワード期限、強度検証機能など
+gem "devise-i18n", "~> 1.12"      # 日本語対応
+
+# TODO: システム拡張時に必要に応じて有効化
+# gem "devise-two-factor", "~> 5.1"  # 2要素認証（TOTP）
+# gem "pagy", "~> 6.2"               # ページネーション
+# gem "ransack"                      # 高度な検索機能
+# gem "paper_trail"                  # モデル変更履歴管理
+# gem "attr_encrypted"               # 属性の暗号化
+
+gem "kaminari", "~> 1.2"            # ページネーション
+
+# Background Job Processing
+gem "sidekiq", "~> 7.2"
+gem "sidekiq-scheduler", "~> 5.0"  # TODO: 将来の定期実行ジョブ用（月次レポート生成など）
+gem "rack-protection", "~> 4.0"   # Sidekiq Web UI のセキュリティ強化

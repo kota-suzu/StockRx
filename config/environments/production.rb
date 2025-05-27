@@ -56,7 +56,28 @@ Rails.application.configure do
 
   # Log to STDOUT by default
   config.logger = ActiveSupport::Logger.new(STDOUT)
+<<<<<<< HEAD
     .tap  { |logger| logger.formatter = ::Logger::Formatter.new }
+=======
+    .tap  { |logger| logger.formatter = proc do |severity, datetime, progname, msg|
+      log_data = {
+        severity: severity,
+        time: datetime.iso8601,
+        pid: Process.pid
+      }
+
+      # メッセージがハッシュの場合はマージ、そうでなければmsgとして追加
+      if msg.is_a?(Hash)
+        log_data.merge!(msg)
+      elsif msg.is_a?(String)
+        log_data[:message] = msg
+      else
+        log_data[:message] = msg.inspect
+      end
+
+      "#{log_data.to_json}\n"
+    end }
+>>>>>>> origin/feat/claude-code-action
     .then { |logger| ActiveSupport::TaggedLogging.new(logger) }
 
   # Prepend all log lines with the following tags.
@@ -102,4 +123,50 @@ Rails.application.configure do
   # ]
   # Skip DNS rebinding protection for the default health check endpoint.
   # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+<<<<<<< HEAD
+=======
+
+  # 本番環境では詳細エラーページは表示しない（セキュリティ上の理由）
+  config.consider_all_requests_local = false
+
+  # エラーハンドリング設定
+  # config.exceptions_app = self.routes は config/application.rb で設定済み
+
+  # キャッシュ設定（将来対応）
+  # config.action_dispatch.rack_cache = {
+  #   metastore: "redis://#{ENV['REDIS_HOST'] || 'localhost'}:6379/1/metastore",
+  #   entitystore: "redis://#{ENV['REDIS_HOST'] || 'localhost'}:6379/1/entitystore",
+  #   cache_control: 'public, max-age=300' # 5分キャッシュ
+  # }
+
+  # エラーログの詳細度設定
+  config.log_level = :info
+
+  # ログフォーマットをJSON形式に
+  config.log_formatter = proc do |severity, datetime, progname, msg|
+    log_data = {
+      severity: severity,
+      time: datetime.iso8601,
+      pid: Process.pid
+    }
+
+    # メッセージがハッシュの場合はマージ、そうでなければmsgとして追加
+    if msg.is_a?(Hash)
+      log_data.merge!(msg)
+    elsif msg.is_a?(String)
+      log_data[:message] = msg
+    else
+      log_data[:message] = msg.inspect
+    end
+
+    "#{log_data.to_json}\n"
+  end
+
+  # ログは標準出力へ（Dockerコンテナ向け設定）
+  if ENV["RAILS_LOG_TO_STDOUT"].present?
+    logger = ActiveSupport::Logger.new(STDOUT)
+    logger.formatter = config.log_formatter
+    config.logger = ActiveSupport::TaggedLogging.new(logger)
+  end
+>>>>>>> origin/feat/claude-code-action
 end

@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+# frozen_string_literal: true
+
+>>>>>>> origin/feat/claude-code-action
 Rails.application.routes.draw do
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
@@ -9,6 +14,88 @@ Rails.application.routes.draw do
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
 
+<<<<<<< HEAD
   # Defines the root path route ("/")
   # root "posts#index"
+=======
+  # Adminモデル用のDeviseルート
+  # /admin/sign_in などのパスになるよう設定
+  devise_for :admins,
+             path: "admin",
+             # :registerable は無効化するため不要
+             skip: [ :registrations ],
+             controllers: {
+               sessions: "admin_controllers/sessions",
+               passwords: "admin_controllers/passwords"
+             }
+
+  # ============================================
+  # Sidekiq Web UI（管理者認証必須）
+  # ============================================
+  # Background job monitoring and management
+  authenticate :admin do
+    mount Sidekiq::Web => "/admin/sidekiq"
+  end
+
+  # TODO: 将来的な運用監視機能
+  # authenticate :admin do
+  #   mount RailsAdmin::Engine => '/admin/rails_admin', as: 'rails_admin'
+  #   mount Flipper::UI.app(Flipper) => '/admin/flipper'  # Feature flags
+  # end
+
+  # 管理者ダッシュボード用のルーティング
+  namespace :admin, module: :admin_controllers do
+    # ダッシュボードをルートに設定
+    root "dashboard#index"
+
+    # 在庫管理
+    resources :inventories do
+      collection do
+        get :import_form
+        post :import
+      end
+    end
+
+    # ジョブステータス確認用API
+    resources :job_statuses, only: [ :show ]
+
+    # 今後の機能として追加予定のリソース
+    # resources :reports
+    # resources :settings
+  end
+
+  # 在庫管理リソース（HTML/JSONレスポンス対応）
+  resources :inventories do
+    resources :inventory_logs, only: [ :index ]
+  end
+
+  # 在庫ログリソース
+  resources :inventory_logs, only: [ :index, :show ] do
+    collection do
+      get :all
+      get "operation/:operation_type", to: "inventory_logs#by_operation", as: :operation
+    end
+  end
+
+  # API用ルーティング（バージョニング対応）
+  namespace :api do
+    namespace :v1 do
+      resources :inventories, only: [ :index, :show, :create, :update, :destroy ]
+    end
+  end
+
+  # エラーページルーティング
+  %w[400 403 404 422 429 500].each do |code|
+    get code, to: "errors#show", code: code, as: "error_#{code}"
+  end
+
+  # その他リクエスト漏れ対策 (ActiveStorage等除外)
+  match "*path", to: "errors#show", via: :all,
+        constraints: ->(req) { !req.path.start_with?("/rails/") },
+        code: 404
+
+  # アプリケーションのルートページ
+  # 将来的にはユーザー向けページになる予定
+  root "home#index"
+>>>>>>> origin/feat/claude-code-action
 end
