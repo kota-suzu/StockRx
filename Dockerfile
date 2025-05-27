@@ -26,23 +26,37 @@ RUN apt-get update -qq && \
     npm && \
     rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
+# Create a non-root user for development
+RUN groupadd --system --gid 1000 rails && \
+    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
+    mkdir -p /usr/local/bundle && \
+    chown -R rails:rails /usr/local/bundle
+
 # Set production environment
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
-    BUNDLE_WITHOUT="development"
+    BUNDLE_WITHOUT="nothing" \
+    BUNDLE_FROZEN="0"
 
 # Copy application code
 COPY . .
 
+# 権限設定
+RUN chmod 666 Gemfile.lock
+
+# Switch to the rails user for bundle install
+USER rails
+
 # Install gems
 RUN bundle install -j$(nproc)
 
+# Switch back to root for any remaining operations
+USER root
+
 # Run and own only the runtime files as a non-root user for security
-RUN groupadd --system --gid 1000 rails && \
-    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
-    chown -R rails:rails db log storage tmp
-USER 1000:1000
+RUN chown -R rails:rails db log storage tmp
+USER rails
 
 # Entrypoint prepares the database.
 ENTRYPOINT ["/rails/bin/docker-entrypoint"]

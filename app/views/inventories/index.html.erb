@@ -1,0 +1,89 @@
+<div class="container mx-auto px-4 py-8">
+  <div class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-bold">在庫一覧</h1>
+    <%= link_to "新規登録", new_inventory_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded", data: { turbo_frame: "modal" } %>
+  </div>
+
+  <div class="mb-6">
+    <%= form_with url: inventories_path, method: :get, data: { turbo_frame: "inventories_list", turbo_action: "replace" }, class: "flex flex-wrap gap-4" do |f| %>
+      <div class="flex-1 min-w-[300px]">
+        <%= f.search_field :q, value: params[:q], placeholder: "商品名で検索", class: "w-full px-3 py-2 border border-gray-300 rounded-md" %>
+      </div>
+      
+      <div class="flex-none">
+        <%= f.select :status, options_for_select(Inventory::STATUSES.map { |k, _| [k.humanize, k] }, params[:status]), { include_blank: "全ステータス" }, class: "px-3 py-2 border border-gray-300 rounded-md" %>
+      </div>
+      
+      <div class="flex-none">
+        <%= f.check_box :low_stock, { checked: params[:low_stock] == "true" }, "true", "false" %>
+        <%= f.label :low_stock, "在庫切れ商品のみ表示", class: "ml-2" %>
+      </div>
+      
+      <div class="flex-none">
+        <%= f.submit "検索", class: "bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded" %>
+      </div>
+    <% end %>
+  </div>
+
+  <%= turbo_frame_tag "inventories_list" do %>
+    <div class="overflow-x-auto bg-white shadow-md rounded-lg">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <%= link_to "商品名", inventories_path(sort: "name", direction: params[:sort] == "name" && params[:direction] == "asc" ? "desc" : "asc", q: params[:q], status: params[:status], low_stock: params[:low_stock]), data: { turbo_frame: "inventories_list" } %>
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <%= link_to "在庫数", inventories_path(sort: "quantity", direction: params[:sort] == "quantity" && params[:direction] == "asc" ? "desc" : "asc", q: params[:q], status: params[:status], low_stock: params[:low_stock]), data: { turbo_frame: "inventories_list" } %>
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <%= link_to "価格", inventories_path(sort: "price", direction: params[:sort] == "price" && params[:direction] == "asc" ? "desc" : "asc", q: params[:q], status: params[:status], low_stock: params[:low_stock]), data: { turbo_frame: "inventories_list" } %>
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              ステータス
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              アラート
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              アクション
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          <% @inventories.each do |inventory| %>
+            <tr class="<%= inventory.quantity <= 0 ? 'bg-amber-50' : '' %>">
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <%= link_to inventory.name, inventory_path(inventory), data: { turbo_frame: "_top" } %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <%= inventory.quantity %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <%= inventory.formatted_price %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <%= inventory.status_badge %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <%= inventory.alert_badge %>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex gap-2">
+                <%= link_to "編集", edit_inventory_path(inventory), class: "text-indigo-600 hover:text-indigo-900", data: { turbo_frame: "modal" } %>
+                <%= button_to "削除", inventory_path(inventory), method: :delete, form: { data: { turbo_confirm: "本当に削除しますか？" } }, class: "text-red-600 hover:text-red-900 bg-transparent border-none p-0 cursor-pointer" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+    
+    <% if @inventories.empty? %>
+      <div class="bg-white shadow-md rounded-lg p-6 text-center">
+        <p class="text-gray-500">検索条件に一致する在庫がありません。</p>
+      </div>
+    <% end %>
+  <% end %>
+  
+  <%= turbo_frame_tag "modal" %>
+</div> 
