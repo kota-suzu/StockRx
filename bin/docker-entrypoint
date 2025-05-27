@@ -5,6 +5,11 @@ if [ -z "${LD_PRELOAD+x}" ] && [ -f /usr/lib/*/libjemalloc.so.2 ]; then
   export LD_PRELOAD="$(echo /usr/lib/*/libjemalloc.so.2)"
 fi
 
+# Rails 7.2対応: キャッシュディレクトリのセットアップと権限設定
+mkdir -p /rails/tmp/cache/assets /rails/tmp/pids /rails/tmp/storage
+chmod -R 777 /rails/tmp/cache
+touch /rails/tmp/restart.txt
+
 # If running the rails server then create or migrate existing database
 if [ "${1}" == "./bin/rails" ] && [ "${2}" == "server" ]; then
   ./bin/rails db:prepare

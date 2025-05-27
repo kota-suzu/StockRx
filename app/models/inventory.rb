@@ -20,14 +20,24 @@ class Inventory < ApplicationRecord
   # バルク登録用クラスメソッド
   class << self
     # CSVからの一括インポート
-    def import_from_csv(file)
+    # @param file [ActionDispatch::Http::UploadedFile|String] CSVファイルまたはファイルパス
+    # @param options [Hash] インポートオプション
+    # @option options [Integer] :batch_size バッチサイズ（デフォルト1000件）
+    # @return [Hash] インポート結果
+    def import_from_csv(file, options = {})
+      # オプションの初期値設定
+      batch_size = options[:batch_size] || 1000
+
       # CSVデータの検証
       valid_records = []
       invalid_records = []
 
+      # ファイルパスまたはアップロードされたファイルを処理
+      file_path = file.respond_to?(:path) ? file.path : file
+
       # トランザクション内で処理
       ActiveRecord::Base.transaction do
-        CSV.foreach(file.path, headers: true) do |row|
+        CSV.foreach(file_path, headers: true) do |row|
           # ステータスのバリデーション（無効な値の場合はデフォルト値を使用）
           status_value = row["status"].presence || "active"
           unless STATUSES.include?(status_value)
@@ -46,21 +56,40 @@ class Inventory < ApplicationRecord
           else
             invalid_records << { row: row, errors: inventory.errors.full_messages }
           end
+
+          # バッチサイズに達したらバルクインサート実行
+          if valid_records.size >= batch_size
+            bulk_insert(valid_records)
+            valid_records = [] # バッファをクリア
+          end
         end
 
-        # バルクインサート（Rails 6以降）
-        # 大量データの場合はactiverecord-importのbatch_sizeオプションも検討
-        Inventory.insert_all(
-          valid_records.map { |record|
-            record.attributes.except("id", "created_at", "updated_at").merge(
-              created_at: Time.current,
-              updated_at: Time.current
-            )
-          }
-        ) if valid_records.present?
+        # 残りのレコードをバルクインサート
+        bulk_insert(valid_records) if valid_records.present?
       end
 
       { valid_count: valid_records.size, invalid_records: invalid_records }
+    end
+
+    private
+
+    # 有効なレコードをバルクインサートするプライベートメソッド
+    # @param records [Array<Inventory>] インサートするInventoryオブジェクトの配列
+    def bulk_insert(records)
+      return if records.blank?
+
+      # Rails 6+の場合はinsert_allを使用
+      Inventory.insert_all(
+        records.map { |record|
+          record.attributes.except("id", "created_at", "updated_at").merge(
+            created_at: Time.current,
+            updated_at: Time.current
+          )
+        }
+      )
+
+      # TODO: activerecord-importを使用する場合の実装（必要に応じて）
+      # 例: Inventory.import records, validate: false
     end
   end
 
@@ -95,24 +124,81 @@ class Inventory < ApplicationRecord
     batches.expiring_soon(days)
   end
 
+  # ============================================
   # TODO: 在庫アラート機能の実装
-  # - アラートのメール通知機能
-  # - 在庫切れ商品の自動レポート生成機能
-  # - アラート閾値の設定インターフェース
-
+  # ============================================
+  # 1. メール通知機能
+  #    - 在庫切れ/在庫少時に管理者へ自動メール送信
+  #    - 送信先/頻度を設定画面から調整可能に
+  #    - ActionMailerを使用したHTMLメールテンプレート
+  #
+  # 2. 在庫切れ商品の自動レポート生成機能
+  #    - 日次/週次/月次の定期レポート
+  #    - PDFフォーマットでのエクスポート
+  #    - Rubyプロセッサで集計 + プロセスをSidekiqで実行
+  #
+  # 3. アラート閾値の設定インターフェース
+  #    - 商品ごとのカスタム閾値設定
+  #    - カテゴリごとの一括設定機能
+  #    - 在庫回転率に基づく推奨閾値自動計算
+  #
+  # ============================================
   # TODO: バーコードスキャン対応
-  # - バーコードでの商品検索機能
-  # - QRコード生成機能
-  # - モバイルスキャンアプリとの連携
-
+  # ============================================
+  # 1. バーコードでの商品検索機能
+  #    - JAN/EANコード対応
+  #    - QRコード対応
+  #    - WebカメラAPIを使用したブラウザスキャン
+  #
+  # 2. QRコード生成機能
+  #    - 商品ごとのQRコード自動生成
+  #    - ラベル印刷機能との連携
+  #    - バッチ/ロット情報の埋め込み
+  #
+  # 3. モバイルスキャンアプリとの連携
+  #    - iOS/Android対応アプリ開発
+  #    - PWA対応のWebスキャナー実装
+  #    - モバイル専用APIエンドポイント最適化
+  #
+  # ============================================
   # TODO: 高度な在庫分析機能
-  # - 在庫回転率の計算
-  # - 発注点（Reorder Point）の計算と通知
-  # - 需要予測と最適在庫レベルの提案
-  # - 履歴データに基づく季節変動分析
-
+  # ============================================
+  # 1. 在庫回転率の計算
+  #    - 商品ごとの在庫回転率分析
+  #    - カテゴリ別の比較グラフ
+  #    - 回転率に基づく商品評価
+  #
+  # 2. 発注点（Reorder Point）の計算と通知
+  #    - リードタイムを考慮した発注点計算
+  #    - 安全在庫水準の自動推定
+  #    - 発注点到達時の自動通知機能
+  #
+  # 3. 需要予測と最適在庫レベルの提案
+  #    - 過去データに基づく将来需要予測
+  #    - 機械学習モデルを活用した高度予測
+  #    - 季節性・トレンドを考慮した予測
+  #
+  # 4. 履歴データに基づく季節変動分析
+  #    - 月別・季節別の需要パターン分析
+  #    - 季節イベントの影響度測定
+  #    - 複数年データに基づく長期予測
+  #
+  # ============================================
   # TODO: システムテスト環境の整備
-  # - CapybaraとSeleniumの設定改善
-  # - Docker環境でのUIテスト対応
-  # - E2Eテストの実装
+  # ============================================
+  # 1. CapybaraとSeleniumの設定改善
+  #    - ChromeDriver安定化対策
+  #    - スクリーンショット自動保存機能
+  #    - テスト失敗時のビデオ録画機能
+  #
+  # 2. Docker環境でのUIテスト対応
+  #    - Dockerコンテナ内でのGUI非依存テスト
+  #    - CI/CD環境での安定実行
+  #    - 並列テスト実行の最適化
+  #
+  # 3. E2Eテストの実装
+  #    - 複雑な業務フローのE2Eテスト
+  #    - データ準備の自動化
+  #    - テストカバレッジ向上策
+  #
 end
