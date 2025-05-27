@@ -120,7 +120,7 @@ class ImportInventoriesJob < ApplicationJob
   def validate_file_size
     file_size = File.size(@file_path)
     if file_size > MAX_FILE_SIZE
-      raise SecurityError, "File too large: #{file_size.to_s(:human_size)} (max: #{MAX_FILE_SIZE.to_s(:human_size)})"
+      raise SecurityError, "File too large: #{ActiveSupport::NumberHelper.number_to_human_size(file_size)} (max: #{ActiveSupport::NumberHelper.number_to_human_size(MAX_FILE_SIZE)})"
     end
   end
 

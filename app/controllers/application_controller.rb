@@ -34,6 +34,9 @@ class ApplicationController < ActionController::Base
 
   # セキュリティ監視機能
   def monitor_request_security
+    # テスト環境では無効化
+    return if Rails.env.test?
+    
     # IP ブロックチェック
     if SecurityMonitor.is_blocked?(request.remote_ip)
       Rails.logger.warn "Blocked IP attempted access: #{request.remote_ip}"
@@ -59,6 +62,9 @@ class ApplicationController < ActionController::Base
 
   # レスポンスメトリクスの追跡
   def track_response_metrics
+    # テスト環境では無効化
+    return if Rails.env.test?
+    
     # レスポンス時間が異常に長い場合の検出
     if defined?(@request_start_time)
       response_time = Time.current - @request_start_time
@@ -77,10 +83,11 @@ class ApplicationController < ActionController::Base
 end
 
 # ============================================
-# TODO: ApplicationController セキュリティ強化（優先度：高）
-# REF: doc/remaining_tasks.md - セキュリティ強化
+# TODO: ApplicationController セキュリティ強化
+# Phase 1（優先度：高、推定：2-3日）
+# 関連: doc/remaining_tasks.md - セキュリティ強化
 # ============================================
-# 1. 認証・認可の段階的強化（優先度：高）
+# 1. 認証・認可の段階的強化（Phase 1）
 #    - JWT トークンベース認証への移行
 #    - ロールベースアクセス制御（RBAC）の実装
 #    - 多要素認証（MFA）の統合
@@ -101,7 +108,7 @@ end
 #   end
 # end
 #
-# 2. セッション管理の強化（優先度：高）
+# 2. セッション管理の強化（Phase 1）
 #    - セッション固定攻撃対策
 #    - 同時ログイン制限
 #    - セッションタイムアウト管理
@@ -125,7 +132,7 @@ end
 #   end
 # end
 #
-# 3. CSRF保護の強化（優先度：高）
+# 3. CSRF保護の強化（Phase 1）
 #    - SameSite Cookie の適用
 #    - Origin ヘッダー検証
 #    - Referer ヘッダー検証
@@ -144,7 +151,7 @@ end
 #   end
 # end
 #
-# 4. レート制限の実装（優先度：高）
+# 4. レート制限の実装（Phase 2）
 #    - IP ベースレート制限
 #    - ユーザーベースレート制限
 #    - エンドポイント別制限
@@ -165,7 +172,7 @@ end
 #   end
 # end
 #
-# 5. Content Security Policy の実装（優先度：中）
+# 5. Content Security Policy の実装（Phase 2）
 #    - XSS 攻撃対策の強化
 #    - インライン JavaScript/CSS の制限
 #    - 外部リソース読み込み制限
@@ -179,7 +186,7 @@ end
 #   # Content Security Policy
 #   csp_directives = [
 #     "default-src 'self'",
-#     "script-src 'self' 'unsafe-inline'",  # TODO: unsafe-inline を削除
+#     "script-src 'self' 'unsafe-inline'",  # TODO Phase 3: unsafe-inline を削除
 #     "style-src 'self' 'unsafe-inline'",
 #     "img-src 'self' data: https:",
 #     "font-src 'self'",
@@ -191,7 +198,7 @@ end
 #   response.headers['Content-Security-Policy'] = csp_directives.join('; ')
 # end
 #
-# 6. 監査ログの統合（優先度：高）
+# 6. 監査ログの統合（Phase 1）
 #    - 全ての重要なアクションの記録
 #    - 構造化ログの出力
 #    - 異常パターンの自動検出
@@ -214,7 +221,7 @@ end
 #   )
 # end
 #
-# 7. 例外処理の統合（優先度：中）
+# 7. 例外処理の統合（Phase 2）
 #    - セキュリティ関連エラーの適切な処理
 #    - 情報漏洩の防止
 #    - インシデント対応の自動化

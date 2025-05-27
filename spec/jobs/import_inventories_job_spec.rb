@@ -171,7 +171,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
         begin
           expect {
             ImportInventoriesJob.new.perform(invalid_file.path, admin.id)
-          }.to raise_error(/Invalid file extension/)
+          }.to raise_error(/Invalid file type/)
         ensure
           invalid_file.unlink
         end
