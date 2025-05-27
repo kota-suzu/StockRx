@@ -2,7 +2,7 @@
 
 class InventoriesController < ApplicationController
   include ErrorHandlers
-  
+
   before_action :authenticate_admin!
   before_action :set_inventory, only: %i[show edit update destroy]
 
@@ -50,13 +50,13 @@ class InventoriesController < ApplicationController
           flash.now[:alert] = "入力内容に問題があります"
           render :new, status: :unprocessable_entity
         }
-        format.json { 
+        format.json {
           error_response = {
             code: "validation_error",
             message: "入力内容に問題があります",
             details: @inventory.errors.full_messages
           }
-          render json: error_response, status: :unprocessable_entity 
+          render json: error_response, status: :unprocessable_entity
         }
         format.turbo_stream { render :form_update, status: :unprocessable_entity }
       end
@@ -77,13 +77,13 @@ class InventoriesController < ApplicationController
           flash.now[:alert] = "入力内容に問題があります"
           render :edit, status: :unprocessable_entity
         }
-        format.json { 
+        format.json {
           error_response = {
             code: "validation_error",
             message: "入力内容に問題があります",
             details: @inventory.errors.full_messages
           }
-          render json: error_response, status: :unprocessable_entity 
+          render json: error_response, status: :unprocessable_entity
         }
         format.turbo_stream { render :form_update, status: :unprocessable_entity }
       end

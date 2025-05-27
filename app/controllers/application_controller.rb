@@ -36,7 +36,7 @@ class ApplicationController < ActionController::Base
   def monitor_request_security
     # テスト環境では無効化
     return if Rails.env.test?
-    
+
     # IP ブロックチェック
     if SecurityMonitor.is_blocked?(request.remote_ip)
       Rails.logger.warn "Blocked IP attempted access: #{request.remote_ip}"
@@ -64,7 +64,7 @@ class ApplicationController < ActionController::Base
   def track_response_metrics
     # テスト環境では無効化
     return if Rails.env.test?
-    
+
     # レスポンス時間が異常に長い場合の検出
     if defined?(@request_start_time)
       response_time = Time.current - @request_start_time

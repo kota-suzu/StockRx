@@ -5,7 +5,7 @@ module AdminControllers
   # 全ての管理者向けコントローラはこのクラスを継承する
   class BaseController < ApplicationController
     include ErrorHandlers
-    
+
     before_action :authenticate_admin!
     layout "admin"
 
