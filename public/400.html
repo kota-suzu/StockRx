@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>422 Unprocessable Entity - StockRx</title>
+  <title>400 Bad Request - StockRx</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
     * {
@@ -34,7 +34,7 @@
     .error-code {
       font-size: 120px;
       font-weight: bold;
-      color: #e74c3c;
+      color: #e67e22;
       margin-bottom: 20px;
       line-height: 1;
     }
@@ -79,11 +79,11 @@
 <body>
   <div class="error-container">
     <div class="logo">StockRx</div>
-    <div class="error-code">422</div>
-    <h1 class="error-title">処理できないリクエストです</h1>
+    <div class="error-code">400</div>
+    <h1 class="error-title">不正なリクエストです</h1>
     <p class="error-description">
-      入力内容の処理ができませんでした。<br>
-      内容を確認して再度お試しください。
+      リクエストに問題があります。<br>
+      入力内容を確認して、もう一度お試しください。
     </p>
     <a href="/" class="back-link">ホームに戻る</a>
   </div>

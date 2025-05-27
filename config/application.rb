@@ -11,22 +11,17 @@ module App
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 7.2
 
-<<<<<<< HEAD
-=======
     # Zeitwerk関連のエラー修正
     config.add_autoload_paths_to_load_path = false
 
     # 全例外をRoutes配下で処理するよう設定
     config.exceptions_app = self.routes
 
->>>>>>> origin/feat/claude-code-action
     # Please, add to the `ignore` list any other `lib` subdirectories that do
     # not contain `.rb` files, or that should not be reloaded or eager loaded.
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
-<<<<<<< HEAD
-=======
     # ============================================
     # 国際化・地域化設定
     # ============================================
@@ -216,7 +211,6 @@ module App
     #    - コードドキュメント
     #    - 運用手順書
 
->>>>>>> origin/feat/claude-code-action
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files

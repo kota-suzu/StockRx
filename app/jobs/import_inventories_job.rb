@@ -20,11 +20,11 @@ class ImportInventoriesJob < ApplicationJob
   MAX_FILE_SIZE = 100.megabytes
   ALLOWED_EXTENSIONS = %w[.csv].freeze
   REQUIRED_CSV_HEADERS = %w[name quantity price].freeze
-  
+
   # バッチ処理設定
   IMPORT_BATCH_SIZE = 1000
   PROGRESS_REPORT_INTERVAL = 10 # 進捗報告の間隔（％）
-  
+
   # Redis TTL設定
   PROGRESS_TTL = 1.hour
   COMPLETED_TTL = 24.hours
@@ -56,7 +56,7 @@ class ImportInventoriesJob < ApplicationJob
     @admin_id = admin_id
     @job_id = job_id || generate_job_id
     @start_time = Time.current
-    
+
     with_error_handling do
       validate_and_import_csv
     end
@@ -70,16 +70,16 @@ class ImportInventoriesJob < ApplicationJob
   def validate_and_import_csv
     # 1. セキュリティ検証
     validate_file_security
-    
+
     # 2. 進捗追跡の初期化
     setup_progress_tracking
-    
+
     # 3. CSVインポート実行
     result = execute_csv_import
-    
+
     # 4. 成功通知
     notify_import_success(result)
-    
+
     result
   end
 
@@ -87,7 +87,7 @@ class ImportInventoriesJob < ApplicationJob
   def validate_job_arguments
     file_path = arguments[0]
     admin_id = arguments[1]
-    
+
     raise ArgumentError, "File path is required" if file_path.blank?
     raise ArgumentError, "Admin ID is required" if admin_id.blank?
     raise ArgumentError, "Admin not found" unless Admin.exists?(admin_id)
@@ -107,7 +107,7 @@ class ImportInventoriesJob < ApplicationJob
     validate_file_extension
     validate_csv_format
     validate_file_path_security
-    
+
     log_security_validation_success
   end
 
@@ -137,7 +137,7 @@ class ImportInventoriesJob < ApplicationJob
     CSV.open(@file_path, "r", headers: true) do |csv|
       headers = csv.first&.headers&.map(&:downcase) || []
       missing_headers = REQUIRED_CSV_HEADERS - headers
-      
+
       if missing_headers.any?
         raise CSV::MalformedCSVError, "Missing required headers: #{missing_headers.join(', ')}"
       end
@@ -154,7 +154,7 @@ class ImportInventoriesJob < ApplicationJob
       Rails.root.join("storage").to_s,
       "/tmp"
     ].map { |dir| File.expand_path(dir) }
-    
+
     unless allowed_directories.any? { |dir| normalized_path.start_with?(dir) }
       raise SecurityError, "Unauthorized file location: #{@file_path}"
     end
@@ -180,13 +180,13 @@ class ImportInventoriesJob < ApplicationJob
   ensure
     cleanup_after_import
   end
-  
+
   def handle_import_error(error)
     log_import_error(error)
     notify_import_error(error)
     update_error_status(error)
   end
-  
+
   def log_import_error(error)
     Rails.logger.error({
       event: "csv_import_failed",
@@ -198,16 +198,16 @@ class ImportInventoriesJob < ApplicationJob
       duration: calculate_duration
     }.to_json)
   end
-  
+
   def cleanup_after_import
     cleanup_temp_file
     finalize_progress_tracking
   end
-  
+
   def cleanup_temp_file
     return unless @file_path && File.exist?(@file_path)
     return if Rails.env.development? # 開発環境では削除しない
-    
+
     File.delete(@file_path)
     Rails.logger.info "Temporary file cleaned up: #{File.basename(@file_path)}"
   rescue => e
@@ -220,13 +220,13 @@ class ImportInventoriesJob < ApplicationJob
   def setup_progress_tracking
     @redis = get_redis_connection
     @status_key = "csv_import:#{@job_id}"
-    
+
     initialize_progress_in_redis if @redis
     broadcast_import_started
   end
-  
+
   def initialize_progress_in_redis
-    @redis.hset(@status_key, 
+    @redis.hset(@status_key,
       "status", "running",
       "started_at", @start_time.iso8601,
       "file_name", File.basename(@file_path),
@@ -236,19 +236,19 @@ class ImportInventoriesJob < ApplicationJob
     )
     @redis.expire(@status_key, PROGRESS_TTL)
   end
-  
+
   def update_import_progress(progress_percentage, message = nil)
     return unless @redis
-    
+
     @redis.hset(@status_key, "progress", progress_percentage)
     @redis.hset(@status_key, "message", message) if message
-    
+
     broadcast_progress_update(progress_percentage, message)
   end
-  
+
   def finalize_progress_tracking
     return unless @redis && @status_key
-    
+
     @redis.expire(@status_key, COMPLETED_TTL)
   end
 
@@ -257,7 +257,7 @@ class ImportInventoriesJob < ApplicationJob
   # ============================================
   def execute_csv_import
     log_import_start
-    
+
     # バッチ処理でCSVをインポート
     result = Inventory.import_from_csv(@file_path, batch_size: IMPORT_BATCH_SIZE) do |progress|
       # 進捗更新（PROGRESS_REPORT_INTERVAL%ごとに通知）
@@ -265,11 +265,11 @@ class ImportInventoriesJob < ApplicationJob
         update_import_progress(progress)
       end
     end
-    
+
     log_import_complete(result)
     result
   end
-  
+
   def log_import_start
     Rails.logger.info({
       event: "csv_import_started",
@@ -278,7 +278,7 @@ class ImportInventoriesJob < ApplicationJob
       file_name: File.basename(@file_path)
     }.to_json)
   end
-  
+
   def log_import_complete(result)
     Rails.logger.info({
       event: "csv_import_completed",
@@ -297,10 +297,10 @@ class ImportInventoriesJob < ApplicationJob
     broadcast_import_complete(result)
     send_completion_message(result)
   end
-  
+
   def update_success_status(result)
     return unless @redis
-    
+
     @redis.hset(@status_key,
       "status", "completed",
       "completed_at", Time.current.iso8601,
@@ -309,13 +309,13 @@ class ImportInventoriesJob < ApplicationJob
       "invalid_count", result[:invalid_records].size
     )
   end
-  
+
   def send_completion_message(result)
     admin = Admin.find_by(id: @admin_id)
     return unless admin
-    
+
     message = build_completion_message(result)
-    
+
     ActionCable.server.broadcast("admin_#{@admin_id}", {
       type: "csv_import_complete",
       message: message,
@@ -326,24 +326,24 @@ class ImportInventoriesJob < ApplicationJob
       }
     })
   end
-  
+
   def notify_import_error(error)
     return unless @redis
-    
+
     @redis.hset(@status_key,
       "status", "failed",
       "failed_at", Time.current.iso8601,
       "error_message", error.message,
       "error_class", error.class.name
     )
-    
+
     broadcast_import_error(error)
   end
-  
+
   def update_error_status(error)
     admin = Admin.find_by(id: @admin_id)
     return unless admin
-    
+
     ActionCable.server.broadcast("admin_#{@admin_id}", {
       type: "csv_import_error",
       message: I18n.t("inventories.import.error", message: error.message),
@@ -365,7 +365,7 @@ class ImportInventoriesJob < ApplicationJob
       progress: 0
     })
   end
-  
+
   def broadcast_progress_update(progress, message = nil)
     data = {
       type: "csv_import_progress",
@@ -374,10 +374,10 @@ class ImportInventoriesJob < ApplicationJob
       status_key: @status_key
     }
     data[:message] = message if message
-    
+
     broadcast_to_admin(data)
   end
-  
+
   def broadcast_import_complete(result)
     broadcast_to_admin({
       type: "csv_import_complete",
@@ -387,7 +387,7 @@ class ImportInventoriesJob < ApplicationJob
       duration: calculate_duration
     })
   end
-  
+
   def broadcast_import_error(error)
     broadcast_to_admin({
       type: "csv_import_error",
@@ -396,10 +396,10 @@ class ImportInventoriesJob < ApplicationJob
       error_class: error.class.name
     })
   end
-  
+
   def broadcast_to_admin(data)
     data[:timestamp] = Time.current.iso8601
-    
+
     # AdminChannelを使用（可能な場合）
     admin = Admin.find_by(id: @admin_id)
     if admin
@@ -419,16 +419,16 @@ class ImportInventoriesJob < ApplicationJob
     return get_test_redis if Rails.env.test?
     get_production_redis
   end
-  
+
   def get_test_redis
     return nil unless defined?(Redis)
-    
+
     Redis.current.tap(&:ping)
   rescue => e
     Rails.logger.warn "Redis not available in test: #{e.message}"
     nil
   end
-  
+
   def get_production_redis
     if defined?(Sidekiq) && Sidekiq.redis_pool
       Sidekiq.redis { |conn| return conn }
@@ -439,21 +439,21 @@ class ImportInventoriesJob < ApplicationJob
     Rails.logger.warn "Redis connection failed: #{e.message}"
     nil
   end
-  
+
   def calculate_duration
     return 0 unless @start_time
     ((Time.current - @start_time) / 1.second).round(2)
   end
-  
+
   def build_completion_message(result)
     duration = calculate_duration
     valid_count = result[:valid_count]
     invalid_count = result[:invalid_records].size
-    
+
     message = I18n.t("inventories.import.completed", duration: duration)
     message += "\n#{I18n.t('inventories.import.success', count: valid_count)}"
     message += " #{I18n.t('inventories.import.invalid_records', count: invalid_count)}" if invalid_count > 0
-    
+
     message
   end
 

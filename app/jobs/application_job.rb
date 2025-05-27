@@ -1,11 +1,4 @@
 class ApplicationJob < ActiveJob::Base
-<<<<<<< HEAD
-  # Automatically retry jobs that encountered a deadlock
-  # retry_on ActiveRecord::Deadlocked
-
-  # Most jobs are safe to ignore if the underlying records are no longer available
-  # discard_on ActiveJob::DeserializationError
-=======
   # ============================================
   # Sidekiq Configuration for Background Jobs
   # ============================================
@@ -85,5 +78,4 @@ class ApplicationJob < ActiveJob::Base
   # - パフォーマンス監視（NewRelic/Datadog連携）
   # - ジョブの依存関係管理
   # - バッチジョブのチェーン実行
->>>>>>> origin/feat/claude-code-action
 end

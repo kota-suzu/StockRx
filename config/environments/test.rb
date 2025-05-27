@@ -17,26 +17,18 @@ Rails.application.configure do
   # loading is working properly before deploying your code.
   config.eager_load = ENV["CI"].present?
 
-<<<<<<< HEAD
-  # Configure public file server for tests with Cache-Control for performance.
-=======
   # Zeitwerk関連の設定
   config.autoloader = :zeitwerk
   config.add_autoload_paths_to_load_path = false
 
   # パフォーマンス最適化：静的ファイル配信の軽量化
   config.public_file_server.enabled = true
->>>>>>> origin/feat/claude-code-action
   config.public_file_server.headers = { "Cache-Control" => "public, max-age=#{1.hour.to_i}" }
 
   # Show full error reports and disable caching.
   config.consider_all_requests_local = true
   config.action_controller.perform_caching = false
-<<<<<<< HEAD
-  config.cache_store = :null_store
-=======
   config.cache_store = :memory_store  # テスト用にメモリストアを使用（:null_storeより高速）
->>>>>>> origin/feat/claude-code-action
 
   # Render exception templates for rescuable exceptions and raise for other exceptions.
   config.action_dispatch.show_exceptions = :rescuable
@@ -77,8 +69,6 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
-<<<<<<< HEAD
-=======
 
   # テスト環境で許可するホスト（Host Authorization対応）
   config.hosts << "www.example.com"
@@ -171,5 +161,4 @@ Rails.application.configure do
   #   config.active_support.test_order = :sorted
   #   config.log_level = :warn
   # end
->>>>>>> origin/feat/claude-code-action
 end

@@ -13,8 +13,6 @@
  *= require_tree .
  *= require_self
  */
-<<<<<<< HEAD
-=======
 
 /* リセットとベーススタイル */
 * {
@@ -78,4 +76,3 @@ a {
 a:hover {
   text-decoration: underline;
 }
->>>>>>> origin/feat/claude-code-action

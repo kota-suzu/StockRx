@@ -17,7 +17,7 @@ module ErrorHandlers
     # rescue_from Pundit::NotAuthorizedError,       with: -> (e) { render_error 403, e }
 
     # レートリミット (将来の拡張)
-    # rescue_from Rack::Attack::Throttle,           with: -> (e) { render_error 429, e }
+    # rescue_from Rack::Attack::Throttle,           with: ->(e) { render_error 429, e }
 
     # 独自例外クラス
     rescue_from CustomError::BaseError, with: ->(e) { render_custom_error e }
@@ -89,8 +89,8 @@ module ErrorHandlers
           flash.now[:alert] = exception.message
           # コントローラに応じた処理を行う必要があるため、各コントローラで対応
         else
-          # 404, 403, 500などはエラーページにリダイレクト
-          redirect_to send("error_#{status}_path")
+          # エラーページにリダイレクト
+          redirect_to error_path(code: status)
         end
       end
 
@@ -126,7 +126,7 @@ module ErrorHandlers
           flash.now[:alert] = exception.message
           # 422の場合はコントローラで個別に対応
         else
-          redirect_to send("error_#{status}_path")
+          redirect_to error_path(code: status)
         end
       end
 
