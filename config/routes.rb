@@ -82,7 +82,7 @@ Rails.application.routes.draw do
   %w[400 403 404 422 429 500].each do |code|
     get code, to: "errors#show", code: code, as: "error_#{code}"
   end
-  
+
   # エラーページへの統一パス
   get "error", to: "errors#show", as: :error
 

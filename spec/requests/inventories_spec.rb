@@ -60,7 +60,7 @@ RSpec.describe "Inventories", type: :request do
         it "returns proper JSON error response" do
           get inventory_path(id: "non-existent-id"), headers: { "Accept" => "application/json" }
           expect(response).to have_http_status(:not_found)
-          
+
           json = JSON.parse(response.body)
           expect(json["code"]).to eq("resource_not_found")
           expect(json).to have_key("message")
@@ -75,16 +75,16 @@ RSpec.describe "Inventories", type: :request do
         expect {
           post inventories_path, params: { inventory: valid_attributes }
         }.to change(Inventory, :count).by(1)
-        
+
         expect(response).to have_http_status(:found) # redirect after creation
       end
 
       context "with JSON format" do
         it "returns created status" do
-          post inventories_path, 
+          post inventories_path,
                params: { inventory: valid_attributes },
                headers: { "Accept" => "application/json" }
-          
+
           expect(response).to have_http_status(:created)
           json = JSON.parse(response.body)
           expect(json["name"]).to eq(valid_attributes[:name])
@@ -104,9 +104,9 @@ RSpec.describe "Inventories", type: :request do
           post inventories_path,
                params: { inventory: invalid_attributes },
                headers: { "Accept" => "application/json" }
-          
+
           expect(response).to have_http_status(:unprocessable_entity)
-          
+
           json = JSON.parse(response.body)
           expect(json["code"]).to eq("validation_error")
           expect(json).to have_key("message")
@@ -121,9 +121,9 @@ RSpec.describe "Inventories", type: :request do
         post inventories_path,
              params: { invalid_root: { name: "test" } },
              headers: { "Accept" => "application/json" }
-        
+
         expect(response).to have_http_status(:bad_request)
-        
+
         json = JSON.parse(response.body)
         expect(json["code"]).to eq("parameter_missing")
         expect(json).to have_key("message")
@@ -148,9 +148,9 @@ RSpec.describe "Inventories", type: :request do
         patch inventory_path(inventory),
               params: { inventory: { name: "" } },
               headers: { "Accept" => "application/json" }
-        
+
         expect(response).to have_http_status(:unprocessable_entity)
-        
+
         json = JSON.parse(response.body)
         expect(json["code"]).to eq("validation_error")
       end
@@ -160,7 +160,7 @@ RSpec.describe "Inventories", type: :request do
       it "returns 404" do
         patch inventory_path(id: "non-existent-id"),
               params: { inventory: new_attributes }
-        
+
         expect(response).to have_http_status(:not_found)
       end
     end
@@ -180,7 +180,7 @@ RSpec.describe "Inventories", type: :request do
         it "returns no content status" do
           delete inventory_path(inventory),
                  headers: { "Accept" => "application/json" }
-          
+
           expect(response).to have_http_status(:no_content)
         end
       end
