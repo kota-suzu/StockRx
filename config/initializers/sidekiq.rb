@@ -36,14 +36,19 @@ if defined?(Rack::Protection)
 end
 
 # Redis接続設定
-redis_config = {
-  url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0"),
-  # TODO: 本番環境でのRedis接続プール最適化
-  size: ENV.fetch("REDIS_POOL_SIZE", 10).to_i,
-  pool_timeout: ENV.fetch("REDIS_POOL_TIMEOUT", 5).to_i,
-  network_timeout: ENV.fetch("REDIS_NETWORK_TIMEOUT", 5).to_i,
-  reconnect_attempts: ENV.fetch("REDIS_RECONNECT_ATTEMPTS", 3).to_i
-}
+redis_config = if Rails.env.test?
+  # テスト環境ではRedisを使用しない（Mock Redis）
+  {}
+else
+  {
+    url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0"),
+    # TODO: 本番環境でのRedis接続プール最適化
+    size: ENV.fetch("REDIS_POOL_SIZE", 10).to_i,
+    pool_timeout: ENV.fetch("REDIS_POOL_TIMEOUT", 5).to_i,
+    network_timeout: ENV.fetch("REDIS_NETWORK_TIMEOUT", 5).to_i,
+    reconnect_attempts: ENV.fetch("REDIS_RECONNECT_ATTEMPTS", 3).to_i
+  }
+end
 
 # TODO: 本番環境でのRedis SSL/TLS設定
 # if Rails.env.production?
@@ -55,33 +60,35 @@ redis_config = {
 # end
 
 # Sidekiq設定
-Sidekiq.configure_server do |config|
-  config.redis = redis_config
+unless Rails.env.test?
+  Sidekiq.configure_server do |config|
+    config.redis = redis_config
 
-  # TODO: サーバー固有の最適化設定
-  # config.concurrency = ENV.fetch("SIDEKIQ_CONCURRENCY", 5).to_i
-  # config.queues = %w[critical high default low].freeze
+    # TODO: サーバー固有の最適化設定
+    # config.concurrency = ENV.fetch("SIDEKIQ_CONCURRENCY", 5).to_i
+    # config.queues = %w[critical high default low].freeze
 
-  # TODO: エラーハンドリングとリトライ設定
-  # config.death_handlers << lambda do |job, ex|
-  #   Rails.logger.error "Sidekiq job failed permanently: #{job['class']} - #{ex.message}"
-  #   # Slack/Teams通知やメトリクス送信
-  # end
+    # TODO: エラーハンドリングとリトライ設定
+    # config.death_handlers << lambda do |job, ex|
+    #   Rails.logger.error "Sidekiq job failed permanently: #{job['class']} - #{ex.message}"
+    #   # Slack/Teams通知やメトリクス送信
+    # end
 
-  # TODO: ミドルウェア設定（ログ、メトリクス、認証）
-  # config.server_middleware do |chain|
-  #   chain.add SidekiqPrometheus::Middleware
-  #   chain.add CustomLoggingMiddleware
-  # end
-end
+    # TODO: ミドルウェア設定（ログ、メトリクス、認証）
+    # config.server_middleware do |chain|
+    #   chain.add SidekiqPrometheus::Middleware
+    #   chain.add CustomLoggingMiddleware
+    # end
+  end
 
-Sidekiq.configure_client do |config|
-  config.redis = redis_config
+  Sidekiq.configure_client do |config|
+    config.redis = redis_config
 
-  # TODO: クライアント側ミドルウェア
-  # config.client_middleware do |chain|
-  #   chain.add JobMetricsMiddleware
-  # end
+    # TODO: クライアント側ミドルウェア
+    # config.client_middleware do |chain|
+    #   chain.add JobMetricsMiddleware
+    # end
+  end
 end
 
 # 本番環境でのセキュリティ設定

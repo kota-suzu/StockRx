@@ -47,7 +47,7 @@ end
 # spec/support/ and its subdirectories. Files matching `spec/**/*_spec.rb` are
 # run as spec files by default. This behavior can be changed by removing the
 # line below or adding it to spec_helper.rb instead.
-# Dir[Rails.root.join('spec', 'support', '**', '*.rb')].sort.each { |f| require f }
+Dir[Rails.root.join('spec', 'support', '**', '*.rb')].sort.each { |f| require f }
 
 # Checks for pending migrations and applies them before tests are run.
 # If you are not using ActiveRecord, you can remove these lines.
@@ -113,34 +113,7 @@ RSpec.configure do |config|
   # Draper用のヘルパー設定
   config.include Draper::ViewHelpers, type: :decorator
 
-  # Sidekiq テスト設定
-  config.before(:each) do
-    Sidekiq::Testing.fake!
-    # ActiveJobのテストアダプター設定
-    ActiveJob::Base.queue_adapter = :test if defined?(ActiveJob)
-  end
-
-  config.after(:each) do
-    Sidekiq::Testing.disable!
-    Sidekiq::Worker.clear_all
-    # ActiveJobキューのクリア
-    ActiveJob::Base.queue_adapter.enqueued_jobs.clear if defined?(ActiveJob) && ActiveJob::Base.queue_adapter.respond_to?(:enqueued_jobs)
-  end
-
-  # Background job テスト用ヘルパー
-  config.include Module.new {
-    def enqueued_jobs
-      Sidekiq::Extensions::DelayedClass.jobs
-    end
-
-    def clear_enqueued_jobs
-      Sidekiq::Worker.clear_all
-    end
-
-    def perform_enqueued_jobs
-      Sidekiq::Testing.drain
-    end
-  }
+  # Redis接続エラー対策のため、Sidekiq設定をspec/support/sidekiq.rbに移動
 end
 
 # Shoulda Matchers設定
@@ -268,9 +241,13 @@ end
 #   end
 # end
 
-# Sidekiq テストサポート
-require 'sidekiq'
-require 'sidekiq/testing'
+# Sidekiq テストサポート（spec/support/sidekiq.rbで設定）
+begin
+  require 'sidekiq'
+  require 'sidekiq/testing'
+rescue LoadError => e
+  Rails.logger.warn "Sidekiq not available in test environment: #{e.message}"
+end
 
 # TODO: 並列テスト実行時の最適化（優先度：中）
 # ============================================

@@ -161,4 +161,7 @@ Rails.application.configure do
   #   config.active_support.test_order = :sorted
   #   config.log_level = :warn
   # end
+
+  # ActionCableのテスト設定
+  config.action_cable.disable_request_forgery_protection = true
 end
