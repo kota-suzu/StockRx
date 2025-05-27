@@ -73,6 +73,36 @@ RSpec.describe ImportInventoriesJob, type: :job do
   end
 
   # ============================================
+  # 定数のテスト（リファクタリング後）
+  # ============================================
+  describe 'Constants' do
+    it 'defines file size limit' do
+      expect(ImportInventoriesJob::MAX_FILE_SIZE).to eq(100.megabytes)
+    end
+    
+    it 'defines allowed extensions' do
+      expect(ImportInventoriesJob::ALLOWED_EXTENSIONS).to eq(['.csv'])
+    end
+    
+    it 'defines required CSV headers' do
+      expect(ImportInventoriesJob::REQUIRED_CSV_HEADERS).to eq(['name', 'quantity', 'price'])
+    end
+    
+    it 'defines batch size' do
+      expect(ImportInventoriesJob::IMPORT_BATCH_SIZE).to eq(1000)
+    end
+    
+    it 'defines progress interval' do
+      expect(ImportInventoriesJob::PROGRESS_REPORT_INTERVAL).to eq(10)
+    end
+    
+    it 'defines Redis TTL values' do
+      expect(ImportInventoriesJob::PROGRESS_TTL).to eq(1.hour)
+      expect(ImportInventoriesJob::COMPLETED_TTL).to eq(24.hours)
+    end
+  end
+
+  # ============================================
   # ジョブ実行のテスト
   # ============================================
   describe '#perform' do
