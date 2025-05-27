@@ -10,9 +10,6 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-<<<<<<< HEAD
-ActiveRecord::Schema[7.2].define(version: 0) do
-=======
 ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
@@ -157,5 +154,4 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
   add_foreign_key "inventory_logs", "inventories"
   add_foreign_key "receipts", "inventories"
   add_foreign_key "shipments", "inventories"
->>>>>>> origin/feat/claude-code-action
 end

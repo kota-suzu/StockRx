@@ -23,7 +23,7 @@ class ExpiryCheckJob < ApplicationJob
     # 進捗追跡の初期化
     job_id = self.job_id || SecureRandom.uuid
     admin_id = admin_ids.first || Admin.first&.id  # 通知用の管理者ID
-    
+
     status_key = initialize_progress(admin_id, job_id, "expiry_check", {
       days_ahead: days_ahead
     }) if admin_id

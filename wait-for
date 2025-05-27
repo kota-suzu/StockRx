@@ -1,27 +1,4 @@
 #!/bin/sh
-<<<<<<< HEAD
-# wait-for.sh
-
-set -e
-
-host="$1"
-shift
-
-# --引数を処理してスキップする
-if [ "$1" = "--" ]; then
-  shift
-fi
-
-cmd="$@"
-
-until mysql -h "$host" -u root -ppassword -e 'SELECT 1'; do
-  >&2 echo "MySQL is unavailable - sleeping"
-  sleep 1
-done
-
->&2 echo "MySQL is up - executing command"
-exec $cmd 
-=======
 # wait-for.sh - 汎用的なホスト:ポート待機スクリプト（改善版）
 # Usage: ./wait-for host:port [--timeout=TIMEOUT] [-- command]
 # 
@@ -197,5 +174,4 @@ done
 # 残りのコマンドを実行
 if [ $# -gt 0 ]; then
   exec "$@"
-fi 
->>>>>>> origin/feat/claude-code-action
+fi

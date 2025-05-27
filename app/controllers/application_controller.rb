@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-class ApplicationController < ActionController::Base
-  # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
-  allow_browser versions: :modern
-end
-=======
 # frozen_string_literal: true
 
 class ApplicationController < ActionController::Base
@@ -11,7 +5,7 @@ class ApplicationController < ActionController::Base
   include ErrorHandlers
 
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
-  # allow_browser versions: :modern
+  allow_browser versions: :modern
 
   # リクエストごとにCurrentを設定
   before_action :set_current_attributes
@@ -246,4 +240,3 @@ end
 #
 #   render plain: "Security Error", status: :forbidden
 # end
->>>>>>> origin/feat/claude-code-action

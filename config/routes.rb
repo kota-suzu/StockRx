@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-=======
 # frozen_string_literal: true
 
->>>>>>> origin/feat/claude-code-action
 Rails.application.routes.draw do
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
@@ -14,10 +11,6 @@ Rails.application.routes.draw do
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
 
-<<<<<<< HEAD
-  # Defines the root path route ("/")
-  # root "posts#index"
-=======
   # Adminモデル用のDeviseルート
   # /admin/sign_in などのパスになるよう設定
   devise_for :admins,
@@ -85,9 +78,13 @@ Rails.application.routes.draw do
   end
 
   # エラーページルーティング
+  # 設計書に基づいて実装
   %w[400 403 404 422 429 500].each do |code|
     get code, to: "errors#show", code: code, as: "error_#{code}"
   end
+
+  # エラーページへの統一パス
+  get "error", to: "errors#show", as: :error
 
   # その他リクエスト漏れ対策 (ActiveStorage等除外)
   match "*path", to: "errors#show", via: :all,
@@ -97,5 +94,4 @@ Rails.application.routes.draw do
   # アプリケーションのルートページ
   # 将来的にはユーザー向けページになる予定
   root "home#index"
->>>>>>> origin/feat/claude-code-action
 end

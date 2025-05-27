@@ -56,9 +56,6 @@ Rails.application.configure do
 
   # Log to STDOUT by default
   config.logger = ActiveSupport::Logger.new(STDOUT)
-<<<<<<< HEAD
-    .tap  { |logger| logger.formatter = ::Logger::Formatter.new }
-=======
     .tap  { |logger| logger.formatter = proc do |severity, datetime, progname, msg|
       log_data = {
         severity: severity,
@@ -77,7 +74,6 @@ Rails.application.configure do
 
       "#{log_data.to_json}\n"
     end }
->>>>>>> origin/feat/claude-code-action
     .then { |logger| ActiveSupport::TaggedLogging.new(logger) }
 
   # Prepend all log lines with the following tags.
@@ -123,8 +119,6 @@ Rails.application.configure do
   # ]
   # Skip DNS rebinding protection for the default health check endpoint.
   # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
-<<<<<<< HEAD
-=======
 
   # 本番環境では詳細エラーページは表示しない（セキュリティ上の理由）
   config.consider_all_requests_local = false
@@ -168,5 +162,4 @@ Rails.application.configure do
     logger.formatter = config.log_formatter
     config.logger = ActiveSupport::TaggedLogging.new(logger)
   end
->>>>>>> origin/feat/claude-code-action
 end

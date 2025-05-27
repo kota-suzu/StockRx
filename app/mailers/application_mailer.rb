@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-class ApplicationMailer < ActionMailer::Base
-  default from: "from@example.com"
-  layout "mailer"
-=======
 # frozen_string_literal: true
 
 # ============================================
@@ -128,5 +123,4 @@ class ApplicationMailer < ActionMailer::Base
       "X-Mailer" => "StockRx v#{Rails.application.config.version rescue '1.0'}"
     }
   end
->>>>>>> origin/feat/claude-code-action
 end
