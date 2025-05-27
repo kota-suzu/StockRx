@@ -62,9 +62,6 @@ class ApplicationController < ActionController::Base
 
   # レスポンスメトリクスの追跡
   def track_response_metrics
-    # テスト環境では無効化
-    return if Rails.env.test?
-
     # レスポンス時間が異常に長い場合の検出
     if defined?(@request_start_time)
       response_time = Time.current - @request_start_time
