@@ -37,12 +37,17 @@ module AdminControllers
       @inventory = Inventory.new(inventory_params)
 
       respond_to do |format|
-        if @inventory.save
+        begin
+          @inventory.save!
           format.html { redirect_to admin_inventory_path(@inventory), notice: "在庫が正常に登録されました。" }
           format.json { render json: @inventory.decorate.as_json_with_decorated, status: :created }
           format.turbo_stream { flash.now[:notice] = "在庫が正常に登録されました。" }
-        else
-          format.html { render :new, status: :unprocessable_entity }
+        rescue ActiveRecord::RecordInvalid => e
+          # 422エラー時の個別処理
+          format.html {
+            flash.now[:alert] = "入力内容に問題があります"
+            render :new, status: :unprocessable_entity
+          }
           format.json { render json: { errors: @inventory.errors.full_messages }, status: :unprocessable_entity }
           format.turbo_stream { render :form_update, status: :unprocessable_entity }
         end
@@ -52,12 +57,17 @@ module AdminControllers
     # PATCH/PUT /admin/inventories/1
     def update
       respond_to do |format|
-        if @inventory.update(inventory_params)
+        begin
+          @inventory.update!(inventory_params)
           format.html { redirect_to admin_inventory_path(@inventory), notice: "在庫が正常に更新されました。" }
           format.json { render json: @inventory.decorate.as_json_with_decorated }
           format.turbo_stream { flash.now[:notice] = "在庫が正常に更新されました。" }
-        else
-          format.html { render :edit, status: :unprocessable_entity }
+        rescue ActiveRecord::RecordInvalid => e
+          # 422エラー時の個別処理
+          format.html {
+            flash.now[:alert] = "入力内容に問題があります"
+            render :edit, status: :unprocessable_entity
+          }
           format.json { render json: { errors: @inventory.errors.full_messages }, status: :unprocessable_entity }
           format.turbo_stream { render :form_update, status: :unprocessable_entity }
         end
