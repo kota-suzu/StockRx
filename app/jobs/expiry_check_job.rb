@@ -20,7 +20,13 @@ class ExpiryCheckJob < ApplicationJob
   # @param days_ahead [Integer] 何日後まで期限切れ対象とするか（デフォルト：30日）
   # @param admin_ids [Array<Integer>] 通知対象の管理者ID配列
   def perform(days_ahead = 30, admin_ids = [])
-    notify_progress_start("expiry_check", "期限切れ商品の確認を開始します")
+    # 進捗追跡の初期化
+    job_id = self.job_id || SecureRandom.uuid
+    admin_id = admin_ids.first || Admin.first&.id  # 通知用の管理者ID
+    
+    status_key = initialize_progress(admin_id, job_id, "expiry_check", {
+      days_ahead: days_ahead
+    }) if admin_id
 
     Rails.logger.info "Starting expiry check for items expiring within #{days_ahead} days"
 
@@ -50,10 +56,13 @@ class ExpiryCheckJob < ApplicationJob
       days_ahead: days_ahead
     }.to_json)
 
-    notify_progress_complete("expiry_check", "期限チェックが完了しました", {
-      expired_count: expired_items.count,
-      expiring_count: expiring_items.count
-    })
+    # 完了通知
+    if status_key && admin_id
+      notify_completion(status_key, admin_id, "expiry_check", {
+        expired_count: expired_items.count,
+        expiring_count: expiring_items.count
+      })
+    end
 
     {
       expiring_items: expiring_items,
@@ -62,7 +71,10 @@ class ExpiryCheckJob < ApplicationJob
     }
 
   rescue StandardError => e
-    notify_progress_error("expiry_check", "期限チェック中にエラーが発生しました: #{e.message}")
+    # エラー通知
+    if status_key && admin_id
+      notify_error(status_key, admin_id, "expiry_check", e)
+    end
     raise
   end
 

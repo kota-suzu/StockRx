@@ -1,67 +1,101 @@
 # frozen_string_literal: true
 
+# ============================================
+# 在庫CSVインポートジョブ
+# ============================================
+# 機能:
+#   - 大量の在庫データをCSVファイルから非同期でインポート
+#   - Sidekiqによる3回自動リトライ機能
+#   - リアルタイム進捗通知（ActionCable経由）
+#   - 包括的なセキュリティ検証とエラーハンドリング
+#
+# 使用例:
+#   ImportInventoriesJob.perform_later(file_path, admin.id)
+#
 class ImportInventoriesJob < ApplicationJob
   # ============================================
-  # Sidekiq Configuration
+  # 設定定数
   # ============================================
-  # 専用キューとリトライ設定
-  queue_as :imports
+  # ファイル制限
+  MAX_FILE_SIZE = 100.megabytes
+  ALLOWED_EXTENSIONS = %w[.csv].freeze
+  REQUIRED_CSV_HEADERS = %w[name quantity price].freeze
+  
+  # バッチ処理設定
+  IMPORT_BATCH_SIZE = 1000
+  PROGRESS_REPORT_INTERVAL = 10 # 進捗報告の間隔（％）
+  
+  # Redis TTL設定
+  PROGRESS_TTL = 1.hour
+  COMPLETED_TTL = 24.hours
 
-  # Sidekiq specific options（要求仕様：3回リトライ）
+  # ============================================
+  # Sidekiq設定
+  # ============================================
+  queue_as :imports
   sidekiq_options retry: 3, backtrace: true, queue: :imports
 
-  # 進捗通知用の定数
-  PROGRESS_INCREMENTS = 10 # 進捗報告の間隔（％）
+  # ============================================
+  # コールバック
+  # ============================================
+  before_perform :validate_job_arguments
 
   # ============================================
-  # セキュリティ検証
+  # メインメソッド
   # ============================================
-  before_perform do |job|
-    validate_file_security(job.arguments.first)
+  # CSVファイルから在庫データをインポート
+  #
+  # @param file_path [String] インポートするCSVファイルのパス
+  # @param admin_id [Integer] 実行管理者のID
+  # @param job_id [String, nil] ジョブ識別子（省略時は自動生成）
+  # @return [Hash] インポート結果（valid_count, invalid_records）
+  # @raise [StandardError] ファイル検証エラー、インポートエラー
+  #
+  def perform(file_path, admin_id, job_id = nil)
+    @file_path = file_path
+    @admin_id = admin_id
+    @job_id = job_id || generate_job_id
+    @start_time = Time.current
+    
+    with_error_handling do
+      validate_and_import_csv
+    end
   end
 
-  # @param file_path [String] CSVファイルのパス
-  # @param admin_id [Integer] インポートを実行した管理者のID
-  # @param job_id [String] ジョブを識別するID（オプション）
-  def perform(file_path, admin_id, job_id = nil)
-    # セキュリティ検証を明示的に実行（before_performコールバック後の追加保護）
-    validate_file_security(file_path)
+  private
 
-    # Sidekiq job IDを優先的に使用
-    sidekiq_job_id = respond_to?(:jid) ? jid : nil
-    job_id ||= sidekiq_job_id || SecureRandom.uuid
+  # ============================================
+  # メイン処理フロー
+  # ============================================
+  def validate_and_import_csv
+    # 1. セキュリティ検証
+    validate_file_security
+    
+    # 2. 進捗追跡の初期化
+    setup_progress_tracking
+    
+    # 3. CSVインポート実行
+    result = execute_csv_import
+    
+    # 4. 成功通知
+    notify_import_success(result)
+    
+    result
+  end
 
-    # 処理開始時間を記録
-    start_time = Time.current
-    status_key = "csv_import:#{job_id}"
+  # ジョブ引数の検証
+  def validate_job_arguments
+    file_path = arguments[0]
+    admin_id = arguments[1]
+    
+    raise ArgumentError, "File path is required" if file_path.blank?
+    raise ArgumentError, "Admin ID is required" if admin_id.blank?
+    raise ArgumentError, "Admin not found" unless Admin.exists?(admin_id)
+  end
 
-    begin
-      # Redis接続確立（Sidekiqのコネクションプールを使用）
-      redis = get_redis_connection
-
-      # 進捗追跡の初期化
-      initialize_progress_tracking(redis, status_key, file_path, admin_id)
-
-      # ファイルを開いて行数をカウント（進捗表示用）
-      total_lines = File.foreach(file_path).count - 1 # ヘッダーを除く
-
-      # CSVインポート処理を実行
-      result = Inventory.import_from_csv(file_path, batch_size: 1000)
-
-      # 処理完了時間を計算
-      duration = ((Time.current - start_time) / 1.second).round(2)
-
-      # 成功時の処理
-      handle_success(result, admin_id, start_time, redis, status_key, duration)
-
-    rescue => e
-      # エラー時の処理（Sidekiqリトライ対応）
-      handle_error(e, admin_id, file_path, redis, status_key)
-      raise e  # Sidekiqのリトライ機能を働かせるため再発生
-    ensure
-      # クリーンアップ処理
-      cleanup_resources(file_path, redis, status_key)
-    end
+  # ジョブIDの生成
+  def generate_job_id
+    respond_to?(:jid) ? jid : SecureRandom.uuid
   end
 
   private
@@ -69,48 +103,72 @@ class ImportInventoriesJob < ApplicationJob
   # ============================================
   # セキュリティ検証
   # ============================================
-  def validate_file_security(file_path)
-    # ファイル存在確認
-    raise "File not found: #{file_path}" unless File.exist?(file_path)
+  def validate_file_security
+    validate_file_existence
+    validate_file_size
+    validate_file_extension
+    validate_csv_format
+    validate_file_path_security
+    
+    log_security_validation_success
+  end
 
-    # ファイルサイズ制限（100MB）
-    file_size = File.size(file_path)
-    raise "File too large: #{file_size} bytes (max: 100MB)" if file_size > 100.megabytes
+  # ファイル存在確認
+  def validate_file_existence
+    raise SecurityError, "File not found: #{@file_path}" unless File.exist?(@file_path)
+  end
 
-    # ファイル形式検証（拡張子ベース + 内容確認）
-    valid_extension = file_path.downcase.end_with?(".csv")
-    raise "Invalid file extension: must be .csv" unless valid_extension
-
-    # 内容チェック（CSVとして読み込み可能か確認）
-    begin
-      CSV.open(file_path, "r", headers: true) do |csv|
-        first_row = csv.first
-        # CSVヘッダーが必須フィールドを含むか確認
-        required_headers = %w[name quantity price]
-        missing_headers = required_headers - (first_row&.headers&.map(&:downcase) || [])
-
-        if missing_headers.any?
-          raise "Missing required CSV headers: #{missing_headers.join(', ')}"
-        end
-      end
-    rescue CSV::MalformedCSVError => e
-      raise "Invalid CSV format: #{e.message}"
-    rescue => e
-      raise "File validation failed: #{e.message}"
+  # ファイルサイズ検証
+  def validate_file_size
+    file_size = File.size(@file_path)
+    if file_size > MAX_FILE_SIZE
+      raise SecurityError, "File too large: #{file_size.to_s(:human_size)} (max: #{MAX_FILE_SIZE.to_s(:human_size)})"
     end
+  end
 
-    # パストラバーサル攻撃防止
-    normalized_path = File.expand_path(file_path)
+  # ファイル拡張子検証
+  def validate_file_extension
+    extension = File.extname(@file_path).downcase
+    unless ALLOWED_EXTENSIONS.include?(extension)
+      raise SecurityError, "Invalid file type: #{extension}. Allowed types: #{ALLOWED_EXTENSIONS.join(', ')}"
+    end
+  end
+
+  # CSV形式とヘッダー検証
+  def validate_csv_format
+    CSV.open(@file_path, "r", headers: true) do |csv|
+      headers = csv.first&.headers&.map(&:downcase) || []
+      missing_headers = REQUIRED_CSV_HEADERS - headers
+      
+      if missing_headers.any?
+        raise CSV::MalformedCSVError, "Missing required headers: #{missing_headers.join(', ')}"
+      end
+    end
+  rescue CSV::MalformedCSVError => e
+    raise SecurityError, "Invalid CSV format: #{e.message}"
+  end
+
+  # パストラバーサル攻撃の防止
+  def validate_file_path_security
+    normalized_path = File.expand_path(@file_path)
     allowed_directories = [
-      File.expand_path(Rails.root.join("tmp")),
-      File.expand_path(Rails.root.join("storage")),
-      File.expand_path("/tmp")  # Dockerコンテナ内での一時ディレクトリ
-    ]
+      Rails.root.join("tmp").to_s,
+      Rails.root.join("storage").to_s,
+      "/tmp"
+    ].map { |dir| File.expand_path(dir) }
+    
+    unless allowed_directories.any? { |dir| normalized_path.start_with?(dir) }
+      raise SecurityError, "Unauthorized file location: #{@file_path}"
+    end
+  end
 
-    valid_path = allowed_directories.any? { |dir| normalized_path.start_with?(dir) }
-    raise "Path traversal detected: #{file_path}" unless valid_path
-
-    Rails.logger.info "File security validation passed for: #{File.basename(file_path)}"
+  def log_security_validation_success
+    Rails.logger.info({
+      event: "csv_import_security_validated",
+      job_id: @job_id,
+      file_name: File.basename(@file_path),
+      file_size: File.size(@file_path)
+    }.to_json)
   end
 
   # ============================================

@@ -213,6 +213,63 @@ module ProgressNotifier
   def extract_job_id(status_key)
     status_key&.split(":")&.last
   end
+
+  # ============================================
+  # 簡易版APIメソッド（既存ジョブとの互換性維持）
+  # ============================================
+  # これらのメソッドは既存のジョブで使用されている簡易版のインターフェースです
+  # 新しいジョブでは、より詳細な制御が可能な上記のメソッドを使用することを推奨します
+
+  # 簡易版：進捗開始通知
+  # @param job_type [String] ジョブタイプ（例：'stock_alert', 'expiry_check'）
+  # @param message [String] 開始メッセージ
+  def notify_progress_start(job_type, message = nil)
+    # 管理者IDを取得（Current.adminまたはデフォルト値を使用）
+    admin_id = Current.admin&.id || 1
+    job_id = SecureRandom.uuid
+
+    # 初期化処理を実行
+    initialize_progress(admin_id, job_id, job_type, { start_message: message })
+    
+    Rails.logger.info "Progress started: #{job_type} - #{message}"
+  end
+
+  # 簡易版：進捗完了通知
+  # @param job_type [String] ジョブタイプ
+  # @param message [String] 完了メッセージ
+  # @param result_data [Hash] 結果データ
+  def notify_progress_complete(job_type, message = nil, result_data = {})
+    admin_id = Current.admin&.id || 1
+    
+    # 完了通知（status_keyが不明な場合は簡易版として処理）
+    broadcast_progress_update(admin_id, {
+      type: "#{job_type}_complete",
+      job_type: job_type,
+      message: message,
+      result: result_data,
+      progress: 100,
+      timestamp: Time.current.iso8601
+    })
+    
+    Rails.logger.info "Progress completed: #{job_type} - #{message}"
+  end
+
+  # 簡易版：エラー通知
+  # @param job_type [String] ジョブタイプ
+  # @param error_message [String] エラーメッセージ
+  def notify_progress_error(job_type, error_message)
+    admin_id = Current.admin&.id || 1
+    
+    # エラー通知
+    broadcast_progress_update(admin_id, {
+      type: "#{job_type}_error",
+      job_type: job_type,
+      error_message: error_message,
+      timestamp: Time.current.iso8601
+    })
+    
+    Rails.logger.error "Progress error: #{job_type} - #{error_message}"
+  end
 end
 
 # ============================================

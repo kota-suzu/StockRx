@@ -16,13 +16,17 @@
 - [x] **テスト統合** - feature specs対応
 
 ### ✅ バックグラウンドジョブ標準化 (完了)
-- [x] **ProgressNotifier** - 共通進捗通知ライブラリ
-- [x] **ImportInventoriesJob** - CSVインポート機能
-- [x] **MonthlyReportJob** - 月次レポート生成
-- [x] **ExpiryCheckJob** - 期限チェック機能(※)
-- [x] **StockAlertJob** - 在庫アラート機能(※)
+- [x] **Sidekiq基盤** - Redis設定、初期化、UI設定完了
+- [x] **ApplicationJob** - リトライ戦略（3回）、ログ強化実装済み
+- [x] **ProgressNotifier** - 共通進捗通知ライブラリ実装済み
+- [x] **ImportInventoriesJob** - Sidekiq対応、セキュリティ強化、進捗追跡完了
+- [x] **MonthlyReportJob** - 月次レポート生成（ベストプラクティスTODO追加）
+- [x] **ExpiryCheckJob** - 期限チェック機能（メソッド名修正済み）
+- [x] **StockAlertJob** - 在庫アラート機能（メソッド名修正済み）
+- [x] **ExternalApiSyncJob** - 外部API連携（ベストプラクティスTODO追加）
+- [x] **CleanupOldLogsJob** - ログクリーンアップ（ベストプラクティスTODO追加）
 
-※ProgressNotifier統合済み、詳細TODOコメント追加済み
+※全ジョブでSidekiq 3回リトライ機能実装済み、横展開のためのTODOコメント追加済み
 
 ### ✅ セキュリティ基盤 (完了)
 - [x] **SecurityMonitor** - セキュリティ監視システム

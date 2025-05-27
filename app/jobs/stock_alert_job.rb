@@ -22,7 +22,14 @@ class StockAlertJob < ApplicationJob
   # @param admin_ids [Array<Integer>] 通知対象の管理者ID配列
   # @param enable_email [Boolean] メール通知を有効にするか（デフォルト：false）
   def perform(threshold = 10, admin_ids = [], enable_email = false)
-    notify_progress_start("stock_alert", "在庫レベルの確認を開始します")
+    # 進捗追跡の初期化
+    job_id = self.job_id || SecureRandom.uuid
+    admin_id = admin_ids.first || Admin.first&.id  # 通知用の管理者ID
+    
+    status_key = initialize_progress(admin_id, job_id, "stock_alert", {
+      threshold: threshold,
+      enable_email: enable_email
+    }) if admin_id
 
     Rails.logger.info "Starting stock alert check with threshold: #{threshold}"
 
@@ -53,11 +60,14 @@ class StockAlertJob < ApplicationJob
       email_enabled: enable_email
     }.to_json)
 
-    notify_progress_complete("stock_alert", "在庫チェックが完了しました", {
-      low_stock_count: low_stock_items.count,
-      out_of_stock_count: out_of_stock_items.count,
-      notifications_sent: notification_results.count(&:itself)
-    })
+    # 完了通知
+    if status_key && admin_id
+      notify_completion(status_key, admin_id, "stock_alert", {
+        low_stock_count: low_stock_items.count,
+        out_of_stock_count: out_of_stock_items.count,
+        notifications_sent: notification_results.count(&:itself)
+      })
+    end
 
     {
       low_stock_items: low_stock_items,
