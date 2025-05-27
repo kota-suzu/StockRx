@@ -1,0 +1,23 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+# This model initially had no columns defined. If you add columns to the
+# model remove the "{}" from the fixture names and add the columns immediately
+# below each fixture, per the syntax in the comments below
+#
+one:
+  name: テスト商品1
+  quantity: 100
+  price: 500.00
+  status: 0
+
+two:
+  name: テスト商品2
+  quantity: 0
+  price: 1200.50
+  status: 0
+
+archived:
+  name: アーカイブ商品
+  quantity: 50
+  price: 300.00
+  status: 1

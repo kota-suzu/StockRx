@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2024_05_14_000000) do
+ActiveRecord::Schema[7.2].define(version: 2025_05_14_131442) do
   create_table "admins", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
@@ -31,4 +31,28 @@ ActiveRecord::Schema[7.2].define(version: 2024_05_14_000000) do
     t.index ["reset_password_token"], name: "index_admins_on_reset_password_token", unique: true
     t.index ["unlock_token"], name: "index_admins_on_unlock_token", unique: true
   end
+
+  create_table "batches", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "inventory_id", null: false
+    t.string "lot_code", null: false
+    t.date "expires_on"
+    t.integer "quantity", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["expires_on"], name: "index_batches_on_expires_on"
+    t.index ["inventory_id", "lot_code"], name: "uniq_inventory_lot", unique: true
+    t.index ["inventory_id"], name: "index_batches_on_inventory_id"
+  end
+
+  create_table "inventories", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.string "name", null: false
+    t.integer "quantity", default: 0, null: false
+    t.decimal "price", precision: 10, scale: 2, default: "0.0", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_inventories_on_name"
+  end
+
+  add_foreign_key "batches", "inventories", on_delete: :cascade
 end
