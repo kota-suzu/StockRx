@@ -1,0 +1,29 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+# This model initially had no columns defined. If you add columns to the
+# model remove the "{}" from the fixture names and add the columns immediately
+# below each fixture, per the syntax in the comments below
+#
+one:
+  inventory: one
+  lot_code: LOT-001-2025
+  expires_on: <%= Date.current + 90.days %>
+  quantity: 50
+
+two:
+  inventory: one
+  lot_code: LOT-002-2025
+  expires_on: <%= Date.current + 180.days %>
+  quantity: 50
+
+expired:
+  inventory: two
+  lot_code: LOT-003-2024
+  expires_on: <%= Date.current - 10.days %>
+  quantity: 10
+
+expiring_soon:
+  inventory: archived
+  lot_code: LOT-004-2025
+  expires_on: <%= Date.current + 15.days %>
+  quantity: 20

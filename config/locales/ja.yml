@@ -1,0 +1,108 @@
+ja:
+  date:
+    formats:
+      default: "%Y/%m/%d"
+      short: "%m/%d"
+      long: "%Y年%m月%d日(%a)"
+    day_names: [日曜日, 月曜日, 火曜日, 水曜日, 木曜日, 金曜日, 土曜日]
+    abbr_day_names: [日, 月, 火, 水, 木, 金, 土]
+    month_names: [~, 1月, 2月, 3月, 4月, 5月, 6月, 7月, 8月, 9月, 10月, 11月, 12月]
+    abbr_month_names: [~, 1月, 2月, 3月, 4月, 5月, 6月, 7月, 8月, 9月, 10月, 11月, 12月]
+    order:
+      - :year
+      - :month
+      - :day
+
+  time:
+    formats:
+      default: "%Y/%m/%d %H:%M:%S"
+      short: "%y/%m/%d %H:%M"
+      long: "%Y年%m月%d日(%a) %H時%M分%S秒"
+    am: "午前"
+    pm: "午後"
+
+  number:
+    currency:
+      format:
+        unit: "¥"
+        format: "%u%n"
+        separator: "."
+        delimiter: ","
+        precision: 0
+        
+  support:
+    array:
+      words_connector: "、"
+      two_words_connector: "、"
+      last_word_connector: "、"
+      
+  # アクティブモデルのエラーメッセージ
+  activemodel:
+    errors:
+      messages:
+        too_short: "%{count}文字以上で入力してください"
+        missing_digit: "数字を含める必要があります"
+        missing_lower: "小文字を含める必要があります"
+        missing_upper: "大文字を含める必要があります"
+        missing_symbol: "記号を含める必要があります"
+  
+  # アクティブレコードのエラーメッセージ
+  activerecord:
+    models:
+      inventory: "在庫"
+      batch: "バッチ"
+      admin: "管理者"
+    attributes:
+      inventory:
+        name: "商品名"
+        quantity: "数量"
+        price: "価格"
+        status: "ステータス"
+      batch:
+        lot_code: "ロットコード"
+        quantity: "数量"
+        expires_on: "有効期限"
+      admin:
+        email: "メールアドレス"
+        password: "パスワード"
+        password_confirmation: "パスワード（確認）"
+    errors:
+      messages:
+        too_short: "%{count}文字以上で入力してください"
+        missing_digit: "数字を含める必要があります"
+        missing_lower: "小文字を含める必要があります"
+        missing_upper: "大文字を含める必要があります"
+        missing_symbol: "記号を含める必要があります"
+  
+  # 在庫管理関連の翻訳
+  inventories:
+    status:
+      active: "有効"
+      archived: "アーカイブ"
+    alert:
+      out_of_stock: "在庫切れ"
+      low_stock: "在庫残りわずか"
+      expired: "期限切れ"
+      expiring_soon: "期限間近"
+    import:
+      success: "%{count}件のデータがインポートされました"
+      invalid_records: "%{count}件の無効なデータがありました"
+      no_file: "ファイルを選択してください"
+      started: "CSVインポートを開始しました。処理完了後に通知されます"
+      completed: "CSVインポートが完了しました（処理時間: %{duration}秒）"
+      error: "CSVインポート中にエラーが発生しました: %{message}"
+      
+  # バッチ関連の翻訳
+  batches:
+    status:
+      normal: "正常"
+      expired: "期限切れ"
+      expiring_soon: "期限間近" 
+
+  views:
+    pagination:
+      first: "&laquo; 最初"
+      last: "最後 &raquo;"
+      previous: "&lsaquo; 前"
+      next: "次 &rsaquo;"
+      truncate: "..." 

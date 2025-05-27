@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= @status %> - <%= @message %> | StockRx</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body class="error-page">
+    <div class="container mx-auto px-4 py-8">
+      <div class="text-center mb-8">
+        <a href="/" class="inline-block">
+          <h1 class="text-2xl font-bold">StockRx</h1>
+        </a>
+      </div>
+
+      <div class="bg-white rounded-lg shadow-lg p-8 max-w-lg mx-auto">
+        <%= yield %>
+        
+        <div class="mt-8 text-center">
+          <a href="/" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">
+            トップページに戻る
+          </a>
+        </div>
+      </div>
+      
+      <div class="mt-8 text-center text-gray-500 text-sm">
+        &copy; <%= Date.current.year %> StockRx - 在庫管理システム
+      </div>
+    </div>
+  </body>
+</html> 

@@ -1,6 +1,7 @@
 GEM
   remote: https://rubygems.org/
   specs:
+<<<<<<< HEAD
     actioncable (8.0.2)
       actionpack (= 8.0.2)
       activesupport (= 8.0.2)
@@ -26,11 +27,40 @@ GEM
       activesupport (= 8.0.2)
       nokogiri (>= 1.8.5)
       rack (>= 2.2.4)
+=======
+    actioncable (7.2.2.1)
+      actionpack (= 7.2.2.1)
+      activesupport (= 7.2.2.1)
+      nio4r (~> 2.0)
+      websocket-driver (>= 0.6.1)
+      zeitwerk (~> 2.6)
+    actionmailbox (7.2.2.1)
+      actionpack (= 7.2.2.1)
+      activejob (= 7.2.2.1)
+      activerecord (= 7.2.2.1)
+      activestorage (= 7.2.2.1)
+      activesupport (= 7.2.2.1)
+      mail (>= 2.8.0)
+    actionmailer (7.2.2.1)
+      actionpack (= 7.2.2.1)
+      actionview (= 7.2.2.1)
+      activejob (= 7.2.2.1)
+      activesupport (= 7.2.2.1)
+      mail (>= 2.8.0)
+      rails-dom-testing (~> 2.2)
+    actionpack (7.2.2.1)
+      actionview (= 7.2.2.1)
+      activesupport (= 7.2.2.1)
+      nokogiri (>= 1.8.5)
+      racc
+      rack (>= 2.2.4, < 3.2)
+>>>>>>> origin/feat/claude-code-action
       rack-session (>= 1.0.1)
       rack-test (>= 0.6.3)
       rails-dom-testing (~> 2.2)
       rails-html-sanitizer (~> 1.6)
       useragent (~> 0.16)
+<<<<<<< HEAD
     actiontext (8.0.2)
       actionpack (= 8.0.2)
       activerecord (= 8.0.2)
@@ -40,10 +70,22 @@ GEM
       nokogiri (>= 1.8.5)
     actionview (8.0.2)
       activesupport (= 8.0.2)
+=======
+    actiontext (7.2.2.1)
+      actionpack (= 7.2.2.1)
+      activerecord (= 7.2.2.1)
+      activestorage (= 7.2.2.1)
+      activesupport (= 7.2.2.1)
+      globalid (>= 0.6.0)
+      nokogiri (>= 1.8.5)
+    actionview (7.2.2.1)
+      activesupport (= 7.2.2.1)
+>>>>>>> origin/feat/claude-code-action
       builder (~> 3.1)
       erubi (~> 1.11)
       rails-dom-testing (~> 2.2)
       rails-html-sanitizer (~> 1.6)
+<<<<<<< HEAD
     activejob (8.0.2)
       activesupport (= 8.0.2)
       globalid (>= 0.3.6)
@@ -60,6 +102,28 @@ GEM
       activesupport (= 8.0.2)
       marcel (~> 1.0)
     activesupport (8.0.2)
+=======
+    activejob (7.2.2.1)
+      activesupport (= 7.2.2.1)
+      globalid (>= 0.3.6)
+    activemodel (7.2.2.1)
+      activesupport (= 7.2.2.1)
+    activemodel-serializers-xml (1.0.3)
+      activemodel (>= 5.0.0.a)
+      activesupport (>= 5.0.0.a)
+      builder (~> 3.1)
+    activerecord (7.2.2.1)
+      activemodel (= 7.2.2.1)
+      activesupport (= 7.2.2.1)
+      timeout (>= 0.4.0)
+    activestorage (7.2.2.1)
+      actionpack (= 7.2.2.1)
+      activejob (= 7.2.2.1)
+      activerecord (= 7.2.2.1)
+      activesupport (= 7.2.2.1)
+      marcel (~> 1.0)
+    activesupport (7.2.2.1)
+>>>>>>> origin/feat/claude-code-action
       base64
       benchmark (>= 0.3)
       bigdecimal
@@ -71,19 +135,36 @@ GEM
       minitest (>= 5.1)
       securerandom (>= 0.3)
       tzinfo (~> 2.0, >= 2.0.5)
+<<<<<<< HEAD
       uri (>= 0.13.1)
+=======
+>>>>>>> origin/feat/claude-code-action
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
     ast (2.4.3)
     base64 (0.2.0)
+<<<<<<< HEAD
     benchmark (0.4.0)
     bigdecimal (3.1.9)
     bindex (0.8.1)
     bootsnap (1.18.6)
+=======
+    bcrypt (3.1.20)
+    benchmark (0.4.0)
+    bigdecimal (3.1.9)
+    bindex (0.8.1)
+    bootsnap (1.18.4)
+>>>>>>> origin/feat/claude-code-action
       msgpack (~> 1.2)
     brakeman (7.0.2)
       racc
     builder (3.3.0)
+<<<<<<< HEAD
+=======
+    bullet (8.0.7)
+      activesupport (>= 3.0.0)
+      uniform_notifier (~> 1.11)
+>>>>>>> origin/feat/claude-code-action
     capybara (3.40.0)
       addressable
       matrix
@@ -96,13 +177,58 @@ GEM
     concurrent-ruby (1.3.5)
     connection_pool (2.5.3)
     crass (1.0.6)
+<<<<<<< HEAD
+=======
+    csv (3.2.8)
+    database_cleaner-active_record (2.2.1)
+      activerecord (>= 5.a)
+      database_cleaner-core (~> 2.0.0)
+    database_cleaner-core (2.0.1)
+>>>>>>> origin/feat/claude-code-action
     date (3.4.1)
     debug (1.10.0)
       irb (~> 1.10)
       reline (>= 0.3.8)
+<<<<<<< HEAD
     drb (2.2.3)
     erb (5.0.1)
     erubi (1.13.1)
+=======
+    devise (4.9.4)
+      bcrypt (~> 3.0)
+      orm_adapter (~> 0.1)
+      railties (>= 4.1.0)
+      responders
+      warden (~> 1.2.3)
+    devise-i18n (1.13.0)
+      devise (>= 4.9.0)
+      rails-i18n
+    devise-security (0.18.0)
+      devise (>= 4.3.0)
+    diff-lcs (1.6.2)
+    docile (1.4.1)
+    draper (4.0.4)
+      actionpack (>= 5.0)
+      activemodel (>= 5.0)
+      activemodel-serializers-xml (>= 1.0)
+      activesupport (>= 5.0)
+      request_store (>= 1.0)
+      ruby2_keywords
+    drb (2.2.3)
+    erubi (1.13.1)
+    et-orbi (1.2.11)
+      tzinfo
+    factory_bot (6.5.1)
+      activesupport (>= 6.1.0)
+    factory_bot_rails (6.4.4)
+      factory_bot (~> 6.5)
+      railties (>= 5.0.0)
+    faker (3.5.1)
+      i18n (>= 1.8.11, < 2)
+    fugit (1.11.1)
+      et-orbi (~> 1, >= 1.2.11)
+      raabro (~> 1.4)
+>>>>>>> origin/feat/claude-code-action
     globalid (1.2.1)
       activesupport (>= 6.1)
     i18n (1.14.7)
@@ -120,6 +246,21 @@ GEM
       actionview (>= 5.0.0)
       activesupport (>= 5.0.0)
     json (2.12.0)
+<<<<<<< HEAD
+=======
+    kaminari (1.2.2)
+      activesupport (>= 4.1.0)
+      kaminari-actionview (= 1.2.2)
+      kaminari-activerecord (= 1.2.2)
+      kaminari-core (= 1.2.2)
+    kaminari-actionview (1.2.2)
+      actionview
+      kaminari-core (= 1.2.2)
+    kaminari-activerecord (1.2.2)
+      activerecord
+      kaminari-core (= 1.2.2)
+    kaminari-core (1.2.2)
+>>>>>>> origin/feat/claude-code-action
     language_server-protocol (3.17.0.5)
     lint_roller (1.1.0)
     logger (1.7.0)
@@ -163,6 +304,10 @@ GEM
       racc (~> 1.4)
     nokogiri (1.18.8-x86_64-linux-musl)
       racc (~> 1.4)
+<<<<<<< HEAD
+=======
+    orm_adapter (0.5.0)
+>>>>>>> origin/feat/claude-code-action
     parallel (1.27.0)
     parser (3.3.8.0)
       ast (~> 2.4.1)
@@ -177,8 +322,18 @@ GEM
     public_suffix (6.0.2)
     puma (6.6.0)
       nio4r (~> 2.0)
+<<<<<<< HEAD
     racc (1.8.1)
     rack (3.1.15)
+=======
+    raabro (1.4.0)
+    racc (1.8.1)
+    rack (3.1.15)
+    rack-protection (4.1.1)
+      base64 (>= 0.1.0)
+      logger (>= 1.6.0)
+      rack (>= 3.0.0, < 4)
+>>>>>>> origin/feat/claude-code-action
     rack-session (2.1.1)
       base64 (>= 0.1.0)
       rack (>= 3.0.0)
@@ -186,6 +341,7 @@ GEM
       rack (>= 1.3)
     rackup (2.2.1)
       rack (>= 3)
+<<<<<<< HEAD
     rails (8.0.2)
       actioncable (= 8.0.2)
       actionmailbox (= 8.0.2)
@@ -200,6 +356,22 @@ GEM
       activesupport (= 8.0.2)
       bundler (>= 1.15.0)
       railties (= 8.0.2)
+=======
+    rails (7.2.2.1)
+      actioncable (= 7.2.2.1)
+      actionmailbox (= 7.2.2.1)
+      actionmailer (= 7.2.2.1)
+      actionpack (= 7.2.2.1)
+      actiontext (= 7.2.2.1)
+      actionview (= 7.2.2.1)
+      activejob (= 7.2.2.1)
+      activemodel (= 7.2.2.1)
+      activerecord (= 7.2.2.1)
+      activestorage (= 7.2.2.1)
+      activesupport (= 7.2.2.1)
+      bundler (>= 1.15.0)
+      railties (= 7.2.2.1)
+>>>>>>> origin/feat/claude-code-action
     rails-dom-testing (2.3.0)
       activesupport (>= 5.0.0)
       minitest
@@ -207,9 +379,18 @@ GEM
     rails-html-sanitizer (1.6.2)
       loofah (~> 2.21)
       nokogiri (>= 1.15.7, != 1.16.7, != 1.16.6, != 1.16.5, != 1.16.4, != 1.16.3, != 1.16.2, != 1.16.1, != 1.16.0.rc1, != 1.16.0)
+<<<<<<< HEAD
     railties (8.0.2)
       actionpack (= 8.0.2)
       activesupport (= 8.0.2)
+=======
+    rails-i18n (7.0.10)
+      i18n (>= 0.7, < 2)
+      railties (>= 6.0.0, < 8)
+    railties (7.2.2.1)
+      actionpack (= 7.2.2.1)
+      activesupport (= 7.2.2.1)
+>>>>>>> origin/feat/claude-code-action
       irb (~> 1.13)
       rackup (>= 1.0.0)
       rake (>= 12.2)
@@ -217,6 +398,7 @@ GEM
       zeitwerk (~> 2.6)
     rainbow (3.1.1)
     rake (13.2.1)
+<<<<<<< HEAD
     rdoc (6.14.0)
       erb
       psych (>= 4.0.0)
@@ -224,6 +406,40 @@ GEM
     reline (0.6.1)
       io-console (~> 0.5)
     rexml (3.4.1)
+=======
+    rdoc (6.13.1)
+      psych (>= 4.0.0)
+    redis (5.4.0)
+      redis-client (>= 0.22.0)
+    redis-client (0.24.0)
+      connection_pool
+    regexp_parser (2.10.0)
+    reline (0.6.1)
+      io-console (~> 0.5)
+    request_store (1.7.0)
+      rack (>= 1.4)
+    responders (3.1.1)
+      actionpack (>= 5.2)
+      railties (>= 5.2)
+    rexml (3.4.1)
+    rspec-core (3.13.3)
+      rspec-support (~> 3.13.0)
+    rspec-expectations (3.13.4)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-mocks (3.13.4)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.13.0)
+    rspec-rails (6.1.5)
+      actionpack (>= 6.1)
+      activesupport (>= 6.1)
+      railties (>= 6.1)
+      rspec-core (~> 3.13)
+      rspec-expectations (~> 3.13)
+      rspec-mocks (~> 3.13)
+      rspec-support (~> 3.13)
+    rspec-support (3.13.3)
+>>>>>>> origin/feat/claude-code-action
     rubocop (1.75.5)
       json (~> 2.3)
       language_server-protocol (~> 3.17.0.2)
@@ -253,14 +469,44 @@ GEM
       rubocop-performance (>= 1.24)
       rubocop-rails (>= 2.30)
     ruby-progressbar (1.13.0)
+<<<<<<< HEAD
     rubyzip (2.4.1)
     securerandom (0.4.1)
     selenium-webdriver (4.33.0)
+=======
+    ruby2_keywords (0.0.5)
+    rubyzip (2.4.1)
+    rufus-scheduler (3.9.2)
+      fugit (~> 1.1, >= 1.11.1)
+    securerandom (0.4.1)
+    selenium-webdriver (4.32.0)
+>>>>>>> origin/feat/claude-code-action
       base64 (~> 0.2)
       logger (~> 1.4)
       rexml (~> 3.2, >= 3.2.5)
       rubyzip (>= 1.2.2, < 3.0)
       websocket (~> 1.0)
+<<<<<<< HEAD
+=======
+    shoulda-matchers (6.5.0)
+      activesupport (>= 5.2.0)
+    sidekiq (7.3.9)
+      base64
+      connection_pool (>= 2.3.0)
+      logger
+      rack (>= 2.2.4)
+      redis-client (>= 0.22.2)
+    sidekiq-scheduler (5.0.6)
+      rufus-scheduler (~> 3.2)
+      sidekiq (>= 6, < 8)
+      tilt (>= 1.4.0, < 3)
+    simplecov (0.22.0)
+      docile (~> 1.1)
+      simplecov-html (~> 0.11)
+      simplecov_json_formatter (~> 0.1)
+    simplecov-html (0.13.1)
+    simplecov_json_formatter (0.1.4)
+>>>>>>> origin/feat/claude-code-action
     sprockets (4.2.2)
       concurrent-ruby (~> 1.0)
       logger
@@ -273,6 +519,11 @@ GEM
       railties (>= 6.0.0)
     stringio (3.1.7)
     thor (1.3.2)
+<<<<<<< HEAD
+=======
+    tilt (2.6.0)
+    timecop (0.9.10)
+>>>>>>> origin/feat/claude-code-action
     timeout (0.4.3)
     turbo-rails (2.0.13)
       actionpack (>= 7.1.0)
@@ -282,21 +533,36 @@ GEM
     unicode-display_width (3.1.4)
       unicode-emoji (~> 4.0, >= 4.0.4)
     unicode-emoji (4.0.4)
+<<<<<<< HEAD
     uri (1.0.3)
     useragent (0.16.11)
+=======
+    uniform_notifier (1.17.0)
+    useragent (0.16.11)
+    warden (1.2.9)
+      rack (>= 2.0.9)
+>>>>>>> origin/feat/claude-code-action
     web-console (4.2.1)
       actionview (>= 6.0.0)
       activemodel (>= 6.0.0)
       bindex (>= 0.4.0)
       railties (>= 6.0.0)
     websocket (1.2.11)
+<<<<<<< HEAD
     websocket-driver (0.8.0)
+=======
+    websocket-driver (0.7.7)
+>>>>>>> origin/feat/claude-code-action
       base64
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
     xpath (3.2.0)
       nokogiri (~> 1.8)
+<<<<<<< HEAD
     zeitwerk (2.7.3)
+=======
+    zeitwerk (2.7.2)
+>>>>>>> origin/feat/claude-code-action
 
 PLATFORMS
   aarch64-linux-gnu
@@ -311,6 +577,7 @@ PLATFORMS
 DEPENDENCIES
   bootsnap
   brakeman
+<<<<<<< HEAD
   capybara
   debug
   importmap-rails
@@ -322,6 +589,37 @@ DEPENDENCIES
   selenium-webdriver
   sprockets-rails
   stimulus-rails
+=======
+  bullet
+  capybara
+  csv
+  database_cleaner-active_record
+  debug
+  devise (~> 4.9)
+  devise-i18n (~> 1.12)
+  devise-security (~> 0.18)
+  draper
+  factory_bot_rails
+  faker
+  importmap-rails
+  jbuilder
+  kaminari (~> 1.2)
+  mysql2 (~> 0.5)
+  puma (>= 5.0)
+  rack-protection (~> 4.0)
+  rails (~> 7.2.2, >= 7.2.2.1)
+  redis (>= 4.0.1)
+  rspec-rails (~> 6.1.0)
+  rubocop-rails-omakase
+  selenium-webdriver
+  shoulda-matchers (~> 6.0)
+  sidekiq (~> 7.2)
+  sidekiq-scheduler (~> 5.0)
+  simplecov
+  sprockets-rails
+  stimulus-rails
+  timecop
+>>>>>>> origin/feat/claude-code-action
   turbo-rails
   tzinfo-data
   web-console
