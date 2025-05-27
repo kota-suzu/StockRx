@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-module ApplicationCable
-  class Connection < ActionCable::Connection::Base
-  end
-end
-=======
 # frozen_string_literal: true
 
 module ApplicationCable
@@ -121,4 +115,3 @@ end
 #     severity: determine_severity(event_type)
 #   )
 # end
->>>>>>> origin/feat/claude-code-action

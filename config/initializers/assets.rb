@@ -10,8 +10,6 @@ Rails.application.config.assets.version = "1.0"
 # application.js, application.css, and all non-JS/CSS in the app/assets
 # folder are already added.
 # Rails.application.config.assets.precompile += %w[ admin.js admin.css ]
-<<<<<<< HEAD
-=======
 Rails.application.config.assets.precompile += %w[ admin.js admin.css ]
 
 # ログファイルに資産コンパイルの詳細情報を出力（開発環境のトラブルシューティング用）
@@ -21,4 +19,3 @@ Rails.application.config.assets.debug = true if Rails.env.development?
 # - gzipの有効化
 # - CDN対応の検討
 # - フィンガープリントの設定
->>>>>>> origin/feat/claude-code-action

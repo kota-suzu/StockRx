@@ -7,8 +7,6 @@
 #   ["Action", "Comedy", "Drama", "Horror"].each do |genre_name|
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
-<<<<<<< HEAD
-=======
 
 # 管理者ユーザーのシード
 if Admin.count.zero?
@@ -34,4 +32,3 @@ end
 # TODO: 在庫アイテムのシードデータ
 # TODO: 商品カテゴリのシードデータ
 # TODO: テスト用サンプルデータ
->>>>>>> origin/feat/claude-code-action

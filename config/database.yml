@@ -18,11 +18,8 @@ default: &default
   host: <%= ENV.fetch("DATABASE_HOST") { "db" } %>
   # パブリックネットワークの場合はSSL接続を推奨
   # TODO: 本番環境ではSSL設定を有効化
-<<<<<<< HEAD
-=======
   # ssl_mode: REQUIRED
   # sslca: /path/to/ca-cert.pem
->>>>>>> origin/feat/claude-code-action
 
 development:
   <<: *default
@@ -30,13 +27,10 @@ development:
   # 開発環境でのデバッグを容易にするための設定
   variables:
     sql_mode: TRADITIONAL
-<<<<<<< HEAD
-=======
   # TODO: 開発環境でのパフォーマンス最適化
   # reconnect: true
   # pool_timeout: 5
   # checkout_timeout: 5
->>>>>>> origin/feat/claude-code-action
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -44,8 +38,6 @@ development:
 test:
   <<: *default
   database: app_test
-<<<<<<< HEAD
-=======
   # テスト環境: ローカル開発では localhost、Docker環境では環境変数で db を指定
   host: <%= ENV.fetch("TEST_DATABASE_HOST", "127.0.0.1") %>
   password: <%= ENV.fetch("DATABASE_PASSWORD", "password") %>
@@ -57,7 +49,6 @@ test:
   #   innodb_flush_log_at_trx_commit: 2  # テスト速度向上のため
   #   sync_binlog: 0                     # テスト環境ではバイナリログ同期無効
   #   innodb_doublewrite: 0              # ダブルライト無効でパフォーマンス向上
->>>>>>> origin/feat/claude-code-action
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is
@@ -85,11 +76,6 @@ production:
   username: <%= ENV.fetch("PROD_DATABASE_USERNAME") { "root" } %>
   password: <%= ENV.fetch("PROD_DATABASE_PASSWORD") { ENV.fetch("DATABASE_PASSWORD") { "password" } } %>
   host: <%= ENV.fetch("PROD_DATABASE_HOST") { ENV.fetch("DATABASE_HOST") { "db" } } %>
-<<<<<<< HEAD
-  # TODO: 本番環境ではセキュリティ設定を追加
-  # ssl_mode: REQUIRED
-  # sslca: /path/to/ca-cert.pem
-=======
   # TODO: 本番環境ではセキュリティ設定を追加（優先度：高）
   # ssl_mode: REQUIRED
   # sslca: /path/to/ca-cert.pem
@@ -161,4 +147,3 @@ production:
 #      * メモリ使用量制限
 #      * CPU使用率制限
 #      * ディスクI/O制限
->>>>>>> origin/feat/claude-code-action
