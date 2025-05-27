@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class InventoriesController < ApplicationController
+  include ErrorHandlers
+
   before_action :authenticate_admin!
   before_action :set_inventory, only: %i[show edit update destroy]
 
@@ -36,19 +38,26 @@ class InventoriesController < ApplicationController
   def create
     @inventory = Inventory.new(inventory_params)
 
-    respond_to do |format|
-      begin
-        @inventory.save!
+    if @inventory.save
+      respond_to do |format|
         format.html { redirect_to inventory_path(@inventory), notice: "在庫が正常に登録されました。" }
         format.json { render json: @inventory.decorate.as_json_with_decorated, status: :created }
         format.turbo_stream { flash.now[:notice] = "在庫が正常に登録されました。" }
-      rescue ActiveRecord::RecordInvalid => e
-        # 422エラー時の個別処理
+      end
+    else
+      respond_to do |format|
         format.html {
           flash.now[:alert] = "入力内容に問題があります"
           render :new, status: :unprocessable_entity
         }
-        format.json { render json: { errors: @inventory.errors.full_messages }, status: :unprocessable_entity }
+        format.json {
+          error_response = {
+            code: "validation_error",
+            message: "入力内容に問題があります",
+            details: @inventory.errors.full_messages
+          }
+          render json: error_response, status: :unprocessable_entity
+        }
         format.turbo_stream { render :form_update, status: :unprocessable_entity }
       end
     end
@@ -56,19 +65,26 @@ class InventoriesController < ApplicationController
 
   # PATCH/PUT /inventories/1
   def update
-    respond_to do |format|
-      begin
-        @inventory.update!(inventory_params)
+    if @inventory.update(inventory_params)
+      respond_to do |format|
         format.html { redirect_to inventory_path(@inventory), notice: "在庫が正常に更新されました。" }
         format.json { render json: @inventory.decorate.as_json_with_decorated }
         format.turbo_stream { flash.now[:notice] = "在庫が正常に更新されました。" }
-      rescue ActiveRecord::RecordInvalid => e
-        # 422エラー時の個別処理
+      end
+    else
+      respond_to do |format|
         format.html {
           flash.now[:alert] = "入力内容に問題があります"
           render :edit, status: :unprocessable_entity
         }
-        format.json { render json: { errors: @inventory.errors.full_messages }, status: :unprocessable_entity }
+        format.json {
+          error_response = {
+            code: "validation_error",
+            message: "入力内容に問題があります",
+            details: @inventory.errors.full_messages
+          }
+          render json: error_response, status: :unprocessable_entity
+        }
         format.turbo_stream { render :form_update, status: :unprocessable_entity }
       end
     end
@@ -85,16 +101,39 @@ class InventoriesController < ApplicationController
     end
   end
 
-  # TODO: CSV一括インポート機能
-  # def import
-  #   result = Inventory.import_from_csv(params[:file])
-  #   redirect_to inventories_path, notice: "#{result[:valid_count]}件のデータがインポートされました。#{result[:invalid_records].size}件の無効なデータがありました。"
+  # TODO: Phase 3実装予定 - 高度なCSVインポート機能（優先度：高）
+  # 1. インポートプレビュー機能
+  #    - CSV内容の事前確認
+  #    - バリデーションエラーの事前表示
+  #    - インポート前の最終確認画面
+  #
+  # 2. 一括更新オプション
+  #    - 既存データの更新・挿入選択機能
+  #    - 重複データの処理方法選択
+  #    - 価格・在庫数の自動調整機能
+  #
+  # 3. 詳細ログ・レポート機能
+  #    - インポート結果の詳細レポート
+  #    - エラー内容の具体的な説明
+  #    - 修正提案機能
+  # def import_with_preview
+  #   result = Inventory.import_from_csv_with_preview(params[:file])
+  #   render json: { preview: result[:preview], errors: result[:errors] }
   # end
 
-  # TODO: バーコードスキャンによる在庫検索機能
-  # def scan
+  # TODO: Phase 4実装予定 - バーコード統合機能（優先度：中）
+  # 1. バーコードスキャン機能
+  #    - リアルタイムバーコード読み取り
+  #    - 在庫の即座検索・表示
+  #    - モバイル端末対応
+  #
+  # 2. 在庫管理効率化
+  #    - 入出庫時のバーコードスキャン
+  #    - 棚卸業務の効率化
+  #    - 誤操作防止機能
+  # def scan_barcode
   #   @inventory = Inventory.find_by_barcode(params[:barcode_data])
-  #   redirect_to inventory_path(@inventory)
+  #   render json: @inventory.as_json_with_location_info if @inventory
   # end
 
   private
@@ -105,6 +144,6 @@ class InventoriesController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def inventory_params
-      params.require(:inventory).permit(:name, :quantity, :price, :status)
+      params.require(:inventory).permit(:name, :quantity, :price, :status, :category, :unit, :minimum_stock)
     end
 end

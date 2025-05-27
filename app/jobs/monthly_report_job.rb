@@ -6,7 +6,9 @@
 # 月次レポート生成のバックグラウンド処理
 # 大量データ処理・長時間実行ジョブの実装例
 #
-# TODO: ImportInventoriesJobのベストプラクティスを適用（優先度：高）
+# TODO: ImportInventoriesJobのベストプラクティスを適用
+# Phase 1（優先度：高、推定：2-3日）
+# 関連: docs/design/job_processing_design.md
 # ============================================
 # 1. セキュリティ強化
 #    - ジョブ引数の検証追加（validate_job_arguments）
@@ -432,6 +434,8 @@ class MonthlyReportJob < ApplicationJob
   end
 
   # TODO: 将来的な機能拡張
+  # Phase 3（優先度：中、推定：3-4週間）
+  # 関連: docs/design/job_processing_design.md
   # ============================================
   # 1. レポートテンプレート機能
   #    - カスタムレポートテンプレートの作成
@@ -449,7 +453,7 @@ class MonthlyReportJob < ApplicationJob
   #    - 最適在庫レベルの提案
   #
   # 4. 外部連携機能
-  #    -会計システムとの連携
+  #    - 会計システムとの連携
   #    - BI ツールへのデータエクスポート
   #    - API経由での外部レポート配信
 end

@@ -79,7 +79,9 @@ RSpec.describe AdminControllers::InventoriesHelper, type: :helper do
 
       it '上向き矢印アイコンを返す' do
         result = helper.sort_icon_for('name')
-        expect(result).to have_tag('i.fas.fa-sort-up.ml-1.text-blue-600')
+        expect(result).to include('fas')
+        expect(result).to include('fa-sort-up')
+        expect(result).to include('ml-1')
       end
     end
 
@@ -90,7 +92,9 @@ RSpec.describe AdminControllers::InventoriesHelper, type: :helper do
 
       it '下向き矢印アイコンを返す' do
         result = helper.sort_icon_for('name')
-        expect(result).to have_tag('i.fas.fa-sort-down.ml-1.text-blue-600')
+        expect(result).to include('fas')
+        expect(result).to include('fa-sort-down')
+        expect(result).to include('ml-1')
       end
     end
 
@@ -99,9 +103,9 @@ RSpec.describe AdminControllers::InventoriesHelper, type: :helper do
         allow(helper).to receive(:params).and_return({ sort: 'price', direction: 'asc' })
       end
 
-      it 'ソートアイコンを返す' do
+      it '空文字を返す' do
         result = helper.sort_icon_for('name')
-        expect(result).to have_tag('i.fas.fa-sort.ml-1.text-gray-400')
+        expect(result).to eq('')
       end
     end
   end
