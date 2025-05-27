@@ -3,13 +3,16 @@
 require "rails_helper"
 
 RSpec.describe "Inventories", type: :request do
+  let(:admin) { create(:admin) }
+
+  before do
+    sign_in admin
+  end
   let(:valid_attributes) do
     {
       name: "テスト医薬品",
-      category: "prescription",
-      unit: "錠",
+      status: "active",
       quantity: 100,
-      minimum_stock: 10,
       price: 1500
     }
   end
@@ -17,10 +20,7 @@ RSpec.describe "Inventories", type: :request do
   let(:invalid_attributes) do
     {
       name: "",
-      category: "invalid_category",
-      unit: "",
       quantity: -10,
-      minimum_stock: -5,
       price: -100
     }
   end
