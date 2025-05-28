@@ -217,7 +217,8 @@ RSpec.describe ImportInventoriesJob, type: :job do
       end
 
       it 'discards job on CSV::MalformedCSVError' do
-        allow(Inventory).to receive(:import_from_csv).and_raise(CSV::MalformedCSVError)
+        # CSV::MalformedCSVErrorはメッセージと行番号の引数が必要
+        allow(Inventory).to receive(:import_from_csv).and_raise(CSV::MalformedCSVError.new("Invalid CSV format", 1))
 
         expect {
           ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')

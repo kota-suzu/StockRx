@@ -107,11 +107,10 @@ jobs:
           mkdir -p tmp/cache/assets tmp/storage tmp/pids
           chmod -R 777 tmp/cache tmp/storage tmp/pids
           
-          # Zeitwerkのオートロード問題を回避
-          touch tmp/restart.txt
-          
-          # Zeitwerkの自動ロードチェックを実行
-          bundle exec rails zeitwerk:check || true
+          # Zeitwerk関連の準備（CI環境向け）
+          # test環境ではリロードが無効のため、事前チェックのみ実行
+          echo "Running Zeitwerk autoload check..."
+          bundle exec rails zeitwerk:check || echo "Zeitwerk check completed with warnings"
 
       # TODO: 将来的なCI/CD改善項目（優先度：中）
       # - テスト並列実行によるCI時間短縮
@@ -132,19 +131,31 @@ jobs:
           # Rails 8.0対応：環境変数で明示的に設定
           RAILS_ZEITWERK_MISMATCHES: error
         run: |
-          # キャッシュをクリアして凍結エラーを回避
-          DISABLE_SPRING=1 bundle exec rails runner 'Rails.autoloaders.main.reload' || true
+          # CI環境でのキャッシュクリア（ベストプラクティス）
+          # Zeitwerkはproduction/test環境ではリロード不可のため、物理的にキャッシュをクリア
+          rm -rf tmp/cache/bootsnap-*
           
           # MySQL接続の確認と待機（ベストプラクティス）
           echo "Waiting for MySQL to be ready..."
+          mysql_ready=0
           for i in {1..30}; do
             if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -ppassword --silent; then
               echo "MySQL is ready!"
+              mysql_ready=1
               break
             fi
             echo "Waiting for MySQL... ($i/30)"
             sleep 2
           done
+          
+          # MySQL接続エラーのハンドリング（ベストプラクティス）
+          if [ $mysql_ready -eq 0 ]; then
+            echo "ERROR: MySQL failed to start after 30 attempts (60 seconds)"
+            echo "Checking MySQL container logs..."
+            docker ps -a
+            docker logs $(docker ps -aq --filter "ancestor=mysql:8.0") || true
+            exit 1
+          fi
           
           # データベースの準備とテスト実行
           bin/rails db:test:prepare

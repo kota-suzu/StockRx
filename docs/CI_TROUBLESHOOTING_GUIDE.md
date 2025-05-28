@@ -48,18 +48,29 @@ env:
   DATABASE_PASSWORD: password
 ```
 
-3. **接続待機処理の追加**
+3. **接続待機処理の追加（ロバストエラーハンドリング付き）**
 ```bash
 # MySQL接続の確認と待機
 echo "Waiting for MySQL to be ready..."
+mysql_ready=0
 for i in {1..30}; do
   if mysqladmin ping -h 127.0.0.1 -P 3306 -u root -ppassword --silent; then
     echo "MySQL is ready!"
+    mysql_ready=1
     break
   fi
   echo "Waiting for MySQL... ($i/30)"
   sleep 2
 done
+
+# エラーハンドリング（ベストプラクティス）
+if [ $mysql_ready -eq 0 ]; then
+  echo "ERROR: MySQL failed to start after 30 attempts (60 seconds)"
+  echo "Checking MySQL container logs..."
+  docker ps -a
+  docker logs $(docker ps -aq --filter "ancestor=mysql:8.0") || true
+  exit 1
+fi
 ```
 
 ### 問題: Redis接続エラー
@@ -74,19 +85,53 @@ services:
     options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
 ```
 
+## テスト実行エラー
+
+### 問題: RSpec CSV::MalformedCSVError モックエラー
+
+#### 症状
+```
+ArgumentError: wrong number of arguments (given 0, expected 2)
+```
+
+#### 原因
+- `CSV::MalformedCSVError`は初期化時にメッセージと行番号の引数が必要
+- RSpecのモックで引数なしでインスタンス化しようとするとエラー
+
+#### 解決方法
+```ruby
+# NG - 引数なし
+allow(Inventory).to receive(:import_from_csv).and_raise(CSV::MalformedCSVError)
+
+# OK - 必要な引数付き
+allow(Inventory).to receive(:import_from_csv).and_raise(CSV::MalformedCSVError.new("Invalid CSV format", 1))
+```
+
 ## アセット・キャッシュ問題
 
 ### 問題: Zeitwerk autoload エラー
 
+#### 症状
+```
+can't reload, please call loader.enable_reloading before setup (Zeitwerk::ReloadingDisabledError)
+```
+
+#### 原因
+- test/production環境では`config.enable_reloading = false`が設定されている
+- CI環境でautoloaderのリロードを試みると上記エラーが発生
+
 #### 解決方法
 ```bash
-# キャッシュクリア
-rm -rf tmp/cache tmp/bootsnap* tmp/caching-dev.txt
+# キャッシュクリア（物理的削除）
+rm -rf tmp/cache/bootsnap-*
 mkdir -p tmp/cache/assets tmp/storage tmp/pids
 chmod -R 777 tmp/cache tmp/storage tmp/pids
 
-# Spring無効化
-DISABLE_SPRING=1 bundle exec rails runner 'Rails.autoloaders.main.reload' || true
+# Zeitwerkの整合性チェック（リロードではなく）
+bundle exec rails zeitwerk:check
+
+# 注意: test/production環境では以下は使用しない
+# DISABLE_SPRING=1 bundle exec rails runner 'Rails.autoloaders.main.reload' # NG
 ```
 
 ## パフォーマンス最適化
