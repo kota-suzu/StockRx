@@ -85,6 +85,51 @@ services:
     options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
 ```
 
+## Capybara設定エラー
+
+### 問題: Example Domainへのアクセス
+
+#### 症状
+```
+expected to find text "在庫一覧" in "Example Domain This domain is for use in illustrative examples..."
+```
+
+#### 原因
+- Capybaraの`app_host`が`http://www.example.com`に設定されている
+- これによりローカルアプリケーションではなく外部サイトにアクセスしてしまう
+
+#### 解決方法
+```ruby
+# spec/rails_helper.rb
+# NG - example.comにアクセスしてしまう
+config.app_host = "http://www.example.com"
+
+# OK - app_hostを設定しないことでローカルサーバーを使用
+# config.app_host = "http://www.example.com"  # コメントアウト
+```
+
+### 問題: DatabaseCleaner Rails 8互換性エラー
+
+#### 症状
+```
+ArgumentError: wrong number of arguments (given 1, expected 2)
+  # truncate_tables method error
+```
+
+#### 原因
+- `database_cleaner-active_record` 2.2.1とRails 8.0.2の互換性問題
+- `pre_count`オプションがRails 8のtruncate実装と互換性がない
+
+#### 解決方法
+```ruby
+# spec/support/capybara_performance.rb
+DatabaseCleaner.strategy = :truncation, {
+  except: %w[ar_internal_metadata schema_migrations],
+  # pre_count: true, # Rails 8.0.2との互換性問題のため無効化
+  reset_ids: false
+}
+```
+
 ## テスト実行エラー
 
 ### 問題: RSpec CSV::MalformedCSVError モックエラー

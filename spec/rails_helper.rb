@@ -227,7 +227,8 @@ end
 
 # Capybara基本設定（パフォーマンス重視）
 Capybara.configure do |config|
-  config.app_host = "http://www.example.com"
+  # config.app_host を設定しないことで、Capybaraはローカルサーバーを使用する
+  # config.app_host = "http://www.example.com"  # この設定が原因でexample.comにアクセスしていた
   config.server_host = "0.0.0.0"
   config.server_port = 3001
 

@@ -130,6 +130,9 @@ jobs:
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
           # Rails 8.0対応：環境変数で明示的に設定
           RAILS_ZEITWERK_MISMATCHES: error
+          # Capybara設定（CI環境用）
+          CAPYBARA_SERVER_HOST: 127.0.0.1
+          CAPYBARA_SERVER_PORT: 3001
         run: |
           # CI環境でのキャッシュクリア（ベストプラクティス）
           # Zeitwerkはproduction/test環境ではリロード不可のため、物理的にキャッシュをクリア

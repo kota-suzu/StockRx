@@ -33,13 +33,14 @@ module CapybaraPerformance
 
   def self.configure_database_cleaner!
     RSpec.configure do |config|
-      # JSを使用しないテストではトランザクションを使用（高速）
+      # Rails 8.0.2 + DatabaseCleaner 2.xの互換性問題を回避
+      # pre_countオプションを無効化（Rails 8との互換性問題）
       config.before(:each, type: :feature) do |example|
         if example.metadata[:js]
           # JSテストではtruncationを使用（遅いが必要）
           DatabaseCleaner.strategy = :truncation, {
             except: %w[ar_internal_metadata schema_migrations],
-            pre_count: true, # 削除前のカウントを事前実行（高速化）
+            # pre_count: true, # Rails 8.0.2との互換性問題のため無効化
             reset_ids: false # IDリセットを無効化（高速化）
           }
         else
@@ -52,7 +53,8 @@ module CapybaraPerformance
         DatabaseCleaner.start
       end
 
-      config.after(:each, type: :feature) do
+      config.after(:each, type: :feature) do |example|
+        # DatabaseCleaner 2.xではcleanメソッドを使用
         DatabaseCleaner.clean
       end
     end
