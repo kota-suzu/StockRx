@@ -1,0 +1,4 @@
+--format documentation
+--format ParallelTests::RSpec::RuntimeLogger --out tmp/parallel_runtime_rspec.log
+--require spec_helper
+--require rails_helper

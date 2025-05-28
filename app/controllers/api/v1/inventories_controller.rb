@@ -25,8 +25,10 @@ module Api
         # 新規在庫を作成
         @inventory = Inventory.new(inventory_params)
 
-        # デモ用：レート制限チェック（ランダムに制限トリガー）
-        if rand(100) == 1 # 1%の確率でRateLimitExceededエラー発生
+        # デモ用：レート制限チェック（開発環境のみ）
+        # TODO: 本番環境では実際のレート制限実装に置き換える
+        # 例: Redis + rack-attack gemを使用した実装
+        if Rails.env.development? && rand(100) == 1 # 1%の確率でRateLimitExceededエラー発生
           raise CustomError::RateLimitExceeded.new(
             "短時間に多くのリクエストが行われました",
             [ "30秒後に再試行してください" ]
@@ -36,6 +38,9 @@ module Api
         # save!はバリデーションエラーでActiveRecord::RecordInvalidが発生し、
         # ErrorHandlersが422ハンドリングしてくれる
         @inventory.save!
+        
+        # デコレータを適用
+        @inventory = @inventory.decorate
 
         # 成功時は201 Created + リソースの内容を返却
         render :show, status: :created, formats: :json
@@ -62,6 +67,9 @@ module Api
 
         # update!はバリデーションエラーでActiveRecord::RecordInvalidが発生
         @inventory.update!(inventory_params)
+        
+        # デコレータを適用
+        @inventory = @inventory.decorate
 
         # 成功時は200 OK + 更新後リソースの内容を返却
         render :show, formats: :json
@@ -79,6 +87,8 @@ module Api
       end
 
       # TODO: 在庫一括取得（ページネーション対応）
+      # 優先度：中（6週間以内）
+      # 関連：docs/development_plan.md - 在庫一括操作機能
       # def bulk
       #   @inventories = Inventory.includes(:batches)
       #                           .order(created_at: :desc)
@@ -90,6 +100,8 @@ module Api
       # end
 
       # TODO: 在庫アラート情報取得
+      # 優先度：高（進行中）
+      # 関連：docs/development_plan.md - 在庫アラート機能
       # def alerts
       #   @low_stock = Inventory.where('quantity <= ?', 10).includes(:batches).decorate
       #   @expired_batches = Batch.expired.includes(:inventory).decorate
@@ -100,6 +112,8 @@ module Api
 
       # ============================================
       # TODO: レポート機能
+      # 優先度：中（6週間以内）
+      # 関連：docs/development_plan.md - 在庫一括操作機能
       # ============================================
       # 1. 在庫レポート生成
       #    - 商品ごとの在庫数・金額レポート

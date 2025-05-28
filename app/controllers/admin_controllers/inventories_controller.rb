@@ -105,7 +105,18 @@ module AdminControllers
         return
       end
 
-      # TODO: CSVファイル形式バリデーション機能の追加
+      # ファイルタイプバリデーション（事前チェック）
+      uploaded_file = params[:file]
+      file_extension = File.extname(uploaded_file.original_filename).downcase
+      allowed_extensions = ['.csv']
+      
+      unless allowed_extensions.include?(file_extension)
+        error_message = "Invalid file type: #{file_extension}. Allowed types: #{allowed_extensions.join(', ')}"
+        redirect_to import_form_admin_inventories_path, alert: error_message
+        return
+      end
+
+      # TODO: 追加のCSVファイル形式バリデーション機能
       # - ファイルサイズ制限（例：10MB）
       # - MIME typeチェック
       # - 文字エンコーディング検証（UTF-8、Shift_JIS対応）
@@ -114,12 +125,21 @@ module AdminControllers
       # ジョブIDを生成
       job_id = SecureRandom.uuid
 
-      # 非同期ジョブとして実行
-      ImportInventoriesJob.perform_later(params[:file].path, current_admin.id, job_id)
+      begin
+        # 非同期ジョブとして実行
+        ImportInventoriesJob.perform_later(params[:file].path, current_admin.id, job_id)
 
-      # ジョブIDをクエリパラメータとして渡す
-      redirect_to admin_inventories_path(import_started: true, job_id: job_id),
-                  notice: t("inventories.import.started")
+        # ジョブIDをクエリパラメータとして渡す
+        redirect_to admin_inventories_path(import_started: true, job_id: job_id),
+                    notice: t("inventories.import.started")
+      rescue SecurityError => e
+        # セキュリティエラー（ファイルタイプ、パスなど）をキャッチ
+        redirect_to import_form_admin_inventories_path, alert: e.message
+      rescue StandardError => e
+        # その他のエラーをキャッチ
+        Rails.logger.error "CSV import failed: #{e.message}"
+        redirect_to import_form_admin_inventories_path, alert: t("inventories.import.error", message: e.message)
+      end
     end
 
     private

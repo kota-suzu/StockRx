@@ -83,6 +83,24 @@ services:
       - app
     # TODO: バックアップローテーション機能の追加
 
+  # Seleniumサービス（E2Eテスト高速化用）
+  selenium:
+    image: selenium/standalone-chrome:latest
+    ports:
+      - "4444:4444"
+      - "7900:7900" # VNC接続用（デバッグ時）
+    environment:
+      - SE_NODE_MAX_SESSIONS=4
+      - SE_NODE_SESSION_TIMEOUT=300
+      - SE_VNC_NO_PASSWORD=1
+      - SE_NODE_OVERRIDE_MAX_SESSIONS=true
+      - SE_OPTS=--log-level WARNING
+    networks:
+      - app
+    shm_size: 2gb # メモリ不足対策
+    volumes:
+      - /dev/shm:/dev/shm # 高速化のための共有メモリ
+
 volumes:
   mysql_data:
   redis_data:

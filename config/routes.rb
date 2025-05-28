@@ -80,7 +80,7 @@ Rails.application.routes.draw do
   # エラーページルーティング
   # 設計書に基づいて実装
   %w[400 403 404 422 429 500].each do |code|
-    get code, to: "errors#show", code: code, as: "error_#{code}"
+    get code, to: "errors#show", defaults: { code: code }, as: "error_#{code}"
   end
 
   # エラーページへの統一パス

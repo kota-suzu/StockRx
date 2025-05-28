@@ -173,7 +173,21 @@ begin
     # options.add_argument('--proxy-bypass-list=*')
 
     begin
-      Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
+      # Docker環境の判定
+      is_docker = File.exist?('/.dockerenv') || ENV['DOCKER_CONTAINER'].present?
+      
+      if is_docker
+        # Dockerコンテナ内ではSeleniumサービスを使用
+        Capybara::Selenium::Driver.new(
+          app,
+          browser: :remote,
+          url: ENV['SELENIUM_REMOTE_URL'] || 'http://selenium:4444/wd/hub',
+          options: options
+        )
+      else
+        # ローカル環境
+        Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
+      end
     rescue Selenium::WebDriver::Error::WebDriverError => e
       Rails.logger.warn "Chrome WebDriver failed: #{e.message}, falling back to rack_test"
       # Chrome失敗時はrack_testにフォールバック
@@ -188,7 +202,13 @@ begin
 
   # デフォルトドライバー設定（高速化）
   Capybara.default_driver = :fast_rack_test  # JavaScriptが不要なテストは高速なrack_test
-  Capybara.javascript_driver = :optimized_chrome_headless  # JavaScriptが必要なテストのみChrome
+  
+  # Docker環境では常に最適化されたドライバーを使用
+  if File.exist?('/.dockerenv') || ENV['DOCKER_CONTAINER'].present?
+    Capybara.javascript_driver = :optimized_chrome_headless
+  else
+    Capybara.javascript_driver = :optimized_chrome_headless
+  end
 
 rescue LoadError => e
   Rails.logger.warn "Selenium WebDriver not available: #{e.message}"

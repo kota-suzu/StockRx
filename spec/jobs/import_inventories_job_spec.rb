@@ -53,6 +53,8 @@ RSpec.describe ImportInventoriesJob, type: :job do
     # ENV stub for all tests to avoid conflicts
     allow(ENV).to receive(:[]).and_call_original
     allow(ENV).to receive(:[]).with("DELETE_TEMP_FILES").and_return(nil)
+    # ActiveJobマッチャーを使用するためのキューアダプター設定
+    ActiveJob::Base.queue_adapter = :test
   end
 
   # ============================================
@@ -127,17 +129,17 @@ RSpec.describe ImportInventoriesJob, type: :job do
 
       it 'enqueues the job in imports queue' do
         expect {
-          ImportInventoriesJob.perform_later(file_path, admin.id)
+          ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')
         }.to have_enqueued_job(ImportInventoriesJob)
           .on_queue('imports')
-          .with(file_path, admin.id)
+          .with(file_path, admin.id, 'test-job-id')
       end
 
       it 'performs the job successfully' do
         # インラインモードで実際に実行
         Sidekiq::Testing.inline! do
           expect {
-            ImportInventoriesJob.perform_later(file_path, admin.id)
+            ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')
           }.not_to raise_error
         end
       end
@@ -210,7 +212,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
         allow(Inventory).to receive(:import_from_csv).and_raise(StandardError, 'Test error')
 
         expect {
-          ImportInventoriesJob.perform_later(file_path, admin.id)
+          ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')
         }.to raise_error(StandardError, 'Test error')
       end
 
@@ -218,7 +220,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
         allow(Inventory).to receive(:import_from_csv).and_raise(CSV::MalformedCSVError)
 
         expect {
-          ImportInventoriesJob.perform_later(file_path, admin.id)
+          ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')
         }.not_to raise_error # discardされるため例外は発生しない
       end
 
@@ -230,7 +232,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
         expect(Rails.logger).to receive(:error).at_least(:once)
 
         expect {
-          ImportInventoriesJob.perform_later(file_path, admin.id)
+          ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')
         }.to raise_error(StandardError)
       end
     end
@@ -264,7 +266,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
         expect(mock_redis).to receive(:hset).at_least(:once)
         expect(mock_redis).to receive(:expire).at_least(:once)
 
-        ImportInventoriesJob.perform_later(file_path, admin.id)
+        ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')
       end
 
       xit 'updates completion status when job succeeds' do
@@ -273,7 +275,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
         expect(mock_redis).to receive(:hset).at_least(:twice)
         expect(mock_redis).to receive(:expire).at_least(:once)
 
-        ImportInventoriesJob.perform_later(file_path, admin.id)
+        ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')
       end
     end
 
@@ -300,7 +302,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
         # Admin.find_byがnilを返す場合の処理を確認
         expect(ActionCable.server).to receive(:broadcast).at_least(:once)
 
-        ImportInventoriesJob.perform_later(file_path, admin.id)
+        ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')
       end
 
       xit 'broadcasts error notification on failure' do
@@ -310,7 +312,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
         expect(ActionCable.server).to receive(:broadcast).at_least(:once)
 
         expect {
-          ImportInventoriesJob.perform_later(file_path, admin.id)
+          ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')
         }.to raise_error(StandardError)
       end
     end
@@ -337,7 +339,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
         expect(File).to receive(:delete).with(file_path)
 
         Sidekiq::Testing.inline! do
-          ImportInventoriesJob.perform_later(file_path, admin.id)
+          ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')
         end
       end
 
@@ -349,7 +351,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
         expect(File).not_to receive(:delete)
 
         Sidekiq::Testing.inline! do
-          ImportInventoriesJob.perform_later(file_path, admin.id)
+          ImportInventoriesJob.perform_later(file_path, admin.id, 'test-job-id')
         end
       end
     end
@@ -380,7 +382,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
       Sidekiq::Testing.inline! do
         start_time = Time.current
 
-        ImportInventoriesJob.perform_later(large_temp_file.path, admin.id)
+        ImportInventoriesJob.perform_later(large_temp_file.path, admin.id, 'test-job-id')
 
         duration = Time.current - start_time
         expect(duration).to be < 30.seconds # 要求仕様：30秒以内

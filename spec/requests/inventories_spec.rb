@@ -54,9 +54,11 @@ RSpec.describe "Inventories", type: :request do
     end
 
     context "when the inventory does not exist" do
-      it "returns 404 for non-existent resource" do
+      it "redirects to 404 error page" do
         get inventory_path(id: "non-existent-id")
-        expect(response).to have_http_status(:not_found)
+        expect(response).to redirect_to(error_path(code: 404))
+        follow_redirect!
+        expect(response.body).to include("ページが見つかりません")
       end
 
       context "with JSON format" do
@@ -160,11 +162,11 @@ RSpec.describe "Inventories", type: :request do
     end
 
     context "when the inventory does not exist" do
-      it "returns 404" do
+      it "redirects to 404 error page" do
         patch inventory_path(id: "non-existent-id"),
               params: { inventory: new_attributes }
 
-        expect(response).to have_http_status(:not_found)
+        expect(response).to redirect_to(error_path(code: 404))
       end
     end
   end
@@ -190,9 +192,9 @@ RSpec.describe "Inventories", type: :request do
     end
 
     context "when the inventory does not exist" do
-      it "returns 404" do
+      it "redirects to 404 error page" do
         delete inventory_path(id: "non-existent-id")
-        expect(response).to have_http_status(:not_found)
+        expect(response).to redirect_to(error_path(code: 404))
       end
     end
   end

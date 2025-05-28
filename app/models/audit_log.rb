@@ -25,7 +25,7 @@ class AuditLog < ApplicationRecord
     import: "import",
     login: "login",
     logout: "logout"
-  }, _suffix: :action
+  }, suffix: :action
 
   # インスタンスメソッド
   def user_display_name

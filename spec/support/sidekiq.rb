@@ -5,11 +5,11 @@
 RSpec.configure do |config|
   # テスト実行前のSidekiq設定初期化
   config.before(:suite) do
-    # テスト環境ではSidekiqをfakeモードで動作
+    # テスト環境ではSidekiqをfakeモードで動作（デフォルト）
     Sidekiq::Testing.fake!
 
-    # ActiveJobのテストアダプターを設定
-    ActiveJob::Base.queue_adapter = :test
+    # ActiveJobのテストアダプターを設定（環境設定でinlineが設定されている場合は上書きしない）
+    ActiveJob::Base.queue_adapter = :test unless Rails.application.config.active_job.queue_adapter == :inline
 
     # TODO: Phase 2実装予定 - より高度なジョブテスト機能
     # - ジョブ実行順序の検証
@@ -40,10 +40,21 @@ RSpec.configure do |config|
   # 実際にジョブを実行する必要がある場合
   config.before(:each, :perform_jobs) do
     Sidekiq::Testing.inline!
+    ActiveJob::Base.queue_adapter = :inline
   end
 
   config.after(:each, :perform_jobs) do
     Sidekiq::Testing.fake!
+    ActiveJob::Base.queue_adapter = :test
+  end
+
+  # feature specでジョブ実行が必要な場合の設定
+  config.before(:each, type: :feature) do |example|
+    if example.metadata[:js] || example.metadata[:perform_jobs] || 
+       example.full_description.include?('CSV Import')
+      Sidekiq::Testing.inline!
+      ActiveJob::Base.queue_adapter = :inline
+    end
   end
 
   # 特定のジョブテスト用ヘルパーメソッド
@@ -71,6 +82,35 @@ RSpec.configure do |config|
     # Redis接続エラーをシミュレート
     def simulate_redis_connection_error
       allow(Redis).to receive(:new).and_raise(Redis::CannotConnectError.new("Connection refused"))
+    end
+
+    # Redis接続チェック
+    def redis_available?
+      @redis_available ||= begin
+        RedisClient.new(host: 'localhost', port: 6379, timeout: 1).ping
+        true
+      rescue StandardError
+        false
+      end
+    end
+
+    # Sidekiq UIテストのスキップ判定
+    def skip_if_redis_unavailable
+      skip 'Redisが利用できないため、Sidekiq UIテストをスキップします' unless redis_available?
+    end
+
+    # ジョブの強制実行（テスト環境で確実にジョブを実行したい場合）
+    def ensure_job_execution
+      # Sidekiqのペンディングジョブを実行
+      Sidekiq::Worker.drain_all if Sidekiq::Testing.fake?
+      
+      # ActiveJobのペンディングジョブも実行
+      if ActiveJob::Base.queue_adapter.respond_to?(:enqueued_jobs)
+        ActiveJob::Base.queue_adapter.enqueued_jobs.each do |job|
+          job[:job].perform_now
+        end
+        ActiveJob::Base.queue_adapter.enqueued_jobs.clear
+      end
     end
   }
 end
