@@ -7,13 +7,13 @@ RSpec.configure do |config|
   config.before(:suite) do
     # テスト環境ではSidekiqをfakeモードで動作
     Sidekiq::Testing.fake!
-    
+
     # ActiveJobのテストアダプターを設定
     ActiveJob::Base.queue_adapter = :test
-    
+
     # TODO: Phase 2実装予定 - より高度なジョブテスト機能
     # - ジョブ実行順序の検証
-    # - ジョブチェーンの統合テスト  
+    # - ジョブチェーンの統合テスト
     # - パフォーマンステストの追加
   end
 
@@ -26,7 +26,7 @@ RSpec.configure do |config|
     # ジョブキューのクリア
     Sidekiq::Worker.clear_all
     ActiveJob::Base.queue_adapter.enqueued_jobs.clear if ActiveJob::Base.queue_adapter.respond_to?(:enqueued_jobs)
-    
+
     # Sidekiqをfakeモードに設定（デフォルト）
     Sidekiq::Testing.fake!
   end
@@ -100,15 +100,15 @@ end
 RSpec::Matchers.define :have_broadcasted_to do |stream|
   match do |_actual, &block|
     @broadcasted_messages = []
-    
+
     # ActionCableのブロードキャストをキャプチャ
     allow(ActionCable.server).to receive(:broadcast) do |stream_name, message|
       @broadcasted_messages << { stream: stream_name, message: message }
     end
-    
+
     # ブロックが与えられた場合のみ実行
     block.call if block
-    
+
     @broadcasted_messages.any? { |broadcast| broadcast[:stream] == stream }
   end
 
