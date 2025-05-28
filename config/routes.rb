@@ -86,9 +86,6 @@ Rails.application.routes.draw do
   # エラーページへの統一パス
   get "error", to: "errors#show", as: :error
 
-  # エラーページへの統一パス
-  get "error", to: "errors#show", as: :error
-
   # その他リクエスト漏れ対策 (ActiveStorage等除外)
   match "*path", to: "errors#show", via: :all,
         constraints: ->(req) { !req.path.start_with?("/rails/") },

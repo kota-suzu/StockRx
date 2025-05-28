@@ -87,6 +87,32 @@ module Auditable
     # テスト環境でaudit_logsアソシエーションが存在しない場合は処理をスキップ
     return unless respond_to?(:audit_logs) && audit_logs.respond_to?(:create!)
 
+    # TODO: Phase 2実装予定 - リトライメカニズム
+    # - 一時的な障害時の自動リトライ
+    # - 重要度別のリトライ戦略
+    # - バックグラウンドジョブでの監査ログ記録
+    
+    create_audit_log_with_retry(action, message, details)
+  rescue AuditLogCriticalError => e
+    # 重要な監査ログの記録失敗時は例外を再発生
+    Rails.logger.error({
+      event: "critical_audit_log_failure",
+      action: action,
+      message: message,
+      error: e.message,
+      backtrace: e.backtrace.first(5),
+      context: audit_failure_context
+    }.to_json)
+    
+    # 重要な操作の場合は例外を再発生させる
+    raise e if critical_audit_action?(action)
+  rescue StandardError => e
+    # 一般的なエラーの場合は記録して継続
+    handle_audit_log_error(action, message, e)
+  end
+
+  # リトライ機能付きの監査ログ作成
+  def create_audit_log_with_retry(action, message, details = nil, retry_count = 0)
     audit_logs.create!(
       action: action,
       message: message,
@@ -97,9 +123,77 @@ module Auditable
       operation_source: current_operation_source,
       operation_type: current_operation_type
     )
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::ConnectionNotEstablished, 
+         ActiveRecord::StatementInvalid => e
+    
+    # データベース関連エラーの場合はリトライ
+    if retry_count < max_audit_retry_count
+      sleep(retry_delay(retry_count))
+      create_audit_log_with_retry(action, message, details, retry_count + 1)
+    else
+      # 最大リトライ回数に達した場合
+      raise AuditLogCriticalError.new("監査ログ記録に失敗しました (max retries exceeded): #{e.message}")
+    end
   rescue => e
-    # ログ記録に失敗しても主処理は継続
-    Rails.logger.error("監査ログ記録エラー: #{e.message}")
+    # その他のエラーは即座に処理
+    raise AuditLogCriticalError.new("監査ログ記録エラー: #{e.message}")
+  end
+
+  # 監査ログエラーの処理
+  def handle_audit_log_error(action, message, error)
+    error_context = {
+      event: "audit_log_failure",
+      action: action,
+      message: message,
+      error_class: error.class.name,
+      error_message: error.message,
+      model_class: self.class.name,
+      model_id: respond_to?(:id) ? id : nil,
+      timestamp: Time.current.iso8601,
+      context: audit_failure_context
+    }
+
+    # 構造化ログで記録
+    Rails.logger.error(error_context.to_json)
+
+    # TODO: Phase 2実装予定 - エラー通知機能
+    # - Slack/Teams通知
+    # - メール通知（重要度による段階的エスカレーション）
+    # - 監視システムへのアラート送信
+    # notify_audit_failure(error_context) unless Rails.env.test?
+
+    # TODO: Phase 3実装予定 - フォールバック記録
+    # - ファイルベースの監査ログ
+    # - 外部ログサービスへの記録
+    # - バックアップ記録システム
+    # fallback_audit_log(action, message, error_context)
+  end
+
+  # 重要な監査アクションかどうかを判定
+  def critical_audit_action?(action)
+    # TODO: Phase 2実装予定 - 設定可能な重要度レベル
+    %w[delete login admin_action security_change permission_change].include?(action.to_s)
+  end
+
+  # 監査ログ失敗時のコンテキスト情報
+  def audit_failure_context
+    {
+      user_id: current_user_id,
+      ip_address: current_ip_address,
+      user_agent: current_user_agent&.truncate(100),
+      request_id: defined?(Current) && Current.respond_to?(:request_id) ? Current.request_id : nil,
+      session_id: defined?(Current) && Current.respond_to?(:session_id) ? Current.session_id : nil
+    }
+  end
+
+  # リトライ回数の上限
+  def max_audit_retry_count
+    Rails.env.production? ? 3 : 1
+  end
+
+  # リトライ遅延時間（指数バックオフ）
+  def retry_delay(retry_count)
+    [0.1 * (2 ** retry_count), 2.0].min
   end
 
   # 現在のユーザーID取得
