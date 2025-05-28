@@ -2,6 +2,12 @@
 
 require "rails_helper"
 
+# TODO: エラーページのテスト改善（優先度：中）
+# - エラーページのコンテンツ検証をより詳細に
+# - 多言語対応のテスト追加
+# - カスタムエラーコードのテスト追加
+# - エラーログ出力の検証
+
 RSpec.describe "Errors", type: :request do
   describe "GET /error" do
     context "with code parameter" do

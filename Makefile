@@ -99,6 +99,12 @@ db-test-migrate:
 	$(COMPOSE) run --rm -e RAILS_ENV=test -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db web bin/rails db:migrate
 
 # --------------------------- テスト ----------------------------------------
+# TODO: テスト環境の最適化（優先度：高）
+# - テストデータベースの並列化対応
+# - テスト実行時間の短縮（Spring導入検討）
+# - CI環境でのキャッシュ戦略改善
+# - テストカバレッジの自動チェック機能追加
+
 # 共通関数
 define run_rspec
 	@echo "=== $(1) テスト実行 ===";
