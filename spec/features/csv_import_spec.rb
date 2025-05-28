@@ -262,26 +262,23 @@ RSpec.describe 'CSV Import with Sidekiq Integration', type: :feature, slow: true
       expect(page).to have_content('CSVインポートを開始しました')
 
       # 進捗表示エリアが表示されることを確認
-      expect(page).to have_css('#csv-import-progress', visible: true)
+      expect(page).to have_css('#csv-import-progress', wait: 3)
       expect(page).to have_css('[data-controller="import-progress"]')
 
       # 進捗バーが存在することを確認
-      expect(page).to have_css('[data-import-progress-target="bar"]')
-      expect(page).to have_css('[data-import-progress-target="status"]')
-      expect(page).to have_css('[data-import-progress-target="progressText"]')
+      within('#csv-import-progress') do
+        expect(page).to have_css('[data-import-progress-target="bar"]')
+        expect(page).to have_css('[data-import-progress-target="status"]')
+        expect(page).to have_css('[data-import-progress-target="progressText"]')
 
-      # ActionCable接続の初期化を待つ
-      sleep 2
-
-      # ステータステキストが更新されることを確認
-      expect(
-        page.has_content?('初期化中') ||
-        page.has_content?('接続完了') ||
-        page.has_content?('WebSocket接続完了')
-      ).to be_truthy
+        # ステータステキストが表示されることを確認
+        within('[data-import-progress-target="status"]') do
+          expect(page).to have_text(/初期化中|接続完了|WebSocket接続完了/, wait: 5)
+        end
+      end
 
       # TODO: 実際のActionCable通信テストは別途統合テストで実装
-      # リアルタイム通信の詳細テストは複雑なため、ここでは基本的なUI要素の確認のみ
+      # リアルタイム通信の詳細テストは複雑なため、ここでは基本的なUI要紀の確認のみ
     end
 
     scenario 'handles ActionCable connection failures gracefully' do
@@ -297,6 +294,7 @@ RSpec.describe 'CSV Import with Sidekiq Integration', type: :feature, slow: true
       click_button 'インポート開始'
 
       # 進捗表示は表示されるが、フォールバック機能が動作することを確認
+      expect(page).to have_css('#csv-import-progress', wait: 3)
       expect(page).to have_css('#csv-import-progress', visible: true)
 
       # JavaScriptのフォールバック処理により、ポーリングに切り替わることを期待

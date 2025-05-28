@@ -47,6 +47,22 @@
           </div>
         <% end %>
       </div>
+      
+      <!-- インポート進捗表示 -->
+      <div id="csv-import-progress" class="mt-6 bg-white rounded-lg shadow overflow-hidden p-6 hidden" data-controller="import-progress">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">インポート進捗</h3>
+        <div class="space-y-4">
+          <div class="text-sm text-gray-600">
+            ステータス: <span data-import-progress-target="status" class="font-medium">初期化中...</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2.5">
+            <div data-import-progress-target="bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+          <div data-import-progress-target="progressText" class="text-sm text-gray-600">
+            0 / 0 件の処理完了
+          </div>
+        </div>
+      </div>
     </div>
 
     <div>

@@ -36,6 +36,9 @@ module App
     # ============================================
     # Sidekiqアダプターを使用（Redis経由でバックグラウンドジョブ処理）
     config.active_job.queue_adapter = :sidekiq
+    
+    # Rails 8.1への移行準備
+    config.active_support.to_time_preserves_timezone = :zone
 
     # ============================================
     # セキュリティ設定（基本）
