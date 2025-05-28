@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'tmpdir'
+require "tmpdir"
 
 # ============================================
 # 在庫CSVインポートジョブ

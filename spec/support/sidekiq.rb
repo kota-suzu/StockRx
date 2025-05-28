@@ -50,7 +50,7 @@ RSpec.configure do |config|
 
   # feature specでジョブ実行が必要な場合の設定
   config.before(:each, type: :feature) do |example|
-    if example.metadata[:js] || example.metadata[:perform_jobs] || 
+    if example.metadata[:js] || example.metadata[:perform_jobs] ||
        example.full_description.include?('CSV Import')
       Sidekiq::Testing.inline!
       ActiveJob::Base.queue_adapter = :inline
@@ -103,7 +103,7 @@ RSpec.configure do |config|
     def ensure_job_execution
       # Sidekiqのペンディングジョブを実行
       Sidekiq::Worker.drain_all if Sidekiq::Testing.fake?
-      
+
       # ActiveJobのペンディングジョブも実行
       if ActiveJob::Base.queue_adapter.respond_to?(:enqueued_jobs)
         ActiveJob::Base.queue_adapter.enqueued_jobs.each do |job|

@@ -44,7 +44,7 @@ class ErrorsController < ActionController::Base
   # @return [String] ステータスコード
   def extract_status_code_from_path
     # パスが /404 のような形式の場合、スラッシュを除去して数値部分を抽出
-    path_code = request.path.gsub(/^\//, '')
+    path_code = request.path.gsub(/^\//, "")
     # 数値であることを確認
     path_code.match?(/^\d{3}$/) ? path_code : "500"
   end

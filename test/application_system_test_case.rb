@@ -4,12 +4,12 @@ class ApplicationSystemTestCase < ActionDispatch::SystemTestCase
   # Seleniumドライバーの可用性チェック
   def self.selenium_available?
     begin
-      if ENV['DOCKER_CONTAINER'].present? || File.exist?('/.dockerenv')
+      if ENV["DOCKER_CONTAINER"].present? || File.exist?("/.dockerenv")
         # Docker環境ではSeleniumサービスの存在を確認
-        system('nc -z selenium 4444 > /dev/null 2>&1')
+        system("nc -z selenium 4444 > /dev/null 2>&1")
       else
         # ローカル環境ではChromeが利用可能か確認
-        system('which chromedriver > /dev/null 2>&1')
+        system("which chromedriver > /dev/null 2>&1")
       end
     rescue
       false

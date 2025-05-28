@@ -38,7 +38,7 @@ module Api
         # save!はバリデーションエラーでActiveRecord::RecordInvalidが発生し、
         # ErrorHandlersが422ハンドリングしてくれる
         @inventory.save!
-        
+
         # デコレータを適用
         @inventory = @inventory.decorate
 
@@ -67,7 +67,7 @@ module Api
 
         # update!はバリデーションエラーでActiveRecord::RecordInvalidが発生
         @inventory.update!(inventory_params)
-        
+
         # デコレータを適用
         @inventory = @inventory.decorate
 

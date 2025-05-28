@@ -108,8 +108,8 @@ module AdminControllers
       # ファイルタイプバリデーション（事前チェック）
       uploaded_file = params[:file]
       file_extension = File.extname(uploaded_file.original_filename).downcase
-      allowed_extensions = ['.csv']
-      
+      allowed_extensions = [ ".csv" ]
+
       unless allowed_extensions.include?(file_extension)
         error_message = "Invalid file type: #{file_extension}. Allowed types: #{allowed_extensions.join(', ')}"
         redirect_to import_form_admin_inventories_path, alert: error_message

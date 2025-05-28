@@ -8,23 +8,23 @@ module CapybaraPerformance
     Capybara.configure do |config|
       # タイムアウトを短縮（デフォルト: 2秒）
       config.default_max_wait_time = 2
-      
+
       # 要素を探す際の再試行間隔を短縮
       config.default_normalize_ws = true
-      
+
       # アセットのプリコンパイルを無効化（開発環境のみ）
       config.automatic_reload = false if Rails.env.test?
-      
+
       # サーバーエラー時の詳細表示を無効化（高速化）
       config.raise_server_errors = false
     end
 
     # データベースクリーナー戦略の最適化
     configure_database_cleaner!
-    
+
     # 並列実行の設定
     configure_parallel_tests! if ENV['PARALLEL_WORKERS']
-    
+
     # キャッシュの最適化
     configure_caching!
   end
@@ -37,7 +37,7 @@ module CapybaraPerformance
       config.before(:each, type: :feature) do |example|
         if example.metadata[:js]
           # JSテストではtruncationを使用（遅いが必要）
-          DatabaseCleaner.strategy = :truncation, { 
+          DatabaseCleaner.strategy = :truncation, {
             except: %w[ar_internal_metadata schema_migrations],
             pre_count: true, # 削除前のカウントを事前実行（高速化）
             reset_ids: false # IDリセットを無効化（高速化）
@@ -62,11 +62,11 @@ module CapybaraPerformance
     # 並列実行時のポート設定
     test_number = ENV['TEST_ENV_NUMBER'].to_i
     Capybara.server_port = 3000 + test_number
-    
+
     # WebDriverのポート設定
     Capybara.register_driver :parallel_chrome_headless do |app|
       options = Selenium::WebDriver::Chrome::Options.new
-      
+
       # 基本的な高速化オプション
       options.add_argument('--headless=new') # 新しいheadlessモード（高速）
       options.add_argument('--no-sandbox')
@@ -74,13 +74,13 @@ module CapybaraPerformance
       options.add_argument('--disable-gpu')
       options.add_argument('--disable-web-security')
       options.add_argument('--window-size=1280,800')
-      
+
       # 並列実行用のポート設定
       options.add_argument("--remote-debugging-port=#{9222 + test_number}")
-      
+
       Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
     end
-    
+
     Capybara.javascript_driver = :parallel_chrome_headless
   end
 
@@ -89,7 +89,7 @@ module CapybaraPerformance
     if Rails.env.test?
       # アセットキャッシュを有効化（初回以降高速化）
       Rails.application.config.assets.cache_store = :memory_store
-      
+
       # ビューキャッシュを有効化
       Rails.application.config.action_controller.perform_caching = true
       Rails.application.config.cache_store = :memory_store
@@ -106,7 +106,7 @@ RSpec.configure do |config|
       puts "アセットをプリコンパイル中..."
       system('RAILS_ENV=test bundle exec rails assets:precompile')
     end
-    
+
     # データベースのクリーンアップ
     DatabaseCleaner.clean_with(:truncation) if defined?(DatabaseCleaner)
   end
@@ -125,7 +125,7 @@ RSpec.configure do |config|
       Capybara.current_driver = :rack_test
     end
   end
-  
+
   # スクリーンショットを無効化（高速化）
   config.before(:each, type: :feature) do
     Capybara::Screenshot.autosave_on_failure = false if defined?(Capybara::Screenshot)

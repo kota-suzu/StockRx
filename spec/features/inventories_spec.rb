@@ -4,7 +4,6 @@ require 'rails_helper'
 
 # TODO: UIテスト環境の設定を見直す
 RSpec.feature 'Inventory UI + API', type: :feature, js: true do
-
   let!(:admin) { create(:admin, email: 'admin@example.com', password: 'Password1234!') }
 
   # 在庫データの作成

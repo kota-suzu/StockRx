@@ -175,7 +175,7 @@ begin
     begin
       # Docker環境の判定
       is_docker = File.exist?('/.dockerenv') || ENV['DOCKER_CONTAINER'].present?
-      
+
       if is_docker
         # Dockerコンテナ内ではSeleniumサービスを使用
         Capybara::Selenium::Driver.new(
@@ -202,7 +202,7 @@ begin
 
   # デフォルトドライバー設定（高速化）
   Capybara.default_driver = :fast_rack_test  # JavaScriptが不要なテストは高速なrack_test
-  
+
   # Docker環境では常に最適化されたドライバーを使用
   if File.exist?('/.dockerenv') || ENV['DOCKER_CONTAINER'].present?
     Capybara.javascript_driver = :optimized_chrome_headless

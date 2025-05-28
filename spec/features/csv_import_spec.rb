@@ -3,7 +3,6 @@
 require 'rails_helper'
 
 RSpec.describe 'CSV Import with Sidekiq Integration', type: :feature, slow: true do
-
   # ============================================
   # テストデータの準備
   # ============================================
@@ -39,7 +38,7 @@ RSpec.describe 'CSV Import with Sidekiq Integration', type: :feature, slow: true
   before do
     # Sidekiqをインラインモードに設定（テスト用）
     Sidekiq::Testing.inline!
-    
+
     # ActiveJobも確実にインラインで実行
     ActiveJob::Base.queue_adapter = :inline
 
@@ -85,7 +84,7 @@ RSpec.describe 'CSV Import with Sidekiq Integration', type: :feature, slow: true
 
     scenario 'admin can access Sidekiq UI' do
       skip_if_redis_unavailable
-      
+
       visit '/admin/sidekiq'
 
       # Sidekiq UIにアクセスできることを確認
@@ -315,7 +314,7 @@ RSpec.describe 'CSV Import with Sidekiq Integration', type: :feature, slow: true
   describe 'Sidekiq UI functionality' do
     scenario 'displays job statistics and queues' do
       skip_if_redis_unavailable
-      
+
       # まずジョブを実行してデータを作成
       ImportInventoriesJob.perform_later(temp_csv_file.path, admin.id)
 
