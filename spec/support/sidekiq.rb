@@ -81,11 +81,15 @@ RSpec.configure do |config|
 
     # Redis接続エラーをシミュレート
     def simulate_redis_connection_error
+      return unless defined?(Redis)
       allow(Redis).to receive(:new).and_raise(Redis::CannotConnectError.new("Connection refused"))
     end
 
     # Redis接続チェック
     def redis_available?
+      # TODO: docs/TODO.md - Redis接続エラー対策 (優先度: 高)
+      # 再接続ロジックや詳細なエラーハンドリングを追加する
+      return false unless defined?(RedisClient)
       @redis_available ||= begin
         RedisClient.new(host: 'localhost', port: 6379, timeout: 1).ping
         true
