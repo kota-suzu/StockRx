@@ -20,23 +20,14 @@
 
 ## TODO: 今後必要な対応（優先度：高）
 
-### 1. CI環境でのMySQL接続問題
-- **現状**: GitHub Actions環境でのデータベース接続認証エラー
-- **対応方法**:
-  ```yaml
-  # .github/workflows/test.yml での対応例
-  services:
-    mysql:
-      image: mysql:8.0
-      env:
-        MYSQL_ROOT_PASSWORD: password
-        MYSQL_DATABASE: app_test
-      options: >-
-        --health-cmd="mysqladmin ping"
-        --health-interval=10s
-        --health-timeout=5s
-        --health-retries=3
-  ```
+### 1. CI環境でのMySQL接続問題 ✅
+- **問題**: GitHub Actions環境でのデータベース接続認証エラー
+- **原因**: Docker内部IP（172.18.0.1）からの認証設定とRails設定の不整合
+- **修正内容**:
+  - `.github/workflows/ci.yml`: MySQL認証設定とヘルスチェックの改善
+  - `config/database.yml`: CI環境対応の環境変数設定強化
+  - 接続待機処理の追加による安定性向上
+- **関連ドキュメント**: `docs/CI_TROUBLESHOOTING_GUIDE.md` 新規作成
 
 ### 2. Ruby 3.3互換性チェック
 - **gemfile内のgem互換性確認**:

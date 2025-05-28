@@ -40,7 +40,9 @@ test:
   database: app_test
   # テスト環境: ローカル開発では localhost、Docker環境では環境変数で db を指定
   host: <%= ENV.fetch("TEST_DATABASE_HOST", ENV.fetch("DATABASE_HOST", "127.0.0.1")) %>
-  password: <%= ENV.fetch("DATABASE_PASSWORD", "password") %>
+  port: <%= ENV.fetch("TEST_DATABASE_PORT", ENV.fetch("DATABASE_PORT", 3306)).to_i %>
+  username: <%= ENV.fetch("TEST_DATABASE_USERNAME", ENV.fetch("DATABASE_USERNAME", "root")) %>
+  password: <%= ENV.fetch("TEST_DATABASE_PASSWORD", ENV.fetch("DATABASE_PASSWORD", "password")) %>
   pool: <%= ENV.fetch("TEST_DATABASE_POOL", 5).to_i %>
   timeout: <%= ENV.fetch("TEST_DATABASE_TIMEOUT", 5000).to_i %>
   # TODO: テスト環境でのMySQL設定最適化（優先度：高）
