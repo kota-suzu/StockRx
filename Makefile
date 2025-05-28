@@ -11,7 +11,7 @@ COMPOSE          := docker compose
 WEB_RUN          := $(COMPOSE) run --rm web
 WEB_UP           := $(COMPOSE) up -d
 HTTP_PORT        ?= 3000
-RSPEC            := $(WEB_RUN) -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db bundle exec rspec
+RSPEC            := $(COMPOSE) run --rm -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db web bundle exec rspec
 BUNDLE           := $(WEB_RUN) bundle
 CURL             := curl -s -o /dev/null
 
@@ -93,10 +93,10 @@ db-setup    : db-setup
 
 # テスト環境専用コマンド
 db-test-prepare:
-	$(WEB_RUN) -e RAILS_ENV=test -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db bin/rails db:test:prepare
+	$(COMPOSE) run --rm -e RAILS_ENV=test -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db web bin/rails db:test:prepare
 
 db-test-migrate:
-	$(WEB_RUN) -e RAILS_ENV=test -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db bin/rails db:migrate
+	$(COMPOSE) run --rm -e RAILS_ENV=test -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db web bin/rails db:migrate
 
 # --------------------------- テスト ----------------------------------------
 # 共通関数
@@ -105,6 +105,9 @@ define run_rspec
 	$(RSPEC) $(2) --format $(3)
 endef
 
+# テスト環境変数を含むRSpecコマンド定義
+RSPEC_WITH_ENV := $(COMPOSE) run --rm -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db web bundle exec rspec
+
 # メタターゲット
 TEST_DOC      := documentation
 TEST_PROGRESS := progress
@@ -112,7 +115,7 @@ TEST_PROGRESS := progress
 test: db-test-prepare rspec
 
 rspec:
-	$(WEB_RUN) -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db bundle exec rspec
+	$(RSPEC)
 
 test-fast:
 	$(call run_rspec,高速, spec/models spec/requests spec/helpers spec/decorators spec/validators, $(TEST_PROGRESS))
@@ -169,7 +172,7 @@ lint-fix-unsafe:
 	$(WEB_RUN) bin/rubocop -A
 
 test-all:
-	$(WEB_RUN) bin/rails db:test:prepare test test:system
+	$(COMPOSE) run --rm -e RAILS_ENV=test -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db web bin/rails db:test:prepare test test:system
 
 # --------------------------- パフォーマンステスト --------------------------
 perf-generate-csv:
