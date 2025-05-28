@@ -148,7 +148,7 @@ jobs:
 
       - name: Create Pull Request (if needed)
         if: github.event_name == 'issues' || (github.event_name == 'issue_comment' && github.event.issue.pull_request == null)
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: claude-fix-${{ github.event.issue.number }}-${{ github.run_number }}
