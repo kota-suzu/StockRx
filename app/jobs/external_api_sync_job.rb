@@ -44,7 +44,8 @@ class ExternalApiSyncJob < ApplicationJob
   sidekiq_options retry: 5, backtrace: true, queue: :default
 
   # API別のリトライ戦略
-  retry_on Net::TimeoutError, wait: :exponentially_longer, attempts: 5
+  # Note: Ruby 3.3+では Net::TimeoutError は Timeout::Error に統合されました
+  retry_on Timeout::Error, wait: :exponentially_longer, attempts: 5
   retry_on Net::OpenTimeout, wait: 30.seconds, attempts: 3
   retry_on Faraday::ConnectionFailed, wait: 60.seconds, attempts: 3
   retry_on JSON::ParserError, attempts: 2
