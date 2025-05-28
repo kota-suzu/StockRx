@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
+ActiveRecord::Schema[8.0].define(version: 2025_05_28_032156) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -97,6 +97,9 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
     t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "category", default: "一般薬"
+    t.string "unit", default: "個"
+    t.integer "minimum_stock", default: 0
     t.index ["name"], name: "index_inventories_on_name"
   end
 

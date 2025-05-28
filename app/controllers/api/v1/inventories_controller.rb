@@ -126,7 +126,7 @@ module Api
       end
 
       def inventory_params
-        params.require(:inventory).permit(:name, :quantity, :price, :status, :lock_version)
+        params.require(:inventory).permit(:name, :quantity, :price, :status, :category, :unit, :minimum_stock, :lock_version)
       end
     end
   end

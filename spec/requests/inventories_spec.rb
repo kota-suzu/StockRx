@@ -13,7 +13,10 @@ RSpec.describe "Inventories", type: :request do
       name: "テスト医薬品",
       status: "active",
       quantity: 100,
-      price: 1500
+      price: 1500,
+      category: "処方薬",
+      unit: "錠",
+      minimum_stock: 50
     }
   end
 
