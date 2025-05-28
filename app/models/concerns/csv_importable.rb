@@ -168,19 +168,22 @@ module CsvImportable
     def bulk_insert(records)
       return if records.blank?
 
-      # 挿入レコードの属性を収集
+      # 挿入レコードの属性を収集（Rails 7+のrecord_timestamps: trueを使用するためタイムスタンプは除外）
       attributes = records.map do |record|
-        record.attributes.except("id", "created_at", "updated_at").merge(
-          created_at: Time.current,
-          updated_at: Time.current
-        )
+        record.attributes.except("id", "created_at", "updated_at")
       end
 
-      # Rails 6+の場合はinsert_allを使用
-      result = insert_all(attributes)
+      # Rails 7+の場合はinsert_allを使用（record_timestamps: trueで自動タイムスタンプ）
+      result = insert_all(attributes, record_timestamps: true)
 
       # 在庫ログ用のデータを作成（bulk_insertでは通常のコールバックが動作しないため）
-      create_bulk_inventory_logs(records, result.rows) if result.rows.present? && self.name == "Inventory"
+      # SQLiteではresult.rowsが空の場合があるため、レコード数で判定
+      if self.name == "Inventory" && records.present?
+        # 新しく挿入されたレコードのIDを取得
+        inserted_records = order(:id).last(records.size)
+        inserted_ids = inserted_records.map { |record| [record.id] }
+        create_bulk_inventory_logs(records, inserted_ids)
+      end
 
       result
     end

@@ -123,13 +123,11 @@ module InventoryLoggable
           operation_type: "add",
           previous_quantity: 0,
           current_quantity: record.quantity,
-          note: "CSVインポートによる登録",
-          created_at: Time.current,
-          updated_at: Time.current
+          note: "CSVインポートによる登録"
         }
       end
 
-      InventoryLog.insert_all(log_entries) if log_entries.present?
+      InventoryLog.insert_all(log_entries, record_timestamps: true) if log_entries.present?
     end
 
     # バルクインサート後の在庫ログ一括作成
