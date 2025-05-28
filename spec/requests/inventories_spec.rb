@@ -49,7 +49,7 @@ RSpec.describe "Inventories", type: :request do
         get inventories_path, headers: { "Accept" => "application/json" }
         expect(response).to have_http_status(:ok)
         expect(response.content_type).to match(/application\/json/)
-        
+
         json = JSON.parse(response.body)
         expect(json).to be_an(Array)
         expect(json.size).to eq(3)
@@ -58,7 +58,7 @@ RSpec.describe "Inventories", type: :request do
         low_stock_item = json.find { |item| item['name'] == 'アセトアミノフェン' }
         expect(low_stock_item['alert_status']).to eq('low')
 
-        # 正常在庫のalert_statusがokになっていることを確認  
+        # 正常在庫のalert_statusがokになっていることを確認
         normal_stock_item = json.find { |item| item['name'] == 'アスピリン' }
         expect(normal_stock_item['alert_status']).to eq('ok')
       end

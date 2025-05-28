@@ -83,6 +83,4 @@ RSpec.feature 'Inventory UI + API', type: :feature, js: true do
     expect(page).to have_content('在庫が正常に更新されました')
     expect(page).to have_content('120')
   end
-
-
 end
