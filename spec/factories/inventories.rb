@@ -6,5 +6,8 @@ FactoryBot.define do
     quantity { 100 }
     price { 1000 }
     status { 'active' }
+    category { '処方薬' }
+    unit { '錠' }
+    minimum_stock { 10 }
   end
 end

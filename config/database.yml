@@ -39,8 +39,10 @@ test:
   <<: *default
   database: app_test
   # テスト環境: ローカル開発では localhost、Docker環境では環境変数で db を指定
-  host: <%= ENV.fetch("TEST_DATABASE_HOST", "127.0.0.1") %>
-  password: <%= ENV.fetch("DATABASE_PASSWORD", "password") %>
+  host: <%= ENV.fetch("TEST_DATABASE_HOST", ENV.fetch("DATABASE_HOST", "127.0.0.1")) %>
+  port: <%= ENV.fetch("TEST_DATABASE_PORT", ENV.fetch("DATABASE_PORT", 3306)).to_i %>
+  username: <%= ENV.fetch("TEST_DATABASE_USERNAME", ENV.fetch("DATABASE_USERNAME", "root")) %>
+  password: <%= ENV.fetch("TEST_DATABASE_PASSWORD", ENV.fetch("DATABASE_PASSWORD", "password")) %>
   pool: <%= ENV.fetch("TEST_DATABASE_POOL", 5).to_i %>
   timeout: <%= ENV.fetch("TEST_DATABASE_TIMEOUT", 5000).to_i %>
   # TODO: テスト環境でのMySQL設定最適化（優先度：高）
@@ -49,6 +51,10 @@ test:
   #   innodb_flush_log_at_trx_commit: 2  # テスト速度向上のため
   #   sync_binlog: 0                     # テスト環境ではバイナリログ同期無効
   #   innodb_doublewrite: 0              # ダブルライト無効でパフォーマンス向上
+  # TODO: CI環境での接続問題対応（優先度：高）
+  # - GitHub Actions環境でのMySQL接続設定
+  # - Docker Compose環境との整合性確保
+  # - 認証設定の環境別最適化
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is

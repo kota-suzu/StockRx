@@ -89,6 +89,11 @@ gem "devise-i18n", "~> 1.12"      # 日本語対応
 # gem "paper_trail"                  # モデル変更履歴管理
 # gem "attr_encrypted"               # 属性の暗号化
 
+# TODO: 外部API連携機能実装時に追加（優先度：高）
+# gem "faraday", "~> 2.7"           # HTTPクライアント
+# gem "faraday-retry", "~> 2.2"     # リトライ機能
+# gem "faraday-multipart", "~> 1.0" # マルチパート対応
+
 gem "kaminari", "~> 1.2"            # ページネーション
 
 # Background Job Processing

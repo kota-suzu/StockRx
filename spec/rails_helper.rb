@@ -47,7 +47,7 @@ end
 # spec/support/ and its subdirectories. Files matching `spec/**/*_spec.rb` are
 # run as spec files by default. This behavior can be changed by removing the
 # line below or adding it to spec_helper.rb instead.
-# Dir[Rails.root.join('spec', 'support', '**', '*.rb')].sort.each { |f| require f }
+Dir[Rails.root.join('spec', 'support', '**', '*.rb')].sort.each { |f| require f }
 
 # Checks for pending migrations and applies them before tests are run.
 # If you are not using ActiveRecord, you can remove these lines.
@@ -113,34 +113,7 @@ RSpec.configure do |config|
   # Draper用のヘルパー設定
   config.include Draper::ViewHelpers, type: :decorator
 
-  # Sidekiq テスト設定
-  config.before(:each) do
-    Sidekiq::Testing.fake!
-    # ActiveJobのテストアダプター設定
-    ActiveJob::Base.queue_adapter = :test if defined?(ActiveJob)
-  end
-
-  config.after(:each) do
-    Sidekiq::Testing.disable!
-    Sidekiq::Worker.clear_all
-    # ActiveJobキューのクリア
-    ActiveJob::Base.queue_adapter.enqueued_jobs.clear if defined?(ActiveJob) && ActiveJob::Base.queue_adapter.respond_to?(:enqueued_jobs)
-  end
-
-  # Background job テスト用ヘルパー
-  config.include Module.new {
-    def enqueued_jobs
-      Sidekiq::Extensions::DelayedClass.jobs
-    end
-
-    def clear_enqueued_jobs
-      Sidekiq::Worker.clear_all
-    end
-
-    def perform_enqueued_jobs
-      Sidekiq::Testing.drain
-    end
-  }
+  # Redis接続エラー対策のため、Sidekiq設定をspec/support/sidekiq.rbに移動
 end
 
 # Shoulda Matchers設定
@@ -200,7 +173,21 @@ begin
     # options.add_argument('--proxy-bypass-list=*')
 
     begin
-      Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
+      # Docker環境の判定
+      is_docker = File.exist?('/.dockerenv') || ENV['DOCKER_CONTAINER'].present?
+
+      if is_docker
+        # Dockerコンテナ内ではSeleniumサービスを使用
+        Capybara::Selenium::Driver.new(
+          app,
+          browser: :remote,
+          url: ENV['SELENIUM_REMOTE_URL'] || 'http://selenium:4444/wd/hub',
+          options: options
+        )
+      else
+        # ローカル環境
+        Capybara::Selenium::Driver.new(app, browser: :chrome, options: options)
+      end
     rescue Selenium::WebDriver::Error::WebDriverError => e
       Rails.logger.warn "Chrome WebDriver failed: #{e.message}, falling back to rack_test"
       # Chrome失敗時はrack_testにフォールバック
@@ -215,7 +202,13 @@ begin
 
   # デフォルトドライバー設定（高速化）
   Capybara.default_driver = :fast_rack_test  # JavaScriptが不要なテストは高速なrack_test
-  Capybara.javascript_driver = :optimized_chrome_headless  # JavaScriptが必要なテストのみChrome
+
+  # Docker環境では常に最適化されたドライバーを使用
+  if File.exist?('/.dockerenv') || ENV['DOCKER_CONTAINER'].present?
+    Capybara.javascript_driver = :optimized_chrome_headless
+  else
+    Capybara.javascript_driver = :optimized_chrome_headless
+  end
 
 rescue LoadError => e
   Rails.logger.warn "Selenium WebDriver not available: #{e.message}"
@@ -234,7 +227,8 @@ end
 
 # Capybara基本設定（パフォーマンス重視）
 Capybara.configure do |config|
-  config.app_host = "http://www.example.com"
+  # config.app_host を設定しないことで、Capybaraはローカルサーバーを使用する
+  # config.app_host = "http://www.example.com"  # この設定が原因でexample.comにアクセスしていた
   config.server_host = "0.0.0.0"
   config.server_port = 3001
 
@@ -268,9 +262,13 @@ end
 #   end
 # end
 
-# Sidekiq テストサポート
-require 'sidekiq'
-require 'sidekiq/testing'
+# Sidekiq テストサポート（spec/support/sidekiq.rbで設定）
+begin
+  require 'sidekiq'
+  require 'sidekiq/testing'
+rescue LoadError => e
+  Rails.logger.warn "Sidekiq not available in test environment: #{e.message}"
+end
 
 # TODO: 並列テスト実行時の最適化（優先度：中）
 # ============================================

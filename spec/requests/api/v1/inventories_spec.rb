@@ -3,6 +3,12 @@
 require "rails_helper"
 
 RSpec.describe "Api::V1::Inventories", type: :request do
+  let(:admin) { create(:admin) }
+
+  before do
+    sign_in admin
+  end
+
   let(:valid_attributes) do
     {
       name: "API Test Medicine",
@@ -166,10 +172,11 @@ RSpec.describe "Api::V1::Inventories", type: :request do
     let!(:inventory) { create(:inventory) }
 
     context "when the inventory exists" do
-      it "deletes the inventory" do
+      it "archives the inventory" do
         expect {
           delete api_v1_inventory_path(inventory), headers: headers
-        }.to change(Inventory, :count).by(-1)
+          inventory.reload
+        }.to change { inventory.status }.from("active").to("archived")
 
         expect(response).to have_http_status(:no_content)
       end

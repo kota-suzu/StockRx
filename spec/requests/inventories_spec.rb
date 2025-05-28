@@ -13,7 +13,10 @@ RSpec.describe "Inventories", type: :request do
       name: "テスト医薬品",
       status: "active",
       quantity: 100,
-      price: 1500
+      price: 1500,
+      category: "処方薬",
+      unit: "錠",
+      minimum_stock: 50
     }
   end
 
@@ -32,10 +35,32 @@ RSpec.describe "Inventories", type: :request do
     end
 
     context "with JSON format" do
-      it "returns JSON response" do
+      let!(:active_inventory) { create(:inventory, name: 'アスピリン', quantity: 100, price: 500, status: 'active') }
+      let!(:low_inventory) { create(:inventory, name: 'アセトアミノフェン', quantity: 0, price: 300, status: 'active') }
+      let!(:archived_inventory) { create(:inventory, name: '過去商品', quantity: 5, price: 1000, status: 'archived') }
+
+      before do
+        create(:batch, inventory: active_inventory, lot_code: 'LOT001', quantity: 50, expires_on: 1.year.from_now)
+        create(:batch, inventory: active_inventory, lot_code: 'LOT002', quantity: 50, expires_on: 2.months.from_now)
+        create(:batch, inventory: low_inventory, lot_code: 'LOT003', quantity: 0, expires_on: 1.month.from_now)
+      end
+
+      it "returns JSON response with decorated attributes" do
         get inventories_path, headers: { "Accept" => "application/json" }
         expect(response).to have_http_status(:ok)
         expect(response.content_type).to match(/application\/json/)
+
+        json = JSON.parse(response.body)
+        expect(json).to be_an(Array)
+        expect(json.size).to eq(3)
+
+        # 在庫切れ商品のalert_statusがlowになっていることを確認
+        low_stock_item = json.find { |item| item['name'] == 'アセトアミノフェン' }
+        expect(low_stock_item['alert_status']).to eq('low')
+
+        # 正常在庫のalert_statusがokになっていることを確認
+        normal_stock_item = json.find { |item| item['name'] == 'アスピリン' }
+        expect(normal_stock_item['alert_status']).to eq('ok')
       end
     end
   end
@@ -51,9 +76,11 @@ RSpec.describe "Inventories", type: :request do
     end
 
     context "when the inventory does not exist" do
-      it "returns 404 for non-existent resource" do
+      it "redirects to 404 error page" do
         get inventory_path(id: "non-existent-id")
-        expect(response).to have_http_status(:not_found)
+        expect(response).to redirect_to(error_path(code: 404))
+        follow_redirect!
+        expect(response.body).to include("ページが見つかりません")
       end
 
       context "with JSON format" do
@@ -157,11 +184,11 @@ RSpec.describe "Inventories", type: :request do
     end
 
     context "when the inventory does not exist" do
-      it "returns 404" do
+      it "redirects to 404 error page" do
         patch inventory_path(id: "non-existent-id"),
               params: { inventory: new_attributes }
 
-        expect(response).to have_http_status(:not_found)
+        expect(response).to redirect_to(error_path(code: 404))
       end
     end
   end
@@ -187,9 +214,9 @@ RSpec.describe "Inventories", type: :request do
     end
 
     context "when the inventory does not exist" do
-      it "returns 404" do
+      it "redirects to 404 error page" do
         delete inventory_path(id: "non-existent-id")
-        expect(response).to have_http_status(:not_found)
+        expect(response).to redirect_to(error_path(code: 404))
       end
     end
   end

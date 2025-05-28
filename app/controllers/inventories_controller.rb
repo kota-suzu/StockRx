@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 class InventoriesController < ApplicationController
-  include ErrorHandlers
-
   before_action :authenticate_admin!
   before_action :set_inventory, only: %i[show edit update destroy]
 

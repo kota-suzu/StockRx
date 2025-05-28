@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "tmpdir"
+
 # ============================================
 # 在庫CSVインポートジョブ
 # ============================================
@@ -152,7 +154,8 @@ class ImportInventoriesJob < ApplicationJob
     allowed_directories = [
       Rails.root.join("tmp").to_s,
       Rails.root.join("storage").to_s,
-      "/tmp"
+      "/tmp",
+      Dir.tmpdir  # システムテンポラリディレクトリ（テスト環境用）
     ].map { |dir| File.expand_path(dir) }
 
     unless allowed_directories.any? { |dir| normalized_path.start_with?(dir) }
@@ -459,6 +462,8 @@ class ImportInventoriesJob < ApplicationJob
 
   # ============================================
   # TODO: 将来的な機能拡張（優先度：高）
+  # 期限：3週間以内
+  # 関連：docs/development_plan.md - CSV一括インポート機能の安定性向上
   # ============================================
   # 1. インポートのプレビュー機能
   #    - 最初の10行を表示して確認

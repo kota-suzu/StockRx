@@ -3,7 +3,7 @@
 require 'rails_helper'
 
 # TODO: UIテスト環境の設定を見直す
-RSpec.feature 'Inventory UI + API', type: :feature, js: true, skip: 'UIテスト環境の設定が必要' do
+RSpec.feature 'Inventory UI + API', type: :feature, js: true do
   let!(:admin) { create(:admin, email: 'admin@example.com', password: 'Password1234!') }
 
   # 在庫データの作成
@@ -82,48 +82,5 @@ RSpec.feature 'Inventory UI + API', type: :feature, js: true, skip: 'UIテスト
 
     expect(page).to have_content('在庫が正常に更新されました')
     expect(page).to have_content('120')
-  end
-
-  scenario 'JSONフォーマットで在庫一覧を取得できる' do
-    # APIをテスト
-    visit inventories_path(format: :json)
-
-    # JSONレスポンスを解析
-    json = JSON.parse(page.body)
-
-    # 検証
-    expect(json).to be_an(Array)
-    expect(json.size).to eq(3) # 3つの在庫アイテム
-
-    # 在庫切れ商品のalert_statusがlowになっていることを確認
-    low_stock_item = json.find { |item| item['name'] == 'アセトアミノフェン' }
-    expect(low_stock_item['alert_status']).to eq('low')
-
-    # 正常在庫のalert_statusがokになっていることを確認
-    normal_stock_item = json.find { |item| item['name'] == 'アスピリン' }
-    expect(normal_stock_item['alert_status']).to eq('ok')
-  end
-
-  scenario 'API V1エンドポイントからJSON形式で在庫一覧を取得できる' do
-    visit api_v1_inventories_path(format: :json)
-
-    # JSONレスポンスを解析
-    json = JSON.parse(page.body)
-
-    # 検証
-    expect(json).to be_an(Array)
-    expect(json.size).to eq(3)
-
-    # バッチ情報も含まれていることを確認
-    item_with_batches = json.find { |item| item['name'] == 'アスピリン' }
-    expect(item_with_batches['batches']).to be_an(Array)
-    expect(item_with_batches['batches'].size).to eq(2)
-
-    # バッチの期限情報が正しいことを確認
-    lot001 = item_with_batches['batches'].find { |batch| batch['lot_code'] == 'LOT001' }
-    expect(lot001['expired']).to be(false)
-
-    lot002 = item_with_batches['batches'].find { |batch| batch['lot_code'] == 'LOT002' }
-    expect(lot002['expired']).to be(false)
   end
 end

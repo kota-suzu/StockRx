@@ -44,14 +44,17 @@ class ExternalApiSyncJob < ApplicationJob
   sidekiq_options retry: 5, backtrace: true, queue: :default
 
   # API別のリトライ戦略
-  retry_on Net::TimeoutError, wait: :exponentially_longer, attempts: 5
+  # Note: Ruby 3.3+では Net::TimeoutError は Timeout::Error に統合されました
+  retry_on Timeout::Error, wait: :exponentially_longer, attempts: 5
   retry_on Net::OpenTimeout, wait: 30.seconds, attempts: 3
-  retry_on Faraday::ConnectionFailed, wait: 60.seconds, attempts: 3
   retry_on JSON::ParserError, attempts: 2
 
-  # 回復不可能なエラーは即座に破棄
-  discard_on Faraday::UnauthorizedError
-  discard_on Faraday::ForbiddenError
+  # TODO: 外部API実装時に有効化（優先度：高）
+  # 現在未実装のため、Faraday依存のエラーハンドリングはコメントアウト
+  # Gemfileにfaradayを追加後、以下を有効化:
+  # retry_on Faraday::ConnectionFailed, wait: 60.seconds, attempts: 3
+  # discard_on Faraday::UnauthorizedError
+  # discard_on Faraday::ForbiddenError
 
   # @param api_provider [String] API提供者名（例：'supplier_a', 'accounting_system'）
   # @param sync_type [String] 同期種別（例：'inventory', 'orders', 'prices'）
@@ -182,7 +185,8 @@ class ExternalApiSyncJob < ApplicationJob
     retries = 0
 
     begin
-      # TODO: 実際のHTTPクライアント実装
+      # TODO: 実際のHTTPクライアント実装（優先度：高）
+      # Gemfileにfaradayを追加後、以下を実装:
       # Faraday.get(url, headers)
       { status: "mock_response" }
 
@@ -252,7 +256,7 @@ class ExternalApiSyncJob < ApplicationJob
   #     'Content-Type' => 'application/json'
   #   }
   #
-  #   response = Faraday.get(url, options, headers)
+  #   response = Faraday.get(url, options, headers)  # Gemfileにfaraday追加後に使用
   #   JSON.parse(response.body)
   # end
   #
