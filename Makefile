@@ -11,7 +11,7 @@ COMPOSE          := docker compose
 WEB_RUN          := $(COMPOSE) run --rm web
 WEB_UP           := $(COMPOSE) up -d
 HTTP_PORT        ?= 3000
-RSPEC            := $(WEB_RUN) bundle exec rspec
+RSPEC            := $(WEB_RUN) -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db bundle exec rspec
 BUNDLE           := $(WEB_RUN) bundle
 CURL             := curl -s -o /dev/null
 
@@ -30,7 +30,7 @@ endef
 
 # --------------------------- PHONY ターゲット ------------------------------
 .PHONY: build up down restart server logs ps clean \
-        db-create db-migrate db-reset db-seed db-setup \
+        db-create db-migrate db-reset db-seed db-setup db-test-prepare db-test-migrate \
         setup bundle-install test rspec \
         test-fast test-models test-requests test-jobs test-features test-integration \
         test-failed test-parallel test-coverage test-profile test-skip-heavy \
@@ -91,6 +91,13 @@ db-seed     : db-seed
 
 db-setup    : db-setup
 
+# テスト環境専用コマンド
+db-test-prepare:
+	$(WEB_RUN) -e RAILS_ENV=test -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db bin/rails db:test:prepare
+
+db-test-migrate:
+	$(WEB_RUN) -e RAILS_ENV=test -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db bin/rails db:migrate
+
 # --------------------------- テスト ----------------------------------------
 # 共通関数
 define run_rspec
@@ -102,10 +109,10 @@ endef
 TEST_DOC      := documentation
 TEST_PROGRESS := progress
 
-test: rspec
+test: db-test-prepare rspec
 
 rspec:
-	$(RSPEC)
+	$(WEB_RUN) -e TEST_DATABASE_HOST=db -e DATABASE_HOST=db bundle exec rspec
 
 test-fast:
 	$(call run_rspec,高速, spec/models spec/requests spec/helpers spec/decorators spec/validators, $(TEST_PROGRESS))
