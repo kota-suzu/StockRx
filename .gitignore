@@ -33,3 +33,203 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+# =================
+# 追加: AI関連ディレクトリ
+# =================
+/.claude/
+/.gemini/
+/.openai/
+/.anthropic/
+
+# =================
+# 追加: エディタ/IDE固有ファイル
+# =================
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# RubyMine/IntelliJ
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Atom
+.atom/
+
+# =================
+# 追加: OS固有ファイル
+# =================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =================
+# 追加: Ruby/Rails固有
+# =================
+# Ruby LSP
+/.ruby-lsp/
+
+# Byebug
+.byebug_history
+
+# RSpec
+/spec/examples.txt
+/spec/tmp/
+
+# Coverage reports
+/coverage/
+/coverage.json
+
+# Capybara screenshots
+/tmp/capybara/
+
+# SimpleCov
+/coverage/
+
+# Yard documentation
+/.yardoc/
+/doc/
+/rdoc/
+
+# RDoc
+/doc/
+/rdoc/
+
+# =================
+# 追加: Node.js関連（フロントエンド用）
+# =================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# =================
+# 追加: データベースファイル
+# =================
+*.sqlite
+*.sqlite3
+*.db
+
+# =================
+# 追加: バックアップ・一時ファイル
+# =================
+/backup/
+*.backup
+*.bak
+*.orig
+*.rej
+*.patch
+
+# =================
+# 追加: 開発ツール関連
+# =================
+# Docker
+.dockerignore.bak
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Vagrant
+.vagrant/
+
+# =================
+# 追加: ログ・デバッグファイル
+# =================
+*.log
+*.out
+*.err
+debug.log
+error.log
+
+# =================
+# 追加: キャッシュファイル
+# =================
+.cache/
+*.cache
+
+# =================
+# 追加: コンパイル済みファイル
+# =================
+*.rbc
+*.sassc
+.sass-cache/
+/vendor/assets/bower_components/
+
+# =================
+# 追加: テストファイル
+# =================
+/.testrun/
+
+# =================
+# 追加: セキュリティ関連
+# =================
+*.pem
+*.key
+*.crt
+*.p12
+/config/secrets.yml
+/config/database.yml.local
+secret_key_base.txt
