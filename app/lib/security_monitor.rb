@@ -14,21 +14,32 @@ class SecurityMonitor
   # ============================================
 
   # 異常アクセスパターンの閾値
-  SUSPICIOUS_THRESHOLDS = {
-    rapid_requests: 100,        # 1分間のリクエスト数
-    failed_logins: 5,           # 連続ログイン失敗数
-    unique_user_agents: 10,     # 異なるUser-Agentの数（同一IP）
-    request_size: 10.megabytes, # 異常に大きなリクエストサイズ
-    response_time: 30.seconds   # 異常に遅いレスポンス時間
-  }.freeze
+  SuspiciousThreshold = Struct.new(:rapid_requests, :failed_logins, :unique_user_agents, :request_size, :response_time) do
+    def self.default
+      new(
+        100,            # 1分間のリクエスト数
+        5,              # 連続ログイン失敗数
+        10,             # 異なるUser-Agentの数（同一IP）
+        10.megabytes,   # 異常に大きなリクエストサイズ
+        30.seconds      # 異常に遅いレスポンス時間
+      )
+    end
+  end
 
   # ブロック期間（分）
-  BLOCK_DURATIONS = {
-    suspicious_ip: 60,          # 疑わしいIP
-    brute_force: 120,           # ブルートフォース攻撃
-    sql_injection: 1440,        # SQLインジェクション試行（24時間）
-    path_traversal: 720         # パストラバーサル攻撃（12時間）
-  }.freeze
+  BlockDuration = Struct.new(:suspicious_ip, :brute_force, :sql_injection, :path_traversal) do
+    def self.default_minutes
+      new(
+        60,             # 疑わしいIP
+        120,            # ブルートフォース攻撃
+        1440,           # SQLインジェクション試行（24時間）
+        720             # パストラバーサル攻撃（12時間）
+      )
+    end
+  end
+
+  SUSPICIOUS_THRESHOLDS = SuspiciousThreshold.default.freeze
+  BLOCK_DURATIONS = BlockDuration.default_minutes.freeze
 
   # ============================================
   # 異常アクセスパターンの検出
