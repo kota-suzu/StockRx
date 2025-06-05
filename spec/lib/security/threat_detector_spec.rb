@@ -6,7 +6,7 @@ RSpec.describe Security::ThreatDetector do
   let(:config) { Security::SecurityConfig.instance }
   let(:storage) { instance_double(Security::SecurityStorage) }
   let(:detector) { described_class.new(config: config, storage: storage) }
-  
+
   let(:mock_request) do
     double('request',
       user_agent: 'Mozilla/5.0',
@@ -100,19 +100,19 @@ RSpec.describe Security::ThreatDetector do
 
   describe '#determine_severity' do
     it 'returns critical for SQL injection' do
-      expect(detector.determine_severity([:sql_injection])).to eq(:critical)
+      expect(detector.determine_severity([ :sql_injection ])).to eq(:critical)
     end
 
     it 'returns critical for path traversal' do
-      expect(detector.determine_severity([:path_traversal])).to eq(:critical)
+      expect(detector.determine_severity([ :path_traversal ])).to eq(:critical)
     end
 
     it 'returns high for rapid requests with multiple threats' do
-      expect(detector.determine_severity([:rapid_requests, :large_request])).to eq(:high)
+      expect(detector.determine_severity([ :rapid_requests, :large_request ])).to eq(:high)
     end
 
     it 'returns medium for single non-critical threat' do
-      expect(detector.determine_severity([:suspicious_user_agent])).to eq(:medium)
+      expect(detector.determine_severity([ :suspicious_user_agent ])).to eq(:medium)
     end
   end
 end

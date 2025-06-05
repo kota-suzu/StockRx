@@ -16,7 +16,7 @@ module Security
 
     def track_login_attempt(ip_address, email, success:, user_agent: nil)
       context = build_login_context(ip_address, email, user_agent)
-      
+
       if success
         handle_successful_login(context)
       else
@@ -41,10 +41,10 @@ module Security
     def handle_successful_login(context)
       ip_address = context[:ip_address]
       email = context[:email]
-      
+
       # 失敗カウントをリセット
       storage.reset_failed_logins(ip_address, email)
-      
+
       # 成功イベントを記録
       event_handler.handle_login_threat(:successful_login, context)
     end
@@ -52,11 +52,11 @@ module Security
     def handle_failed_login(context)
       ip_address = context[:ip_address]
       email = context[:email]
-      
+
       # 失敗カウントを増加
       failed_count = storage.increment_failed_logins(ip_address, email)
       context[:failed_count] = failed_count
-      
+
       # 閾値チェック
       if failed_count >= config.thresholds.failed_logins
         handle_brute_force_detection(context)
@@ -76,7 +76,7 @@ module Security
         email: email,
         user_agent: user_agent,
         timestamp: Time.current.iso8601,
-        source: 'login_tracker'
+        source: "login_tracker"
       }
     end
   end

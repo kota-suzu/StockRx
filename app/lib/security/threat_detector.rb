@@ -39,7 +39,7 @@ module Security
 
     def detect_threats(request)
       client_ip = extract_client_ip(request)
-      
+
       # ホワイトリストIPの場合はスキップ
       return [] if whitelisted_ip?(client_ip)
 
@@ -92,7 +92,7 @@ module Security
     def build_content_string(request)
       query_string = request.query_string
       request_body = extract_request_body(request)
-      [query_string, request_body, request.path].compact.join(" ")
+      [ query_string, request_body, request.path ].compact.join(" ")
     end
 
     def extract_request_body(request)

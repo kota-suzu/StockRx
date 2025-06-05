@@ -11,7 +11,7 @@ module Security
 
     def handle_threat(threat_type, context)
       severity = determine_severity_from_context(context)
-      
+
       case severity
       when :critical
         handle_critical_threat(context)
@@ -42,30 +42,30 @@ module Security
     def handle_critical_threat(context)
       ip_address = context[:ip]
       threats = context[:threats] || []
-      
+
       duration = determine_block_duration(threats)
       storage.block_ip(ip_address, :critical_threat, duration)
-      
+
       log_security_event(:critical_threat_blocked, context.merge(
         action_taken: "blocked",
         duration_minutes: duration
       ))
-      
+
       notify_security_team(:critical_threat, context)
     end
 
     def handle_high_threat(context)
       ip_address = context[:ip]
       threats = context[:threats] || []
-      
+
       duration = config.block_durations.high_threat
       storage.block_ip(ip_address, :high_threat, duration)
-      
+
       log_security_event(:high_threat_blocked, context.merge(
         action_taken: "blocked",
         duration_minutes: duration
       ))
-      
+
       notify_security_team(:high_threat, context)
     end
 
@@ -73,7 +73,7 @@ module Security
       log_security_event(:suspicious_activity, context.merge(
         action_taken: "logged"
       ))
-      
+
       # 中レベル脅威は監視のみ（ブロックしない）
       notify_security_team(:medium_threat, context)
     end
@@ -81,30 +81,30 @@ module Security
     def handle_brute_force_attack(context)
       ip_address = context[:ip_address]
       duration = config.block_durations.brute_force
-      
+
       storage.block_ip(ip_address, :brute_force, duration)
-      
+
       log_security_event(:brute_force_blocked, context.merge(
         action_taken: "blocked",
         duration_minutes: duration
       ))
-      
+
       notify_security_team(:brute_force_attack, context)
     end
 
     def handle_successful_login(context)
       ip_address = context[:ip_address]
       email = context[:email]
-      
+
       # 失敗ログインカウントをリセット
       storage.reset_failed_logins(ip_address, email)
-      
+
       log_security_event(:successful_login, context)
     end
 
     def handle_failed_login(context)
       log_security_event(:failed_login, context)
-      
+
       # 失敗回数が閾値を超えた場合は別途通知
       failed_count = context[:failed_count] || 0
       if failed_count >= config.thresholds.failed_logins
@@ -115,7 +115,7 @@ module Security
     def determine_severity_from_context(context)
       threats = context[:threats] || []
       return context[:severity] if context[:severity]
-      
+
       return :critical if critical_threats?(threats)
       return :high if high_threats?(threats)
       :medium
@@ -137,13 +137,13 @@ module Security
 
     def log_security_event(event_type, details)
       log_level = determine_log_level(event_type)
-      
+
       log_data = {
         event: "security_#{event_type}",
         timestamp: Time.current.iso8601,
         **details
       }
-      
+
       case log_level
       when :fatal
         Rails.logger.fatal(log_data.to_json)
@@ -161,14 +161,14 @@ module Security
       # AdminNotificationService.security_alert(notification_type, details)
       # SlackNotificationService.send_alert(notification_type, details)
       # EmailNotificationService.send_security_alert(notification_type, details)
-      
+
       notification_data = {
         event: "security_notification",
         notification_type: notification_type,
         timestamp: Time.current.iso8601,
         **details
       }
-      
+
       Rails.logger.warn(notification_data.to_json)
     end
 

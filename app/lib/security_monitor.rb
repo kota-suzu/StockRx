@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_relative 'security/security_config'
-require_relative 'security/threat_detector'
-require_relative 'security/security_storage'
-require_relative 'security/security_event_handler'
-require_relative 'security/login_tracker'
+require_relative "security/security_config"
+require_relative "security/threat_detector"
+require_relative "security/security_storage"
+require_relative "security/security_event_handler"
+require_relative "security/login_tracker"
 
 # ============================================
 # Security Monitor System - Refactored
@@ -49,7 +49,7 @@ class SecurityMonitor
     if threats.any?
       severity = detector.determine_severity(threats)
       client_ip = extract_client_ip(request)
-      
+
       context = {
         ip: client_ip,
         threats: threats,

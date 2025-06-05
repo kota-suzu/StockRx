@@ -58,7 +58,7 @@ RSpec.describe SecurityMonitor do
     context 'when threats are detected' do
       before do
         allow(monitor.storage).to receive(:is_blocked?).and_return(false)
-        allow(monitor.detector).to receive(:detect_threats).and_return([:sql_injection])
+        allow(monitor.detector).to receive(:detect_threats).and_return([ :sql_injection ])
         allow(monitor.detector).to receive(:determine_severity).and_return(:critical)
         allow(monitor.event_handler).to receive(:handle_threat)
         allow(monitor.storage).to receive(:update_statistics)
@@ -67,7 +67,7 @@ RSpec.describe SecurityMonitor do
       it 'handles the threat through event handler' do
         expect(monitor.event_handler).to receive(:handle_threat).with(:critical, hash_including(
           ip: '192.168.1.1',
-          threats: [:sql_injection],
+          threats: [ :sql_injection ],
           severity: :critical
         ))
         monitor.analyze_request(mock_request)
@@ -79,7 +79,7 @@ RSpec.describe SecurityMonitor do
     it 'delegates to login tracker' do
       expect(monitor.login_tracker).to receive(:track_login_attempt)
         .with('192.168.1.1', 'user@example.com', success: true, user_agent: 'Mozilla/5.0')
-      
+
       monitor.track_login_attempt('192.168.1.1', 'user@example.com', success: true, user_agent: 'Mozilla/5.0')
     end
   end
@@ -112,7 +112,7 @@ RSpec.describe SecurityMonitor do
     it 'delegates track_login_attempt to instance' do
       expect_any_instance_of(SecurityMonitor).to receive(:track_login_attempt)
         .with('192.168.1.1', 'user@example.com', success: true, user_agent: nil)
-      
+
       SecurityMonitor.track_login_attempt('192.168.1.1', 'user@example.com', success: true)
     end
 

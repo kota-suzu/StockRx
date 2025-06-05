@@ -42,7 +42,7 @@ module Security
       begin
         block_key = "#{config.redis_keys[:blocked]}:#{reason}:#{ip_address}"
         block_data = build_block_data(reason, duration_minutes)
-        
+
         redis.setex(block_key, duration_minutes * 60, block_data.to_json)
         true
       rescue => e

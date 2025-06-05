@@ -67,7 +67,7 @@ module Security
     def whitelist_ips
       @whitelist_ips ||= [
         "127.0.0.1",     # localhost
-        "::1",           # IPv6 localhost
+        "::1"           # IPv6 localhost
         # TODO: 環境設定から読み込み
       ].freeze
     end
