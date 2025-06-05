@@ -4,6 +4,13 @@ module Security
   class LoginTracker
     attr_reader :config, :storage, :event_handler
 
+    # TODO: 2FA対応・認証機能強化（優先度：緒急）
+    # REF: docs/development_plan.md - APIセキュリティ強化
+    # 検討項目：
+    # - 多要素認証の統合（TOTP、SMS、バイオメトリクス）
+    # - JWTトークンベース認証への移行検討
+    # - セッションハイジャック対策とセキュアクッキー管理
+
     def initialize(
       config: SecurityConfig.instance,
       storage: nil,

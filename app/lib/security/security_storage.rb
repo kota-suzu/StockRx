@@ -4,6 +4,13 @@ module Security
   class SecurityStorage
     attr_reader :config
 
+    # TODO: キャッシュ戦略の最適化（優先度：中）
+    # REF: docs/development_plan.md - キャッシュ戦略
+    # 検討項目：
+    # - Redis接続プールの最適化
+    # - キーの期限管理戦略の整備
+    # - レプリケーション対応での読み書き分離
+
     def initialize(config: SecurityConfig.instance)
       @config = config
     end

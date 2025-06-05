@@ -159,9 +159,12 @@ module Security
     def notify_security_team(notification_type, details)
       # TODO: 実際の通知システム（Slack、メール等）との連携（優先度：高）
       # REF: docs/development_plan.md - 監視・アラート機能
-      # AdminNotificationService.security_alert(notification_type, details)
-      # SlackNotificationService.send_alert(notification_type, details)
-      # EmailNotificationService.send_security_alert(notification_type, details)
+      # 実装予定サービス：
+      # - AdminNotificationService.security_alert(notification_type, details)
+      # - SlackNotificationService.send_alert(notification_type, details)
+      # - EmailNotificationService.send_security_alert(notification_type, details)
+      # - PagerDutyService.send_incident(notification_type, details) # 緒急時
+      # - SentryService.capture_security_event(notification_type, details) # エラー追跡
 
       notification_data = {
         event: "security_notification",

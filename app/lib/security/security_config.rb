@@ -70,7 +70,10 @@ module Security
         "::1"           # IPv6 localhost
         # TODO: 環境設定から読み込み（優先度：中）
         # REF: docs/development_plan.md - セキュリティ・コンプライアンス強化
-        # ENV['WHITELIST_IPS']&.split(',') || []
+        # 実装検討項目：
+        # - ENV['WHITELIST_IPS']&.split(',') || []
+        # - YAML設定ファイルからの読み込み
+        # - 管理画面での動的設定変更機能
       ].freeze
     end
 

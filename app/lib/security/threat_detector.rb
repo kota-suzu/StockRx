@@ -4,6 +4,13 @@ module Security
   class ThreatDetector
     attr_reader :config, :storage
 
+    # TODO: 機械学習での異常検知機能強化（優先度：中）
+    # REF: docs/development_plan.md - セキュリティ・コンプライアンス強化
+    # 検討項目：
+    # - 正常アクセスパターンの学習機能
+    # - リアルタイムスコアリングシステム
+    # - 偽陽性削減のための適応型闾値調整
+
     # 既知の攻撃ツールのUser-Agentパターン
     SUSPICIOUS_USER_AGENTS = [
       /sqlmap/i, /nikto/i, /nmap/i, /masscan/i,
