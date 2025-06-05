@@ -42,14 +42,14 @@ class SearchQuery
       # TODO: 検索結果のキャッシュ機能を実装
       # cache_key = generate_cache_key(params)
       # Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
-      
+
       # 複雑な検索条件が含まれている場合はAdvancedSearchQueryを使用
       if complex_search_required?(params)
         advanced_search(params)
       else
         simple_search(params)
       end
-      
+
       # end # キャッシュブロック終了
     rescue ArgumentError => e
       # バリデーションエラーは再発生させる

@@ -2,6 +2,31 @@
 
 # 高度な検索機能を提供するサービスクラス
 # Ransackを使用せずに、複雑な検索条件（OR/AND混在、ポリモーフィック関連、クロステーブル検索）を実装
+#
+# TODO: パフォーマンス最適化
+# - 検索結果のキャッシュ機能（Redis活用）
+# - インデックス最適化の推奨事項の実装
+# - N+1クエリ問題の検出と改善
+# - ページネーション改善（カーソルベース）
+#
+# TODO: 機能拡張
+# - フルテキスト検索対応（ElasticsearchまたはMroonga）
+# - 保存検索機能（よく使う検索条件の保存）
+# - 検索履歴機能
+# - 検索結果のエクスポート機能（CSV/Excel/PDF）
+# - リアルタイム検索機能（WebSocket）
+#
+# TODO: セキュリティ強化
+# - より詳細な入力値バリデーション
+# - SQLインジェクション対策の強化
+# - フィールド名のホワイトリスト化の完全実装
+# - 権限に基づくデータフィルタリング
+#
+# TODO: 監視とメトリクス
+# - 検索クエリのパフォーマンス監視
+# - 人気検索キーワードの分析
+# - 検索エラー率の追跡
+# - 検索実行時間の測定
 class AdvancedSearchQuery
   attr_reader :base_scope, :joins_applied, :distinct_applied
 
@@ -59,19 +84,28 @@ class AdvancedSearchQuery
   end
 
   # キーワード検索（複数フィールドを対象）
-  def search_keywords(keyword, fields: [ :name, :description ])
+  def search_keywords(keyword, fields: [ :name ])
     return self if keyword.blank?
 
-    conditions = fields.map do |field|
-      "#{field} LIKE :keyword"
+    # カラム名をホワイトリストで検証（実際に存在するカラムのみ）
+    allowed_fields = %w[name].freeze
+    safe_fields = fields.select { |field| allowed_fields.include?(field.to_s) }
+    return self if safe_fields.empty?
+
+    conditions = safe_fields.map do |field|
+      "#{field} LIKE ?"
     end.join(" OR ")
 
-    where("(#{conditions})", keyword: "%#{keyword}%")
+    where("(#{conditions})", *([ "%#{keyword}%" ] * safe_fields.size))
   end
 
   # 日付範囲検索
   def between_dates(field, from, to)
     return self if from.blank? && to.blank?
+
+    # カラム名をホワイトリストで検証
+    allowed_date_fields = %w[created_at updated_at expires_on receipt_date scheduled_date].freeze
+    return self unless allowed_date_fields.include?(field.to_s)
 
     if from.present? && to.present?
       where("#{field} BETWEEN ? AND ?", from, to)
@@ -85,6 +119,10 @@ class AdvancedSearchQuery
   # 数値範囲検索
   def in_range(field, min, max)
     return self if min.blank? && max.blank?
+
+    # カラム名をホワイトリストで検証
+    allowed_numeric_fields = %w[quantity cost price weight].freeze
+    return self unless allowed_numeric_fields.include?(field.to_s)
 
     if min.present? && max.present?
       where("#{field} BETWEEN ? AND ?", min, max)
@@ -175,7 +213,7 @@ class AdvancedSearchQuery
   # 特定ユーザーが操作した商品
   def modified_by_user(user_id)
     ensure_join(:inventory_logs)
-    where("inventory_logs.user_id = ?", user_id)
+    where("inventory_logs.admin_id = ?", user_id)
   end
 
   # ソート
@@ -262,8 +300,8 @@ class AdvancedSearchQuery
       self
     end
 
-    def where(conditions)
-      @base_scope = @base_scope.where(conditions)
+    def where(*args)
+      @base_scope = @base_scope.where(*args)
       self
     end
   end
@@ -302,11 +340,11 @@ class AdvancedSearchQuery
     end
 
     def action_type(type)
-      @scope = @scope.where("inventory_logs.action = ?", type)
+      @scope = @scope.where("inventory_logs.operation_type = ?", type)
     end
 
     def quantity_changed_by(amount)
-      @scope = @scope.where("inventory_logs.quantity_change = ?", amount)
+      @scope = @scope.where("inventory_logs.delta = ?", amount)
     end
 
     def changed_after(date)
@@ -314,7 +352,7 @@ class AdvancedSearchQuery
     end
 
     def by_user(user_id)
-      @scope = @scope.where("inventory_logs.user_id = ?", user_id)
+      @scope = @scope.where("inventory_logs.admin_id = ?", user_id)
     end
 
     def apply_to(base_scope)
@@ -329,7 +367,7 @@ class AdvancedSearchQuery
     end
 
     def status(status)
-      @scope = @scope.where("shipments.status = ?", status)
+      @scope = @scope.where("shipments.shipment_status = ?", status)
     end
 
     def destination_like(destination)
@@ -356,7 +394,7 @@ class AdvancedSearchQuery
     end
 
     def status(status)
-      @scope = @scope.where("receipts.status = ?", status)
+      @scope = @scope.where("receipts.receipt_status = ?", status)
     end
 
     def source_like(source)
@@ -368,7 +406,7 @@ class AdvancedSearchQuery
     end
 
     def cost_range(min, max)
-      @scope = @scope.where("receipts.cost BETWEEN ? AND ?", min, max)
+      @scope = @scope.where("receipts.cost_per_unit BETWEEN ? AND ?", min, max)
     end
 
     def apply_to(base_scope)

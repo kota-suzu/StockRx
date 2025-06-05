@@ -21,8 +21,8 @@ RSpec.describe AdvancedSearchQuery do
   let!(:log2) { create(:inventory_log, inventory: inventory2, admin: user2, operation_type: "remove", delta: -5) }
 
   # 出荷・入荷データ
-  let!(:shipment1) { create(:shipment, inventory: inventory1, status: "shipped", destination: "Tokyo", tracking_number: "TRACK001") }
-  let!(:receipt1) { create(:receipt, inventory: inventory2, status: "received", source: "Supplier A", cost: 1000.0) }
+  let!(:shipment1) { create(:shipment, inventory: inventory1, shipment_status: "shipped", destination: "Tokyo", tracking_number: "TRACK001") }
+  let!(:receipt1) { create(:receipt, inventory: inventory2, receipt_status: "completed", source: "Supplier A", cost_per_unit: 10.0) }
 
   describe ".build" do
     it "creates a new instance with default scope" do
