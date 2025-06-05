@@ -334,9 +334,33 @@ class AdvancedSearchQuery
     end
 
     def or_group(&block)
-      sub_builder = ComplexConditionBuilder.new(Inventory.all)
-      yield(sub_builder) if block_given?
-      @base_scope = @base_scope.or(sub_builder.base_scope)
+      # OR条件グループは空のスコープから開始し、個別の条件をORで結合
+      sub_conditions = []
+
+      # 一時的なビルダーを使用してOR条件を収集
+      temp_builder = Class.new do
+        def initialize
+          @conditions = []
+        end
+
+        def where(*args)
+          @conditions << args
+          self
+        end
+
+        attr_reader :conditions
+      end.new
+
+      yield(temp_builder) if block_given?
+
+      # 収集した条件をORで結合
+      or_scope = nil
+      temp_builder.conditions.each do |condition_args|
+        condition_scope = Inventory.where(*condition_args)
+        or_scope = or_scope ? or_scope.or(condition_scope) : condition_scope
+      end
+
+      @base_scope = @base_scope.merge(or_scope) if or_scope
       self
     end
 
@@ -374,10 +398,14 @@ class AdvancedSearchQuery
     end
 
     def quantity_greater_than(quantity)
-      # Arelを使用してセキュアなクエリ構築
+      # Arelを使用してセキュアなクエリ構築（カラム曖昧性回避）
       batches_table = Batch.arel_table
       @scope = @scope.where(batches_table[:quantity].gt(quantity))
       self
+    end
+
+    def apply_to(base_scope)
+      base_scope.merge(@scope)
     end
 
     private
@@ -387,10 +415,6 @@ class AdvancedSearchQuery
       return "" if input.blank?
       # SQLワイルドカードをエスケープ
       ActiveRecord::Base.sanitize_sql_like(input.to_s)
-    end
-
-    def apply_to(base_scope)
-      base_scope.merge(@scope)
     end
   end
 
@@ -432,7 +456,13 @@ class AdvancedSearchQuery
     end
 
     def status(status)
-      @scope = @scope.where("shipments.shipment_status = ?", status)
+      # Enumの値を数値に変換（Rails enumは内部で数値を使用）
+      status_value = if status.is_a?(String) || status.is_a?(Symbol)
+        Shipment.shipment_statuses[status.to_s]
+      else
+        status
+      end
+      @scope = @scope.where("shipments.shipment_status = ?", status_value)
       self
     end
 
@@ -465,7 +495,13 @@ class AdvancedSearchQuery
     end
 
     def status(status)
-      @scope = @scope.where("receipts.receipt_status = ?", status)
+      # Enumの値を数値に変換（Rails enumは内部で数値を使用）
+      status_value = if status.is_a?(String) || status.is_a?(Symbol)
+        Receipt.receipt_statuses[status.to_s]
+      else
+        status
+      end
+      @scope = @scope.where("receipts.receipt_status = ?", status_value)
       self
     end
 
@@ -523,4 +559,46 @@ class AdvancedSearchQuery
       base_scope.merge(@scope)
     end
   end
+
+  # ============================================
+  # TODO: AdvancedSearchQuery 拡張・改善計画
+  # ============================================
+  # Phase 1（高優先度、2-3日）: パフォーマンス最適化
+  # 1. クエリパフォーマンス最適化
+  #    - N+1クエリの完全排除（includesの活用）
+  #    - インデックス最適化の提案（migration生成）
+  #    - クエリ実行計画の分析ツール統合
+  #    - バッチサイズ最適化（大量データ処理）
+  #
+  # 2. Redis キャッシング戦略
+  #    - 検索結果のキャッシュ（TTL: 5分）
+  #    - 人気検索条件の自動キャッシュ
+  #    - キャッシュ無効化戦略（データ更新時）
+  #    - 分散キャッシュ対応（レプリカ環境）
+  #
+  # Phase 2（中優先度、1週間）: 機能拡張
+  # 3. 全文検索エンジン統合
+  #    - Elasticsearch/Opensearch 統合
+  #    - ファジー検索・類似検索機能
+  #    - 検索スコアリング・ランキング
+  #    - 多言語検索対応（分析器設定）
+  #
+  # 4. 検索履歴・分析機能
+  #    - 検索キーワード履歴の保存
+  #    - 人気検索条件の分析
+  #    - 検索パフォーマンス監視
+  #    - 検索結果の改善提案
+  #
+  # Phase 3（低優先度、2週間）: ユーザー体験向上
+  # 5. リアルタイム検索・オートコンプリート
+  #    - WebSocket活用リアルタイム検索
+  #    - 検索候補の自動補完
+  #    - タイプアヘッド検索（即座に結果表示）
+  #    - 検索フィルターの保存・復元
+  #
+  # 6. 高度な条件構築UI
+  #    - ビジュアルクエリビルダー
+  #    - 条件の組み合わせプレビュー
+  #    - 検索条件のテンプレート化
+  #    - CSVエクスポート機能統合
 end

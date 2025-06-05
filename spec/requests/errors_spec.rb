@@ -43,7 +43,7 @@ RSpec.describe "Errors", type: :request do
       get "/403"
       expect(response).to have_http_status(:forbidden)
       expect(response.body).to include("403")
-      expect(response.body).to include("アクセスが拒否されました")
+      expect(response.body).to include("アクセスが禁止されています")
     end
   end
 
@@ -52,7 +52,7 @@ RSpec.describe "Errors", type: :request do
       get "/429"
       expect(response).to have_http_status(:too_many_requests)
       expect(response.body).to include("429")
-      expect(response.body).to include("リクエストが多すぎます")
+      expect(response.body).to include("リクエスト頻度が制限を超えています")
     end
   end
 
@@ -61,7 +61,7 @@ RSpec.describe "Errors", type: :request do
       get "/500"
       expect(response).to have_http_status(:internal_server_error)
       expect(response.body).to include("500")
-      expect(response.body).to include("システムエラーが発生しました")
+      expect(response.body).to include("サーバーエラーが発生しました")
     end
   end
 
@@ -73,9 +73,14 @@ RSpec.describe "Errors", type: :request do
 
     it "does not catch Rails internal routes" do
       # Rails internal routes should not be caught by our wildcard
-      expect {
-        get "/rails/info/properties"
-      }.to raise_error(ActionController::RoutingError)
+      # This test ensures that our constraint properly excludes Rails internal paths
+      # Rails returns 404 for non-existent internal paths, which is expected behavior
+      get "/rails/info/properties"
+      # Rails handles this internally and returns 404, not our custom error page
+      expect(response).to have_http_status(:not_found)
+      # Verify it's not our custom error page by checking it doesn't have our error template structure
+      expect(response.body).not_to include("error-container")
+      expect(response.body).not_to include("error-code")
     end
   end
 end

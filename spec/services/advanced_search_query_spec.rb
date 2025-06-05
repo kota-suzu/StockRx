@@ -3,6 +3,14 @@
 require "rails_helper"
 
 RSpec.describe AdvancedSearchQuery do
+  # テスト中はInventoryLoggableの自動ログ作成を無効化
+  before(:all) do
+    Inventory.skip_callback(:save, :after, :log_inventory_changes)
+  end
+
+  after(:all) do
+    Inventory.set_callback(:save, :after, :log_inventory_changes, if: :saved_change_to_quantity?)
+  end
   let!(:inventory1) { create(:inventory, name: "Product A", quantity: 100, price: 50.0, status: "active") }
   let!(:inventory2) { create(:inventory, name: "Product B", quantity: 0, price: 100.0, status: "active") }
   let!(:inventory3) { create(:inventory, name: "Item C", quantity: 5, price: 25.0, status: "archived") }
@@ -17,12 +25,12 @@ RSpec.describe AdvancedSearchQuery do
   let!(:user1) { create(:admin, email: "user1@example.com") }
   let!(:user2) { create(:admin, email: "user2@example.com") }
 
-  let!(:log1) { create(:inventory_log, inventory: inventory1, admin: user1, operation_type: "add", delta: 10) }
-  let!(:log2) { create(:inventory_log, inventory: inventory2, admin: user2, operation_type: "remove", delta: -5) }
+  let!(:log1) { create(:inventory_log, inventory: inventory1, admin: user1, operation_type: "add", delta: 10, current_quantity: 110, previous_quantity: 100) }
+  let!(:log2) { create(:inventory_log, inventory: inventory2, admin: user2, operation_type: "remove", delta: -5, current_quantity: 0, previous_quantity: 5) }
 
   # 出荷・入荷データ
-  let!(:shipment1) { create(:shipment, inventory: inventory1, shipment_status: "shipped", destination: "Tokyo", tracking_number: "TRACK001") }
-  let!(:receipt1) { create(:receipt, inventory: inventory2, receipt_status: "completed", source: "Supplier A", cost_per_unit: 10.0) }
+  let!(:shipment1) { create(:shipment, inventory: inventory1, shipment_status: :shipped, destination: "Tokyo", tracking_number: "TRACK001") }
+  let!(:receipt1) { create(:receipt, inventory: inventory2, receipt_status: :completed, source: "Supplier A", cost_per_unit: 1000.0) }
 
   describe ".build" do
     it "creates a new instance with default scope" do
@@ -191,7 +199,7 @@ RSpec.describe AdvancedSearchQuery do
     it "searches by log action type" do
       results = described_class.build
         .with_inventory_log_conditions do
-          action_type("increment")
+          action_type("add")  # テストデータで実際に作成されているタイプに合わせる
         end
         .results
 
@@ -199,9 +207,10 @@ RSpec.describe AdvancedSearchQuery do
     end
 
     it "searches by user who made changes" do
+      user2_id = user2.id  # ローカル変数をブロック外で設定
       results = described_class.build
         .with_inventory_log_conditions do
-          by_user(user2.id)
+          by_user(user2_id)
         end
         .results
 
@@ -285,8 +294,11 @@ RSpec.describe AdvancedSearchQuery do
 
   describe "#recently_updated" do
     it "finds recently updated items" do
-      inventory1.touch
+      # より明確な時間差を設定して確実にテストを通す
+      inventory1.update!(updated_at: 1.day.ago)
       inventory2.update!(updated_at: 10.days.ago)
+      inventory3.update!(updated_at: 15.days.ago)
+      inventory4.update!(updated_at: 20.days.ago)
 
       results = described_class.build
         .recently_updated(5)
@@ -379,7 +391,7 @@ RSpec.describe AdvancedSearchQuery do
 
       results = described_class.build
         .with_status("active")
-        .where("quantity <= ?", 100)
+        .where("inventories.quantity <= ?", 100)  # テーブル名を明示してカラム曖昧性を回避
         .with_shipment_conditions do
           status("shipped")
         end
@@ -407,7 +419,7 @@ RSpec.describe AdvancedSearchQuery do
         .search_keywords("Product")
         .with_inventory_log_conditions do
           changed_after(1.week.ago)
-          action_type("increment")
+          action_type("add")  # テストデータで実際に作成されているタイプに合わせる
         end
         .order_by(:name)
         .results

@@ -6,6 +6,23 @@ class InventoriesController < ApplicationController
   before_action :authenticate_admin!
   before_action :set_inventory, only: %i[show edit update destroy]
 
+  # RecordNotFoundエラーを適切にハンドリング
+  rescue_from ActiveRecord::RecordNotFound do |exception|
+    respond_to do |format|
+      format.html {
+        @status = 404
+        @message = "在庫が見つかりませんでした"
+        render "errors/show", status: :not_found, layout: "error"
+      }
+      format.json {
+        render json: {
+          code: "resource_not_found",
+          message: "指定されたリソースが見つかりませんでした"
+        }, status: :not_found
+      }
+    end
+  end
+
   # GET /inventories
   def index
     @inventories = SearchQuery.call(search_params).includes(:batches).page(params[:page]).decorate
@@ -138,20 +155,21 @@ class InventoriesController < ApplicationController
   # end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_inventory
-      @inventory = Inventory.find(params[:id]).decorate
-    end
 
-    # Only allow a list of trusted parameters through.
-    def inventory_params
-      params.require(:inventory).permit(:name, :quantity, :price, :status, :category, :unit, :minimum_stock)
-    end
+  # Use callbacks to share common setup or constraints between actions.
+  def set_inventory
+    @inventory = Inventory.find(params[:id]).decorate
+  end
 
-    # 検索パラメータの許可とバリデーション
-    def search_params
-      # 基本的な検索パラメータ
-      permitted_params = params.permit(
+  # Only allow a list of trusted parameters through.
+  def inventory_params
+    params.require(:inventory).permit(:name, :quantity, :price, :status, :category, :unit, :minimum_stock)
+  end
+
+  # 検索パラメータの許可とバリデーション
+  def search_params
+    # 基本的な検索パラメータ
+    permitted_params = params.permit(
         :q, :status, :low_stock, :sort, :direction, :page, :advanced_search,
         # 高度な検索パラメータ
         :stock_filter, :low_stock_threshold,
@@ -164,77 +182,77 @@ class InventoriesController < ApplicationController
         :receipt_status, :source
       )
 
-      # OR条件の配列を安全に処理
-      if params[:or_conditions].is_a?(Array)
-        permitted_params[:or_conditions] = params[:or_conditions].map do |condition|
-          next unless condition.is_a?(Hash)
-          condition.permit(:field, :operator, :value).to_h
-        end.compact
-      end
-
-      # 複雑な条件のハッシュを安全に処理
-      if params[:complex_condition].is_a?(Hash)
-        permitted_params[:complex_condition] = sanitize_complex_condition(params[:complex_condition])
-      end
-
-      # 数値パラメータの検証
-      validate_numeric_params(permitted_params)
-
-      # 日付パラメータの検証
-      validate_date_params(permitted_params)
-
-      permitted_params
+    # OR条件の配列を安全に処理
+    if params[:or_conditions].is_a?(Array)
+      permitted_params[:or_conditions] = params[:or_conditions].map do |condition|
+        next unless condition.is_a?(Hash)
+        condition.permit(:field, :operator, :value).to_h
+      end.compact
     end
 
-    # 複雑な条件を再帰的にサニタイズ
-    def sanitize_complex_condition(condition)
-      return {} unless condition.is_a?(Hash)
-
-      sanitized = {}
-      condition.each do |key, value|
-        next unless %w[and or].include?(key.to_s)
-
-        if value.is_a?(Array)
-          sanitized[key] = value.map do |sub_condition|
-            next unless sub_condition.is_a?(Hash)
-            sub_condition.permit(:field, :operator, :value).to_h
-          end.compact
-        elsif value.is_a?(Hash)
-          sanitized[key] = sanitize_complex_condition(value)
-        end
-      end
-
-      sanitized
+    # 複雑な条件のハッシュを安全に処理
+    if params[:complex_condition].is_a?(Hash)
+      permitted_params[:complex_condition] = sanitize_complex_condition(params[:complex_condition])
     end
 
     # 数値パラメータの検証
-    def validate_numeric_params(params)
-      numeric_fields = [ :low_stock_threshold, :min_price, :max_price, :expiring_days, :updated_days ]
-
-      numeric_fields.each do |field|
-        next unless params[field].present?
-
-        value = params[field].to_f
-        if value < 0
-          params.delete(field)
-        elsif field.to_s.include?("price") && value > 1_000_000
-          params[field] = 1_000_000 # 価格の上限を設定
-        end
-      end
-    end
+    validate_numeric_params(permitted_params)
 
     # 日付パラメータの検証
-    def validate_date_params(params)
-      date_fields = [ :created_from, :created_to, :expires_before, :expires_after ]
+    validate_date_params(permitted_params)
 
-      date_fields.each do |field|
-        next unless params[field].present?
+    permitted_params
+  end
 
-        begin
-          Date.parse(params[field])
-        rescue ArgumentError
-          params.delete(field)
-        end
+  # 複雑な条件を再帰的にサニタイズ
+  def sanitize_complex_condition(condition)
+    return {} unless condition.is_a?(Hash)
+
+    sanitized = {}
+    condition.each do |key, value|
+      next unless %w[and or].include?(key.to_s)
+
+      if value.is_a?(Array)
+        sanitized[key] = value.map do |sub_condition|
+          next unless sub_condition.is_a?(Hash)
+          sub_condition.permit(:field, :operator, :value).to_h
+        end.compact
+      elsif value.is_a?(Hash)
+        sanitized[key] = sanitize_complex_condition(value)
       end
     end
+
+    sanitized
+  end
+
+  # 数値パラメータの検証
+  def validate_numeric_params(params)
+    numeric_fields = [ :low_stock_threshold, :min_price, :max_price, :expiring_days, :updated_days ]
+
+    numeric_fields.each do |field|
+      next unless params[field].present?
+
+      value = params[field].to_f
+      if value < 0
+        params.delete(field)
+      elsif field.to_s.include?("price") && value > 1_000_000
+        params[field] = 1_000_000 # 価格の上限を設定
+      end
+    end
+  end
+
+  # 日付パラメータの検証
+  def validate_date_params(params)
+    date_fields = [ :created_from, :created_to, :expires_before, :expires_after ]
+
+    date_fields.each do |field|
+      next unless params[field].present?
+
+      begin
+        Date.parse(params[field])
+      rescue ArgumentError
+        params.delete(field)
+      end
+    end
+  end
 end

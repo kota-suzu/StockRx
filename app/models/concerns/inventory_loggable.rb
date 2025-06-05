@@ -10,7 +10,8 @@ module InventoryLoggable
   end
 
   # インスタンスメソッド
-  def log_operation(operation_type, delta, note = nil, user_id = nil)
+  # 重要：マイグレーションでuser_id → admin_id に変更済み
+  def log_operation(operation_type, delta, note = nil, admin_id = nil)
     previous_quantity = quantity - delta
 
     inventory_logs.create!(
@@ -18,12 +19,12 @@ module InventoryLoggable
       operation_type: operation_type,
       previous_quantity: previous_quantity,
       current_quantity: quantity,
-      user_id: user_id || (defined?(Current) && Current.respond_to?(:user) ? Current.user&.id : nil),
+      admin_id: admin_id || (defined?(Current) && Current.respond_to?(:admin) ? Current.admin&.id : nil),
       note: note || "手動記録: #{operation_type}"
     )
   end
 
-  def adjust_quantity(new_quantity, note = nil, user_id = nil)
+  def adjust_quantity(new_quantity, note = nil, admin_id = nil)
     delta = new_quantity - quantity
     return if delta.zero?
 
@@ -31,27 +32,27 @@ module InventoryLoggable
 
     with_transaction do
       update!(quantity: new_quantity)
-      log_operation(operation_type, delta, note, user_id)
+      log_operation(operation_type, delta, note, admin_id)
     end
   end
 
-  def add_stock(amount, note = nil, user_id = nil)
+  def add_stock(amount, note = nil, admin_id = nil)
     return false if amount <= 0
 
     with_transaction do
       update!(quantity: quantity + amount)
-      log_operation("add", amount, note || "入庫処理", user_id)
+      log_operation("add", amount, note || "入庫処理", admin_id)
     end
 
     true
   end
 
-  def remove_stock(amount, note = nil, user_id = nil)
+  def remove_stock(amount, note = nil, admin_id = nil)
     return false if amount <= 0 || amount > quantity
 
     with_transaction do
       update!(quantity: quantity - amount)
-      log_operation("remove", -amount, note || "出庫処理", user_id)
+      log_operation("remove", -amount, note || "出庫処理", admin_id)
     end
 
     true
@@ -73,7 +74,7 @@ module InventoryLoggable
       operation_type: determine_operation_type(delta),
       previous_quantity: previous_quantity,
       current_quantity: current_quantity,
-      user_id: defined?(Current) && Current.respond_to?(:user) ? Current.user&.id : nil,
+      admin_id: defined?(Current) && Current.respond_to?(:admin) ? Current.admin&.id : nil,
       note: "自動記録：数量変更"
     )
   rescue => e
