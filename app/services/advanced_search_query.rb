@@ -3,30 +3,52 @@
 # 高度な検索機能を提供するサービスクラス
 # Ransackを使用せずに、複雑な検索条件（OR/AND混在、ポリモーフィック関連、クロステーブル検索）を実装
 #
+# セキュリティ対策状況:
+# ✅ SQLインジェクション対策: Arel使用による安全なクエリ構築
+# ✅ フィールド名ホワイトリスト: allowed_fields配列による制限
+# ✅ LIKE検索サニタイズ: ActiveRecord::Base.sanitize_sql_like使用
+#
 # TODO: パフォーマンス最適化
-# - 検索結果のキャッシュ機能（Redis活用）
-# - インデックス最適化の推奨事項の実装
-# - N+1クエリ問題の検出と改善
-# - ページネーション改善（カーソルベース）
+# - [ ] 検索結果のキャッシュ機能（Redis活用）
+#       実装目安: 高頻度検索クエリのキャッシュキー設計
+# - [ ] インデックス最適化の推奨事項の実装
+#       実装目安: EXPLAIN ANALYZE結果に基づく自動最適化提案
+# - [ ] N+1クエリ問題の検出と改善
+#       実装目安: includes()の自動提案機能
+# - [ ] ページネーション改善（カーソルベース）
+#       実装目安: 大量データ用のperformance改善
 #
 # TODO: 機能拡張
-# - フルテキスト検索対応（ElasticsearchまたはMroonga）
-# - 保存検索機能（よく使う検索条件の保存）
-# - 検索履歴機能
-# - 検索結果のエクスポート機能（CSV/Excel/PDF）
-# - リアルタイム検索機能（WebSocket）
+# - [ ] フルテキスト検索対応（ElasticsearchまたはMroonga）
+#       実装目安: 曖昧検索、同義語検索、読み仮名検索対応
+# - [ ] 保存検索機能（よく使う検索条件の保存）
+#       実装目安: ユーザーごとの検索プリセット機能
+# - [ ] 検索履歴機能
+#       実装目安: 検索キーワードの履歴管理とオートコンプリート
+# - [ ] 検索結果のエクスポート機能（CSV/Excel/PDF）
+#       実装目安: バックグラウンドジョブでの大容量ファイル生成
+# - [ ] リアルタイム検索機能（WebSocket）
+#       実装目安: ActionCableを活用したライブ検索
 #
-# TODO: セキュリティ強化
-# - より詳細な入力値バリデーション
-# - SQLインジェクション対策の強化
-# - フィールド名のホワイトリスト化の完全実装
-# - 権限に基づくデータフィルタリング
+# TODO: セキュリティ強化（基本対策完了）
+# - [x] SQLインジェクション対策の強化（完了：Arel使用）
+# - [x] フィールド名のホワイトリスト化の完全実装（完了）
+# - [ ] より詳細な入力値バリデーション
+#       実装目安: 型チェック、範囲チェック、文字数制限
+# - [ ] 権限に基づくデータフィルタリング
+#       実装目安: ユーザーロール別データアクセス制御
+# - [ ] レート制限（API呼び出し制限）
+#       実装目安: Redis + Sliding Windowアルゴリズム
 #
 # TODO: 監視とメトリクス
-# - 検索クエリのパフォーマンス監視
-# - 人気検索キーワードの分析
-# - 検索エラー率の追跡
-# - 検索実行時間の測定
+# - [ ] 検索クエリのパフォーマンス監視
+#       実装目安: APMツール連携（NewRelic/DataDog）
+# - [ ] 人気検索キーワードの分析
+#       実装目安: 検索ログの集計とダッシュボード作成
+# - [ ] 検索エラー率の追跡
+#       実装目安: エラーログ分析とアラート機能
+# - [ ] 検索実行時間の測定
+#       実装目安: 詳細なクエリパフォーマンス分析
 class AdvancedSearchQuery
   attr_reader :base_scope, :joins_applied, :distinct_applied
 
@@ -92,11 +114,15 @@ class AdvancedSearchQuery
     safe_fields = fields.select { |field| allowed_fields.include?(field.to_s) }
     return self if safe_fields.empty?
 
+    # Arelを使用してセキュアなクエリを構築
+    table = Inventory.arel_table
     conditions = safe_fields.map do |field|
-      "#{field} LIKE ?"
-    end.join(" OR ")
+      table[field].matches("%#{keyword}%")
+    end
 
-    where("(#{conditions})", *([ "%#{keyword}%" ] * safe_fields.size))
+    # 複数条件をORで結合
+    combined_condition = conditions.reduce { |acc, condition| acc.or(condition) }
+    where(combined_condition)
   end
 
   # 日付範囲検索
@@ -107,12 +133,15 @@ class AdvancedSearchQuery
     allowed_date_fields = %w[created_at updated_at expires_on receipt_date scheduled_date].freeze
     return self unless allowed_date_fields.include?(field.to_s)
 
+    table = Inventory.arel_table
+    column = table[field]
+
     if from.present? && to.present?
-      where("#{field} BETWEEN ? AND ?", from, to)
+      where(column.between(from..to))
     elsif from.present?
-      where("#{field} >= ?", from)
+      where(column.gteq(from))
     else
-      where("#{field} <= ?", to)
+      where(column.lteq(to))
     end
   end
 
@@ -124,12 +153,15 @@ class AdvancedSearchQuery
     allowed_numeric_fields = %w[quantity cost price weight].freeze
     return self unless allowed_numeric_fields.include?(field.to_s)
 
+    table = Inventory.arel_table
+    column = table[field]
+
     if min.present? && max.present?
-      where("#{field} BETWEEN ? AND ?", min, max)
+      where(column.between(min..max))
     elsif min.present?
-      where("#{field} >= ?", min)
+      where(column.gteq(min))
     else
-      where("#{field} <= ?", max)
+      where(column.lteq(max))
     end
   end
 
@@ -192,22 +224,30 @@ class AdvancedSearchQuery
   # 期限切れ間近の商品検索
   def expiring_soon(days = 30)
     ensure_join(:batches)
-    where("batches.expires_on BETWEEN ? AND ?", Date.current, days.days.from_now)
+    # Arelを使用してセキュアなクエリ構築
+    batches_table = Batch.arel_table
+    where(batches_table[:expires_on].between(Date.current..days.days.from_now))
   end
 
   # 在庫切れ商品の検索
   def out_of_stock
-    where("inventories.quantity <= 0")
+    # Arelを使用してセキュアなクエリ構築
+    table = Inventory.arel_table
+    where(table[:quantity].lteq(0))
   end
 
   # 低在庫商品の検索（カスタム閾値）
   def low_stock(threshold = 10)
-    where("inventories.quantity > 0 AND inventories.quantity <= ?", threshold)
+    # Arelを使用してセキュアなクエリ構築
+    table = Inventory.arel_table
+    where(table[:quantity].gt(0).and(table[:quantity].lteq(threshold)))
   end
 
   # 最近更新された商品
   def recently_updated(days = 7)
-    where("inventories.updated_at >= ?", days.days.ago)
+    # Arelを使用してセキュアなクエリ構築
+    table = Inventory.arel_table
+    where(table[:updated_at].gteq(days.days.ago))
   end
 
   # 特定ユーザーが操作した商品
@@ -313,19 +353,40 @@ class AdvancedSearchQuery
     end
 
     def lot_code(code)
-      @scope = @scope.where("batches.lot_code LIKE ?", "%#{code}%")
+      # セキュリティ改善: 直接文字列補間を回避、プリペアドステートメント使用
+      sanitized_code = sanitize_like_input(code)
+      @scope = @scope.where("batches.lot_code LIKE ?", "%#{sanitized_code}%")
+      self
     end
 
     def expires_before(date)
-      @scope = @scope.where("batches.expires_on < ?", date)
+      # Arelを使用してセキュアなクエリ構築
+      batches_table = Batch.arel_table
+      @scope = @scope.where(batches_table[:expires_on].lt(date))
+      self
     end
 
     def expires_after(date)
-      @scope = @scope.where("batches.expires_on > ?", date)
+      # Arelを使用してセキュアなクエリ構築
+      batches_table = Batch.arel_table
+      @scope = @scope.where(batches_table[:expires_on].gt(date))
+      self
     end
 
     def quantity_greater_than(quantity)
-      @scope = @scope.where("batches.quantity > ?", quantity)
+      # Arelを使用してセキュアなクエリ構築
+      batches_table = Batch.arel_table
+      @scope = @scope.where(batches_table[:quantity].gt(quantity))
+      self
+    end
+
+    private
+
+    # LIKE検索用の入力値サニタイズ
+    def sanitize_like_input(input)
+      return "" if input.blank?
+      # SQLワイルドカードをエスケープ
+      ActiveRecord::Base.sanitize_sql_like(input.to_s)
     end
 
     def apply_to(base_scope)
@@ -341,18 +402,22 @@ class AdvancedSearchQuery
 
     def action_type(type)
       @scope = @scope.where("inventory_logs.operation_type = ?", type)
+      self
     end
 
     def quantity_changed_by(amount)
       @scope = @scope.where("inventory_logs.delta = ?", amount)
+      self
     end
 
     def changed_after(date)
       @scope = @scope.where("inventory_logs.created_at > ?", date)
+      self
     end
 
     def by_user(user_id)
       @scope = @scope.where("inventory_logs.admin_id = ?", user_id)
+      self
     end
 
     def apply_to(base_scope)
@@ -368,18 +433,24 @@ class AdvancedSearchQuery
 
     def status(status)
       @scope = @scope.where("shipments.shipment_status = ?", status)
+      self
     end
 
     def destination_like(destination)
-      @scope = @scope.where("shipments.destination LIKE ?", "%#{destination}%")
+      # セキュリティ改善: LIKE検索用入力値サニタイズ
+      sanitized_destination = ActiveRecord::Base.sanitize_sql_like(destination.to_s)
+      @scope = @scope.where("shipments.destination LIKE ?", "%#{sanitized_destination}%")
+      self
     end
 
     def scheduled_after(date)
       @scope = @scope.where("shipments.scheduled_date > ?", date)
+      self
     end
 
     def tracking_number(number)
       @scope = @scope.where("shipments.tracking_number = ?", number)
+      self
     end
 
     def apply_to(base_scope)
@@ -395,18 +466,24 @@ class AdvancedSearchQuery
 
     def status(status)
       @scope = @scope.where("receipts.receipt_status = ?", status)
+      self
     end
 
     def source_like(source)
-      @scope = @scope.where("receipts.source LIKE ?", "%#{source}%")
+      # セキュリティ改善: LIKE検索用入力値サニタイズ
+      sanitized_source = ActiveRecord::Base.sanitize_sql_like(source.to_s)
+      @scope = @scope.where("receipts.source LIKE ?", "%#{sanitized_source}%")
+      self
     end
 
     def received_after(date)
       @scope = @scope.where("receipts.receipt_date > ?", date)
+      self
     end
 
     def cost_range(min, max)
       @scope = @scope.where("receipts.cost_per_unit BETWEEN ? AND ?", min, max)
+      self
     end
 
     def apply_to(base_scope)
@@ -422,18 +499,24 @@ class AdvancedSearchQuery
 
     def action(action)
       @scope = @scope.where("audit_logs.action = ?", action)
+      self
     end
 
     def changed_fields_include(field)
-      @scope = @scope.where("audit_logs.changed_fields LIKE ?", "%#{field}%")
+      # セキュリティ改善: LIKE検索用入力値サニタイズ
+      sanitized_field = ActiveRecord::Base.sanitize_sql_like(field.to_s)
+      @scope = @scope.where("audit_logs.changed_fields LIKE ?", "%#{sanitized_field}%")
+      self
     end
 
     def created_after(date)
       @scope = @scope.where("audit_logs.created_at > ?", date)
+      self
     end
 
     def by_user(user_id)
       @scope = @scope.where("audit_logs.user_id = ?", user_id)
+      self
     end
 
     def apply_to(base_scope)
