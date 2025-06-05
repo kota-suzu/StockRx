@@ -227,8 +227,16 @@ class AdvancedSearchQuery
     unless @joins_applied.include?(association)
       @base_scope = @base_scope.joins(association)
       @joins_applied.add(association)
-      # JOINによる重複を防ぐ
-      distinct unless @distinct_applied
+      # JOINによる重複を防ぐため、常にdistinctを適用
+      apply_distinct
+    end
+  end
+
+  # distinctを安全に適用
+  def apply_distinct
+    unless @distinct_applied
+      @base_scope = @base_scope.distinct
+      @distinct_applied = true
     end
   end
 

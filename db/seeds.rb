@@ -8,39 +8,46 @@
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
 
-# 管理者ユーザーのシード
-if Admin.count.zero?
-  puts 'Creating default admin user...'
+# 管理者ユーザーのシード（開発環境のみ）
+if Rails.env.development?
+  if Admin.count.zero?
+    puts 'Creating default admin user...'
 
-  admin = Admin.new(
-    email: 'admin@example.com',
-    password: 'Password1234!',  # 本番環境では変更すること
-    password_confirmation: 'Password1234!'
-  )
+    admin = Admin.new(
+      email: 'admin@example.com',
+      password: ENV.fetch('SEED_ADMIN_PASSWORD', 'Password1234!'),
+      password_confirmation: ENV.fetch('SEED_ADMIN_PASSWORD', 'Password1234!')
+    )
 
-  # 保存に失敗した場合はエラーメッセージを表示
-  if admin.save
-    puts 'Default admin user created successfully!'
+    # 保存に失敗した場合はエラーメッセージを表示
+    if admin.save
+      puts 'Default admin user created successfully!'
+    else
+      puts 'Failed to create default admin user:'
+      puts admin.errors.full_messages.join(', ')
+    end
   else
-    puts 'Failed to create default admin user:'
-    puts admin.errors.full_messages.join(', ')
+    puts 'Admin user already exists, skipping seed.'
   end
 else
-  puts 'Admin user already exists, skipping seed.'
+  puts 'Skipping admin user creation in production environment.'
+  puts 'Please create admin users through Rails console or environment-specific seeds.'
 end
 
 # 検索機能テスト用の豊富なシードデータ
 puts 'Creating inventory items with various conditions...'
 
-# 管理者ユーザーを追加で作成
-admin2 = Admin.find_or_create_by!(email: 'admin2@example.com') do |a|
-  a.password = 'Password1234!'
-  a.password_confirmation = 'Password1234!'
-end
+# 開発環境でのみ追加の管理者ユーザーを作成
+if Rails.env.development?
+  admin2 = Admin.find_or_create_by!(email: 'admin2@example.com') do |a|
+    a.password = ENV.fetch('SEED_ADMIN_PASSWORD', 'Password1234!')
+    a.password_confirmation = ENV.fetch('SEED_ADMIN_PASSWORD', 'Password1234!')
+  end
 
-admin3 = Admin.find_or_create_by!(email: 'admin3@example.com') do |a|
-  a.password = 'Password1234!'
-  a.password_confirmation = 'Password1234!'
+  admin3 = Admin.find_or_create_by!(email: 'admin3@example.com') do |a|
+    a.password = ENV.fetch('SEED_ADMIN_PASSWORD', 'Password1234!')
+    a.password_confirmation = ENV.fetch('SEED_ADMIN_PASSWORD', 'Password1234!')
+  end
 end
 
 # Current.userを設定（ログ記録のため）

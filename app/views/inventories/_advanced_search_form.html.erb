@@ -21,7 +21,12 @@
           ["在庫切れ", "out_of_stock"],
           ["低在庫", "low_stock"],
           ["在庫あり", "in_stock"]
-        ], params[:stock_filter]), {}, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+        ], params[:stock_filter]), {}, 
+          class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
+          data: { 
+            controller: "stock-filter",
+            action: "change->stock-filter#toggleThreshold"
+          } %>
       </div>
     </div>
 
@@ -137,7 +142,7 @@
           <% end %>
         </div>
         
-        <div class="flex items-center" id="low-stock-threshold-container" style="<%= params[:stock_filter] == 'low_stock' ? '' : 'display: none;' %>">
+        <div class="flex items-center" data-stock-filter-target="thresholdContainer" style="<%= params[:stock_filter] == 'low_stock' ? '' : 'display: none;' %>">
           <%= f.label :low_stock_threshold, "低在庫閾値:", class: "text-sm text-gray-700 mr-2" %>
           <%= f.number_field :low_stock_threshold, value: params[:low_stock_threshold] || 10, min: 1, class: "w-20 px-2 py-1 text-sm border border-gray-300 rounded" %>
         </div>
@@ -180,21 +185,3 @@
     </div>
   <% end %>
 </div>
-
-<script>
-  // 在庫状態の選択に応じて低在庫閾値の入力欄を表示/非表示
-  document.addEventListener('DOMContentLoaded', function() {
-    const stockFilter = document.getElementById('stock_filter');
-    const thresholdContainer = document.getElementById('low-stock-threshold-container');
-    
-    if (stockFilter && thresholdContainer) {
-      stockFilter.addEventListener('change', function() {
-        if (this.value === 'low_stock') {
-          thresholdContainer.style.display = 'flex';
-        } else {
-          thresholdContainer.style.display = 'none';
-        }
-      });
-    }
-  });
-</script>

@@ -160,43 +160,56 @@ class SearchQuery
 
     # 複雑な検索が必要かどうかを判定
     def complex_search_required?(params)
-      # 以下のいずれかの条件がある場合は複雑な検索を使用
-      [
-        params[:min_price].present?,
-        params[:max_price].present?,
-        params[:created_from].present?,
-        params[:created_to].present?,
-        params[:lot_code].present?,
-        params[:expires_before].present?,
-        params[:expires_after].present?,
-        params[:expiring_soon].present?,
-        params[:recently_updated].present?,
-        params[:shipment_status].present?,
-        params[:destination].present?,
-        params[:receipt_status].present?,
-        params[:source].present?,
-        params[:or_conditions].present?,
-        params[:complex_condition].present?,
-        params[:stock_filter].present?
-      ].any?
+      # 高度な検索パラメータのリスト
+      ADVANCED_SEARCH_PARAMS.any? { |param| params[param].present? }
     end
+
+    # 高度な検索パラメータの定義
+    ADVANCED_SEARCH_PARAMS = %i[
+      min_price max_price
+      created_from created_to
+      lot_code expires_before expires_after
+      expiring_soon expiring_days
+      recently_updated updated_days
+      shipment_status destination
+      receipt_status source
+      or_conditions complex_condition
+      stock_filter
+    ].freeze
 
     # 複雑な条件を構築
     def build_complex_condition(query, condition)
       return query unless condition.is_a?(Hash)
 
-      query.complex_where do
-        condition.each do |type, sub_conditions|
-          case type.to_s
-          when "and"
-            and do
-              sub_conditions.each { |cond| where(cond) }
-            end
-          when "or"
-            or do
-              sub_conditions.each { |cond| where(cond) }
-            end
+      condition_builder = ComplexConditionBuilder.new(query)
+      condition_builder.build(condition)
+    end
+
+    # 複雑な条件を構築するための専用クラス
+    class ComplexConditionBuilder
+      def initialize(query)
+        @query = query
+      end
+
+      def build(condition)
+        @query.complex_where do
+          condition.each do |type, sub_conditions|
+            send("build_#{type}_condition", sub_conditions) if respond_to?("build_#{type}_condition", true)
           end
+        end
+      end
+
+      private
+
+      def build_and_condition(sub_conditions)
+        and do
+          sub_conditions.each { |cond| where(cond) }
+        end
+      end
+
+      def build_or_condition(sub_conditions)
+        or do
+          sub_conditions.each { |cond| where(cond) }
         end
       end
     end
