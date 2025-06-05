@@ -8,7 +8,8 @@ class InventoriesController < ApplicationController
 
   # GET /inventories
   def index
-    @inventories = SearchQuery.call(params).includes(:batches).decorate
+    @inventories = SearchQuery.call(search_params).includes(:batches).page(params[:page]).decorate
+    @show_advanced = params[:advanced_search].present?
 
     respond_to do |format|
       format.html # Turbo Frame 対応
@@ -145,5 +146,25 @@ class InventoriesController < ApplicationController
     # Only allow a list of trusted parameters through.
     def inventory_params
       params.require(:inventory).permit(:name, :quantity, :price, :status, :category, :unit, :minimum_stock)
+    end
+
+    # 検索パラメータの許可
+    def search_params
+      params.permit(
+        :q, :status, :low_stock, :sort, :direction, :page, :advanced_search,
+        # 高度な検索パラメータ
+        :stock_filter, :low_stock_threshold,
+        :min_price, :max_price,
+        :created_from, :created_to,
+        :lot_code, :expires_before, :expires_after,
+        :expiring_soon, :expiring_days,
+        :recently_updated, :updated_days,
+        :shipment_status, :destination,
+        :receipt_status, :source,
+        # OR条件の配列
+        or_conditions: [],
+        # 複雑な条件のハッシュ
+        complex_condition: {}
+      )
     end
 end

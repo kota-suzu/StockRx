@@ -4,26 +4,36 @@
     <%= link_to "新規登録", new_inventory_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded", data: { turbo_frame: "modal" } %>
   </div>
 
-  <div class="mb-6">
-    <%= form_with url: inventories_path, method: :get, data: { turbo_frame: "inventories_list", turbo_action: "replace" }, class: "flex flex-wrap gap-4" do |f| %>
-      <div class="flex-1 min-w-[300px]">
-        <%= f.search_field :q, value: params[:q], placeholder: "商品名で検索", class: "w-full px-3 py-2 border border-gray-300 rounded-md" %>
-      </div>
-      
-      <div class="flex-none">
-        <%= f.select :status, options_for_select(Inventory::STATUSES.map { |k, _| [k.humanize, k] }, params[:status]), { include_blank: "全ステータス" }, class: "px-3 py-2 border border-gray-300 rounded-md" %>
-      </div>
-      
-      <div class="flex-none">
-        <%= f.check_box :low_stock, { checked: params[:low_stock] == "true" }, "true", "false" %>
-        <%= f.label :low_stock, "在庫切れ商品のみ表示", class: "ml-2" %>
-      </div>
-      
-      <div class="flex-none">
-        <%= f.submit "検索", class: "bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded" %>
-      </div>
-    <% end %>
-  </div>
+  <% if @show_advanced %>
+    <!-- 高度な検索フォーム -->
+    <%= render "advanced_search_form" %>
+  <% else %>
+    <!-- シンプルな検索フォーム -->
+    <div class="mb-6">
+      <%= form_with url: inventories_path, method: :get, data: { turbo_frame: "inventories_list", turbo_action: "replace" }, class: "flex flex-wrap gap-4" do |f| %>
+        <div class="flex-1 min-w-[300px]">
+          <%= f.search_field :q, value: params[:q], placeholder: "商品名で検索", class: "w-full px-3 py-2 border border-gray-300 rounded-md" %>
+        </div>
+        
+        <div class="flex-none">
+          <%= f.select :status, options_for_select(Inventory::STATUSES.map { |k, _| [k.humanize, k] }, params[:status]), { include_blank: "全ステータス" }, class: "px-3 py-2 border border-gray-300 rounded-md" %>
+        </div>
+        
+        <div class="flex-none">
+          <%= f.check_box :low_stock, { checked: params[:low_stock] == "true" }, "true", "false" %>
+          <%= f.label :low_stock, "在庫切れ商品のみ表示", class: "ml-2" %>
+        </div>
+        
+        <div class="flex-none">
+          <%= f.submit "検索", class: "bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded" %>
+        </div>
+        
+        <div class="flex-none">
+          <%= link_to "高度な検索", inventories_path(advanced_search: 1), class: "text-blue-600 hover:text-blue-800 underline text-sm self-center" %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
 
   <%= turbo_frame_tag "inventories_list" do %>
     <div class="overflow-x-auto bg-white shadow-md rounded-lg">
