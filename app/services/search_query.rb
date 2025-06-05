@@ -2,61 +2,161 @@
 
 # 検索クエリを処理するサービスクラス
 # シンプルな検索には従来の実装を使用し、複雑な検索にはAdvancedSearchQueryを使用
+#
+# TODO: パフォーマンス最適化
+# - 検索結果のキャッシュ機能（Redis活用）
+# - インデックス最適化の推奨事項
+# - N+1クエリ問題の検出と改善
+# - ページネーション改善（カーソルベース）
+#
+# TODO: 機能拡張
+# - フルテキスト検索対応（ElasticsearchまたはMroonga）
+# - 検索履歴機能
+# - 検索結果のエクスポート機能
+# - リアルタイム検索機能（WebSocket）
+#
+# TODO: 監視とメトリクス
+# - 検索クエリのパフォーマンス監視
+# - 人気検索キーワードの分析
+# - 検索エラー率の追跡
 class SearchQuery
+  # 許可されたソートカラム（SQLインジェクション対策）
+  ALLOWED_SORT_COLUMNS = %w[name price quantity updated_at created_at].freeze
+
+  # 許可されたソート方向（SQLインジェクション対策）
+  ALLOWED_SORT_DIRECTIONS = %w[asc desc].freeze
+
+  # デフォルトのソート設定
+  DEFAULT_SORT_COLUMN = "updated_at"
+  DEFAULT_SORT_DIRECTION = "desc"
+
   class << self
+    # メインの検索エントリポイント
+    # @param params [Hash] 検索パラメータ
+    # @return [ActiveRecord::Relation] 検索結果
+    # @raise [ArgumentError] 無効なパラメータが渡された場合
     def call(params)
+      # パラメータのバリデーション
+      validate_params!(params)
+
+      # TODO: 検索結果のキャッシュ機能を実装
+      # cache_key = generate_cache_key(params)
+      # Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
+      
       # 複雑な検索条件が含まれている場合はAdvancedSearchQueryを使用
       if complex_search_required?(params)
         advanced_search(params)
       else
         simple_search(params)
       end
+      
+      # end # キャッシュブロック終了
+    rescue ArgumentError => e
+      # バリデーションエラーは再発生させる
+      raise e
+    rescue => e
+      # エラーログ出力（本番環境での詳細情報漏洩を防ぐ）
+      Rails.logger.error "SearchQuery error: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n") if Rails.env.development?
+
+      # 安全なデフォルト結果を返す
+      Inventory.none
     end
 
     private
 
-    # シンプルな検索（従来の実装）
+    # パラメータのバリデーション
+    # @param params [Hash] 検証対象のパラメータ
+    # @raise [ArgumentError] 無効なパラメータが含まれている場合
+    def validate_params!(params)
+      return unless params.is_a?(Hash)
+
+      # ソートカラムの検証
+      if params.key?(:sort) && params[:sort].present? && !ALLOWED_SORT_COLUMNS.include?(params[:sort].to_s)
+        raise ArgumentError, "Invalid sort column: #{params[:sort]}"
+      end
+
+      # ソート方向の検証
+      if params.key?(:direction) && params[:direction].present? && !ALLOWED_SORT_DIRECTIONS.include?(params[:direction].to_s.downcase)
+        raise ArgumentError, "Invalid sort direction: #{params[:direction]}"
+      end
+
+      # ステータスの検証
+      if params.key?(:status) && params[:status].present? && !Inventory::STATUSES.include?(params[:status].to_s)
+        raise ArgumentError, "Invalid status: #{params[:status]}"
+      end
+    end
+
+    # シンプルな検索（従来の実装を安全化）
+    # @param params [Hash] 検索パラメータ
+    # @return [ActiveRecord::Relation] 検索結果
     def simple_search(params)
       query = Inventory.all
 
-      # キーワード検索
-      if params[:q].present?
-        query = query.where("name LIKE ?", "%#{params[:q]}%")
-      end
+      # キーワード検索（SQLインジェクション対策済み）
+      query = apply_keyword_filter(query, params[:q])
 
-      # ステータスでフィルタリング
-      if params[:status].present? && Inventory::STATUSES.include?(params[:status])
-        query = query.where(status: params[:status])
-      end
+      # ステータスでフィルタリング（安全な方法）
+      query = apply_status_filter(query, params[:status])
 
-      # 在庫量でフィルタリング（在庫切れ商品のみ表示）
-      if params[:low_stock] == "true"
-        query = query.where("quantity <= 0")
-      end
+      # 在庫量でフィルタリング
+      query = apply_stock_filter(query, params[:low_stock])
 
-      # 並び替え
-      order_column = "updated_at"
-      order_direction = "DESC"
+      # 安全な並び替え
+      apply_safe_ordering(query, params[:sort], params[:direction])
+    end
 
-      if params[:sort].present?
-        case params[:sort]
-        when "name"
-          order_column = "name"
-        when "price"
-          order_column = "price"
-        when "quantity"
-          order_column = "quantity"
-        end
-      end
+    # キーワード検索フィルタの適用
+    # @param query [ActiveRecord::Relation] ベースクエリ
+    # @param keyword [String] 検索キーワード
+    # @return [ActiveRecord::Relation] フィルタリング後のクエリ
+    def apply_keyword_filter(query, keyword)
+      return query if keyword.blank?
 
-      if params[:direction].present? && %w[asc desc].include?(params[:direction].downcase)
-        order_direction = params[:direction].upcase
-      end
+      # SQLインジェクション対策：プレースホルダーを使用
+      # MySQL対応：ILIKEではなくLIKEを使用（大文字小文字を区別しない検索）
+      sanitized_keyword = "%#{keyword.to_s.strip}%"
+      query.where("name LIKE ?", sanitized_keyword)
+    end
 
-      query.order("#{order_column} #{order_direction}")
+    # ステータスフィルタの適用
+    # @param query [ActiveRecord::Relation] ベースクエリ
+    # @param status [String] ステータス値
+    # @return [ActiveRecord::Relation] フィルタリング後のクエリ
+    def apply_status_filter(query, status)
+      return query if status.blank?
+      return query unless Inventory::STATUSES.include?(status)
+
+      query.where(status: status)
+    end
+
+    # 在庫フィルタの適用
+    # @param query [ActiveRecord::Relation] ベースクエリ
+    # @param low_stock [String] 低在庫フィルタフラグ
+    # @return [ActiveRecord::Relation] フィルタリング後のクエリ
+    def apply_stock_filter(query, low_stock)
+      return query unless low_stock == "true"
+
+      query.where("quantity <= ?", 0)
+    end
+
+    # 安全なソート処理
+    # @param query [ActiveRecord::Relation] ベースクエリ
+    # @param sort_column [String] ソートカラム
+    # @param sort_direction [String] ソート方向
+    # @return [ActiveRecord::Relation] ソート後のクエリ
+    def apply_safe_ordering(query, sort_column, sort_direction)
+      # 安全なカラム名とソート方向の決定
+      safe_column = ALLOWED_SORT_COLUMNS.include?(sort_column.to_s) ? sort_column.to_s : DEFAULT_SORT_COLUMN
+      safe_direction = ALLOWED_SORT_DIRECTIONS.include?(sort_direction.to_s.downcase) ? sort_direction.to_s.downcase : DEFAULT_SORT_DIRECTION
+
+      # ハッシュ形式で安全にソート（SQLインジェクション対策）
+      query.order(safe_column => safe_direction)
     end
 
     # 高度な検索（AdvancedSearchQueryを使用）
+    # @param params [Hash] 検索パラメータ
+    # @return [ActiveRecord::Relation] 検索結果
     def advanced_search(params)
       query = AdvancedSearchQuery.build
 
@@ -77,7 +177,8 @@ class SearchQuery
         threshold = params[:low_stock_threshold]&.to_i || 10
         query = query.low_stock(threshold)
       when "in_stock"
-        query = query.where("quantity > ?", params[:low_stock_threshold]&.to_i || 10)
+        threshold = params[:low_stock_threshold]&.to_i || 10
+        query = query.where("inventories.quantity > ?", threshold)
       else
         # 従来の互換性のため
         if params[:low_stock] == "true"
@@ -159,12 +260,16 @@ class SearchQuery
     end
 
     # 複雑な検索が必要かどうかを判定
+    # @param params [Hash] 検索パラメータ
+    # @return [Boolean] 複雑な検索が必要な場合true
     def complex_search_required?(params)
+      return false unless params.is_a?(Hash)
+
       # 高度な検索パラメータのリスト
       ADVANCED_SEARCH_PARAMS.any? { |param| params[param].present? }
     end
 
-    # 高度な検索パラメータの定義
+    # 高度な検索パラメータの定義（不変オブジェクト）
     ADVANCED_SEARCH_PARAMS = %i[
       min_price max_price
       created_from created_to
@@ -174,39 +279,86 @@ class SearchQuery
       shipment_status destination
       receipt_status source
       or_conditions complex_condition
-      stock_filter
+      stock_filter low_stock_threshold
     ].freeze
 
     # 複雑な条件を構築
+    # @param query [AdvancedSearchQuery] AdvancedSearchQueryインスタンス
+    # @param condition [Hash] 条件設定
+    # @return [AdvancedSearchQuery] 条件適用後のクエリ
     def build_complex_condition(query, condition)
       return query unless condition.is_a?(Hash)
+      return query if condition.empty?
 
       condition_builder = ComplexConditionBuilder.new(query)
       condition_builder.build(condition)
     end
 
     # 複雑な条件を構築するための専用クラス
+    # AdvancedSearchQueryと連携して安全な条件構築を行う
     class ComplexConditionBuilder
+      # 許可される条件タイプ（セキュリティ対策）
+      ALLOWED_CONDITION_TYPES = %w[and or].freeze
+
+      # @param query [AdvancedSearchQuery] ベースとなるクエリ
       def initialize(query)
         @query = query
       end
 
+      # 複雑な条件を構築
+      # @param condition [Hash] 条件設定
+      # @return [AdvancedSearchQuery] 条件適用後のクエリ
       def build(condition)
+        return @query unless condition.is_a?(Hash)
+
         # AdvancedSearchQueryのcomplex_whereメソッドを使用
         @query.complex_where do |builder|
           condition.each do |type, sub_conditions|
+            # セキュリティ：許可されていない条件タイプは無視
+            next unless ALLOWED_CONDITION_TYPES.include?(type.to_s)
+            next unless sub_conditions.is_a?(Array)
+
             case type.to_s
             when "and"
               builder.and_group do |and_builder|
-                sub_conditions.each { |cond| and_builder.where(cond) }
+                sub_conditions.each { |cond| safely_apply_condition(and_builder, cond) }
               end
             when "or"
               builder.or_group do |or_builder|
-                sub_conditions.each { |cond| or_builder.where(cond) }
+                sub_conditions.each { |cond| safely_apply_condition(or_builder, cond) }
               end
             end
           end
         end
+      end
+
+      private
+
+      # 安全に条件を適用
+      # @param builder [Object] 条件ビルダー
+      # @param condition [Hash] 適用する条件
+      def safely_apply_condition(builder, condition)
+        return unless condition.is_a?(Hash)
+        return if condition.empty?
+
+        # 条件のサニタイズとバリデーション
+        sanitized_condition = sanitize_condition(condition)
+        builder.where(sanitized_condition) if sanitized_condition.present?
+      rescue => e
+        # 個別の条件エラーをログに記録し、処理を継続
+        Rails.logger.warn "Skipping invalid condition: #{e.message}"
+      end
+
+      # 条件のサニタイズ
+      # @param condition [Hash] サニタイズ対象の条件
+      # @return [Hash] サニタイズ済みの条件
+      def sanitize_condition(condition)
+        # TODO: より詳細な条件バリデーションとサニタイズを実装
+        # 現時点では基本的なタイプチェックのみ
+        # - SQLインジェクション対策の強化
+        # - パラメータの型チェック（数値、日付など）
+        # - 許可されたフィールド名のホワイトリスト化
+        condition.select { |_key, value| !value.nil? }
       end
     end
   end

@@ -8,8 +8,8 @@
 #     MovieGenre.find_or_create_by!(name: genre_name)
 #   end
 
-# 管理者ユーザーのシード（開発環境のみ）
-if Rails.env.development?
+# 管理者ユーザーのシード（開発環境・テスト環境）
+if Rails.env.development? || Rails.env.test?
   if Admin.count.zero?
     puts 'Creating default admin user...'
 
@@ -37,8 +37,8 @@ end
 # 検索機能テスト用の豊富なシードデータ
 puts 'Creating inventory items with various conditions...'
 
-# 開発環境でのみ追加の管理者ユーザーを作成
-if Rails.env.development?
+# 開発環境・テスト環境で追加の管理者ユーザーを作成
+if Rails.env.development? || Rails.env.test?
   admin2 = Admin.find_or_create_by!(email: 'admin2@example.com') do |a|
     a.password = ENV.fetch('SEED_ADMIN_PASSWORD', 'Password1234!')
     a.password_confirmation = ENV.fetch('SEED_ADMIN_PASSWORD', 'Password1234!')
@@ -94,9 +94,6 @@ categories.each do |category, items|
       price: item_data[:price],
       quantity: item_data[:quantity],
       status: item_data[:status],
-      category: category,
-      unit: "個",
-      minimum_stock: 10,
       created_at: rand(90).days.ago,
       updated_at: rand(30).days.ago
     )
@@ -171,23 +168,22 @@ inventories.each do |inventory|
   # 各商品に対して複数のログを作成
   rand(3..8).times do
     user = [ Admin.first, admin2, admin3 ].sample
-    action = [ "increment", "decrement", "update", "adjustment" ].sample
+    action = [ "add", "remove", "adjust" ].sample
     quantity_change = case action
-    when "increment" then rand(10..100)
-    when "decrement" then -rand(1..50)
-    when "adjustment" then [ -5, -10, 5, 10, 15 ].sample
+    when "add" then rand(10..100)
+    when "remove" then -rand(1..50)
+    when "adjust" then [ -5, -10, 5, 10, 15 ].sample
     else 0
     end
 
     InventoryLog.create!(
       inventory: inventory,
-      user: user,
-      action: action,
-      quantity_change: quantity_change,
-      quantity_before: inventory.quantity - quantity_change,
-      quantity_after: inventory.quantity,
-      reason: [ "在庫調整", "入荷", "出荷", "返品", "廃棄", "棚卸し" ].sample,
-      notes: [ "定期補充", "緊急対応", "顧客要求", "品質問題", nil ].sample,
+      admin: user,
+      operation_type: action,
+      delta: quantity_change,
+      previous_quantity: [ inventory.quantity - quantity_change, 0 ].max,
+      current_quantity: inventory.quantity,
+      note: [ "定期補充", "緊急対応", "顧客要求", "品質問題", nil ].sample,
       created_at: rand(60).days.ago
     )
   end
@@ -202,16 +198,16 @@ puts 'Creating shipment records...'
 active_inventories = inventories.select { |i| i.status == "active" }
 active_inventories.sample(10).each do |inventory|
   rand(1..3).times do
-    status = [ "preparing", "pending", "shipped", "delivered", "cancelled" ].sample
+    status = [ "pending", "processing", "shipped", "delivered", "cancelled" ].sample
 
     shipment = Shipment.create!(
       inventory: inventory,
       quantity: rand(1..20),
       destination: [ "東京都千代田区", "大阪府大阪市", "愛知県名古屋市", "北海道札幌市",
                    "福岡県福岡市", "宮城県仙台市", "広島県広島市", "京都府京都市" ].sample,
-      status: status,
+      shipment_status: status,
       scheduled_date: case status
-                      when "preparing", "pending" then rand(1..14).days.from_now
+                      when "pending", "processing" then rand(1..14).days.from_now
                       when "shipped" then rand(1..7).days.ago
                       when "delivered" then rand(7..30).days.ago
                       else Date.current
@@ -220,11 +216,6 @@ active_inventories.sample(10).each do |inventory|
       notes: [ "特急配送", "通常配送", "冷蔵配送", nil ].sample,
       created_at: rand(30).days.ago
     )
-
-    # 出荷済み・配達済みの場合は実際の出荷日を設定
-    if [ "shipped", "delivered" ].include?(status)
-      shipment.update!(shipped_date: shipment.scheduled_date)
-    end
   end
 end
 
@@ -235,11 +226,11 @@ puts 'Creating receipt records...'
 
 inventories.sample(12).each do |inventory|
   rand(1..2).times do
-    status = [ "pending", "received", "inspecting", "rejected" ].sample
+    status = [ "expected", "partial", "completed", "rejected", "delayed" ].sample
     receipt_date = case status
-    when "pending" then rand(1..14).days.from_now
-    when "received", "inspecting" then rand(1..30).days.ago
-    when "rejected" then rand(7..60).days.ago
+    when "expected" then rand(1..14).days.from_now
+    when "partial", "completed" then rand(1..30).days.ago
+    when "rejected", "delayed" then rand(7..60).days.ago
     else Date.current
     end
 
@@ -248,10 +239,10 @@ inventories.sample(12).each do |inventory|
       quantity: rand(50..500),
       source: [ "Supplier A - 東京", "Supplier B - 大阪", "Supplier C - 名古屋",
                "海外サプライヤー X", "海外サプライヤー Y", "製薬会社直送" ].sample,
-      status: status,
+      receipt_status: status,
       receipt_date: receipt_date,
-      cost: inventory.price * rand(0.5..0.8) * rand(50..500),
-      invoice_number: "INV#{Date.current.strftime('%Y%m')}#{rand(1000..9999)}",
+      cost_per_unit: inventory.price * rand(0.5..0.8),
+      purchase_order: "INV#{Date.current.strftime('%Y%m')}#{rand(1000..9999)}",
       notes: [ "定期発注", "緊急補充", "新規取引", "品質検査要", nil ].sample,
       created_at: receipt_date || Date.current
     )
@@ -270,7 +261,8 @@ inventories.each do |inventory|
       auditable: inventory,
       user: [ Admin.first, admin2, admin3 ].sample,
       action: [ "create", "update", "delete" ].sample,
-      changed_fields: [ "quantity", "price", "status", "name" ].sample(rand(1..2)).to_json,
+      message: "在庫#{inventory.name}の#{[ "作成", "更新", "削除" ].sample}",
+      details: { "quantity" => inventory.quantity, "price" => inventory.price }.to_json,
       ip_address: [ "192.168.1.#{rand(1..255)}", "10.0.0.#{rand(1..255)}" ].sample,
       user_agent: [ "Mozilla/5.0", "Chrome/91.0", "Safari/14.0" ].sample,
       created_at: rand(90).days.ago
@@ -284,8 +276,9 @@ end
     AuditLog.create!(
       auditable: admin,
       user: [ Admin.first, admin2, admin3 ].sample,
-      action: [ "login", "logout", "update", "password_change" ].sample,
-      changed_fields: [ "last_sign_in_at", "password", "email" ].sample(1).to_json,
+      action: [ "login", "logout", "update" ].sample,
+      message: "管理者#{admin.email}の#{[ "ログイン", "ログアウト", "更新" ].sample}",
+      details: { "admin_id" => admin.id }.to_json,
       ip_address: [ "192.168.1.#{rand(1..255)}", "10.0.0.#{rand(1..255)}" ].sample,
       user_agent: [ "Mozilla/5.0", "Chrome/91.0", "Safari/14.0" ].sample,
       created_at: rand(30).days.ago

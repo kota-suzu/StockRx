@@ -17,8 +17,8 @@ RSpec.describe AdvancedSearchQuery do
   let!(:user1) { create(:admin, email: "user1@example.com") }
   let!(:user2) { create(:admin, email: "user2@example.com") }
 
-  let!(:log1) { create(:inventory_log, inventory: inventory1, user: user1, action: "increment", quantity_change: 10) }
-  let!(:log2) { create(:inventory_log, inventory: inventory2, user: user2, action: "decrement", quantity_change: -5) }
+  let!(:log1) { create(:inventory_log, inventory: inventory1, admin: user1, operation_type: "add", delta: 10) }
+  let!(:log2) { create(:inventory_log, inventory: inventory2, admin: user2, operation_type: "remove", delta: -5) }
 
   # 出荷・入荷データ
   let!(:shipment1) { create(:shipment, inventory: inventory1, status: "shipped", destination: "Tokyo", tracking_number: "TRACK001") }

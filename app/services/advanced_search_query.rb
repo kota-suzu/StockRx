@@ -17,8 +17,8 @@ class AdvancedSearchQuery
   end
 
   # AND条件での検索
-  def where(conditions)
-    @base_scope = @base_scope.where(conditions)
+  def where(*args)
+    @base_scope = @base_scope.where(*args)
     self
   end
 

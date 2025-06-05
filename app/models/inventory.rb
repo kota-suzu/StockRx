@@ -22,6 +22,11 @@ class Inventory < ApplicationRecord
   validates :price, numericality: { greater_than_or_equal_to: 0 }
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }
 
+  # インスタンスメソッド
+  def formatted_price
+    "¥#{price.to_i.to_s.gsub(/(\d)(?=(\d{3})+(?!\d))/, '\1,')}"
+  end
+
   # ============================================
   # TODO: 在庫ログ機能の拡張
   # ============================================
