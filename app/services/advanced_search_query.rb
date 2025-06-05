@@ -52,9 +52,9 @@ class AdvancedSearchQuery
 
   # カスタム条件でのグループ化（AND/ORの複雑な組み合わせ）
   def complex_where(&block)
-    builder = ComplexConditionBuilder.new
-    builder.instance_eval(&block)
-    @base_scope = builder.apply_to(@base_scope)
+    builder = ComplexConditionBuilder.new(@base_scope)
+    yield(builder) if block_given?
+    @base_scope = builder.base_scope
     self
   end
 
@@ -242,51 +242,29 @@ class AdvancedSearchQuery
 
   # 複雑な条件を構築するビルダークラス
   class ComplexConditionBuilder
-    def initialize
-      @conditions = []
+    attr_reader :base_scope
+
+    def initialize(scope)
+      @base_scope = scope
     end
 
-    def and(&block)
-      sub_builder = ComplexConditionBuilder.new
-      sub_builder.instance_eval(&block)
-      @conditions << { type: :and, builder: sub_builder }
+    def and_group(&block)
+      sub_builder = ComplexConditionBuilder.new(@base_scope)
+      yield(sub_builder) if block_given?
+      @base_scope = @base_scope.merge(sub_builder.base_scope)
+      self
     end
 
-    def or(&block)
-      sub_builder = ComplexConditionBuilder.new
-      sub_builder.instance_eval(&block)
-      @conditions << { type: :or, builder: sub_builder }
+    def or_group(&block)
+      sub_builder = ComplexConditionBuilder.new(Inventory.all)
+      yield(sub_builder) if block_given?
+      @base_scope = @base_scope.or(sub_builder.base_scope)
+      self
     end
 
     def where(conditions)
-      @conditions << { type: :where, conditions: conditions }
-    end
-
-    def apply_to(scope)
-      result_scope = scope
-
-      @conditions.each_with_index do |condition, index|
-        case condition[:type]
-        when :where
-          if index == 0
-            result_scope = result_scope.where(condition[:conditions])
-          else
-            prev = @conditions[index - 1]
-            if prev[:type] == :or || (prev[:type] == :where && @conditions[index - 2]&.dig(:type) == :or)
-              result_scope = result_scope.or(scope.where(condition[:conditions]))
-            else
-              result_scope = result_scope.where(condition[:conditions])
-            end
-          end
-        when :and
-          result_scope = condition[:builder].apply_to(result_scope)
-        when :or
-          sub_scope = condition[:builder].apply_to(scope)
-          result_scope = result_scope.or(sub_scope)
-        end
-      end
-
-      result_scope
+      @base_scope = @base_scope.where(conditions)
+      self
     end
   end
 

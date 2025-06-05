@@ -29,8 +29,8 @@ class AdvancedSearchQueryExamples
         .where_any([
           { quantity: 0 },                    # 在庫切れ
           { status: "archived" },             # アーカイブ済み
-          ["price > ?", 1000],               # 高額商品
-          ["updated_at < ?", 30.days.ago]    # 長期間更新なし
+          [ "price > ?", 1000 ],               # 高額商品
+          [ "updated_at < ?", 30.days.ago ]    # 長期間更新なし
         ])
         .results
     end
@@ -38,13 +38,13 @@ class AdvancedSearchQueryExamples
     # 例4: 複雑なAND/ORの組み合わせ
     def complex_and_or_combination
       AdvancedSearchQuery.build
-        .complex_where do
+        .complex_where do |builder|
           # (status = 'active' AND (quantity < 10 OR price > 500))
-          and do
-            where(status: "active")
-            or do
-              where("quantity < ?", 10)
-              where("price > ?", 500)
+          builder.and_group do |and_builder|
+            and_builder.where(status: "active")
+            and_builder.or_group do |or_builder|
+              or_builder.where("quantity < ?", 10)
+              or_builder.where("price > ?", 500)
             end
           end
         end
@@ -54,7 +54,7 @@ class AdvancedSearchQueryExamples
     # 例5: キーワード検索と範囲検索の組み合わせ
     def keyword_and_range_search(keyword, min_price, max_price)
       AdvancedSearchQuery.build
-        .search_keywords(keyword, fields: [:name, :description])
+        .search_keywords(keyword, fields: [ :name, :description ])
         .in_range("price", min_price, max_price)
         .with_status("active")
         .results
@@ -134,28 +134,21 @@ class AdvancedSearchQueryExamples
     # 例12: 複数テーブルを跨いだ複合検索
     def cross_table_complex_search
       AdvancedSearchQuery.build
-        # 基本条件
         .with_status("active")
         .where("inventories.quantity > ?", 0)
-        
-        # バッチ条件
         .with_batch_conditions do
           expires_after(Date.current)  # 期限切れでない
         end
-        
-        # 最近の入荷がある
         .with_receipt_conditions do
           received_after(1.month.ago)
           status("received")
         end
-        
-        # 出荷予定がない
-        .where.not(
-          id: Inventory.joins(:shipments)
-            .where(shipments: { status: ["pending", "preparing"] })
+        .where(
+          "inventories.id NOT IN (?)",
+          Inventory.joins(:shipments)
+            .where(shipments: { status: [ "pending", "preparing" ] })
             .select(:id)
         )
-        
         .distinct
         .order_by(:name)
         .results
@@ -164,19 +157,19 @@ class AdvancedSearchQueryExamples
     # 例13: 在庫アラート対象の検索
     def stock_alert_candidates
       AdvancedSearchQuery.build
-        .complex_where do
-          or do
+        .complex_where do |builder|
+          builder.or_group do |or_builder|
             # 在庫切れ
-            where("inventories.quantity = ?", 0)
-            
+            or_builder.where("inventories.quantity = ?", 0)
+
             # 低在庫（10個以下）
-            and do
-              where("inventories.quantity > ?", 0)
-              where("inventories.quantity <= ?", 10)
+            or_builder.and_group do |and_builder|
+              and_builder.where("inventories.quantity > ?", 0)
+              and_builder.where("inventories.quantity <= ?", 10)
             end
-            
+
             # 期限切れ間近（7日以内）
-            where(
+            or_builder.where(
               id: Inventory.joins(:batches)
                 .where("batches.expires_on BETWEEN ? AND ?", Date.current, 7.days.from_now)
                 .select(:id)
@@ -193,14 +186,8 @@ class AdvancedSearchQueryExamples
       AdvancedSearchQuery.build
         .with_status("active")
         .where("inventories.updated_at > ?", 1.month.ago)
-        
-        # 必要なカラムのみ選択
-        .where.not(quantity: 0)
-        
-        # インデックスを活用したソート
+        .where("inventories.quantity > ?", 0)
         .order_by(:updated_at, :desc)
-        
-        # ページネーション
         .paginate(page: page, per_page: 50)
         .results
     end

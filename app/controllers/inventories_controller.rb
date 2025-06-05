@@ -179,7 +179,7 @@ class InventoriesController < ApplicationController
 
       # 数値パラメータの検証
       validate_numeric_params(permitted_params)
-      
+
       # 日付パラメータの検証
       validate_date_params(permitted_params)
 
@@ -193,7 +193,7 @@ class InventoriesController < ApplicationController
       sanitized = {}
       condition.each do |key, value|
         next unless %w[and or].include?(key.to_s)
-        
+
         if value.is_a?(Array)
           sanitized[key] = value.map do |sub_condition|
             next unless sub_condition.is_a?(Hash)
@@ -203,21 +203,21 @@ class InventoriesController < ApplicationController
           sanitized[key] = sanitize_complex_condition(value)
         end
       end
-      
+
       sanitized
     end
 
     # 数値パラメータの検証
     def validate_numeric_params(params)
-      numeric_fields = [:low_stock_threshold, :min_price, :max_price, :expiring_days, :updated_days]
-      
+      numeric_fields = [ :low_stock_threshold, :min_price, :max_price, :expiring_days, :updated_days ]
+
       numeric_fields.each do |field|
         next unless params[field].present?
-        
+
         value = params[field].to_f
         if value < 0
           params.delete(field)
-        elsif field.to_s.include?('price') && value > 1_000_000
+        elsif field.to_s.include?("price") && value > 1_000_000
           params[field] = 1_000_000 # 価格の上限を設定
         end
       end
@@ -225,11 +225,11 @@ class InventoriesController < ApplicationController
 
     # 日付パラメータの検証
     def validate_date_params(params)
-      date_fields = [:created_from, :created_to, :expires_before, :expires_after]
-      
+      date_fields = [ :created_from, :created_to, :expires_before, :expires_after ]
+
       date_fields.each do |field|
         next unless params[field].present?
-        
+
         begin
           Date.parse(params[field])
         rescue ArgumentError

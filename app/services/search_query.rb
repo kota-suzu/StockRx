@@ -62,7 +62,7 @@ class SearchQuery
 
       # 基本的な検索条件
       if params[:q].present?
-        query = query.search_keywords(params[:q], fields: [:name, :description])
+        query = query.search_keywords(params[:q], fields: [ :name, :description ])
       end
 
       if params[:status].present?
@@ -192,24 +192,20 @@ class SearchQuery
       end
 
       def build(condition)
-        @query.complex_where do
+        # AdvancedSearchQueryのcomplex_whereメソッドを使用
+        @query.complex_where do |builder|
           condition.each do |type, sub_conditions|
-            send("build_#{type}_condition", sub_conditions) if respond_to?("build_#{type}_condition", true)
+            case type.to_s
+            when "and"
+              builder.and_group do |and_builder|
+                sub_conditions.each { |cond| and_builder.where(cond) }
+              end
+            when "or"
+              builder.or_group do |or_builder|
+                sub_conditions.each { |cond| or_builder.where(cond) }
+              end
+            end
           end
-        end
-      end
-
-      private
-
-      def build_and_condition(sub_conditions)
-        and do
-          sub_conditions.each { |cond| where(cond) }
-        end
-      end
-
-      def build_or_condition(sub_conditions)
-        or do
-          sub_conditions.each { |cond| where(cond) }
         end
       end
     end
