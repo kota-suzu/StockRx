@@ -59,7 +59,7 @@ class AdvancedSearchQuery
   end
 
   # キーワード検索（複数フィールドを対象）
-  def search_keywords(keyword, fields: [:name, :description])
+  def search_keywords(keyword, fields: [ :name, :description ])
     return self if keyword.blank?
 
     conditions = fields.map do |field|
