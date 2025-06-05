@@ -7,6 +7,9 @@ import { application } from "./application"
 import ImportProgressController from "./import_progress_controller"
 application.register("import-progress", ImportProgressController)
 
+import StockFilterController from "./stock_filter_controller"
+application.register("stock-filter", StockFilterController)
+
 // 将来的に追加するコントローラーがあれば以下に追加：
 // import ExampleController from "./example_controller"
 // application.register("example", ExampleController) 

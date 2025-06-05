@@ -1,0 +1,187 @@
+<div class="bg-gray-50 p-6 rounded-lg shadow-inner mb-6">
+  <%= form_with url: inventories_path, method: :get, data: { turbo_frame: "inventories_list", turbo_action: "replace" }, class: "space-y-6" do |f| %>
+    <%= f.hidden_field :advanced_search, value: "1" %>
+    
+    <!-- 基本検索 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div>
+        <%= f.label :q, "キーワード", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.search_field :q, value: params[:q], placeholder: "商品名・説明で検索", class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+      </div>
+      
+      <div>
+        <%= f.label :status, "ステータス", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :status, options_for_select(Inventory::STATUSES.map { |k, _| [k.humanize, k] }, params[:status]), { include_blank: "全ステータス" }, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+      </div>
+      
+      <div>
+        <%= f.label :stock_filter, "在庫状態", class: "block text-sm font-medium text-gray-700 mb-1" %>
+        <%= f.select :stock_filter, options_for_select([
+          ["すべて", ""],
+          ["在庫切れ", "out_of_stock"],
+          ["低在庫", "low_stock"],
+          ["在庫あり", "in_stock"]
+        ], params[:stock_filter]), {}, 
+          class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
+          data: { 
+            controller: "stock-filter",
+            action: "change->stock-filter#toggleThreshold"
+          } %>
+      </div>
+    </div>
+
+    <!-- 価格範囲 -->
+    <div class="border-t pt-4">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">価格範囲</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <%= f.label :min_price, "最低価格", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.number_field :min_price, value: params[:min_price], placeholder: "0", step: "0.01", class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+        </div>
+        <div>
+          <%= f.label :max_price, "最高価格", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.number_field :max_price, value: params[:max_price], placeholder: "999999", step: "0.01", class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- 日付範囲 -->
+    <div class="border-t pt-4">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">登録日範囲</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <%= f.label :created_from, "開始日", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.date_field :created_from, value: params[:created_from], class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+        </div>
+        <div>
+          <%= f.label :created_to, "終了日", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.date_field :created_to, value: params[:created_to], class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- バッチ（ロット）関連 -->
+    <div class="border-t pt-4">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">バッチ（ロット）情報</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <%= f.label :lot_code, "ロットコード", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.text_field :lot_code, value: params[:lot_code], placeholder: "LOT001", class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+        </div>
+        <div>
+          <%= f.label :expires_before, "期限日（以前）", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.date_field :expires_before, value: params[:expires_before], class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+        </div>
+        <div>
+          <%= f.label :expires_after, "期限日（以降）", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.date_field :expires_after, value: params[:expires_after], class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+        </div>
+      </div>
+      
+      <div class="mt-4 flex items-center">
+        <%= f.check_box :expiring_soon, { checked: params[:expiring_soon].present? }, "1", "0", class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+        <%= f.label :expiring_soon, class: "ml-2 text-sm text-gray-700" do %>
+          期限切れ間近（
+          <%= f.number_field :expiring_days, value: params[:expiring_days] || 30, min: 1, max: 365, class: "mx-1 w-16 px-2 py-1 text-sm border border-gray-300 rounded" %>
+          日以内）
+        <% end %>
+      </div>
+    </div>
+
+    <!-- 出荷・入荷関連 -->
+    <div class="border-t pt-4">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">出荷・入荷情報</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h4 class="text-sm font-medium text-gray-600 mb-2">出荷情報</h4>
+          <div class="space-y-2">
+            <%= f.label :shipment_status, "出荷ステータス", class: "block text-xs font-medium text-gray-700" %>
+            <%= f.select :shipment_status, options_for_select([
+              ["", ""],
+              ["準備中", "preparing"],
+              ["保留中", "pending"],
+              ["出荷済み", "shipped"],
+              ["配達済み", "delivered"],
+              ["キャンセル", "cancelled"]
+            ], params[:shipment_status]), {}, class: "w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+            
+            <%= f.label :destination, "配送先", class: "block text-xs font-medium text-gray-700 mt-2" %>
+            <%= f.text_field :destination, value: params[:destination], placeholder: "東京", class: "w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+          </div>
+        </div>
+        
+        <div>
+          <h4 class="text-sm font-medium text-gray-600 mb-2">入荷情報</h4>
+          <div class="space-y-2">
+            <%= f.label :receipt_status, "入荷ステータス", class: "block text-xs font-medium text-gray-700" %>
+            <%= f.select :receipt_status, options_for_select([
+              ["", ""],
+              ["保留中", "pending"],
+              ["受領済み", "received"],
+              ["検査中", "inspecting"],
+              ["却下", "rejected"]
+            ], params[:receipt_status]), {}, class: "w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+            
+            <%= f.label :source, "仕入先", class: "block text-xs font-medium text-gray-700 mt-2" %>
+            <%= f.text_field :source, value: params[:source], placeholder: "Supplier A", class: "w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- その他のオプション -->
+    <div class="border-t pt-4">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">その他のオプション</h3>
+      <div class="flex items-center space-x-6">
+        <div class="flex items-center">
+          <%= f.check_box :recently_updated, { checked: params[:recently_updated].present? }, "1", "0", class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+          <%= f.label :recently_updated, class: "ml-2 text-sm text-gray-700" do %>
+            最近更新された（
+            <%= f.number_field :updated_days, value: params[:updated_days] || 7, min: 1, max: 365, class: "mx-1 w-16 px-2 py-1 text-sm border border-gray-300 rounded" %>
+            日以内）
+          <% end %>
+        </div>
+        
+        <div class="flex items-center" data-stock-filter-target="thresholdContainer" style="<%= params[:stock_filter] == 'low_stock' ? '' : 'display: none;' %>">
+          <%= f.label :low_stock_threshold, "低在庫閾値:", class: "text-sm text-gray-700 mr-2" %>
+          <%= f.number_field :low_stock_threshold, value: params[:low_stock_threshold] || 10, min: 1, class: "w-20 px-2 py-1 text-sm border border-gray-300 rounded" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- ソート -->
+    <div class="border-t pt-4">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">並び順</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <%= f.label :sort, "並び替え項目", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.select :sort, options_for_select([
+            ["更新日時", "updated_at"],
+            ["商品名", "name"],
+            ["価格", "price"],
+            ["在庫数", "quantity"],
+            ["作成日時", "created_at"]
+          ], params[:sort] || "updated_at"), {}, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+        </div>
+        <div>
+          <%= f.label :direction, "並び順", class: "block text-sm font-medium text-gray-700 mb-1" %>
+          <%= f.select :direction, options_for_select([
+            ["降順", "desc"],
+            ["昇順", "asc"]
+          ], params[:direction] || "desc"), {}, class: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" %>
+        </div>
+      </div>
+    </div>
+
+    <!-- 検索ボタン -->
+    <div class="flex justify-between items-center pt-4 border-t">
+      <div>
+        <%= link_to "検索条件をリセット", inventories_path, class: "text-sm text-gray-600 hover:text-gray-800 underline" %>
+      </div>
+      <div class="space-x-2">
+        <%= link_to "シンプル検索に戻る", inventories_path, class: "px-4 py-2 text-sm text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-md transition-colors" %>
+        <%= f.submit "詳細検索", class: "px-6 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors font-medium" %>
+      </div>
+    </div>
+  <% end %>
+</div>

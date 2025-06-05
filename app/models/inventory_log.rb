@@ -2,7 +2,7 @@
 
 class InventoryLog < ApplicationRecord
   belongs_to :inventory
-  belongs_to :user, optional: true
+  belongs_to :admin, optional: true
 
   # バリデーション
   validates :delta, presence: true, numericality: true

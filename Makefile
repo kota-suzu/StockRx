@@ -3,6 +3,41 @@
 # Practical, DRY, and developer-friendly. Less yak-shaving, more coding.
 # ----------------------------------------------------------------------------
 # 使い方: `make <target>` で実行。例: `make up`, `make test-models` 等
+# 
+# セキュリティ・パフォーマンス改善状況:
+# ✅ Docker環境でのテスト実行: DB接続問題解決済み
+# ✅ 環境変数の統一化: DOCKER_TEST_ENV で一元管理
+# ✅ マイグレーション自動実行: db:test:prepare 統合
+# 
+# TODO: テスト環境の包括的改善（優先度：高）
+# - [ ] System Testの安定性向上
+#       実装目安: Headless Chrome設定、タイムアウト調整
+# - [ ] テストデータのファクトリー最適化
+#       実装目安: FactoryBot + Database Cleaner設定
+# - [ ] パフォーマンステストの分離
+#       実装目安: profile タグによる重いテストの分離
+# - [ ] 並列テスト実行の最適化
+#       実装目安: parallel_tests gem設定とDB分離
+# 
+# TODO: CI/CD最適化（優先度：中）
+# - [ ] GitHub Actions でのキャッシュ活用
+#       実装目安: bundler, node_modules キャッシュ
+# - [ ] テスト結果レポート改善
+#       実装目安: JUnit XML出力、カバレッジ可視化
+# - [ ] セキュリティスキャン自動化
+#       実装目安: Brakeman + bundler-audit 定期実行
+# - [ ] デプロイ自動化
+#       実装目安: 本番環境への自動デプロイフロー
+# 
+# TODO: 開発体験（DX）向上（優先度：中）
+# - [ ] ホットリロード機能
+#       実装目安: Webpacker + Live Reload設定
+# - [ ] デバッグツール統合
+#       実装目安: byebug, better_errors 設定
+# - [ ] ログ出力最適化
+#       実装目安: structured logging, 色付きログ
+# - [ ] API ドキュメント自動生成
+#       実装目安: OpenAPI/Swagger 連携
 # ============================================================================
 
 # --------------------------- 変数定義 --------------------------------------
@@ -92,10 +127,10 @@ db-seed     : db-seed
 db-setup    : db-setup
 
 # --------------------------- テスト ----------------------------------------
-# 共通関数
+# 共通関数 - Docker環境対応済み
 define run_rspec
 	@echo "=== $(1) テスト実行 ===";
-	$(RSPEC) $(2) --format $(3)
+	$(DOCKER_RSPEC) $(2) --format $(3)
 endef
 
 # メタターゲット
@@ -104,8 +139,13 @@ TEST_PROGRESS := progress
 
 test: rspec
 
+# Docker環境用のベース設定
+DOCKER_TEST_ENV := -e RAILS_ENV=test -e TEST_DATABASE_HOST=db -e DATABASE_PASSWORD=password -e DATABASE_URL=mysql2://root:password@db:3306/app_test
+DOCKER_RSPEC := $(COMPOSE) run --rm $(DOCKER_TEST_ENV) web bundle exec rspec
+
 rspec:
-	$(RSPEC)
+	@echo "=== Docker環境でのRSpecテスト実行 ==="
+	$(DOCKER_RSPEC)
 
 test-fast:
 	$(call run_rspec,高速, spec/models spec/requests spec/helpers spec/decorators spec/validators, $(TEST_PROGRESS))
@@ -126,19 +166,19 @@ test-integration:
 	$(call run_rspec,統合, spec/features spec/jobs, $(TEST_PROGRESS))
 
 test-failed:
-	$(RSPEC) --only-failures --format $(TEST_DOC)
+	$(DOCKER_RSPEC) --only-failures --format $(TEST_DOC)
 
 test-parallel:
-	$(WEB_RUN) bundle exec parallel_rspec spec/models spec/requests spec/helpers spec/decorators
+	$(COMPOSE) run --rm $(DOCKER_TEST_ENV) web bundle exec parallel_rspec spec/models spec/requests spec/helpers spec/decorators
 
 test-coverage:
-	$(RSPEC) && echo "カバレッジ: coverage/index.html"
+	$(DOCKER_RSPEC) && echo "カバレッジ: coverage/index.html"
 
 test-profile:
-	$(RSPEC) --profile 10
+	$(DOCKER_RSPEC) --profile 10
 
 test-skip-heavy:
-	$(RSPEC) --tag ~slow --tag ~integration --tag ~js --format $(TEST_PROGRESS)
+	$(DOCKER_RSPEC) --tag ~slow --tag ~integration --tag ~js --format $(TEST_PROGRESS)
 
 test-unit-fast:
 	$(call run_rspec,軽量ユニット, spec/models spec/helpers spec/decorators spec/validators spec/jobs --tag ~slow, $(TEST_PROGRESS))
@@ -150,19 +190,26 @@ test-models-only:
 ci: bundle-install security-scan lint test-all
 
 security-scan:
+	@echo "=== Brakemanセキュリティスキャン実行 ==="
 	$(WEB_RUN) bin/brakeman --no-pager
 
 lint:
+	@echo "=== RuboCopコード品質チェック実行 ==="
 	$(WEB_RUN) bin/rubocop
 
 lint-fix:
+	@echo "=== RuboCop自動修正（安全） ==="
 	$(WEB_RUN) bin/rubocop -a
 
 lint-fix-unsafe:
+	@echo "=== RuboCop自動修正（非安全含む） ==="
 	$(WEB_RUN) bin/rubocop -A
 
 test-all:
-	$(WEB_RUN) bin/rails db:test:prepare test test:system
+	@echo "=== 全テスト実行（DB準備 + RSpec + SystemTest） ==="
+	$(COMPOSE) run --rm $(DOCKER_TEST_ENV) web bin/rails db:test:prepare
+	$(DOCKER_RSPEC)
+	$(COMPOSE) run --rm $(DOCKER_TEST_ENV) web bin/rails test:system
 
 # --------------------------- パフォーマンステスト --------------------------
 perf-generate-csv:

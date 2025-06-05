@@ -25,6 +25,10 @@ class Current < ActiveSupport::CurrentAttributes
   # 在庫操作タイプ（手動、自動、バルク、等）
   attribute :operation_type
 
+  # API情報
+  attribute :api_version
+  attribute :api_client
+
   # リクエスト情報の設定
   # @param request [ActionDispatch::Request] リクエストオブジェクト
   def set_request_info(request)

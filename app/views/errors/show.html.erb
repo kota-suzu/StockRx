@@ -22,7 +22,7 @@
     <% end %>
   </div>
   
-  <% if @status >= 500 %>
+  <% if @status && @status >= 500 %>
     <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
       <p><strong>エラーID:</strong> <%= request.request_id %></p>
       <p class="text-sm">このIDをサポートにお伝えいただくと、問題解決が迅速に行えます。</p>

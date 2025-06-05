@@ -1,0 +1,5 @@
+class AddAdminToInventoryLogs < ActiveRecord::Migration[8.0]
+  def change
+    add_reference :inventory_logs, :admin, foreign_key: true
+  end
+end

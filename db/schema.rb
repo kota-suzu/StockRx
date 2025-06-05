@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_05_143018) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -109,11 +109,11 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
     t.text "note"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
+    t.bigint "admin_id"
+    t.index ["admin_id"], name: "index_inventory_logs_on_admin_id"
     t.index ["created_at"], name: "index_inventory_logs_on_created_at"
     t.index ["inventory_id"], name: "index_inventory_logs_on_inventory_id"
     t.index ["operation_type"], name: "index_inventory_logs_on_operation_type"
-    t.index ["user_id"], name: "index_inventory_logs_on_user_id"
   end
 
   create_table "receipts", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -149,8 +149,8 @@ ActiveRecord::Schema[7.2].define(version: 2025_05_23_074600) do
   end
 
   add_foreign_key "admin_notification_settings", "admins"
-  add_foreign_key "audit_logs", "admins", column: "user_id", on_delete: :nullify
   add_foreign_key "batches", "inventories", on_delete: :cascade
+  add_foreign_key "inventory_logs", "admins"
   add_foreign_key "inventory_logs", "inventories"
   add_foreign_key "receipts", "inventories"
   add_foreign_key "shipments", "inventories"
