@@ -68,7 +68,9 @@ module Security
       @whitelist_ips ||= [
         "127.0.0.1",     # localhost
         "::1"           # IPv6 localhost
-        # TODO: 環境設定から読み込み
+        # TODO: 環境設定から読み込み（優先度：中）
+    # REF: docs/development_plan.md - セキュリティ・コンプライアンス強化
+    # ENV['WHITELIST_IPS']&.split(',') || []
       ].freeze
     end
 

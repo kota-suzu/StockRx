@@ -34,7 +34,7 @@ module Security
 
     def initialize(config: SecurityConfig.instance, storage: nil)
       @config = config
-      @storage = storage || SecurityStorage.new
+      @storage = storage || SecurityStorage.new(config: @config)
     end
 
     def detect_threats(request)

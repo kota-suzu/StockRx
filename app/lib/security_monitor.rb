@@ -23,7 +23,7 @@ class SecurityMonitor
     config: nil
   )
     @config = config || Security::SecurityConfig.instance
-    @storage = storage || Security::SecurityStorage.new(@config)
+    @storage = storage || Security::SecurityStorage.new(config: @config)
     @detector = detector || Security::ThreatDetector.new(config: @config, storage: @storage)
     @event_handler = event_handler || Security::SecurityEventHandler.new(config: @config, storage: @storage)
     @login_tracker = login_tracker || Security::LoginTracker.new(
@@ -126,7 +126,7 @@ end
 
 # ============================================
 # TODO: セキュリティ監視システムの拡張計画（優先度：高）
-# REF: doc/remaining_tasks.md - エラー追跡・分析
+# REF: docs/development_plan.md - セキュリティ・コンプライアンス強化
 # ============================================
 # 1. 機械学習による異常検知（優先度：中）
 #    - 正常なアクセスパターンの学習
@@ -152,3 +152,15 @@ end
 #    - セキュリティログの長期保存
 #    - 監査レポートの自動生成
 #    - 規制要件への準拠確認
+#
+# 6. APIレート制限機能の実装（優先度：緊急）
+#    - REF: docs/development_plan.md - APIセキュリティ強化
+#    - IPベース・ユーザーベースレート制限
+#    - 段階的制限とブロック機能
+#    - API認証トークンの有効期限管理
+#
+# 7. 2FA対応・認証機能強化（優先度：緊急）
+#    - REF: docs/development_plan.md - APIセキュリティ強化
+#    - 多要素認証の統合
+#    - JWT トークンベース認証への移行
+#    - セッション管理の強化

@@ -6,7 +6,7 @@ module Security
 
     def initialize(config: SecurityConfig.instance, storage: nil)
       @config = config
-      @storage = storage || SecurityStorage.new
+      @storage = storage || SecurityStorage.new(config: @config)
     end
 
     def handle_threat(threat_type, context)
@@ -157,7 +157,8 @@ module Security
     end
 
     def notify_security_team(notification_type, details)
-      # TODO: 実際の通知システム（Slack、メール等）との連携
+      # TODO: 実際の通知システム（Slack、メール等）との連携（優先度：高）
+      # REF: docs/development_plan.md - 監視・アラート機能
       # AdminNotificationService.security_alert(notification_type, details)
       # SlackNotificationService.send_alert(notification_type, details)
       # EmailNotificationService.send_security_alert(notification_type, details)

@@ -10,8 +10,8 @@ module Security
       event_handler: nil
     )
       @config = config
-      @storage = storage || SecurityStorage.new
-      @event_handler = event_handler || SecurityEventHandler.new
+      @storage = storage || SecurityStorage.new(config: @config)
+      @event_handler = event_handler || SecurityEventHandler.new(config: @config, storage: @storage)
     end
 
     def track_login_attempt(ip_address, email, success:, user_agent: nil)
