@@ -17,9 +17,9 @@ Rails.application.configure do
   # loading is working properly before deploying your code.
   config.eager_load = ENV["CI"].present?
 
-  # Zeitwerk関連の設定
-  config.autoloader = :zeitwerk
-  config.add_autoload_paths_to_load_path = false
+  # Rails 8対応: Zeitwerk設定
+  # autoloaderはRails 7.2以降デフォルトでzeitwerk
+  # add_autoload_paths_to_load_pathはRails 8で削除されたため設定しない
 
   # パフォーマンス最適化：静的ファイル配信の軽量化
   config.public_file_server.enabled = true

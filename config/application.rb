@@ -11,16 +11,20 @@ module App
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 7.2
 
-    # Zeitwerk関連のエラー修正
-    config.add_autoload_paths_to_load_path = false
+    # Rails 8対応: Zeitwerk設定
+    # add_autoload_paths_to_load_pathはRails 8で削除されたため使用しない
+    # 代わりに、libディレクトリのeager loadingを設定
 
     # 全例外をRoutes配下で処理するよう設定
     config.exceptions_app = self.routes
 
-    # Please, add to the `ignore` list any other `lib` subdirectories that do
-    # not contain `.rb` files, or that should not be reloaded or eager loaded.
-    # Common ones are `templates`, `generators`, or `middleware`, for example.
-    config.autoload_lib(ignore: %w[assets tasks])
+    # lib配下の自動読み込み設定 (Rails 8対応)
+    # Rails 8では、libディレクトリはデフォルトでは自動読み込みされない
+    # eager_load_pathsに追加して、production環境でのeager loadingを有効にする
+    config.paths.add "lib", eager_load: true
+    
+    # 特定のサブディレクトリを除外
+    config.eager_load_paths -= ["#{config.root}/lib/assets", "#{config.root}/lib/tasks"]
 
     # ============================================
     # 国際化・地域化設定
@@ -30,6 +34,9 @@ module App
     config.i18n.available_locales = [ :ja, :en ]
     config.i18n.fallbacks = [ I18n.default_locale ]
     config.time_zone = "Tokyo"
+    
+    # Rails 8.1 対応: タイムゾーン保持設定
+    config.active_support.to_time_preserves_timezone = :zone
 
     # ============================================
     # バックグラウンドジョブ処理設定

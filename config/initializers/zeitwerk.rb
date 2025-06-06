@@ -1,29 +1,47 @@
 # frozen_string_literal: true
 
-# Zeitwerk設定ファイル
-# Rails 7.2以降の名前空間解決と凍結配列問題への対応
+# Rails 8対応 Zeitwerk設定ファイル
+# ================================
 
-# 1. Rails 7.2のfrozen array問題対策
+# Rails 8では、autoload_pathsが初期化完了後に凍結される
+# そのため、動的な変更は避け、Railsの規約に従った構造にする
+
+# 1. 特殊なディレクトリ構造の処理
 # --------------------------------
-# Rails 7.2以降で配列オブジェクトが凍結されるようになり、
-# autoload_pathsの変更が制限されるようになった問題への対策
-Rails.autoloaders.each do |autoloader|
-  def autoloader.mutate_autoload_paths
-    # frozen error回避のためのパッチ：何もしないオーバーライド
-  end
+# admin_helpersディレクトリ内のファイルが
+# トップレベルのモジュールとして扱われるよう設定
+Rails.autoloaders.main.collapse("#{Rails.root}/app/helpers/admin_helpers") if Dir.exist?("#{Rails.root}/app/helpers/admin_helpers")
+
+# 2. カスタムインフレクター設定（必要に応じて）
+# -------------------------------------
+# Rails.autoloaders.main.inflector.inflect(
+#   "api" => "API",
+#   "csv" => "CSV"
+# )
+
+# 3. 無視するパスの設定
+# -------------------
+Rails.autoloaders.main.ignore("#{Rails.root}/app/assets")
+Rails.autoloaders.main.ignore("#{Rails.root}/lib/assets")
+Rails.autoloaders.main.ignore("#{Rails.root}/lib/tasks")
+
+# 4. lib配下の自動読み込み設定
+# --------------------------
+# Rails 8では、libディレクトリは明示的に追加する必要がある
+# ただし、config/application.rbのafter_initializeで設定済み
+
+# 5. 開発環境での再読み込み設定
+# ---------------------------
+if Rails.env.development?
+  Rails.autoloaders.main.enable_reloading
+
+  # 特定のディレクトリの変更を監視から除外
+  Rails.autoloaders.main.do_not_eager_load("#{Rails.root}/app/lib/security") if Dir.exist?("#{Rails.root}/app/lib/security")
 end
 
-# 2. ディレクトリとモジュール構造のマッピング
-# ----------------------------------
-# 従来のadmin_helpersディレクトリ内のファイルが
-# トップレベルのモジュールとして扱われるよう設定
-Rails.autoloaders.main.collapse("app/helpers/admin_helpers")
-
-# 3. モジュール読み込みの順序制御
-# -------------------------
-# helpers.rbイニシャライザがヘルパーモジュールを事前定義
-
-# TODO: 将来的なクリーンアップ
-# -----------------------
-# 1. admin_helpersディレクトリを削除し、規約に従ったヘルパー構造に完全移行
-# 2. AdminHelpersモジュールへの参照をすべて直接のモジュール参照に修正
+# NOTE: Rails 8のベストプラクティス
+# =================================
+# 1. autoload_pathsへの直接アクセスは避ける
+# 2. Railsの規約に従ったディレクトリ構造を使用する
+# 3. 特殊な構造が必要な場合は、collapseやignoreを使用する
+# 4. libディレクトリの扱いは慎重に（eager_load_pathsへの追加を推奨）
