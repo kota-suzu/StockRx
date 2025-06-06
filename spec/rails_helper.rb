@@ -5,20 +5,8 @@ require 'spec_helper'
 require 'timecop'
 ENV['RAILS_ENV'] ||= 'test'
 
-# 環境読み込み時のエラー対策
-begin
-  require_relative '../config/environment'
-rescue FrozenError => e
-  puts "警告: 凍結エラーが発生しました。キャッシュをクリアして再試行します。"
-  puts e.message
-  # キャッシュディレクトリを作成（存在しない場合）
-  require 'fileutils'
-  FileUtils.mkdir_p('tmp/cache') unless Dir.exist?('tmp/cache')
-  # キャッシュをクリア
-  FileUtils.rm_rf(Dir.glob('tmp/cache/*'))
-  # 再試行
-  require_relative '../config/environment'
-end
+# Rails環境の読み込み
+require_relative '../config/environment'
 
 # Prevent database truncation if the environment is production
 abort("The Rails environment is running in production mode!") if Rails.env.production?

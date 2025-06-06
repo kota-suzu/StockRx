@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "timeout"
+
 # ============================================
 # External API Sync Job
 # ============================================
@@ -43,15 +45,21 @@ class ExternalApiSyncJob < ApplicationJob
   # 外部API連携は失敗の可能性が高いため、リトライ回数を増やす
   sidekiq_options retry: 5, backtrace: true, queue: :default
 
-  # API別のリトライ戦略
-  retry_on Net::TimeoutError, wait: :exponentially_longer, attempts: 5
+  # API別のリトライ戦略（Ruby 3.3対応）
+  # Timeout::Error: 汎用タイムアウトエラー（旧Net::TimeoutErrorの代替）
+  # Net::OpenTimeout: TCP接続確立時のタイムアウト
+  # Net::ReadTimeout: レスポンス読み取り時のタイムアウト
+  retry_on Timeout::Error, wait: :exponentially_longer, attempts: 5
   retry_on Net::OpenTimeout, wait: 30.seconds, attempts: 3
-  retry_on Faraday::ConnectionFailed, wait: 60.seconds, attempts: 3
+  retry_on Net::ReadTimeout, wait: 30.seconds, attempts: 3
+  # TODO: Faradayを使用する場合は以下のrequireを追加: require 'faraday'
+  # retry_on Faraday::ConnectionFailed, wait: 60.seconds, attempts: 3
   retry_on JSON::ParserError, attempts: 2
 
   # 回復不可能なエラーは即座に破棄
-  discard_on Faraday::UnauthorizedError
-  discard_on Faraday::ForbiddenError
+  # TODO: Faradayを使用する場合のエラーハンドリング
+  # discard_on Faraday::UnauthorizedError
+  # discard_on Faraday::ForbiddenError
 
   # @param api_provider [String] API提供者名（例：'supplier_a', 'accounting_system'）
   # @param sync_type [String] 同期種別（例：'inventory', 'orders', 'prices'）
@@ -183,7 +191,7 @@ class ExternalApiSyncJob < ApplicationJob
 
     begin
       # TODO: 実際のHTTPクライアント実装
-      # Faraday.get(url, headers)
+      # 例: Faraday.get(url, headers) (require 'faraday' が必要)
       { status: "mock_response" }
 
     rescue => e

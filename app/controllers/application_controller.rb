@@ -69,7 +69,7 @@ class ApplicationController < ActionController::Base
     if defined?(@request_start_time)
       response_time = Time.current - @request_start_time
 
-      if response_time > SecurityMonitor::SUSPICIOUS_THRESHOLDS[:response_time]
+      if response_time > SecurityMonitor.instance.config.thresholds.response_time
         Rails.logger.warn({
           event: "slow_response_detected",
           response_time_seconds: response_time,

@@ -62,9 +62,9 @@ jobs:
 
     services:
       mysql:
-        image: mysql
+        image: mysql:8.0
         env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_ROOT_PASSWORD: password
           MYSQL_DATABASE: stock_rx_test
         ports:
           - 3306:3306
@@ -110,7 +110,8 @@ jobs:
       - name: Run tests
         env:
           RAILS_ENV: test
-          DATABASE_URL: mysql2://root@127.0.0.1:3306/stock_rx_test
+          DATABASE_URL: mysql2://root:password@127.0.0.1:3306/stock_rx_test
+          DATABASE_PASSWORD: password
           # REDIS_URL: redis://localhost:6379/0
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
           # Rails 7.2対応：環境変数で明示的に設定
