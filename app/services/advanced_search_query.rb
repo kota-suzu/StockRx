@@ -81,7 +81,7 @@ class AdvancedSearchQuery
   end
 
   # キーワード検索（複数フィールドを対象）
-  def search_keywords(keyword, fields: [:name, :description])
+  def search_keywords(keyword, fields: [ :name, :description ])
     return self if keyword.blank?
 
     # フィールド名の安全性を検証
@@ -91,10 +91,10 @@ class AdvancedSearchQuery
     # Arel DSLを使用してOR条件を安全に構築
     table = Inventory.arel_table
     sanitized_keyword = sanitize_like_parameter(keyword)
-    
+
     or_conditions = safe_fields.map do |field|
-      field_parts = field.split('.')
-      if field_parts.length == 2 && field_parts[0] == 'inventories'
+      field_parts = field.split(".")
+      if field_parts.length == 2 && field_parts[0] == "inventories"
         table[field_parts[1]].matches("%#{sanitized_keyword}%")
       else
         # 他のテーブルの場合は、対応するテーブルを使用
@@ -102,9 +102,9 @@ class AdvancedSearchQuery
         table[:name].matches("%#{sanitized_keyword}%") # デフォルトはnameフィールド
       end
     end.compact
-    
+
     return self if or_conditions.empty?
-    
+
     combined_condition = or_conditions.reduce { |result, condition| result.or(condition) }
     @base_scope = @base_scope.where(combined_condition)
     self
@@ -119,11 +119,11 @@ class AdvancedSearchQuery
 
     # Arel DSLを使用して安全にクエリを構築
     table = Inventory.arel_table
-    field_parts = safe_field.split('.')
-    
-    if field_parts.length == 2 && field_parts[0] == 'inventories'
+    field_parts = safe_field.split(".")
+
+    if field_parts.length == 2 && field_parts[0] == "inventories"
       column = table[field_parts[1]]
-      
+
       if from.present? && to.present?
         @base_scope = @base_scope.where(column.gteq(from).and(column.lteq(to)))
       elsif from.present?
@@ -144,11 +144,11 @@ class AdvancedSearchQuery
 
     # Arel DSLを使用して安全にクエリを構築
     table = Inventory.arel_table
-    field_parts = safe_field.split('.')
-    
-    if field_parts.length == 2 && field_parts[0] == 'inventories'
+    field_parts = safe_field.split(".")
+
+    if field_parts.length == 2 && field_parts[0] == "inventories"
       column = table[field_parts[1]]
-      
+
       if min.present? && max.present?
         @base_scope = @base_scope.where(column.gteq(min).and(column.lteq(max)))
       elsif min.present?

@@ -97,11 +97,11 @@ class SearchQueryBuilder
 
     # Arel DSLを使用して安全にクエリを構築
     table = Inventory.arel_table
-    field_parts = field_name.split('.')
-    
-    if field_parts.length == 2 && field_parts[0] == 'inventories'
+    field_parts = field_name.split(".")
+
+    if field_parts.length == 2 && field_parts[0] == "inventories"
       column = table[field_parts[1]]
-      
+
       if from_date.present? && to_date.present?
         @scope = @scope.where(column.gteq(from_date).and(column.lteq(to_date)))
         @conditions << "#{field.humanize}: #{from_date}〜#{to_date}"
@@ -113,7 +113,7 @@ class SearchQueryBuilder
         @conditions << "#{field.humanize}: #{to_date}以前"
       end
     end
-    
+
     self
   end
 
@@ -260,14 +260,14 @@ class SearchQueryBuilder
 
     # Arel DSLを使用して安全にソートを実行
     table = Inventory.arel_table
-    field_parts = sanitized_field.split('.')
-    
-    if field_parts.length == 2 && field_parts[0] == 'inventories'
+    field_parts = sanitized_field.split(".")
+
+    if field_parts.length == 2 && field_parts[0] == "inventories"
       column = table[field_parts[1]]
       direction_symbol = direction.to_s.downcase == "asc" ? :asc : :desc
       @scope = @scope.order(column.send(direction_symbol))
     end
-    
+
     self
   end
 
