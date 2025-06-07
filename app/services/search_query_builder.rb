@@ -93,17 +93,27 @@ class SearchQueryBuilder
     return self if from_date.blank? && to_date.blank?
 
     field_name = sanitize_field_name(field)
+    return self unless field_name  # サニタイゼーションに失敗した場合は処理を停止
 
-    if from_date.present? && to_date.present?
-      @scope = @scope.where("#{field_name} BETWEEN ? AND ?", from_date, to_date)
-      @conditions << "#{field.humanize}: #{from_date}〜#{to_date}"
-    elsif from_date.present?
-      @scope = @scope.where("#{field_name} >= ?", from_date)
-      @conditions << "#{field.humanize}: #{from_date}以降"
-    elsif to_date.present?
-      @scope = @scope.where("#{field_name} <= ?", to_date)
-      @conditions << "#{field.humanize}: #{to_date}以前"
+    # Arel DSLを使用して安全にクエリを構築
+    table = Inventory.arel_table
+    field_parts = field_name.split('.')
+    
+    if field_parts.length == 2 && field_parts[0] == 'inventories'
+      column = table[field_parts[1]]
+      
+      if from_date.present? && to_date.present?
+        @scope = @scope.where(column.gteq(from_date).and(column.lteq(to_date)))
+        @conditions << "#{field.humanize}: #{from_date}〜#{to_date}"
+      elsif from_date.present?
+        @scope = @scope.where(column.gteq(from_date))
+        @conditions << "#{field.humanize}: #{from_date}以降"
+      elsif to_date.present?
+        @scope = @scope.where(column.lteq(to_date))
+        @conditions << "#{field.humanize}: #{to_date}以前"
+      end
     end
+    
     self
   end
 
@@ -246,9 +256,18 @@ class SearchQueryBuilder
     return self if field.blank?
 
     sanitized_field = sanitize_field_name(field)
-    direction = direction.to_s.downcase == "asc" ? "ASC" : "DESC"
+    return self unless sanitized_field  # サニタイゼーションに失敗した場合は処理を停止
 
-    @scope = @scope.order("#{sanitized_field} #{direction}")
+    # Arel DSLを使用して安全にソートを実行
+    table = Inventory.arel_table
+    field_parts = sanitized_field.split('.')
+    
+    if field_parts.length == 2 && field_parts[0] == 'inventories'
+      column = table[field_parts[1]]
+      direction_symbol = direction.to_s.downcase == "asc" ? :asc : :desc
+      @scope = @scope.order(column.send(direction_symbol))
+    end
+    
     self
   end
 
@@ -337,7 +356,11 @@ class SearchQueryBuilder
       receipts.source receipts.status
     ]
 
-    return "inventories.updated_at" unless allowed_fields.include?(field)
+    # フィールドがホワイトリストに含まれていない場合はnilを返す
+    unless allowed_fields.include?(field)
+      Rails.logger.warn "Potentially unsafe field name rejected: #{field}"
+      return nil
+    end
 
     if field.include?(".")
       field

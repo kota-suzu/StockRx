@@ -5,6 +5,28 @@
 class AdvancedSearchQuery
   attr_reader :base_scope, :joins_applied, :distinct_applied
 
+  # 許可されたフィールド名のホワイトリスト（SQLインジェクション対策）
+  ALLOWED_FIELDS = %w[
+    inventories.name inventories.description inventories.price inventories.quantity
+    inventories.status inventories.created_at inventories.updated_at
+    batches.lot_code batches.expires_on batches.quantity
+    inventory_logs.action inventory_logs.quantity_change inventory_logs.created_at
+    shipments.status shipments.destination shipments.scheduled_date shipments.tracking_number
+    receipts.status receipts.source receipts.receipt_date receipts.cost
+    audit_logs.action audit_logs.changed_fields audit_logs.created_at
+  ].freeze
+
+  # 許可されたカラム名のマッピング（シンプルなフィールド名から完全なフィールド名へ）
+  FIELD_MAPPING = {
+    "name" => "inventories.name",
+    "description" => "inventories.description",
+    "price" => "inventories.price",
+    "quantity" => "inventories.quantity",
+    "status" => "inventories.status",
+    "created_at" => "inventories.created_at",
+    "updated_at" => "inventories.updated_at"
+  }.freeze
+
   def initialize(scope = Inventory.all)
     @base_scope = scope
     @joins_applied = Set.new
@@ -59,40 +81,83 @@ class AdvancedSearchQuery
   end
 
   # キーワード検索（複数フィールドを対象）
-  def search_keywords(keyword, fields: [ :name, :description ])
+  def search_keywords(keyword, fields: [:name, :description])
     return self if keyword.blank?
 
-    conditions = fields.map do |field|
-      "#{field} LIKE :keyword"
-    end.join(" OR ")
+    # フィールド名の安全性を検証
+    safe_fields = fields.map { |field| sanitize_field_name(field.to_s) }.compact
+    return self if safe_fields.empty?
 
-    where("(#{conditions})", keyword: "%#{keyword}%")
+    # Arel DSLを使用してOR条件を安全に構築
+    table = Inventory.arel_table
+    sanitized_keyword = sanitize_like_parameter(keyword)
+    
+    or_conditions = safe_fields.map do |field|
+      field_parts = field.split('.')
+      if field_parts.length == 2 && field_parts[0] == 'inventories'
+        table[field_parts[1]].matches("%#{sanitized_keyword}%")
+      else
+        # 他のテーブルの場合は、対応するテーブルを使用
+        next nil unless ALLOWED_FIELDS.include?(field)
+        table[:name].matches("%#{sanitized_keyword}%") # デフォルトはnameフィールド
+      end
+    end.compact
+    
+    return self if or_conditions.empty?
+    
+    combined_condition = or_conditions.reduce { |result, condition| result.or(condition) }
+    @base_scope = @base_scope.where(combined_condition)
+    self
   end
 
   # 日付範囲検索
   def between_dates(field, from, to)
     return self if from.blank? && to.blank?
 
-    if from.present? && to.present?
-      where("#{field} BETWEEN ? AND ?", from, to)
-    elsif from.present?
-      where("#{field} >= ?", from)
-    else
-      where("#{field} <= ?", to)
+    safe_field = sanitize_field_name(field.to_s)
+    return self unless safe_field
+
+    # Arel DSLを使用して安全にクエリを構築
+    table = Inventory.arel_table
+    field_parts = safe_field.split('.')
+    
+    if field_parts.length == 2 && field_parts[0] == 'inventories'
+      column = table[field_parts[1]]
+      
+      if from.present? && to.present?
+        @base_scope = @base_scope.where(column.gteq(from).and(column.lteq(to)))
+      elsif from.present?
+        @base_scope = @base_scope.where(column.gteq(from))
+      else
+        @base_scope = @base_scope.where(column.lteq(to))
+      end
     end
+    self
   end
 
   # 数値範囲検索
   def in_range(field, min, max)
     return self if min.blank? && max.blank?
 
-    if min.present? && max.present?
-      where("#{field} BETWEEN ? AND ?", min, max)
-    elsif min.present?
-      where("#{field} >= ?", min)
-    else
-      where("#{field} <= ?", max)
+    safe_field = sanitize_field_name(field.to_s)
+    return self unless safe_field
+
+    # Arel DSLを使用して安全にクエリを構築
+    table = Inventory.arel_table
+    field_parts = safe_field.split('.')
+    
+    if field_parts.length == 2 && field_parts[0] == 'inventories'
+      column = table[field_parts[1]]
+      
+      if min.present? && max.present?
+        @base_scope = @base_scope.where(column.gteq(min).and(column.lteq(max)))
+      elsif min.present?
+        @base_scope = @base_scope.where(column.gteq(min))
+      else
+        @base_scope = @base_scope.where(column.lteq(max))
+      end
     end
+    self
   end
 
   # Enumフィールドでの検索
@@ -230,6 +295,28 @@ class AdvancedSearchQuery
       # JOINによる重複を防ぐ
       distinct unless @distinct_applied
     end
+  end
+
+  # フィールド名のサニタイゼーション（SQLインジェクション対策）
+  def sanitize_field_name(field)
+    # まずフィールド名のマッピングをチェック
+    mapped_field = FIELD_MAPPING[field]
+
+    # マッピングされたフィールドまたは元のフィールドがホワイトリストに含まれているかチェック
+    field_to_check = mapped_field || field
+
+    if ALLOWED_FIELDS.include?(field_to_check)
+      field_to_check
+    else
+      Rails.logger.warn "Potentially unsafe field name rejected: #{field}"
+      nil
+    end
+  end
+
+  # LIKE検索用のパラメータサニタイゼーション
+  def sanitize_like_parameter(value)
+    # SQLインジェクション対策: エスケープ文字の処理
+    value.to_s.gsub(/[%_\\]/) { |match| "\\#{match}" }
   end
 
   # 複雑な条件を構築するビルダークラス
