@@ -10,8 +10,23 @@ mkdir -p /rails/tmp/cache/assets /rails/tmp/pids /rails/tmp/storage
 chmod -R 777 /rails/tmp/cache
 touch /rails/tmp/restart.txt
 
+# Debug: Print database connection environment variables
+echo "DEBUG: DATABASE_HOST=$DATABASE_HOST"
+echo "DEBUG: DATABASE_USERNAME=$DATABASE_USERNAME"
+echo "DEBUG: DATABASE_PASSWORD=$DATABASE_PASSWORD"
+echo "DEBUG: RAILS_ENV=$RAILS_ENV"
+
+# Clear Rails cache to ensure fresh configuration load
+rm -rf tmp/cache/bootsnap*
+rm -rf tmp/cache/assets
+rm -rf tmp/pids/server.pid
+
 # If running the rails server then create or migrate existing database
+# Handle both direct rails command and wait-for command patterns
 if [ "${1}" == "./bin/rails" ] && [ "${2}" == "server" ]; then
+  ./bin/rails db:prepare
+elif [ "${1}" == "./wait-for" ] && [ "${6}" == "./bin/rails" ] && [ "${7}" == "server" ]; then
+  # For wait-for db:3306 --timeout=30 --debug -- ./bin/rails server pattern
   ./bin/rails db:prepare
 fi
 

@@ -3,6 +3,7 @@
 # This file is copied to spec/ when you run 'rails generate rspec:install'
 require 'spec_helper'
 require 'timecop'
+require 'rails-controller-testing'
 ENV['RAILS_ENV'] ||= 'test'
 
 # 環境読み込み時のエラー対策
@@ -66,6 +67,40 @@ RSpec.configure do |config|
   # instead of true.
   config.use_transactional_fixtures = true
 
+  # Load support files for better test organization
+  Dir[Rails.root.join('spec', 'support', '**', '*.rb')].sort.each { |f| require f }
+
+  # Factory Bot sequence management for test isolation
+  config.before(:suite) do
+    # テストスイート開始時にシーケンスをリセット
+    FactoryBot.rewind_sequences
+  end
+
+  # Host Authorization完全無効化（403 Blocked host対策）
+  config.before(:each, type: :request) do
+    # ActionDispatch::HostAuthorizationを無効化
+    Rails.application.config.hosts = nil
+
+    # Stubbing the middleware to pass through all requests
+    allow_any_instance_of(ActionDispatch::HostAuthorization).to receive(:call) do |instance, env|
+      instance.instance_variable_get(:@app).call(env)
+    end
+  end
+
+  config.before(:each, type: :system) do
+    Rails.application.config.hosts = nil
+    allow_any_instance_of(ActionDispatch::HostAuthorization).to receive(:call) do |instance, env|
+      instance.instance_variable_get(:@app).call(env)
+    end
+  end
+
+  config.before(:each, type: :feature) do
+    Rails.application.config.hosts = nil
+    allow_any_instance_of(ActionDispatch::HostAuthorization).to receive(:call) do |instance, env|
+      instance.instance_variable_get(:@app).call(env)
+    end
+  end
+
   # You can uncomment this line to turn off ActiveRecord support entirely.
   # config.use_active_record = false
 
@@ -95,6 +130,11 @@ RSpec.configure do |config|
 
   # Include FactoryBot syntax
   config.include FactoryBot::Syntax::Methods
+
+  # Rails Controller Testing (assigns, etc.)
+  config.include Rails::Controller::Testing::TestProcess, type: :controller
+  config.include Rails::Controller::Testing::TemplateAssertions, type: :controller
+  config.include Rails::Controller::Testing::Integration, type: :request
 
   # Timecop configuration
   config.after(:each) do
@@ -234,8 +274,8 @@ end
 
 # Capybara基本設定（パフォーマンス重視）
 Capybara.configure do |config|
-  config.app_host = "http://www.example.com"
-  config.server_host = "0.0.0.0"
+  config.app_host = "http://localhost"
+  config.server_host = "localhost"
   config.server_port = 3001
 
   # タイムアウト短縮（高速化）

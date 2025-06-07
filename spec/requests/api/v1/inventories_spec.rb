@@ -3,6 +3,12 @@
 require "rails_helper"
 
 RSpec.describe "Api::V1::Inventories", type: :request do
+  let(:admin) { create(:admin) }
+
+  before do
+    sign_in admin
+  end
+
   let(:valid_attributes) do
     {
       name: "API Test Medicine",

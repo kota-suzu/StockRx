@@ -16,6 +16,12 @@ class Current < ActiveSupport::CurrentAttributes
   # ユーザーエージェント情報（モバイル連携時に利用）
   attribute :user_agent
 
+  # API バージョン情報（API リクエスト時に利用）
+  attribute :api_version
+
+  # API クライアント情報（API リクエスト時に利用）
+  attribute :api_client
+
   # 操作の理由（オプション、管理操作の監査証跡に利用）
   attribute :reason
 

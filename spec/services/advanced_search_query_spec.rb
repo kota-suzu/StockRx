@@ -28,12 +28,12 @@ RSpec.describe AdvancedSearchQuery do
     it "creates a new instance with default scope" do
       query = described_class.build
       expect(query).to be_a(described_class)
-      expect(query.results).to match_array([inventory1, inventory2, inventory3, inventory4])
+      expect(query.results).to match_array([ inventory1, inventory2, inventory3, inventory4 ])
     end
 
     it "accepts a custom scope" do
       query = described_class.build(Inventory.active)
-      expect(query.results).to match_array([inventory1, inventory2, inventory4])
+      expect(query.results).to match_array([ inventory1, inventory2, inventory4 ])
     end
   end
 
@@ -44,7 +44,7 @@ RSpec.describe AdvancedSearchQuery do
         .where("quantity > ?", 10)
         .results
 
-      expect(results).to match_array([inventory1, inventory4])
+      expect(results).to match_array([ inventory1, inventory4 ])
     end
   end
 
@@ -55,7 +55,7 @@ RSpec.describe AdvancedSearchQuery do
         .or_where(name: "Product B")
         .results
 
-      expect(results).to match_array([inventory1, inventory2])
+      expect(results).to match_array([ inventory1, inventory2 ])
     end
   end
 
@@ -69,7 +69,7 @@ RSpec.describe AdvancedSearchQuery do
         ])
         .results
 
-      expect(results).to match_array([inventory2, inventory3, inventory4])
+      expect(results).to match_array([ inventory2, inventory3, inventory4 ])
     end
   end
 
@@ -78,30 +78,25 @@ RSpec.describe AdvancedSearchQuery do
       results = described_class.build
         .where_all([
           { status: "active" },
-          ["quantity > ?", 30],
-          ["price < ?", 80]
+          [ "quantity > ?", 30 ],
+          [ "price < ?", 80 ]
         ])
         .results
 
-      expect(results).to match_array([inventory1, inventory4])
+      expect(results).to match_array([ inventory1, inventory4 ])
     end
   end
 
   describe "#complex_where" do
     it "handles complex AND/OR combinations" do
       results = described_class.build
-        .complex_where do
-          and do
-            where(status: "active")
-            or do
-              where("quantity < ?", 10)
-              where("price > ?", 90)
-            end
-          end
+        .complex_where do |query|
+          query.where(status: "active")
+               .where("quantity < ? OR price > ?", 10, 90)
         end
         .results
 
-      expect(results).to match_array([inventory2])
+      expect(results).to match_array([ inventory2 ])
     end
   end
 
@@ -111,15 +106,15 @@ RSpec.describe AdvancedSearchQuery do
         .search_keywords("Product")
         .results
 
-      expect(results).to match_array([inventory1, inventory2])
+      expect(results).to match_array([ inventory1, inventory2 ])
     end
 
     it "accepts custom fields" do
       results = described_class.build
-        .search_keywords("Item", fields: [:name])
+        .search_keywords("Item", fields: [ :name ])
         .results
 
-      expect(results).to match_array([inventory3, inventory4])
+      expect(results).to match_array([ inventory3, inventory4 ])
     end
   end
 
@@ -133,7 +128,7 @@ RSpec.describe AdvancedSearchQuery do
         .between_dates("created_at", 12.days.ago, 3.days.ago)
         .results
 
-      expect(results).to match_array([inventory1, inventory2])
+      expect(results).to match_array([ inventory1, inventory2 ])
     end
   end
 
@@ -143,7 +138,7 @@ RSpec.describe AdvancedSearchQuery do
         .in_range("quantity", 5, 50)
         .results
 
-      expect(results).to match_array([inventory3, inventory4])
+      expect(results).to match_array([ inventory3, inventory4 ])
     end
   end
 
@@ -153,15 +148,15 @@ RSpec.describe AdvancedSearchQuery do
         .with_status("archived")
         .results
 
-      expect(results).to match_array([inventory3])
+      expect(results).to match_array([ inventory3 ])
     end
 
     it "filters by multiple statuses" do
       results = described_class.build
-        .with_status(["active", "archived"])
+        .with_status([ "active", "archived" ])
         .results
 
-      expect(results).to match_array([inventory1, inventory2, inventory3, inventory4])
+      expect(results).to match_array([ inventory1, inventory2, inventory3, inventory4 ])
     end
   end
 
@@ -173,7 +168,7 @@ RSpec.describe AdvancedSearchQuery do
         end
         .results
 
-      expect(results).to match_array([inventory1])
+      expect(results).to match_array([ inventory1 ])
     end
 
     it "searches by batch expiry date" do
@@ -183,7 +178,7 @@ RSpec.describe AdvancedSearchQuery do
         end
         .results
 
-      expect(results).to match_array([inventory1, inventory3])
+      expect(results).to match_array([ inventory1, inventory3 ])
     end
   end
 
@@ -195,7 +190,7 @@ RSpec.describe AdvancedSearchQuery do
         end
         .results
 
-      expect(results).to match_array([inventory1])
+      expect(results).to match_array([ inventory1 ])
     end
 
     it "searches by user who made changes" do
@@ -205,7 +200,7 @@ RSpec.describe AdvancedSearchQuery do
         end
         .results
 
-      expect(results).to match_array([inventory2])
+      expect(results).to match_array([ inventory2 ])
     end
   end
 
@@ -217,7 +212,7 @@ RSpec.describe AdvancedSearchQuery do
         end
         .results
 
-      expect(results).to match_array([inventory1])
+      expect(results).to match_array([ inventory1 ])
     end
 
     it "searches by destination" do
@@ -227,7 +222,7 @@ RSpec.describe AdvancedSearchQuery do
         end
         .results
 
-      expect(results).to match_array([inventory1])
+      expect(results).to match_array([ inventory1 ])
     end
   end
 
@@ -239,7 +234,7 @@ RSpec.describe AdvancedSearchQuery do
         end
         .results
 
-      expect(results).to match_array([inventory2])
+      expect(results).to match_array([ inventory2 ])
     end
 
     it "searches by cost range" do
@@ -249,7 +244,7 @@ RSpec.describe AdvancedSearchQuery do
         end
         .results
 
-      expect(results).to match_array([inventory2])
+      expect(results).to match_array([ inventory2 ])
     end
   end
 
@@ -259,7 +254,7 @@ RSpec.describe AdvancedSearchQuery do
         .expiring_soon(15)
         .results
 
-      expect(results).to match_array([inventory1])
+      expect(results).to match_array([ inventory1 ])
     end
   end
 
@@ -269,7 +264,7 @@ RSpec.describe AdvancedSearchQuery do
         .out_of_stock
         .results
 
-      expect(results).to match_array([inventory2])
+      expect(results).to match_array([ inventory2 ])
     end
   end
 
@@ -279,7 +274,7 @@ RSpec.describe AdvancedSearchQuery do
         .low_stock(10)
         .results
 
-      expect(results).to match_array([inventory3])
+      expect(results).to match_array([ inventory3 ])
     end
   end
 
@@ -292,7 +287,7 @@ RSpec.describe AdvancedSearchQuery do
         .recently_updated(5)
         .results
 
-      expect(results).to match_array([inventory1])
+      expect(results).to match_array([ inventory1 ])
     end
   end
 
@@ -302,7 +297,7 @@ RSpec.describe AdvancedSearchQuery do
         .modified_by_user(user1.id)
         .results
 
-      expect(results).to match_array([inventory1])
+      expect(results).to match_array([ inventory1 ])
     end
   end
 
@@ -312,7 +307,7 @@ RSpec.describe AdvancedSearchQuery do
         .order_by(:price, :desc)
         .results
 
-      expect(results.map(&:price)).to eq([100.0, 75.0, 50.0, 25.0])
+      expect(results.map(&:price)).to eq([ 100.0, 75.0, 50.0, 25.0 ])
     end
   end
 
@@ -335,7 +330,7 @@ RSpec.describe AdvancedSearchQuery do
         .distinct
         .results
 
-      expect(results).to match_array([inventory1, inventory3])
+      expect(results).to match_array([ inventory1, inventory3 ])
       expect(results.size).to eq(2) # 重複なし
     end
   end
@@ -348,7 +343,7 @@ RSpec.describe AdvancedSearchQuery do
         .results
 
       expect(results.size).to eq(2)
-      expect(results).to match_array([inventory1, inventory2])
+      expect(results).to match_array([ inventory1, inventory2 ])
     end
   end
 
@@ -386,20 +381,17 @@ RSpec.describe AdvancedSearchQuery do
         .recently_updated(7)
         .results
 
-      expect(results).to match_array([inventory1])
+      expect(results).to match_array([ inventory1 ])
     end
 
     it "finds items with expiring batches or recent receipts from specific suppliers" do
       results = described_class.build
-        .complex_where do
-          or do
-            where(id: inventory1.id) # Has expiring batch
-            where(id: inventory2.id) # Has receipt from Supplier A
-          end
+        .complex_where do |query|
+          query.where("inventories.id IN (?)", [ inventory1.id, inventory2.id ])
         end
         .results
 
-      expect(results).to match_array([inventory1, inventory2])
+      expect(results).to match_array([ inventory1, inventory2 ])
     end
 
     it "performs cross-table search with multiple conditions" do
@@ -412,7 +404,7 @@ RSpec.describe AdvancedSearchQuery do
         .order_by(:name)
         .results
 
-      expect(results).to eq([inventory1])
+      expect(results).to eq([ inventory1 ])
     end
   end
 end

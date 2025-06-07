@@ -17,7 +17,9 @@ class ApplicationJob < ActiveJob::Base
 
   # TODO: 将来的な拡張エラーハンドリング
   # discard_on ActiveStorage::FileNotFoundError
-  # retry_on Net::TimeoutError, wait: 30.seconds, attempts: 5
+  # retry_on Timeout::Error, wait: 30.seconds, attempts: 5
+  # retry_on Net::ReadTimeout, wait: 30.seconds, attempts: 5
+  # retry_on Net::WriteTimeout, wait: 30.seconds, attempts: 5
 
   # ============================================
   # Logging and Monitoring

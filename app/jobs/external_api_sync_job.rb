@@ -1,5 +1,11 @@
 # frozen_string_literal: true
 
+require "timeout"
+require "net/http"
+# TODO: Faradayの追加が必要（優先度：高）
+# Gemfileに追加： gem 'faraday'
+# require "faraday"
+
 # ============================================
 # External API Sync Job
 # ============================================
@@ -43,15 +49,20 @@ class ExternalApiSyncJob < ApplicationJob
   # 外部API連携は失敗の可能性が高いため、リトライ回数を増やす
   sidekiq_options retry: 5, backtrace: true, queue: :default
 
-  # API別のリトライ戦略
-  retry_on Net::TimeoutError, wait: :exponentially_longer, attempts: 5
+  # API別のリトライ戦略（Ruby 3.x対応）
+  # タイムアウトエラーの正しい指定
+  retry_on Timeout::Error, wait: :exponentially_longer, attempts: 5
+  retry_on Net::ReadTimeout, wait: :exponentially_longer, attempts: 5
+  retry_on Net::WriteTimeout, wait: :exponentially_longer, attempts: 5
   retry_on Net::OpenTimeout, wait: 30.seconds, attempts: 3
-  retry_on Faraday::ConnectionFailed, wait: 60.seconds, attempts: 3
+  # TODO: Faradayエラーの有効化（Faraday gemインストール後）
+  # retry_on Faraday::ConnectionFailed, wait: 60.seconds, attempts: 3
   retry_on JSON::ParserError, attempts: 2
 
   # 回復不可能なエラーは即座に破棄
-  discard_on Faraday::UnauthorizedError
-  discard_on Faraday::ForbiddenError
+  # TODO: Faradayエラーの有効化（Faraday gemインストール後）
+  # discard_on Faraday::UnauthorizedError
+  # discard_on Faraday::ForbiddenError
 
   # @param api_provider [String] API提供者名（例：'supplier_a', 'accounting_system'）
   # @param sync_type [String] 同期種別（例：'inventory', 'orders', 'prices'）
@@ -101,13 +112,27 @@ class ExternalApiSyncJob < ApplicationJob
   end
 
   def sync_accounting_data(sync_type, options)
-    # TODO: 会計システム連携実装
+    # TODO: 会計システム連携実装（優先度：中）
+    # 実装項目：
+    # - 売上データの同期（日次バッチ）
+    # - 仕入データの同期（リアルタイム）
+    # - 勘定科目マッピング
+    # - 消費税計算
+    # - 決算データエクスポート
+    # 参考実装: ImportInventoriesJobのエラーハンドリングパターン
     Rails.logger.info "Accounting system sync not yet implemented: #{sync_type}"
     { status: "not_implemented", sync_type: sync_type }
   end
 
   def sync_inventory_data(sync_type, options)
-    # TODO: 在庫システム連携実装
+    # TODO: 在庫システム連携実装（優先度：高）
+    # 実装項目：
+    # - 在庫数量の同期（15分間隔）
+    # - 入出庫履歴の取得
+    # - 在庫アラート設定
+    # - 棚卸データ連携
+    # - 在庫評価額計算
+    # 参考実装: ImportInventoriesJobのProgressNotifierパターン
     Rails.logger.info "Inventory system sync not yet implemented: #{sync_type}"
     { status: "not_implemented", sync_type: sync_type }
   end
@@ -118,7 +143,12 @@ class ExternalApiSyncJob < ApplicationJob
 
   def sync_supplier_inventory(options)
     begin
-      # TODO: 実際のAPI呼び出し実装
+      # TODO: 実際のAPI呼び出し実装（優先度：高）
+      # 実装方針：
+      # - Faradayを使用したHTTPクライアント
+      # - CircuitBreakerパターンでAPI障害対応
+      # - データバリデーション強化
+      # - 冪等性保証（重複実行対策）
       # response = fetch_supplier_inventory(options)
       # update_local_inventory(response)
 
@@ -138,7 +168,12 @@ class ExternalApiSyncJob < ApplicationJob
 
   def sync_supplier_prices(options)
     begin
-      # TODO: 実際のAPI呼び出し実装
+      # TODO: 実際のAPI呼び出し実装（優先度：中）
+      # 実装項目：
+      # - 価格変更履歴の管理
+      # - 通貨変換対応
+      # - 価格アラート機能
+      # - 割引・キャンペーン価格対応
       {
         status: "success",
         prices_updated: 0,
@@ -154,7 +189,13 @@ class ExternalApiSyncJob < ApplicationJob
 
   def sync_supplier_orders(options)
     begin
-      # TODO: 発注システム連携実装
+      # TODO: 発注システム連携実装（優先度：高）
+      # 実装項目：
+      # - 発注状況の自動取得
+      # - 納期管理・アラート
+      # - 発注書PDF生成
+      # - 承認フロー連携
+      # - 入荷予定管理
       {
         status: "success",
         orders_processed: 0,
@@ -182,7 +223,13 @@ class ExternalApiSyncJob < ApplicationJob
     retries = 0
 
     begin
-      # TODO: 実際のHTTPクライアント実装
+      # TODO: 実際のHTTPクライアント実装（優先度：高）
+      # 実装方針：
+      # - Faraday + faraday-retry gemの使用
+      # - タイムアウト設定（接続: 10秒、読み込み: 30秒）
+      # - User-Agentヘッダー設定
+      # - SSL証明書検証
+      # - ログ出力設定
       # Faraday.get(url, headers)
       { status: "mock_response" }
 
