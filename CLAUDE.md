@@ -512,3 +512,27 @@ IMPORTANT: セキュリティベストプラクティスに従う
 ---
 
 *最終更新: 2024年 (メタ認知的修正サイクル第1次完了)*
+
+## 重要な修正事項
+
+### Ruby 3.x対応（2025年1月修正）
+
+#### 1. タイムアウトエラーの修正
+- `Net::TimeoutError` → `Timeout::Error`, `Net::ReadTimeout`, `Net::WriteTimeout`, `Net::OpenTimeout`
+- `app/jobs/external_api_sync_job.rb`、`app/jobs/application_job.rb`で修正済み
+
+#### 2. 必要なGemの追加（TODO）
+外部API連携機能を完全に実装するため、以下のgemの追加が必要：
+
+```ruby
+# Gemfileに追加が必要
+gem 'faraday'              # HTTPクライアント
+gem 'faraday-retry'        # リトライ機能
+gem 'faraday-multipart'    # マルチパート対応
+gem 'circuit_breaker'      # サーキットブレーカーパターン
+```
+
+#### 3. API連携実装の優先度
+- **高**: 在庫同期、発注システム連携、HTTPクライアント実装
+- **中**: 会計システム連携、価格同期
+- **低**: 監視・アラート機能、高度な同期機能
