@@ -22,6 +22,20 @@ module App
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
+    # Remove Host Authorization middleware completely in test environment
+    if Rails.env.test? || ENV["DISABLE_HOST_AUTHORIZATION"] == "true"
+      config.middleware.delete ActionDispatch::HostAuthorization
+      config.hosts = nil
+      config.host_authorization = { exclude: ->(request) { true } }
+
+      # Force disable at multiple levels for maximum reliability
+      config.force_ssl = false
+
+      # TODO: 横展開確認 - application.rbでの設定は全環境に影響するため慎重に
+      # テスト環境および環境変数での明示的無効化に対応
+      # 本番環境では絶対にDISABLE_HOST_AUTHORIZATION=trueを設定しないこと
+    end
+
     # ============================================
     # 国際化・地域化設定
     # ============================================

@@ -11,7 +11,7 @@ COMPOSE          := docker compose
 WEB_RUN          := $(COMPOSE) run --rm web
 WEB_UP           := $(COMPOSE) up -d
 HTTP_PORT        ?= 3000
-RSPEC            := $(WEB_RUN) bundle exec rspec
+RSPEC            := $(COMPOSE) run --rm -e RAILS_ENV=test -e DISABLE_HOST_AUTHORIZATION=true web bundle exec rspec
 BUNDLE           := $(WEB_RUN) bundle
 CURL             := curl -s -o /dev/null
 
@@ -92,6 +92,9 @@ db-seed     : db-seed
 db-setup    : db-setup
 
 # --------------------------- テスト ----------------------------------------
+# TODO: Host Authorization対策 - 全テストでDISABLE_HOST_AUTHORIZATION=trueを設定
+# 根本的解決: Makefileレベルで環境変数を設定し、403 Blocked hostエラーを完全回避
+# 横展開確認: CI/CD環境でも同様の設定が必要
 # 共通関数
 define run_rspec
 	@echo "=== $(1) テスト実行 ===";
@@ -129,7 +132,7 @@ test-failed:
 	$(RSPEC) --only-failures --format $(TEST_DOC)
 
 test-parallel:
-	$(WEB_RUN) bundle exec parallel_rspec spec/models spec/requests spec/helpers spec/decorators
+	$(COMPOSE) run --rm -e RAILS_ENV=test -e DISABLE_HOST_AUTHORIZATION=true web bundle exec parallel_rspec spec/models spec/requests spec/helpers spec/decorators
 
 test-coverage:
 	$(RSPEC) && echo "カバレッジ: coverage/index.html"
@@ -162,7 +165,7 @@ lint-fix-unsafe:
 	$(WEB_RUN) bin/rubocop -A
 
 test-all:
-	$(WEB_RUN) bin/rails db:test:prepare test test:system
+	$(COMPOSE) run --rm -e RAILS_ENV=test -e DISABLE_HOST_AUTHORIZATION=true web bin/rails db:test:prepare test test:system
 
 # --------------------------- パフォーマンステスト --------------------------
 perf-generate-csv:

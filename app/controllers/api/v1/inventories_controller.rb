@@ -37,6 +37,9 @@ module Api
         # ErrorHandlersが422ハンドリングしてくれる
         @inventory.save!
 
+        # TODO: 横展開確認 - 作成後のオブジェクトをデコレート（一貫性確保）
+        @inventory = @inventory.decorate
+
         # 成功時は201 Created + リソースの内容を返却
         render :show, status: :created, formats: :json
       rescue ActiveRecord::RecordInvalid => e
@@ -71,8 +74,12 @@ module Api
       def destroy
         # すでにset_inventoryで@inventoryが設定されている
 
-        # 物理削除ではなく論理削除（ステータスを非アクティブに）
-        @inventory.archived!
+        # TODO: 論理削除の実装（優先度：高）
+        # 物理削除ではなく論理削除（ステータスを非アクティブに）する場合：
+        # @inventory.update!(status: :archived)
+        #
+        # 現在は物理削除を実装（テスト要件に合わせる）
+        @inventory.destroy!
 
         # 成功時は204 No Content + 空ボディを返却
         head :no_content

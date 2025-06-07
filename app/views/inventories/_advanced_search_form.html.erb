@@ -86,7 +86,7 @@
       </div>
       
       <div class="mt-4 flex items-center">
-        <%= f.check_box :expiring_soon, { checked: f.object.expiring_soon }, "1", "0", class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+        <%= f.check_box :expiring_soon, { checked: f.object.expiring_soon, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" } %>
         <%= f.label :expiring_soon, class: "ml-2 text-sm text-gray-700" do %>
           期限切れ間近（
           <%= f.number_field :expiring_days, min: 1, max: 365, class: "mx-1 w-16 px-2 py-1 text-sm border border-gray-300 rounded" %>
@@ -141,7 +141,7 @@
       <h3 class="text-sm font-semibold text-gray-700 mb-3">その他のオプション</h3>
       <div class="flex items-center space-x-6">
         <div class="flex items-center">
-          <%= f.check_box :recently_updated, { checked: f.object.recently_updated }, "1", "0", class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" %>
+          <%= f.check_box :recently_updated, { checked: f.object.recently_updated, class: "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" } %>
           <%= f.label :recently_updated, class: "ml-2 text-sm text-gray-700" do %>
             最近更新された（
             <%= f.number_field :updated_days, min: 1, max: 365, class: "mx-1 w-16 px-2 py-1 text-sm border border-gray-300 rounded" %>

@@ -4,6 +4,14 @@
     <%= link_to "新規登録", new_inventory_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded", data: { turbo_frame: "modal" } %>
   </div>
 
+  <!-- TODO: 横展開確認 - フラッシュメッセージ表示パターンを他のビューにも適用 -->
+  <!-- フラッシュメッセージの表示 -->
+  <% flash.each do |type, message| %>
+    <div class="mb-4 p-4 rounded-md <%= type == 'alert' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700' %>">
+      <%= message %>
+    </div>
+  <% end %>
+
   <!-- 検索条件のサマリー表示 -->
   <% if @search_form.has_search_conditions? %>
     <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
