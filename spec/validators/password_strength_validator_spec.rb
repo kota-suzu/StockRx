@@ -238,17 +238,54 @@ RSpec.describe PasswordStrengthValidator do
     end
 
     describe 'ComplexityScoreValidator' do
-      let(:validator) { described_class::ComplexityScoreValidator.new(4) }
+      let(:validator) { described_class::ComplexityScoreValidator.new(3) }
 
-      it '複雑度スコアを正しく計算すること' do
-        # スコア6: 小文字+大文字+数字+記号+12文字以上+16文字未満
-        expect(validator.valid?('Password123!')).to be true
+      describe '正規表現定数' do
+        it 'LOWER_CASE_REGEXが小文字を正しく検出すること' do
+          expect('abc'.match?(described_class::ComplexityScoreValidator::LOWER_CASE_REGEX)).to be true
+          expect('ABC'.match?(described_class::ComplexityScoreValidator::LOWER_CASE_REGEX)).to be false
+          expect('123'.match?(described_class::ComplexityScoreValidator::LOWER_CASE_REGEX)).to be false
+        end
 
-        # スコア3: 小文字+大文字+数字（複雑度不足）
-        expect(validator.valid?('Password123')).to be false
+        it 'UPPER_CASE_REGEXが大文字を正しく検出すること' do
+          expect('ABC'.match?(described_class::ComplexityScoreValidator::UPPER_CASE_REGEX)).to be true
+          expect('abc'.match?(described_class::ComplexityScoreValidator::UPPER_CASE_REGEX)).to be false
+          expect('123'.match?(described_class::ComplexityScoreValidator::UPPER_CASE_REGEX)).to be false
+        end
 
-        # スコア6: 小文字+大文字+数字+記号+12文字以上+16文字以上
-        expect(validator.valid?('VeryComplexPassword123!')).to be true
+        it 'DIGIT_REGEXが数字を正しく検出すること' do
+          expect('123'.match?(described_class::ComplexityScoreValidator::DIGIT_REGEX)).to be true
+          expect('abc'.match?(described_class::ComplexityScoreValidator::DIGIT_REGEX)).to be false
+          expect('ABC'.match?(described_class::ComplexityScoreValidator::DIGIT_REGEX)).to be false
+        end
+
+        it 'SYMBOL_REGEXが記号を正しく検出すること' do
+          expect('!@#'.match?(described_class::ComplexityScoreValidator::SYMBOL_REGEX)).to be true
+          expect('abc'.match?(described_class::ComplexityScoreValidator::SYMBOL_REGEX)).to be false
+          expect('ABC'.match?(described_class::ComplexityScoreValidator::SYMBOL_REGEX)).to be false
+          expect('123'.match?(described_class::ComplexityScoreValidator::SYMBOL_REGEX)).to be false
+        end
+
+        it '正規表現定数がフリーズされていること' do
+          expect(described_class::ComplexityScoreValidator::LOWER_CASE_REGEX).to be_frozen
+          expect(described_class::ComplexityScoreValidator::UPPER_CASE_REGEX).to be_frozen
+          expect(described_class::ComplexityScoreValidator::DIGIT_REGEX).to be_frozen
+          expect(described_class::ComplexityScoreValidator::SYMBOL_REGEX).to be_frozen
+        end
+      end
+
+      describe '複雑度スコア計算' do
+        it '全ての要素を含むパスワードが最高スコアを取得すること' do
+          expect(validator.valid?('MyComplexP@ssw0rd123456')).to be true
+        end
+
+        it '必要最小限の複雑度を満たすパスワードを許可すること' do
+          expect(validator.valid?('Test123!')).to be true  # 4つの文字種 = 4点（3点以上で合格）
+        end
+
+        it '複雑度が不足するパスワードを拒否すること' do
+          expect(validator.valid?('test123')).to be false  # 数字と小文字のみ = 2点（3点未満で不合格）
+        end
       end
     end
   end

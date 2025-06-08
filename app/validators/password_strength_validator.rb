@@ -159,6 +159,15 @@ class PasswordStrengthValidator < ActiveModel::EachValidator
   end
 
   class ComplexityScoreValidator
+    # ============================================
+    # 複雑度計算用正規表現定数（パフォーマンス最適化）
+    # ============================================
+
+    LOWER_CASE_REGEX = /[a-z]/.freeze
+    UPPER_CASE_REGEX = /[A-Z]/.freeze
+    DIGIT_REGEX = /\d/.freeze
+    SYMBOL_REGEX = /[^A-Za-z0-9]/.freeze
+
     def initialize(min_score)
       @min_score = min_score
     end
@@ -171,10 +180,10 @@ class PasswordStrengthValidator < ActiveModel::EachValidator
 
     def calculate_complexity_score(value)
       score = 0
-      score += 1 if value.match?(/[a-z]/)
-      score += 1 if value.match?(/[A-Z]/)
-      score += 1 if value.match?(/\d/)
-      score += 1 if value.match?(/[^A-Za-z0-9]/)
+      score += 1 if value.match?(LOWER_CASE_REGEX)
+      score += 1 if value.match?(UPPER_CASE_REGEX)
+      score += 1 if value.match?(DIGIT_REGEX)
+      score += 1 if value.match?(SYMBOL_REGEX)
       score += 1 if value.length >= 12
       score += 1 if value.length >= 16
       score
