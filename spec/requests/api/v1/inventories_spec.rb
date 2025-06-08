@@ -2,6 +2,19 @@
 
 require "rails_helper"
 
+# TODO: 🟢 推奨改善（Phase 3）- API v1テストの完全化
+# 場所: spec/requests/api/v1/inventories_spec.rb
+# 問題: エラーレスポンス形式の統一
+# 解決策: 標準エラーレスポンス形式の実装
+# 推定工数: 1週間
+#
+# 具体的な修正内容:
+# 1. API エラーレスポンスの標準化（JSON Schema準拠）
+# 2. 認証・認可エラーの統一的な処理
+# 3. バリデーションエラーの詳細情報の一貫性確保
+# 4. HTTP ステータスコードの適切な使用法の統一
+# 5. OpenAPI（Swagger）仕様書の自動生成対応
+
 RSpec.describe "Api::V1::Inventories", type: :request do
   let(:admin) { create(:admin) }
 

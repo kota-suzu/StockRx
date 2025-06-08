@@ -78,10 +78,25 @@ jobs:
 
     steps:
       - name: Install packages
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y google-chrome-stable curl default-mysql-client libjemalloc2 libvips
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y google-chrome-stable curl default-mysql-client libjemalloc2 libvips xvfb
 
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Headless Chrome for System Tests
+        run: |
+          # Chrome WebDriverの準備
+          export DISPLAY=:99.0
+          Xvfb :99 -screen 0 1024x768x24 -ac &
+          
+          # Chrome WebDriverのバージョン確認
+          google-chrome --version
+          which google-chrome
+          
+          # Capybaraテスト用の環境変数設定
+          echo "CAPYBARA_SERVER_HOST=0.0.0.0" >> $GITHUB_ENV
+          echo "CAPYBARA_SERVER_PORT=3001" >> $GITHUB_ENV
+          echo "DISPLAY=:99.0" >> $GITHUB_ENV
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
@@ -118,6 +133,15 @@ jobs:
           DISABLE_HOST_AUTHORIZATION: true
           # Rails 7.2対応：環境変数で明示的に設定
           RAILS_ZEITWERK_MISMATCHES: error
+          # CI環境フラグ
+          CI: true
+          # Capybara WebDriver設定
+          CAPYBARA_SERVER_HOST: 0.0.0.0
+          CAPYBARA_SERVER_PORT: 3001
+          DISPLAY: ":99.0"
+          # Chrome WebDriver設定
+          CHROME_HEADLESS: 1
+          SELENIUM_CHROME_OPTIONS: "--headless --no-sandbox --disable-dev-shm-usage --disable-gpu --window-size=1024,768"
         run: |
           # MySQL準備完了待機（ローカルのwait-forスクリプトと同等機能）
           echo "MySQL接続確認中..."

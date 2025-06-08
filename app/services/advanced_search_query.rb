@@ -7,7 +7,7 @@ class AdvancedSearchQuery
 
   # 許可されたフィールド名のホワイトリスト（SQLインジェクション対策）
   ALLOWED_FIELDS = %w[
-    inventories.name inventories.description inventories.price inventories.quantity
+    inventories.name inventories.price inventories.quantity
     inventories.status inventories.created_at inventories.updated_at
     batches.lot_code batches.expires_on batches.quantity
     inventory_logs.operation_type inventory_logs.delta inventory_logs.created_at
@@ -32,7 +32,6 @@ class AdvancedSearchQuery
   # 許可されたカラム名のマッピング（シンプルなフィールド名から完全なフィールド名へ）
   FIELD_MAPPING = {
     "name" => "inventories.name",
-    "description" => "inventories.description",
     "price" => "inventories.price",
     "quantity" => "inventories.quantity",
     "status" => "inventories.status",
@@ -58,8 +57,8 @@ class AdvancedSearchQuery
   end
 
   # OR条件での検索
-  def or_where(conditions)
-    @base_scope = @base_scope.or(Inventory.where(conditions))
+  def or_where(*args)
+    @base_scope = @base_scope.or(Inventory.where(*args))
     self
   end
 
@@ -87,14 +86,14 @@ class AdvancedSearchQuery
 
   # カスタム条件でのグループ化（AND/ORの複雑な組み合わせ）
   def complex_where(&block)
-    builder = ComplexConditionBuilder.new
+    builder = ComplexConditionBuilder.new(self)
     builder.instance_eval(&block)
     @base_scope = builder.apply_to(@base_scope)
     self
   end
 
   # キーワード検索（複数フィールドを対象）
-  def search_keywords(keyword, fields: [ :name, :description ])
+  def search_keywords(keyword, fields: [ :name ])
     return self if keyword.blank?
 
     # フィールド名の安全性を検証
@@ -339,24 +338,44 @@ class AdvancedSearchQuery
 
   # 複雑な条件を構築するビルダークラス
   class ComplexConditionBuilder
-    def initialize
+    # TODO: ベストプラクティス - ComplexConditionBuilderのスコープ問題を修正
+    attr_reader :parent_scope
+
+    def initialize(parent_scope = nil)
       @conditions = []
+      @parent_scope = parent_scope
     end
 
     def and(&block)
-      sub_builder = ComplexConditionBuilder.new
+      sub_builder = ComplexConditionBuilder.new(@parent_scope)
       sub_builder.instance_eval(&block)
       @conditions << { type: :and, builder: sub_builder }
+      self
     end
 
     def or(&block)
-      sub_builder = ComplexConditionBuilder.new
+      sub_builder = ComplexConditionBuilder.new(@parent_scope)
       sub_builder.instance_eval(&block)
       @conditions << { type: :or, builder: sub_builder }
+      self
     end
 
-    def where(conditions)
-      @conditions << { type: :where, conditions: conditions }
+    def where(*args)
+      @conditions << { type: :where, conditions: args }
+      self
+    end
+
+    # TODO: 横展開確認 - 外部変数へのアクセスを可能にするメソッド
+    def method_missing(method_name, *args, &block)
+      if @parent_scope && @parent_scope.respond_to?(method_name)
+        @parent_scope.send(method_name, *args, &block)
+      else
+        super
+      end
+    end
+
+    def respond_to_missing?(method_name, include_private = false)
+      (@parent_scope && @parent_scope.respond_to?(method_name, include_private)) || super
     end
 
     def apply_to(scope)
@@ -366,13 +385,13 @@ class AdvancedSearchQuery
         case condition[:type]
         when :where
           if index == 0
-            result_scope = result_scope.where(condition[:conditions])
+            result_scope = result_scope.where(*condition[:conditions])
           else
             prev = @conditions[index - 1]
             if prev[:type] == :or || (prev[:type] == :where && @conditions[index - 2]&.dig(:type) == :or)
-              result_scope = result_scope.or(scope.where(condition[:conditions]))
+              result_scope = result_scope.or(scope.where(*condition[:conditions]))
             else
-              result_scope = result_scope.where(condition[:conditions])
+              result_scope = result_scope.where(*condition[:conditions])
             end
           end
         when :and
@@ -390,135 +409,147 @@ class AdvancedSearchQuery
   # バッチ条件ビルダー
   class BatchConditionBuilder
     def initialize
-      @scope = Inventory.all
+      @conditions = []
     end
 
     def lot_code(code)
-      @scope = @scope.where("batches.lot_code LIKE ?", "%#{code}%")
+      @conditions << [ "batches.lot_code LIKE ?", "%#{code}%" ]
     end
 
     def expires_before(date)
-      @scope = @scope.where("batches.expires_on < ?", date)
+      @conditions << [ "batches.expires_on < ?", date ]
     end
 
     def expires_after(date)
-      @scope = @scope.where("batches.expires_on > ?", date)
+      @conditions << [ "batches.expires_on > ?", date ]
     end
 
     def quantity_greater_than(quantity)
-      @scope = @scope.where("batches.quantity > ?", quantity)
+      @conditions << [ "batches.quantity > ?", quantity ]
     end
 
     def apply_to(base_scope)
-      base_scope.merge(@scope)
+      @conditions.reduce(base_scope) do |scope, (condition, *values)|
+        scope.where(condition, *values)
+      end
     end
   end
 
   # 在庫ログ条件ビルダー
   class InventoryLogConditionBuilder
     def initialize
-      @scope = Inventory.all
+      @conditions = []
     end
 
     def action_type(type)
-      @scope = @scope.where("inventory_logs.operation_type = ?", type)
+      @conditions << [ "inventory_logs.operation_type = ?", type ]
     end
 
     def quantity_changed_by(amount)
-      @scope = @scope.where("inventory_logs.delta = ?", amount)
+      @conditions << [ "inventory_logs.delta = ?", amount ]
     end
 
     def changed_after(date)
-      @scope = @scope.where("inventory_logs.created_at > ?", date)
+      @conditions << [ "inventory_logs.created_at > ?", date ]
     end
 
     def by_user(user_id)
-      @scope = @scope.where("inventory_logs.user_id = ?", user_id)
+      @conditions << [ "inventory_logs.user_id = ?", user_id ]
     end
 
     def apply_to(base_scope)
-      base_scope.merge(@scope)
+      @conditions.reduce(base_scope) do |scope, (condition, *values)|
+        scope.where(condition, *values)
+      end
     end
   end
 
   # 出荷条件ビルダー
   class ShipmentConditionBuilder
     def initialize
-      @scope = Inventory.all
+      @conditions = []
     end
 
     def status(status)
-      @scope = @scope.where("shipments.shipment_status = ?", status)
+      # Enum値を適切に処理（文字列をenum整数値に変換）
+      enum_value = Shipment.shipment_statuses[status.to_s]
+      @conditions << [ "shipments.shipment_status = ?", enum_value ]
     end
 
     def destination_like(destination)
-      @scope = @scope.where("shipments.destination LIKE ?", "%#{destination}%")
+      @conditions << [ "shipments.destination LIKE ?", "%#{destination}%" ]
     end
 
     def scheduled_after(date)
-      @scope = @scope.where("shipments.scheduled_date > ?", date)
+      @conditions << [ "shipments.scheduled_date > ?", date ]
     end
 
     def tracking_number(number)
-      @scope = @scope.where("shipments.tracking_number = ?", number)
+      @conditions << [ "shipments.tracking_number = ?", number ]
     end
 
     def apply_to(base_scope)
-      base_scope.merge(@scope)
+      @conditions.reduce(base_scope) do |scope, (condition, *values)|
+        scope.where(condition, *values)
+      end
     end
   end
 
   # 入荷条件ビルダー
   class ReceiptConditionBuilder
     def initialize
-      @scope = Inventory.all
+      @conditions = []
     end
 
     def status(status)
-      @scope = @scope.where("receipts.receipt_status = ?", status)
+      @conditions << [ "receipts.receipt_status = ?", status ]
     end
 
     def source_like(source)
-      @scope = @scope.where("receipts.source LIKE ?", "%#{source}%")
+      @conditions << [ "receipts.source LIKE ?", "%#{source}%" ]
     end
 
     def received_after(date)
-      @scope = @scope.where("receipts.receipt_date > ?", date)
+      @conditions << [ "receipts.receipt_date > ?", date ]
     end
 
     def cost_range(min, max)
-      @scope = @scope.where("receipts.cost_per_unit BETWEEN ? AND ?", min, max)
+      @conditions << [ "receipts.cost_per_unit BETWEEN ? AND ?", min, max ]
     end
 
     def apply_to(base_scope)
-      base_scope.merge(@scope)
+      @conditions.reduce(base_scope) do |scope, (condition, *values)|
+        scope.where(condition, *values)
+      end
     end
   end
 
   # 監査ログ条件ビルダー
   class AuditConditionBuilder
     def initialize
-      @scope = Inventory.all
+      @conditions = []
     end
 
     def action(action)
-      @scope = @scope.where("audit_logs.action = ?", action)
+      @conditions << [ "audit_logs.action = ?", action ]
     end
 
     def changed_fields_include(field)
-      @scope = @scope.where("audit_logs.changed_fields LIKE ?", "%#{field}%")
+      @conditions << [ "audit_logs.changed_fields LIKE ?", "%#{field}%" ]
     end
 
     def created_after(date)
-      @scope = @scope.where("audit_logs.created_at > ?", date)
+      @conditions << [ "audit_logs.created_at > ?", date ]
     end
 
     def by_user(user_id)
-      @scope = @scope.where("audit_logs.user_id = ?", user_id)
+      @conditions << [ "audit_logs.user_id = ?", user_id ]
     end
 
     def apply_to(base_scope)
-      base_scope.merge(@scope)
+      @conditions.reduce(base_scope) do |scope, (condition, *values)|
+        scope.where(condition, *values)
+      end
     end
   end
 end

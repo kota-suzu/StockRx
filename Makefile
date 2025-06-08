@@ -35,7 +35,7 @@ endef
         test-fast test-models test-requests test-jobs test-features test-integration \
         test-failed test-parallel test-coverage test-profile test-skip-heavy \
         test-unit-fast test-models-only \
-        ci security-scan lint lint-fix lint-fix-unsafe test-all \
+        ci ci-github security-scan security-scan-github lint lint-github lint-fix lint-fix-unsafe test-all test-github \
         console routes backup restore help diagnose fix-connection fix-ssl-error \
         perf-generate-csv perf-test-import perf-benchmark-batch test-error-handling
 
@@ -150,7 +150,61 @@ test-models-only:
 	$(call run_rspec,モデル限定, spec/models spec/helpers spec/decorators spec/validators, $(TEST_PROGRESS))
 
 # --------------------------- CI / Lint / Security -------------------------
+# GitHub Actions完全互換のCIコマンド
+ci-github: bundle-install security-scan-github lint-github test-github
+
+# 従来のCIコマンド（後方互換性）
 ci: bundle-install security-scan lint test-all
+
+# GitHub Actions互換のセキュリティスキャン
+security-scan-github:
+	@echo "=== GitHub Actions互換 - セキュリティスキャン ==="
+	$(WEB_RUN) bin/brakeman --no-pager
+
+# GitHub Actions互換のLint
+lint-github:
+	@echo "=== GitHub Actions互換 - Lint ==="
+	$(WEB_RUN) bin/rubocop -f github
+
+# GitHub Actions完全互換のテスト実行
+test-github:
+	@echo "=== GitHub Actions互換 - テスト環境準備 ==="
+	# キャッシュクリア（GitHub Actionsと同じ）
+	rm -rf tmp/cache tmp/bootsnap* tmp/caching-dev.txt || true
+	mkdir -p tmp/cache/assets tmp/storage tmp/pids tmp/screenshots
+	chmod -R 777 tmp/cache tmp/storage tmp/pids tmp/screenshots || true
+	touch tmp/restart.txt
+	
+	@echo "=== GitHub Actions互換 - Zeitwerkチェック ==="
+	$(COMPOSE) run --rm \
+	  -e RAILS_ENV=test \
+	  -e CI=true \
+	  web bundle exec rails zeitwerk:check || true
+	
+	@echo "=== GitHub Actions互換 - データベース準備 ==="
+	$(COMPOSE) run --rm \
+	  -e RAILS_ENV=test \
+	  -e DATABASE_URL=mysql2://root:password@db:3306/app_test \
+	  -e DATABASE_PASSWORD="password" \
+	  -e DISABLE_DATABASE_ENVIRONMENT_CHECK=1 \
+	  -e DISABLE_HOST_AUTHORIZATION=true \
+	  -e CI=true \
+	  web bin/rails db:test:prepare
+	
+	@echo "=== GitHub Actions互換 - RSpecテスト実行 ==="
+	$(COMPOSE) run --rm \
+	  -e RAILS_ENV=test \
+	  -e DATABASE_URL=mysql2://root:password@db:3306/app_test \
+	  -e DATABASE_PASSWORD="password" \
+	  -e DISABLE_DATABASE_ENVIRONMENT_CHECK=1 \
+	  -e DISABLE_HOST_AUTHORIZATION=true \
+	  -e RAILS_ZEITWERK_MISMATCHES=error \
+	  -e CI=true \
+	  -e CAPYBARA_SERVER_HOST=0.0.0.0 \
+	  -e CAPYBARA_SERVER_PORT=3001 \
+	  -e CHROME_HEADLESS=1 \
+	  -e SELENIUM_CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu --window-size=1024,768" \
+	  web bundle exec rspec
 
 security-scan:
 	$(WEB_RUN) bin/brakeman --no-pager
@@ -230,7 +284,8 @@ help:
 	@echo "  make test-coverage - カバレッジ計測付きテスト"
 	@echo ""
 	@echo "CI/品質管理:"
-	@echo "  make ci            - CIチェックをすべて実行"
+	@echo "  make ci-github     - 🎯 GitHub Actions完全互換のCIテスト"
+	@echo "  make ci            - 従来のCIチェック実行"
 	@echo "  make security-scan - セキュリティスキャンを実行"
 	@echo "  make lint          - リントチェックを実行"
 	@echo "  make lint-fix      - 安全な自動修正を適用"

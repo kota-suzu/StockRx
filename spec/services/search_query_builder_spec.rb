@@ -14,13 +14,16 @@ RSpec.describe SearchQueryBuilder, type: :service do
 
   describe '#initialize' do
     it 'initializes with default Inventory scope' do
-      expect(builder.scope).to eq(Inventory.all)
+      default_builder = described_class.new
+      # ActiveRecord::Relationの内容が同じかを検証（オブジェクト参照ではなく内容ベース）
+      expect(default_builder.scope.to_sql).to eq(Inventory.all.to_sql)
     end
 
     it 'initializes with custom scope' do
       custom_scope = Inventory.where(status: 'active')
       custom_builder = described_class.new(custom_scope)
-      expect(custom_builder.scope).to eq(custom_scope)
+      # ActiveRecord::Relationの内容が同じかを検証（オブジェクト参照ではなく内容ベース）
+      expect(custom_builder.scope.to_sql).to eq(custom_scope.to_sql)
     end
 
     it 'initializes empty joins and conditions' do
