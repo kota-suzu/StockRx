@@ -489,6 +489,25 @@ RSpec.describe AdvancedSearchQuery do
   end
 
   describe "complex real-world scenarios", :complex_query do
+    # TODO: 🟡 重要 - Phase 2（推定2-3日）- 高度検索クエリサービステストの修正
+    # 場所: spec/services/advanced_search_query_spec.rb:492-519
+    # 問題: 複雑な検索条件での予期しない結果とSQLクエリ最適化不足
+    # 解決策: SQLクエリ最適化とテストデータの改善
+    #
+    # 具体的な修正内容:
+    # 1. JOIN文の最適化（INNER JOIN vs LEFT JOINの適切な選択）
+    # 2. インデックスの活用確認（EXPLAIN ANALYZE使用）
+    # 3. N+1クエリ問題の解消（includes使用）
+    # 4. カラム名の衝突回避（テーブル名明示）
+    # 5. 大量データでのパフォーマンステスト
+    #
+    # ベストプラクティス:
+    # - クエリビルダーパターンの適切な実装
+    # - SQLインジェクション対策の徹底
+    # - データベース固有機能の抽象化
+    # - メモリ効率的なページネーション
+    # - レスポンス時間の監視とアラート
+
     it "finds active items with low stock that have been shipped recently" do
       shipment1.update!(created_at: 2.days.ago)
 

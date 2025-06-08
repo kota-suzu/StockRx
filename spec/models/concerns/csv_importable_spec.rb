@@ -23,6 +23,12 @@ RSpec.describe CsvImportable, type: :model do
     file
   end
 
+  before(:each) do
+    # Clean up test data before each test
+    Inventory.where(name: [ 'Test CSV Item 1', 'Test CSV Item 2', 'Test CSV Item 3' ]).destroy_all
+    InventoryLog.where(note: 'CSVインポートによる登録').destroy_all
+  end
+
   after do
     temp_csv_file.unlink if temp_csv_file
     # Clean up test data
