@@ -37,6 +37,20 @@
 
 class MonthlyReportJob < ApplicationJob
   # ============================================
+  # セキュリティ設定
+  # ============================================
+  # 月次レポートでの機密情報保護設定
+  SENSITIVE_REPORT_PARAMS = %w[
+    email_list recipient_data financial_data
+    revenue_data cost_data profit_margin
+    salary_info wage_data user_contacts
+    admin_notifications recipient_emails
+  ].freeze
+
+  # 財務データ保護レベル
+  FINANCIAL_PROTECTION_LEVEL = :strict  # :strict, :standard, :basic
+
+  # ============================================
   # ProgressNotifier モジュールを include
   # ============================================
   include ProgressNotifier

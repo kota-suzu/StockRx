@@ -17,9 +17,14 @@ Rails.application.configure do
   # loading is working properly before deploying your code.
   config.eager_load = ENV["CI"].present?
 
-  # Zeitwerk関連の設定
-  config.autoloader = :zeitwerk
-  config.add_autoload_paths_to_load_path = false
+  # Rails 8.0 Zeitwerk互換性設定
+  # TODO: Rails 8.0対応 - Zeitwerk autoloader の安定化（優先度：緊急）
+  # Rails 8.0 では :zeitwerk がデフォルトのため明示的設定は不要
+  # config.autoloader = :zeitwerk  # Rails 8.0 ではデフォルト
+
+  # テスト環境では autoload paths の凍結エラーを避けるため true に設定
+  # application.rb の条件分岐により、テスト環境では自動的に true になる
+  # config.add_autoload_paths_to_load_path = true  # application.rb で制御
 
   # パフォーマンス最適化：静的ファイル配信の軽量化
   config.public_file_server.enabled = true

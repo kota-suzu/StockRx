@@ -174,7 +174,7 @@ lint-github:
 	@echo "=== GitHub Actions互換 - Lint ==="
 	$(WEB_RUN) bin/rubocop -f github
 
-# GitHub Actions完全互換のテスト実行
+# GitHub Actions完全互換のテスト実行（シンプル化版 - 2025年6月9日修正）
 test-github:
 	@echo "=== GitHub Actions互換 - テスト環境準備 ==="
 	# キャッシュクリア（GitHub Actionsと同じ）
@@ -182,6 +182,19 @@ test-github:
 	mkdir -p tmp/cache/assets tmp/storage tmp/pids tmp/screenshots
 	chmod -R 777 tmp/cache tmp/storage tmp/pids tmp/screenshots || true
 	touch tmp/restart.txt
+	
+	@echo "=== GitHub Actions互換 - サービス確認（既存コンテナ活用）==="
+	# 既存のサービスが動作していれば再利用、停止していれば起動
+	$(COMPOSE) up -d db redis
+	@echo "サービス起動待機中..."
+	@for i in {1..30}; do \
+		if docker compose exec -T db mysqladmin ping -h localhost -u root -ppassword > /dev/null 2>&1; then \
+			echo "✅ MySQL稼働確認完了"; \
+			break; \
+		fi; \
+		echo "MySQL確認中... ($$i/30)"; \
+		sleep 2; \
+	done
 	
 	@echo "=== GitHub Actions互換 - Zeitwerkチェック ==="
 	$(COMPOSE) run --rm \
@@ -192,22 +205,26 @@ test-github:
 	@echo "=== GitHub Actions互換 - データベース準備 ==="
 	$(COMPOSE) run --rm \
 	  -e RAILS_ENV=test \
-	  -e DATABASE_URL=mysql2://root:password@db:3306/app_test \
 	  -e DATABASE_PASSWORD="password" \
 	  -e DISABLE_DATABASE_ENVIRONMENT_CHECK=1 \
 	  -e DISABLE_HOST_AUTHORIZATION=true \
 	  -e CI=true \
+	  -e TEST_DATABASE_READ_TIMEOUT=60 \
+	  -e TEST_DATABASE_CONNECT_TIMEOUT=30 \
+	  -e TEST_DATABASE_WRITE_TIMEOUT=30 \
 	  web bin/rails db:test:prepare
 	
 	@echo "=== GitHub Actions互換 - RSpecテスト実行 ==="
 	$(COMPOSE) run --rm \
 	  -e RAILS_ENV=test \
-	  -e DATABASE_URL=mysql2://root:password@db:3306/app_test \
 	  -e DATABASE_PASSWORD="password" \
 	  -e DISABLE_DATABASE_ENVIRONMENT_CHECK=1 \
 	  -e DISABLE_HOST_AUTHORIZATION=true \
 	  -e RAILS_ZEITWERK_MISMATCHES=error \
 	  -e CI=true \
+	  -e TEST_DATABASE_READ_TIMEOUT=60 \
+	  -e TEST_DATABASE_CONNECT_TIMEOUT=30 \
+	  -e TEST_DATABASE_WRITE_TIMEOUT=30 \
 	  -e CAPYBARA_SERVER_HOST=0.0.0.0 \
 	  -e CAPYBARA_SERVER_PORT=3001 \
 	  -e CHROME_HEADLESS=1 \

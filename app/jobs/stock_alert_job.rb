@@ -8,6 +8,20 @@
 # 定期実行対応：sidekiq-scheduler経由で毎日実行
 
 class StockAlertJob < ApplicationJob
+  # ============================================
+  # セキュリティ設定
+  # ============================================
+  # 在庫アラートでの機密情報保護設定
+  SENSITIVE_ALERT_PARAMS = %w[
+    notification_tokens push_tokens user_contacts
+    admin_emails user_emails device_tokens
+    push_notification_data user_preferences
+    contact_information phone_numbers
+  ].freeze
+
+  # 通知データ保護レベル
+  NOTIFICATION_PROTECTION_LEVEL = :standard  # :strict, :standard, :basic
+
   include ProgressNotifier
 
   # ============================================

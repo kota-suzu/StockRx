@@ -6,19 +6,54 @@ require 'timecop'
 require 'rails-controller-testing'
 ENV['RAILS_ENV'] ||= 'test'
 
-# 環境読み込み時のエラー対策
+# Rails 8.0 環境読み込み時のエラー対策
+# TODO: Rails 8.0対応 - FrozenError の根本的解決（優先度：緊急）
 begin
   require_relative '../config/environment'
 rescue FrozenError => e
-  puts "警告: 凍結エラーが発生しました。キャッシュをクリアして再試行します。"
-  puts e.message
-  # キャッシュディレクトリを作成（存在しない場合）
-  require 'fileutils'
-  FileUtils.mkdir_p('tmp/cache') unless Dir.exist?('tmp/cache')
-  # キャッシュをクリア
-  FileUtils.rm_rf(Dir.glob('tmp/cache/*'))
-  # 再試行
-  require_relative '../config/environment'
+  puts "🚨 Rails 8.0 FrozenError 検出: autoload paths 凍結エラーが発生しました"
+  puts "エラー詳細: #{e.message}"
+  puts "🔧 Rails 8.0 互換性修正を適用中..."
+
+  # Rails 8.0 specific error handling
+  begin
+    # 環境変数でテスト環境を強制指定
+    ENV['RAILS_ENV'] = 'test'
+
+    # Zeitwerk を一時的にリセット
+    if defined?(Zeitwerk)
+      puts "📦 Zeitwerk loader をリセット中..."
+      Zeitwerk::Loader.default_logger = nil if Zeitwerk::Loader.respond_to?(:default_logger=)
+    end
+
+    # キャッシュクリーンアップ（より徹底的）
+    require 'fileutils'
+    cache_dirs = [ 'tmp/cache', 'tmp/pids', 'tmp/sockets', 'tmp/development_cache' ]
+    cache_dirs.each do |dir|
+      FileUtils.mkdir_p(dir) unless Dir.exist?(dir)
+      FileUtils.rm_rf(Dir.glob("#{dir}/*"))
+    end
+
+    # Rails アプリケーション初期化前のクリーンアップ
+    if defined?(Rails) && Rails.respond_to?(:application) && Rails.application
+      puts "🧹 Rails アプリケーション状態をリセット中..."
+      Rails.application = nil if Rails.application
+    end
+
+    # 再試行
+    puts "🔄 環境再読み込み中..."
+    require_relative '../config/environment'
+    puts "✅ Rails 8.0 環境読み込み成功"
+
+  rescue => retry_error
+    puts "❌ Rails 8.0 互換性修正が失敗しました"
+    puts "再試行エラー: #{retry_error.message}"
+    puts "回避策: bundle exec rails runner 'puts Rails.env' を実行してから再試行してください"
+    raise retry_error
+  end
+rescue => other_error
+  puts "❌ 予期しないエラーが発生しました: #{other_error.message}"
+  raise other_error
 end
 
 # Prevent database truncation if the environment is production

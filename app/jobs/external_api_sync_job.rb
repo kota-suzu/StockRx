@@ -42,6 +42,16 @@ require "net/http"
 
 class ExternalApiSyncJob < ApplicationJob
   # ============================================
+  # セキュリティ設定
+  # ============================================
+  # API連携での機密情報保護設定
+  SENSITIVE_API_PARAMS = %w[
+    api_token api_secret client_secret webhook_secret
+    access_token refresh_token bearer_token authorization
+    credentials auth username password
+  ].freeze
+
+  # ============================================
   # Sidekiq Configuration
   # ============================================
   queue_as :default
