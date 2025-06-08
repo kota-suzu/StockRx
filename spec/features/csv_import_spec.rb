@@ -242,17 +242,63 @@ RSpec.describe 'CSV Import with Sidekiq Integration', type: :feature, js: true, 
     end
 
     scenario 'shows progress updates during import with ActionCable' do
-      # TODO: 🔴 緊急修正（Phase 1）- ActionCableテスト修正
-      # 場所: spec/features/csv_import_spec.rb:266
+      # TODO: 🔴 緊急修正（Phase 1）- ActionCableテスト修正【優先度：高】
+      # 場所: spec/features/csv_import_spec.rb:244-293
       # 問題: ActionCable接続失敗の適切なハンドリング
       # 解決策: WebSocketテスト環境の改善とfallback機能実装
       # 推定工数: 1-2日
       #
       # 具体的な修正内容:
       # 1. ActionCableテスト用のWebSocketサーバー設定
+      #    - Capybara + Selenium WebDriverでのActionCable統合
+      #    - テスト環境でのWebSocket接続設定
+      #    - WebSocketサーバーのポート設定とタイムアウト調整
+      #
       # 2. Capybaraでのリアルタイム通信テスト方法の実装
+      #    - JavaScriptイベントの適切な待機処理
+      #    - ActionCableチャンネルの接続確認メソッド
+      #    - DOM更新の確実な検出とアサーション
+      #
       # 3. 接続失敗時のフォールバック動作の検証
+      #    - WebSocket接続失敗時のAjaxポーリングモード
+      #    - エラー状態でのUIフィードバック確認
+      #    - ネットワーク不安定時の再接続処理
+      #
       # 4. Redisモックの適切な設定とテストデータの管理
+      #    - Redisサーバーのテスト用設定
+      #    - ActionCableとRedisの連携確認
+      #    - 進捗データのメッセージ配信確認
+      #
+      # ベストプラクティス適用:
+      # - Capybara.using_session for isolated WebSocket testing
+      # - ActionCable.server.broadcast for direct message testing
+      # - Wait for specific DOM updates with proper timeouts
+      # - Mock Redis with consistent state management
+      #
+      # 参考実装パターン:
+      # ```ruby
+      # Capybara.using_session(:websocket_user) do
+      #   visit csv_imports_path
+      #   expect(page).to have_css('#progress-container')
+      #   
+      #   # WebSocket接続確認
+      #   page.execute_script("window.cable.connect()")
+      #   expect(page).to have_css('.connection-status.connected')
+      #   
+      #   attach_file 'csv_file', csv_file_path
+      #   click_button 'インポート開始'
+      #   
+      #   # 進捗更新の確認（タイムアウト付き）
+      #   expect(page).to have_css('.progress-bar', wait: 10)
+      #   expect(page).to have_content('進捗: 50%', wait: 15)
+      #   expect(page).to have_content('完了しました', wait: 30)
+      # end
+      # ```
+      #
+      # 横展開確認項目:
+      # - 他のリアルタイム機能でも同様のWebSocketテスト必要性確認
+      # - 本番環境でのActionCable設定との整合性確認
+      # - WebSocketフォールバック機能の他画面での適用可能性確認
 
       visit admin_inventories_path
 

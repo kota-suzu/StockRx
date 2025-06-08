@@ -1,0 +1,840 @@
+<%# frozen_string_literal: true %>
+
+<%# マイグレーション詳細監視画面 %>
+<%# CLAUDE.md準拠: リアルタイム監視、可観測性確保、Security by Design %>
+
+<% content_for :title, "マイグレーション詳細監視" %>
+
+<div class="migration-detail-monitoring">
+  <!-- ============================================ -->
+  <!-- ヘッダー情報 -->
+  <!-- ============================================ -->
+  <section class="migration-header">
+    <div class="header-content">
+      <div class="migration-info">
+        <h1 class="migration-title">
+          <%= @migration_execution.name %>
+          <span class="version-badge">v<%= @migration_execution.version %></span>
+        </h1>
+        <div class="execution-metadata">
+          <span class="executor">実行者: <%= @migration_execution.admin.email %></span>
+          <span class="environment">環境: <%= @migration_execution.environment %></span>
+          <span class="hostname">ホスト: <%= @migration_execution.hostname || 'N/A' %></span>
+        </div>
+      </div>
+      
+      <div class="status-section">
+        <div class="status-badge status-<%= @migration_execution.status %>">
+          <%= status_icon(@migration_execution.status) %>
+          <%= @migration_execution.status.humanize %>
+        </div>
+        <div class="progress-circle">
+          <svg viewBox="0 0 36 36" class="circular-chart">
+            <path class="circle-bg"
+                  d="M18 2.0845
+                     a 15.9155 15.9155 0 0 1 0 31.831
+                     a 15.9155 15.9155 0 0 1 0 -31.831" />
+            <path class="circle"
+                  stroke-dasharray="<%= @migration_execution.progress_percentage %>, 100"
+                  d="M18 2.0845
+                     a 15.9155 15.9155 0 0 1 0 31.831
+                     a 15.9155 15.9155 0 0 1 0 -31.831" />
+            <text x="18" y="20.35" class="percentage"><%= @migration_execution.progress_percentage.round(1) %>%</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- コントロールパネル -->
+    <div class="control-panel">
+      <% if @migration_execution.can_pause? %>
+        <%= button_to "一時停止", pause_admin_migration_path(@migration_execution), 
+                      method: :post, class: "btn btn-warning", 
+                      data: { confirm: "このマイグレーションを一時停止しますか？" } %>
+      <% end %>
+      
+      <% if @migration_execution.status_paused? %>
+        <%= button_to "再開", resume_admin_migration_path(@migration_execution), 
+                      method: :post, class: "btn btn-success" %>
+      <% end %>
+      
+      <% if @migration_execution.can_cancel? %>
+        <%= button_to "キャンセル", cancel_admin_migration_path(@migration_execution), 
+                      method: :post, class: "btn btn-danger", 
+                      data: { confirm: "このマイグレーションをキャンセルしますか？実行中の処理は停止されます。" } %>
+      <% end %>
+      
+      <% if @migration_execution.can_rollback? %>
+        <%= button_to "ロールバック", rollback_admin_migration_path(@migration_execution), 
+                      method: :post, class: "btn btn-danger", 
+                      data: { confirm: "このマイグレーションをロールバックしますか？この操作は元に戻せません。" } %>
+      <% end %>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- メトリクス概要 -->
+  <!-- ============================================ -->
+  <section class="metrics-overview">
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">処理進行状況</div>
+        <div class="metric-value">
+          <%= number_with_delimiter(@migration_execution.processed_records) %> / 
+          <%= number_with_delimiter(@migration_execution.total_records) %>
+        </div>
+        <div class="metric-unit">レコード</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">実行時間</div>
+        <div class="metric-value" id="execution-duration">
+          <%= format_duration(@migration_execution.execution_duration) %>
+        </div>
+        <div class="metric-unit">経過時間</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">処理速度</div>
+        <div class="metric-value" id="processing-speed">
+          <%= @migration_execution.average_records_per_second.round(2) %>
+        </div>
+        <div class="metric-unit">レコード/秒</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">推定残り時間</div>
+        <div class="metric-value" id="estimated-remaining">
+          <%= format_duration_from_now(@migration_execution.estimated_completion_time) %>
+        </div>
+        <div class="metric-unit">予想</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">リトライ回数</div>
+        <div class="metric-value">
+          <%= @migration_execution.retry_count %>
+        </div>
+        <div class="metric-unit">回</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">実行環境</div>
+        <div class="metric-value">
+          <%= @migration_execution.environment.upcase %>
+        </div>
+        <div class="metric-unit">PID: <%= @migration_execution.process_id || 'N/A' %></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- システムメトリクス（リアルタイム） -->
+  <!-- ============================================ -->
+  <section class="system-metrics" id="system-metrics">
+    <h3>システムメトリクス</h3>
+    <div class="metrics-charts">
+      <div class="chart-container">
+        <div class="chart-title">CPU使用率</div>
+        <div class="progress-bar">
+          <div class="progress-fill cpu-usage" id="cpu-progress" style="width: 0%"></div>
+          <span class="progress-text" id="cpu-text">0%</span>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">メモリ使用率</div>
+        <div class="progress-bar">
+          <div class="progress-fill memory-usage" id="memory-progress" style="width: 0%"></div>
+          <span class="progress-text" id="memory-text">0%</span>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">DB接続数</div>
+        <div class="metric-display" id="db-connections">0</div>
+      </div>
+
+      <div class="chart-container">
+        <div class="chart-title">クエリ実行時間</div>
+        <div class="metric-display" id="query-time">0ms</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- 詳細ログ（リアルタイム更新） -->
+  <!-- ============================================ -->
+  <section class="detailed-logs">
+    <div class="logs-header">
+      <h3>実行ログ</h3>
+      <div class="log-controls">
+        <label class="log-filter">
+          <select id="log-level-filter">
+            <option value="all">すべて表示</option>
+            <option value="error">エラーのみ</option>
+            <option value="warn">警告以上</option>
+            <option value="info">情報以上</option>
+          </select>
+        </label>
+        <label class="auto-scroll">
+          <input type="checkbox" id="auto-scroll" checked> 自動スクロール
+        </label>
+        <button type="button" class="btn btn-sm btn-secondary" id="clear-logs">
+          ログをクリア
+        </button>
+      </div>
+    </div>
+
+    <div class="log-container" id="log-container">
+      <% @migration_execution.migration_progress_logs.recent(1440).reverse_chronological.each do |log| %>
+        <div class="log-entry log-<%= log.log_level %>" data-log-level="<%= log.log_level %>">
+          <div class="log-timestamp">
+            <%= log.created_at.strftime("%H:%M:%S.%3N") %>
+          </div>
+          <div class="log-level">
+            <%= log.log_level_indicator %>
+          </div>
+          <div class="log-phase">
+            [<%= log.phase.humanize %>]
+          </div>
+          <div class="log-progress">
+            <%= log.progress_percentage.round(1) %>%
+          </div>
+          <div class="log-message">
+            <%= log.message %>
+          </div>
+          <% if log.performance_summary.any? %>
+            <div class="log-metrics">
+              <span class="metric">RPS: <%= log.records_per_second&.round(2) || 'N/A' %></span>
+              <% if log.cpu_usage %>
+                <span class="metric">CPU: <%= log.cpu_usage.round(1) %>%</span>
+              <% end %>
+              <% if log.memory_usage %>
+                <span class="metric">MEM: <%= log.memory_usage.round(1) %>%</span>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  </section>
+
+  <!-- ============================================ -->
+  <!-- エラー情報（該当時のみ表示） -->
+  <!-- ============================================ -->
+  <% if @migration_execution.error_message.present? %>
+    <section class="error-details">
+      <h3>エラー詳細</h3>
+      <div class="error-card">
+        <div class="error-header">
+          <span class="error-icon">❌</span>
+          <span class="error-title">実行エラー</span>
+          <span class="error-time">
+            <%= @migration_execution.updated_at.strftime("%Y/%m/%d %H:%M:%S") %>
+          </span>
+        </div>
+        <div class="error-message">
+          <%= simple_format(@migration_execution.error_message) %>
+        </div>
+        <% if @migration_execution.error_backtrace.present? %>
+          <details class="error-backtrace">
+            <summary>バックトレースを表示</summary>
+            <pre><%= @migration_execution.error_backtrace %></pre>
+          </details>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
+  <!-- ============================================ -->
+  <!-- 設定情報 -->
+  <!-- ============================================ -->
+  <section class="configuration-details">
+    <h3>実行設定</h3>
+    <div class="config-grid">
+      <% if @migration_execution.configuration.present? %>
+        <% @migration_execution.configuration.each do |key, value| %>
+          <div class="config-item">
+            <div class="config-key"><%= key.humanize %></div>
+            <div class="config-value"><%= value %></div>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="config-empty">設定情報はありません</div>
+      <% end %>
+    </div>
+  </section>
+</div>
+
+<!-- ============================================ -->
+<!-- ActionCable WebSocket接続 -->
+<!-- ============================================ -->
+<%= javascript_tag do %>
+document.addEventListener('DOMContentLoaded', function() {
+  // TODO: ActionCable統合時に実装
+  // const migrationChannel = App.cable.subscriptions.create(
+  //   {
+  //     channel: 'MigrationProgressChannel',
+  //     migration_execution_id: <%= @migration_execution.id %>
+  //   },
+  //   {
+  //     received: function(data) {
+  //       updateProgressDisplay(data);
+  //       appendLogEntry(data);
+  //       updateSystemMetrics(data.system_metrics);
+  //     }
+  //   }
+  // );
+
+  // ログフィルタリング機能
+  const logLevelFilter = document.getElementById('log-level-filter');
+  const logContainer = document.getElementById('log-container');
+  
+  logLevelFilter.addEventListener('change', function() {
+    const selectedLevel = this.value;
+    const logEntries = logContainer.querySelectorAll('.log-entry');
+    
+    logEntries.forEach(entry => {
+      const entryLevel = entry.dataset.logLevel;
+      
+      if (selectedLevel === 'all' || 
+          (selectedLevel === 'error' && ['error', 'fatal'].includes(entryLevel)) ||
+          (selectedLevel === 'warn' && ['warn', 'error', 'fatal'].includes(entryLevel)) ||
+          (selectedLevel === 'info' && ['info', 'warn', 'error', 'fatal'].includes(entryLevel))) {
+        entry.style.display = 'flex';
+      } else {
+        entry.style.display = 'none';
+      }
+    });
+  });
+
+  // 自動スクロール機能
+  const autoScrollCheckbox = document.getElementById('auto-scroll');
+  
+  function scrollToBottom() {
+    if (autoScrollCheckbox.checked) {
+      logContainer.scrollTop = logContainer.scrollHeight;
+    }
+  }
+
+  // ログクリア機能
+  document.getElementById('clear-logs').addEventListener('click', function() {
+    if (confirm('ログをクリアしますか？この操作は元に戻せません。')) {
+      logContainer.innerHTML = '';
+    }
+  });
+
+  // リアルタイム更新関数
+  function updateProgressDisplay(data) {
+    // 進行率の更新
+    const progressCircle = document.querySelector('.circle');
+    const progressText = document.querySelector('.percentage');
+    
+    if (progressCircle && progressText) {
+      progressCircle.style.strokeDasharray = `${data.progress_percentage}, 100`;
+      progressText.textContent = `${data.progress_percentage.toFixed(1)}%`;
+    }
+
+    // 処理速度の更新
+    const speedElement = document.getElementById('processing-speed');
+    if (speedElement && data.records_per_second) {
+      speedElement.textContent = data.records_per_second.toFixed(2);
+    }
+  }
+
+  function updateSystemMetrics(metrics) {
+    // CPU使用率
+    if (metrics.cpu_usage) {
+      const cpuProgress = document.getElementById('cpu-progress');
+      const cpuText = document.getElementById('cpu-text');
+      
+      if (cpuProgress && cpuText) {
+        cpuProgress.style.width = `${metrics.cpu_usage}%`;
+        cpuText.textContent = `${metrics.cpu_usage.toFixed(1)}%`;
+        
+        // 危険レベルの色分け
+        cpuProgress.className = `progress-fill cpu-usage ${getCpuClass(metrics.cpu_usage)}`;
+      }
+    }
+
+    // メモリ使用率
+    if (metrics.memory_usage) {
+      const memoryProgress = document.getElementById('memory-progress');
+      const memoryText = document.getElementById('memory-text');
+      
+      if (memoryProgress && memoryText) {
+        memoryProgress.style.width = `${metrics.memory_usage}%`;
+        memoryText.textContent = `${metrics.memory_usage.toFixed(1)}%`;
+        
+        memoryProgress.className = `progress-fill memory-usage ${getMemoryClass(metrics.memory_usage)}`;
+      }
+    }
+
+    // DB接続数
+    if (metrics.db_connections) {
+      const dbElement = document.getElementById('db-connections');
+      if (dbElement) {
+        dbElement.textContent = metrics.db_connections;
+      }
+    }
+
+    // クエリ実行時間
+    if (metrics.query_time) {
+      const queryElement = document.getElementById('query-time');
+      if (queryElement) {
+        queryElement.textContent = `${(metrics.query_time * 1000).toFixed(1)}ms`;
+      }
+    }
+  }
+
+  function appendLogEntry(data) {
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry log-${data.log_level}`;
+    logEntry.dataset.logLevel = data.log_level;
+    
+    logEntry.innerHTML = `
+      <div class="log-timestamp">
+        ${new Date(data.timestamp).toLocaleTimeString('ja-JP', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        })}
+      </div>
+      <div class="log-level">${getLogLevelIcon(data.log_level)}</div>
+      <div class="log-phase">[${data.phase}]</div>
+      <div class="log-progress">${data.progress_percentage.toFixed(1)}%</div>
+      <div class="log-message">${data.message}</div>
+      ${data.performance ? `
+        <div class="log-metrics">
+          <span class="metric">RPS: ${data.performance.records_per_second?.toFixed(2) || 'N/A'}</span>
+          ${data.performance.cpu_usage ? `<span class="metric">CPU: ${data.performance.cpu_usage.toFixed(1)}%</span>` : ''}
+          ${data.performance.memory_usage ? `<span class="metric">MEM: ${data.performance.memory_usage.toFixed(1)}%</span>` : ''}
+        </div>
+      ` : ''}
+    `;
+    
+    logContainer.appendChild(logEntry);
+    scrollToBottom();
+  }
+
+  function getCpuClass(usage) {
+    if (usage > 90) return 'danger';
+    if (usage > 70) return 'warning';
+    return 'normal';
+  }
+
+  function getMemoryClass(usage) {
+    if (usage > 95) return 'danger';
+    if (usage > 80) return 'warning';
+    return 'normal';
+  }
+
+  function getLogLevelIcon(level) {
+    const icons = {
+      debug: '🔍',
+      info: 'ℹ️',
+      warn: '⚠️',
+      error: '❌',
+      fatal: '💀'
+    };
+    return icons[level] || '📝';
+  }
+
+  // 定期的な画面更新（WebSocket未接続時のフォールバック）
+  // TODO: ActionCable統合後は不要
+  setInterval(function() {
+    // location.reload(); // 開発中のみ
+  }, 30000); // 30秒間隔
+});
+<% end %>
+
+<style>
+/* Migration Detail Monitoring Styles */
+.migration-detail-monitoring {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.migration-header {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.migration-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.version-badge {
+  background: #6c757d;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-left: 8px;
+}
+
+.execution-metadata {
+  display: flex;
+  gap: 16px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.status-section {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.status-badge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-pending { background: #f8f9fa; color: #6c757d; }
+.status-running { background: #d4edda; color: #155724; }
+.status-completed { background: #d1ecf1; color: #0c5460; }
+.status-failed { background: #f8d7da; color: #721c24; }
+.status-paused { background: #fff3cd; color: #856404; }
+
+.progress-circle {
+  width: 80px;
+  height: 80px;
+}
+
+.circular-chart {
+  width: 100%;
+  height: 100%;
+}
+
+.circle-bg {
+  fill: none;
+  stroke: #eee;
+  stroke-width: 3.8;
+}
+
+.circle {
+  fill: none;
+  stroke: #28a745;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  animation: progress 1s ease-out forwards;
+}
+
+.percentage {
+  fill: #666;
+  font-family: sans-serif;
+  font-size: 0.5em;
+  text-anchor: middle;
+}
+
+.control-panel {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.metrics-overview {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.metric-card {
+  text-align: center;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+}
+
+.metric-label {
+  font-size: 14px;
+  color: #6c757d;
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #495057;
+  margin-bottom: 4px;
+}
+
+.metric-unit {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.system-metrics {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.metrics-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.chart-container {
+  text-align: center;
+}
+
+.chart-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #495057;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 24px;
+  background: #e9ecef;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 12px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progress-fill.normal { background: #28a745; }
+.progress-fill.warning { background: #ffc107; }
+.progress-fill.danger { background: #dc3545; }
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 12px;
+  font-weight: bold;
+  color: #495057;
+}
+
+.metric-display {
+  font-size: 24px;
+  font-weight: bold;
+  color: #495057;
+}
+
+.detailed-logs {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.log-controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.log-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 8px;
+  background: #f8f9fa;
+}
+
+.log-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.log-entry.log-error,
+.log-entry.log-fatal {
+  background: #f8d7da;
+  border-left: 3px solid #dc3545;
+}
+
+.log-entry.log-warn {
+  background: #fff3cd;
+  border-left: 3px solid #ffc107;
+}
+
+.log-timestamp {
+  color: #6c757d;
+  min-width: 80px;
+}
+
+.log-level {
+  min-width: 20px;
+}
+
+.log-phase {
+  min-width: 120px;
+  color: #495057;
+  font-weight: bold;
+}
+
+.log-progress {
+  min-width: 50px;
+  text-align: right;
+  color: #28a745;
+  font-weight: bold;
+}
+
+.log-message {
+  flex: 1;
+  color: #495057;
+}
+
+.log-metrics {
+  display: flex;
+  gap: 8px;
+  font-size: 10px;
+  color: #6c757d;
+}
+
+.error-details {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.error-card {
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.error-header {
+  background: #f8d7da;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-message {
+  padding: 16px;
+  background: white;
+  border-bottom: 1px solid #f5c6cb;
+}
+
+.error-backtrace {
+  padding: 16px;
+  background: #f8f9fa;
+}
+
+.error-backtrace pre {
+  font-size: 11px;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.configuration-details {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.config-item {
+  padding: 12px;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.config-key {
+  font-size: 12px;
+  color: #6c757d;
+  margin-bottom: 4px;
+}
+
+.config-value {
+  font-weight: bold;
+  color: #495057;
+}
+
+.config-empty {
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+  grid-column: 1 / -1;
+}
+
+@keyframes progress {
+  0% {
+    stroke-dasharray: 0 100;
+  }
+}
+
+/* レスポンシブ対応 */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+  
+  .log-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+</style>

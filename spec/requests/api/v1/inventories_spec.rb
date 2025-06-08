@@ -280,29 +280,150 @@ RSpec.describe "Api::V1::Inventories", type: :request do
   # 5. 楽観的ロック競合テスト
 
   describe "Additional API Features (TODO)" do
+    # TODO: 🟢 推奨 - Phase 3（推定1週間）- APIの高度な機能実装【優先度：低】
+    # 場所: spec/requests/api/v1/inventories_spec.rb:282-309
+    # 状態: PENDING（Not yet implemented）
+    # 必要性: API利用者の利便性向上
+    # 推定工数: 5-7日（設計・実装・テスト含む）
+    # 
+    # ビジネス価値: API利用拡大時のユーザビリティ向上
+    # 技術的負債: 現在の基本API機能で十分動作しているため緊急性は低い
+    
     # TODO: ページネーション機能テスト
     context "pagination" do
+      # TODO: 🟢 Phase 3 - ページネーション機能の包括的実装
+      # ベストプラクティス適用: RFC 5988準拠のLinkヘッダー実装
+      # セキュリティ考慮: DoS攻撃防止のためのpaginationリミット設定
+      #
+      # 実装すべき機能:
+      # 1. クエリパラメータ対応（page, per_page, limit, offset）
+      # 2. レスポンスメタデータ（total_count, total_pages, current_page）
+      # 3. Linkヘッダーによるナビゲーション（next, prev, first, last）
+      # 4. パフォーマンス最適化（カウントクエリの効率化）
+      #
+      # 参考実装:
+      # ```ruby
+      # {
+      #   "data": [...],
+      #   "meta": {
+      #     "total_count": 1000,
+      #     "total_pages": 50,
+      #     "current_page": 2,
+      #     "per_page": 20,
+      #     "next_page": 3,
+      #     "prev_page": 1
+      #   },
+      #   "links": {
+      #     "self": "https://api.example.com/inventories?page=2",
+      #     "next": "https://api.example.com/inventories?page=3",
+      #     "prev": "https://api.example.com/inventories?page=1",
+      #     "first": "https://api.example.com/inventories?page=1",
+      #     "last": "https://api.example.com/inventories?page=50"
+      #   }
+      # }
+      # ```
       pending "implements pagination parameter tests"
       # it "returns paginated results with correct metadata"
-      # it "handles page and per_page parameters correctly"
+      # it "handles page and per_page parameters correctly"  
       # it "returns proper pagination metadata"
+      # it "includes RFC 5988 compliant Link headers"
+      # it "enforces maximum per_page limits for security"
+      # it "optimizes count queries for large datasets"
     end
 
     # TODO: 検索・フィルタリング機能テスト
     context "search and filtering" do
+      # TODO: 🟢 Phase 3 - 高度な検索・フィルタリング機能
+      # ベストプラクティス適用: OpenAPI 3.0準拠のパラメータ仕様
+      # セキュリティ考慮: SQLインジェクション対策とインプットバリデーション
+      #
+      # 実装すべき機能:
+      # 1. フルテキスト検索（q パラメータ）
+      # 2. フィールド別フィルタリング（name, status, price_range等）
+      # 3. 複合条件検索（AND/OR ロジック）
+      # 4. 範囲検索（価格、数量、日付）
+      # 5. ファジー検索（名前の部分一致）
+      #
+      # APIエンドポイント例:
+      # GET /api/v1/inventories?q=キーワード&status=active&price_min=100&price_max=1000
+      # GET /api/v1/inventories?name_like=製品A&quantity_gte=10&created_after=2024-01-01
+      #
+      # レスポンス構造:
+      # ```ruby
+      # {
+      #   "data": [...],
+      #   "search_info": {
+      #     "query": "キーワード",
+      #     "filters_applied": ["status", "price_range"],
+      #     "total_matches": 25,
+      #     "search_time_ms": 45
+      #   }
+      # }
+      # ```
       pending "implements search parameter tests"
       # it "filters by name parameter"
       # it "filters by status parameter"
       # it "filters by price range"
       # it "combines multiple filters correctly"
+      # it "handles invalid filter parameters gracefully"
+      # it "provides search performance metrics"
+      # it "escapes special characters safely"
     end
 
     # TODO: 並び替え機能テスト
     context "sorting" do
+      # TODO: 🟢 Phase 3 - 柔軟なソート機能の実装
+      # ベストプラクティス適用: RESTful API設計原則に基づくソート仕様
+      # パフォーマンス考慮: インデックス活用とソート最適化
+      #
+      # 実装すべき機能:
+      # 1. 単一フィールドソート（sort=name:asc, sort=price:desc）
+      # 2. 複数フィールドソート（sort=status:asc,name:desc）
+      # 3. デフォルトソート設定（created_at:desc）
+      # 4. ソート可能フィールドの制限（セキュリティ対策）
+      # 5. パフォーマンス最適化（適切なインデックス使用）
+      #
+      # APIエンドポイント例:
+      # GET /api/v1/inventories?sort=name:asc
+      # GET /api/v1/inventories?sort=price:desc,quantity:asc
+      # GET /api/v1/inventories?sort=created_at:desc
+      #
+      # エラーハンドリング:
+      # - 不正なフィールド名: 400 Bad Request
+      # - 不正なソート方向: 400 Bad Request
+      # - ソート対象フィールドのアクセス権限チェック
       pending "implements sorting parameter tests"
       # it "sorts by different fields"
       # it "handles sort direction correctly"
       # it "defaults to appropriate sorting"
+      # it "supports multi-field sorting"
+      # it "rejects invalid sort fields"
+      # it "uses appropriate database indexes"
+      # it "handles sort parameter edge cases"
     end
+
+    # TODO: 🔵 長期 - Phase 4（推定2-3週間）- APIの高度な機能拡張
+    # 
+    # 追加実装検討項目:
+    # 1. GraphQL API エンドポイント
+    # 2. WebSocket によるリアルタイム更新通知
+    # 3. API使用量制限（Rate Limiting）
+    # 4. API認証・認可システム（OAuth 2.0/JWT）
+    # 5. API バージョニング戦略（v2, v3...）
+    # 6. OpenAPI/Swagger 仕様書自動生成
+    # 7. API性能監視とメトリクス収集
+    # 8. キャッシュ戦略（Redis/Memcached）
+    #
+    # 横展開確認項目:
+    # - 他のAPIエンドポイント（receipts, shipments等）への機能拡張
+    # - フロントエンド側（JavaScript/React）でのAPI利用パターン改善
+    # - モバイルアプリでのAPI活用可能性
+    # - 外部システム連携でのAPI仕様統一
+    #
+    # パフォーマンス目標:
+    # - API応答時間: 95パーセンタイル値 200ms以下
+    # - 同時リクエスト処理: 1000req/sec
+    # - データベースクエリ最適化: N+1問題の解消
+    # - CDN活用による静的データ配信最適化
   end
 end

@@ -52,6 +52,23 @@ Rails.application.routes.draw do
     # ジョブステータス確認用API
     resources :job_statuses, only: [ :show ]
 
+    # ============================================
+    # マイグレーション管理機能
+    # ============================================
+    resources :migrations, only: [ :index, :show, :create ] do
+      member do
+        post :execute      # 個別実行
+        post :pause        # 一時停止
+        post :resume       # 再開
+        post :cancel       # キャンセル
+        post :rollback     # ロールバック
+      end
+
+      collection do
+        get :system_status # システム状況API
+      end
+    end
+
     # 今後の機能として追加予定のリソース
     # resources :reports
     # resources :settings

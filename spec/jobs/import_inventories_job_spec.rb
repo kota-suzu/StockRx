@@ -286,23 +286,106 @@ RSpec.describe ImportInventoriesJob, type: :job do
       end
 
       xit 'initializes progress tracking when Redis is available' do
-        # TODO: 🔴 緊急 - Phase 1（推定1-2日）- Sidekiq Integration Tests
-        # 場所: spec/jobs/import_inventories_job_spec.rb:273
+        # TODO: 🔴 緊急 - Phase 1（推定1-2日）- Sidekiq Integration Tests【優先度：高】
+        # 場所: spec/jobs/import_inventories_job_spec.rb:273-318
         # 問題: Redis mockの呼び出しタイミングの問題で進捗追跡テストが不安定
         # 解決策: テスト用同期実行モードの実装とRedis統合テストの改善
+        # 根本原因: 非同期処理とRedisモックの競合状態
         #
         # 具体的な修正内容:
         # 1. Redis mock設定の見直し（タイミング問題の解決）
-        # 2. Sidekiq::Testing.inlineモードでの適切な進捗追跡
-        # 3. ActionCableとRedisの連携テスト環境整備
-        # 4. 進捗情報のTTL設定とexpire処理の検証
-        # 5. Redis接続失敗時のフォールバック動作テスト
+        #    - Redisモックの適切なライフサイクル管理
+        #    - 初期化から完了まで一貫したmock設定
+        #    - 非同期処理でのコールバックタイミング制御
         #
-        # ベストプラクティス:
-        # - Redis接続プールの適切な管理
-        # - 進捗データの構造化（JSON形式での格納）
-        # - 複数ジョブ同時実行時の進捗管理
-        # - メモリ効率的な進捗追跡（大量データ処理時）
+        # 2. Sidekiq::Testing.inlineモードでの適切な進捗追跡
+        #    - インラインモードでの進捗更新メソッド呼び出し確認
+        #    - Redis操作の同期的実行による確実なテスト
+        #    - Sidekiqジョブのcallbackメソッドの正確な検証
+        #
+        # 3. ActionCableとRedisの連携テスト環境整備
+        #    - ActionCable.server.broadcastのモック設定
+        #    - Redisとの連携データフローの検証
+        #    - WebSocketメッセージ送信タイミングの制御
+        #
+        # 4. 非同期処理のエラーハンドリング確認
+        #    - Redis接続失敗時のフォールバック動作
+        #    - ジョブ失敗時の進捗状態回復処理
+        #    - リトライ機能での進捗追跡継続性確認
+        #
+        # ベストプラクティス適用:
+        # - Test isolation with proper setup/teardown
+        # - Synchronous testing patterns for async operations
+        # - Mock consistency across job lifecycle
+        # - Error boundary testing for resilience
+        #
+        # Before/After分析:
+        # Before: Redis mock timing causes flaky tests
+        # After: Deterministic testing with proper synchronization
+        #
+        # 参考実装パターン:
+        # ```ruby
+        # RSpec.describe ImportInventoriesJob, type: :job do
+        #   include ActiveJob::TestHelper
+        #   
+        #   around do |example|
+        #     Sidekiq::Testing.inline! do
+        #       with_redis_mock do
+        #         example.run
+        #       end
+        #     end
+        #   end
+        #   
+        #   def with_redis_mock
+        #     redis_mock = instance_double(Redis)
+        #     allow(Redis).to receive(:new).and_return(redis_mock)
+        #     allow(redis_mock).to receive_messages(
+        #       set: 'OK',
+        #       get: nil,
+        #       del: 1,
+        #       exists?: false
+        #     )
+        #     yield
+        #   end
+        #   
+        #   it 'tracks progress reliably' do
+        #     job = ImportInventoriesJob.new
+        #     progress_key = "import_progress_#{job.job_id}"
+        #     
+        #     expect(Redis.new).to receive(:set)
+        #       .with(progress_key, hash_including(percentage: 0))
+        #       .ordered
+        #     
+        #     expect(Redis.new).to receive(:set)
+        #       .with(progress_key, hash_including(percentage: 50))
+        #       .ordered
+        #     
+        #     expect(Redis.new).to receive(:set)
+        #       .with(progress_key, hash_including(percentage: 100))
+        #       .ordered
+        #     
+        #     perform_enqueued_jobs do
+        #       job.perform(csv_data)
+        #     end
+        #   end
+        # end
+        # ```
+        #
+        # 横展開確認項目:
+        # - 他のSidekiqジョブでも同様の進捗追跡パターン適用可能性
+        # - Redis接続プールの設定とテスト環境での最適化
+        # - ActionCableブロードキャスト機能の他機能での活用
+        # - エラーハンドリングパターンの標準化
+        #
+        # セキュリティ考慮事項:
+        # - 進捗情報の適切なスコープ制限
+        # - Redis keyの命名規則とnamespace分離
+        # - 機密データの進捗メッセージからの除外
+        #
+        # パフォーマンス最適化:
+        # - Redis操作の最小化とバッチ処理
+        # - 進捗更新頻度の調整（CPU負荷軽減）
+        # - メモリ使用量監視とリークチェック
         expect(mock_redis).to receive(:hset).at_least(:once)
         expect(mock_redis).to receive(:expire).at_least(:once)
 

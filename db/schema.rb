@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_05_23_074600) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_08_090912) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -97,6 +97,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_23_074600) do
     t.integer "status", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "batch_tracking_enabled"
+    t.boolean "batch_number_required"
+    t.boolean "expiry_date_required"
     t.index ["name"], name: "index_inventories_on_name"
   end
 
@@ -116,6 +119,62 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_23_074600) do
     t.index ["user_id"], name: "index_inventory_logs_on_user_id"
   end
 
+  create_table "migration_executions", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.string "version", null: false, comment: "マイグレーションバージョン（タイムスタンプ）"
+    t.string "name", null: false, comment: "マイグレーション名"
+    t.string "status", default: "pending", null: false, comment: "pending/running/completed/failed/rolled_back"
+    t.bigint "admin_id", null: false, comment: "実行者"
+    t.datetime "started_at", comment: "実行開始日時"
+    t.datetime "completed_at", comment: "実行完了日時"
+    t.bigint "processed_records", default: 0, comment: "処理済みレコード数"
+    t.bigint "total_records", default: 0, comment: "総レコード数"
+    t.decimal "progress_percentage", precision: 5, scale: 2, default: "0.0", comment: "進行率（%）"
+    t.json "configuration", comment: "実行時設定（バッチサイズ、閾値等）"
+    t.json "rollback_data", comment: "ロールバック用データ"
+    t.json "metrics", comment: "パフォーマンスメトリクス（CPU、メモリ等）"
+    t.text "error_message", comment: "エラーメッセージ"
+    t.text "error_backtrace", comment: "エラーバックトレース"
+    t.integer "retry_count", default: 0, comment: "リトライ回数"
+    t.string "environment", default: "development", comment: "実行環境"
+    t.string "hostname", comment: "実行ホスト名"
+    t.integer "process_id", comment: "プロセスID"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["admin_id", "created_at"], name: "idx_migration_executions_admin_created"
+    t.index ["admin_id"], name: "index_migration_executions_on_admin_id"
+    t.index ["completed_at"], name: "idx_migration_executions_completed"
+    t.index ["environment"], name: "idx_migration_executions_environment"
+    t.index ["progress_percentage"], name: "idx_migration_executions_progress"
+    t.index ["started_at"], name: "idx_migration_executions_started"
+    t.index ["status", "created_at"], name: "idx_migration_executions_status_created"
+    t.index ["status"], name: "idx_migration_executions_status"
+    t.index ["version"], name: "idx_migration_executions_version", unique: true
+  end
+
+  create_table "migration_progress_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "migration_execution_id", null: false, comment: "マイグレーション実行ID"
+    t.string "phase", null: false, comment: "実行フェーズ"
+    t.decimal "progress_percentage", precision: 5, scale: 2, default: "0.0", null: false, comment: "進行率（%）"
+    t.bigint "processed_records", default: 0, comment: "処理済みレコード数"
+    t.integer "current_batch_size", comment: "現在のバッチサイズ"
+    t.integer "current_batch_number", comment: "現在のバッチ番号"
+    t.text "message", comment: "ログメッセージ"
+    t.string "log_level", default: "info", comment: "ログレベル"
+    t.json "metrics", comment: "システムメトリクス"
+    t.decimal "records_per_second", precision: 10, scale: 2, comment: "レコード処理速度（/秒）"
+    t.decimal "estimated_remaining_seconds", precision: 10, scale: 2, comment: "推定残り時間（秒）"
+    t.boolean "broadcasted", default: false, comment: "ActionCableブロードキャスト済み"
+    t.datetime "broadcasted_at", comment: "ブロードキャスト日時"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["broadcasted", "created_at"], name: "idx_progress_logs_broadcast_time"
+    t.index ["log_level"], name: "idx_progress_logs_level"
+    t.index ["migration_execution_id", "created_at"], name: "idx_progress_logs_execution_time"
+    t.index ["migration_execution_id", "phase"], name: "idx_progress_logs_execution_phase"
+    t.index ["migration_execution_id"], name: "index_migration_progress_logs_on_migration_execution_id"
+    t.index ["records_per_second"], name: "idx_progress_logs_performance"
+  end
+
   create_table "receipts", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "quantity"
@@ -129,6 +188,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_23_074600) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["inventory_id"], name: "index_receipts_on_inventory_id"
+  end
+
+  create_table "reversible_admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "shipments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -152,6 +216,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_05_23_074600) do
   add_foreign_key "audit_logs", "admins", column: "user_id", on_delete: :nullify
   add_foreign_key "batches", "inventories", on_delete: :cascade
   add_foreign_key "inventory_logs", "inventories"
+  add_foreign_key "migration_executions", "admins"
+  add_foreign_key "migration_progress_logs", "migration_executions"
   add_foreign_key "receipts", "inventories"
   add_foreign_key "shipments", "inventories"
 end
