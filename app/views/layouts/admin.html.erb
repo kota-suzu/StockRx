@@ -28,6 +28,9 @@
           <%= link_to inventory_logs_path, class: "nav-link #{'active' if current_page?(inventory_logs_path)}" do %>
             📋 在庫履歴
           <% end %>
+          <%= link_to admin_migrations_path, class: "nav-link #{'active' if controller_name == 'migrations'}" do %>
+            🔄 マイグレーション
+          <% end %>
           <%= link_to "/admin/sidekiq", class: "nav-link", target: "_blank" do %>
             ⚙️ ジョブ監視
           <% end %>

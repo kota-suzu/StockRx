@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
+require 'sidekiq/testing'
 
 # ============================================
 # ImportInventoriesJob テストスイート
@@ -41,6 +42,92 @@ require 'rails_helper'
 #    - ファイルアップロード脆弱性の確認
 #    - 権限チェックの網羅的テスト
 
+# CSV Import Job 統合テスト
+#
+# CLAUDE.md準拠の設計:
+# - バックグラウンドジョブの品質保証
+# - 非同期処理の安定性確保
+# - ActionCable統合
+#
+# TODO: 🔴 Sidekiq統合テストの包括的改善（Google L8相当エキスパート実装）
+#
+# ■ 高優先度修正項目（推定実装時間: 2-3日）
+#
+# 🔴 Redis Mock timing問題の解決
+#   現状：非同期処理テストでRedisMockとActual Redisのタイミング差による失敗
+#   問題分析：
+#     - テスト環境でのSidekiq job実行タイミングの不整合
+#     - ActionCable broadcast受信のタイミング同期問題
+#     - Redis接続プールの非同期処理との相互作用
+#   解決策（Before/After分析）：
+#     Before: Sidekiq.enable_testing でインラインモード、不安定な非同期テスト
+#     After: 段階的テスト実行、同期・非同期の適切な分離
+#   実装方針：
+#     - 同期テスト: Sidekiq::Testing.inline! で即座実行
+#     - 非同期テスト: Sidekiq::Testing.fake! でキューイング確認
+#     - ActionCable: WebMockとCapybara連携での安定化
+#     - エラーハンドリング: タイムアウト、接続失敗の完全対応
+#   成功指標：
+#     - テスト安定性: 95/100回成功率
+#     - 実行時間: 非同期テスト1分以内
+#     - エラー許容: 0件の例外漏れ
+#
+# 🔴 ActionCable broadcast テスト環境の構築
+#   現状：WebSocket broadcast機能のテストが不完全
+#   課題：
+#     - テスト環境でのActionCable接続確立の困難
+#     - JavaScript非同期処理との相互作用
+#     - ブラウザ実環境との差異
+#   解決アプローチ：
+#     - ActionCable::TestHelper の完全活用
+#     - WebSocket接続のモック機能実装
+#     - 接続失敗時のgraceful fallback機能テスト
+#   横展開確認：
+#     - CSV Import機能でも同様のActionCable統合
+#     - リアルタイム更新機能の一貫したテスト手法確立
+#
+# 🟡 中優先度改善項目（推定実装時間: 1-2日）
+#
+# ■ エラーハンドリング完全性の向上
+#   現状：StandardError以外の例外処理の不備
+#   改善方針：
+#     - TimeoutError, IOError, NetworkError の個別対応
+#     - 例外発生時のリカバリーロジック強化
+#     - 監査ログとアラート機能の統合
+#   メタ認知的改善：
+#     - Before: 基本的な例外キャッチのみ
+#     - After: 運用レベルでの包括的エラー対応
+#
+# ■ パフォーマンス最適化
+#   課題：大量データ処理でのメモリ効率と処理速度
+#   実装項目：
+#     - バッチサイズの動的調整機能
+#     - メモリ使用量の監視とアラート
+#     - 処理進捗の詳細レポート機能
+#   技術的考慮：
+#     - ActiveRecord batch処理の最適化
+#     - ガベージコレクション頻度の調整
+#     - Sidekiq worker数の動的スケーリング
+#
+# 🟢 低優先度・将来実装項目（推定実装時間: 1週間）
+#
+# ■ 高度なモニタリング機能
+#   - Prometheus metrics連携
+#   - Grafana dashboard自動生成
+#   - 異常検知による自動スケーリング
+#
+# ■ 国際化・多通貨対応
+#   - CSV フォーマットの地域対応
+#   - 通貨変換機能の統合
+#   - 多言語エラーメッセージ
+#
+# TODO: 横展開確認事項（メタ認知的品質保証）
+#   □ 他のバックグラウンドジョブでも同様の設計パターン適用
+#   □ 同期・非同期テストの標準化
+#   □ ActionCable統合パターンの再利用性確保
+#   □ エラーハンドリング設計の一貫性確認
+#   □ セキュリティ監査での考慮事項の整理
+#
 RSpec.describe ImportInventoriesJob, type: :job do
   include ActiveJob::TestHelper
 
@@ -286,27 +373,105 @@ RSpec.describe ImportInventoriesJob, type: :job do
       end
 
       xit 'initializes progress tracking when Redis is available' do
-        # TODO: 🔴 緊急 - Phase 1（推定1-2日）- Sidekiq Integration Tests
-        # 場所: spec/jobs/import_inventories_job_spec.rb:273
+        # TODO: 🔴 緊急 - Phase 1（推定1-2日）- Sidekiq Integration Tests【優先度：高】
+        # 場所: spec/jobs/import_inventories_job_spec.rb:273-318
         # 問題: Redis mockの呼び出しタイミングの問題で進捗追跡テストが不安定
         # 解決策: テスト用同期実行モードの実装とRedis統合テストの改善
+        # 根本原因: 非同期処理とRedisモックの競合状態
+        # ビジネス価値: バックグラウンドジョブの品質保証
         #
-        # 具体的な修正内容:
+        # 📋 具体的な修正内容（Google L8相当のエキスパートレベル）:
         # 1. Redis mock設定の見直し（タイミング問題の解決）
-        # 2. Sidekiq::Testing.inlineモードでの適切な進捗追跡
-        # 3. ActionCableとRedisの連携テスト環境整備
-        # 4. 進捗情報のTTL設定とexpire処理の検証
-        # 5. Redis接続失敗時のフォールバック動作テスト
+        #    - Redisモックの適切なライフサイクル管理
+        #    - 初期化から完了まで一貫したmock設定
+        #    - 非同期処理でのコールバックタイミング制御
+        #    - Redis接続プールの適切なテスト用設定
         #
-        # ベストプラクティス:
-        # - Redis接続プールの適切な管理
-        # - 進捗データの構造化（JSON形式での格納）
-        # - 複数ジョブ同時実行時の進捗管理
-        # - メモリ効率的な進捗追跡（大量データ処理時）
-        expect(mock_redis).to receive(:hset).at_least(:once)
-        expect(mock_redis).to receive(:expire).at_least(:once)
+        # 2. Sidekiq::Testing.inlineモードでの適切な進捗追跡
+        #    - インラインモードでの進捗更新メソッド呼び出し確認
+        #    - Redis操作の同期的実行による確実なテスト
+        #    - Sidekiqジョブのcallbackメソッドの正確な検証
+        #    - 例外処理とリトライロジックのテスト
+        #
+        # 3. ActionCableとRedisの連携テスト環境整備
+        #    - ActionCable.server.broadcastのモック設定
+        #    - Redisとの連携データフローの検証
+        #    - WebSocketメッセージ送信タイミングの制御
+        #    - チャンネル別進捗通知の分離性確認
+        #
+        # 🔧 技術的実装詳細:
+        # - Redis::Namespace使用でのテスト用データ分離
+        # - Sidekiq::Testing.fake vs inline vs disable の適切な使い分け
+        # - MockRedis gem使用での一貫したRedis操作テスト
+        # - ActiveJob::TestHelper使用での非同期ジョブテスト
+        #
+        # 🧪 テスト戦略:
+        # - 進捗更新の各段階（0%, 25%, 50%, 75%, 100%）での状態確認
+        # - エラー発生時の進捗停止と復旧処理テスト
+        # - 複数ジョブ同時実行時の進捗管理独立性テスト
+        # - メモリリークとRedis接続リーク防止の確認
+        #
+        # 📊 成功指標:
+        # - テスト実行安定性: 連続100回中98回以上成功
+        # - 進捗更新精度: 実際の処理進捗との誤差5%以内
+        # - Redis操作レスポンス: 10ms以内
+        # - メモリ使用量: テスト前後で50MB以内の差
+        #
+        # 🔄 非同期処理テストのベストプラクティス:
+        # ```ruby
+        # RSpec.describe ImportInventoriesJob, type: :job do
+        #   before do
+        #     # テスト用Redis namespace設定
+        #     Redis.current = Redis::Namespace.new(:test, redis: Redis.current)
+        #     # Sidekiq inline mode for synchronous testing
+        #     Sidekiq::Testing.inline!
+        #   end
+        #
+        #   after do
+        #     Redis.current.flushall
+        #     Sidekiq::Testing.fake!
+        #   end
+        #
+        #   it 'tracks progress accurately' do
+        #     job = described_class.new
+        #     expect {
+        #       job.perform(csv_data, user.id)
+        #     }.to change {
+        #       Redis.current.get("import_progress:#{job.job_id}")
+        #     }.from(nil).to('100')
+        #   end
+        # end
+        # ```
+        #
+        # 🔍 横展開確認項目:
+        # - 他のSidekiqジョブでの同様の進捗管理パターン統一性確認
+        # - ActionCable以外のリアルタイム通知手段でのテスト方法確立
+        # - Redis障害時のfallback機能とそのテスト方法確立
+        # - 本番環境でのSidekiq設定（並行数、キュー設定）との整合性確認
+        #
+        # 🎯 メタ認知的改善ポイント:
+        # - テスト失敗時の原因特定手順の標準化
+        # - 非同期処理特有の問題の早期発見方法確立
+        # - CI/CD環境でのテスト安定性向上策の実装
+        # - モニタリングとアラート設定によるプロダクション品質保証
 
-        ImportInventoriesJob.perform_later(file_path, admin.id)
+        allow(Redis.current).to receive(:get).and_return(nil)
+        allow(Redis.current).to receive(:set).and_return('OK')
+        allow(Redis.current).to receive(:del).and_return(1)
+
+        job = described_class.new
+        csv_data = [
+          [ '商品名', '商品コード', '在庫数' ],
+          [ 'テスト商品1', 'TEST001', '100' ],
+          [ 'テスト商品2', 'TEST002', '200' ]
+        ]
+
+        job.perform(csv_data, admin.id)
+
+        expect(Redis.current).to have_received(:set).with(
+          "import_progress:#{job.job_id}",
+          hash_including(progress: 0)
+        )
       end
 
       xit 'updates completion status when job succeeds' do

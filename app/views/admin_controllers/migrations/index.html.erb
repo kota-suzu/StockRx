@@ -1,0 +1,356 @@
+<%# マイグレーション管理 一覧画面 %>
+<%# CLAUDE.md準拠: セキュリティバイデザイン、可観測性確保、横展開一貫性 %>
+
+<% content_for :title, "マイグレーション管理" %>
+
+<div class="migration-management">
+  <header class="page-header">
+    <h1>🔄 マイグレーション管理</h1>
+    <p class="page-description">
+      データベースマイグレーションの実行・監視・管理を行います
+    </p>
+  </header>
+
+  <%# システム状況サマリー %>
+  <section class="system-status-summary">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+          <div class="stat-value"><%= @statistics[:total_executions] %></div>
+          <div class="stat-label">総実行回数</div>
+        </div>
+      </div>
+      
+      <div class="stat-card success">
+        <div class="stat-icon">✅</div>
+        <div class="stat-content">
+          <div class="stat-value"><%= @statistics[:successful_executions] %></div>
+          <div class="stat-label">成功</div>
+        </div>
+      </div>
+      
+      <div class="stat-card error">
+        <div class="stat-icon">❌</div>
+        <div class="stat-content">
+          <div class="stat-value"><%= @statistics[:failed_executions] %></div>
+          <div class="stat-label">失敗</div>
+        </div>
+      </div>
+      
+      <div class="stat-card active">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-content">
+          <div class="stat-value"><%= @statistics[:active_executions] %></div>
+          <div class="stat-label">実行中</div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-content">
+          <div class="stat-value"><%= time_duration_in_words(@statistics[:average_execution_time]) %></div>
+          <div class="stat-label">平均実行時間</div>
+        </div>
+      </div>
+      
+      <div class="stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-content">
+          <div class="stat-value"><%= @statistics[:success_rate] %>%</div>
+          <div class="stat-label">成功率</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# アクティブな実行 %>
+  <% if @active_executions.any? %>
+    <section class="active-executions">
+      <h2>🔄 実行中のマイグレーション</h2>
+      <div class="active-executions-list">
+        <% @active_executions.each do |execution| %>
+          <div class="active-execution-card">
+            <div class="execution-header">
+              <h3><%= link_to execution.name, admin_migration_path(execution), class: "execution-link" %></h3>
+              <span class="status-badge <%= execution.status %>"><%= execution.status.humanize %></span>
+            </div>
+            
+            <div class="execution-progress">
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: <%= execution.progress_percentage %>%"></div>
+              </div>
+              <span class="progress-text"><%= execution.progress_percentage.round(1) %>%</span>
+            </div>
+            
+            <div class="execution-meta">
+              <span class="meta-item">
+                👤 <%= execution.admin.email %>
+              </span>
+              <span class="meta-item">
+                🕒 <%= time_ago_in_words(execution.started_at) %>前開始
+              </span>
+              <% if execution.estimated_completion_time %>
+                <span class="meta-item">
+                  ⏰ 完了予定: <%= l(execution.estimated_completion_time, format: :short) %>
+                </span>
+              <% end %>
+            </div>
+            
+            <div class="execution-actions">
+              <% if execution.can_pause? %>
+                <%= button_to "一時停止", pause_admin_migration_path(execution), 
+                              method: :post, class: "btn btn-warning btn-sm",
+                              confirm: "マイグレーションを一時停止しますか？" %>
+              <% end %>
+              
+              <% if execution.can_cancel? %>
+                <%= button_to "キャンセル", cancel_admin_migration_path(execution), 
+                              method: :post, class: "btn btn-danger btn-sm",
+                              confirm: "マイグレーションをキャンセルしますか？実行中のデータは不整合になる可能性があります。" %>
+              <% end %>
+              
+              <%= link_to "詳細", admin_migration_path(execution), class: "btn btn-primary btn-sm" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </section>
+  <% end %>
+
+  <%# 新規マイグレーション実行 %>
+  <section class="new-migration-execution">
+    <h2>🚀 新規マイグレーション実行</h2>
+    
+    <% if @available_migrations.any? %>
+      <%= form_with model: [:admin, MigrationExecution.new], 
+                    url: admin_migrations_path, 
+                    class: "migration-execution-form" do |form| %>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <%= form.label :version, "マイグレーション選択", class: "form-label" %>
+            <%= form.select :version, 
+                            options_from_collection_for_select(@available_migrations, :version, :name),
+                            { prompt: "実行するマイグレーションを選択してください" },
+                            { class: "form-select", required: true, id: "migration_version_select" } %>
+          </div>
+          
+          <div class="form-group">
+            <%= form.label :migration_name, "名前（自動設定）", class: "form-label" %>
+            <%= form.text_field :migration_name, 
+                                class: "form-input", 
+                                readonly: true,
+                                placeholder: "マイグレーションを選択すると自動で設定されます" %>
+          </div>
+        </div>
+        
+        <%# 実行設定 %>
+        <div class="execution-configuration">
+          <h3>実行設定</h3>
+          
+          <div class="config-grid">
+            <div class="config-group">
+              <%= form.label "configuration[batch_size]", "バッチサイズ", class: "form-label" %>
+              <%= form.number_field "configuration[batch_size]", 
+                                    value: 1000, min: 100, max: 10000, step: 100,
+                                    class: "form-input" %>
+              <small class="form-help">1回に処理するレコード数（100-10000）</small>
+            </div>
+            
+            <div class="config-group">
+              <%= form.label "configuration[cpu_threshold]", "CPU閾値", class: "form-label" %>
+              <%= form.number_field "configuration[cpu_threshold]", 
+                                    value: 70, min: 50, max: 95, step: 5,
+                                    class: "form-input" %>
+              <small class="form-help">CPU使用率の上限（%）</small>
+            </div>
+            
+            <div class="config-group">
+              <%= form.label "configuration[memory_threshold]", "メモリ閾値", class: "form-label" %>
+              <%= form.number_field "configuration[memory_threshold]", 
+                                    value: 80, min: 50, max: 95, step: 5,
+                                    class: "form-input" %>
+              <small class="form-help">メモリ使用率の上限（%）</small>
+            </div>
+            
+            <div class="config-group">
+              <%= form.label "configuration[query_time_threshold]", "クエリ時間閾値", class: "form-label" %>
+              <%= form.number_field "configuration[query_time_threshold]", 
+                                    value: 5, min: 1, max: 30, step: 1,
+                                    class: "form-input" %>
+              <small class="form-help">1クエリの最大実行時間（秒）</small>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <%= form.submit "マイグレーション実行", 
+                          class: "btn btn-primary btn-lg",
+                          confirm: "マイグレーションを実行しますか？この操作は取り消せません。",
+                          data: { 
+                            disable_with: "実行中...",
+                            turbo_confirm: "マイグレーションを実行しますか？\n\n注意: この操作はデータベースを変更します。\n実行前に必ずバックアップを確認してください。"
+                          } %>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="no-migrations-message">
+        <div class="message-icon">📭</div>
+        <h3>実行可能なマイグレーションがありません</h3>
+        <p>すべてのマイグレーションが既に実行済みです。</p>
+      </div>
+    <% end %>
+  </section>
+
+  <%# 実行履歴 %>
+  <section class="execution-history">
+    <div class="section-header">
+      <h2>📋 実行履歴</h2>
+      
+      <%# 検索・フィルター %>
+      <%= form_with url: admin_migrations_path, method: :get, 
+                    class: "search-form", local: true do |form| %>
+        <div class="search-controls">
+          <%= form.text_field "q[version_cont]", 
+                              placeholder: "バージョン検索", 
+                              value: params.dig(:q, :version_cont),
+                              class: "search-input" %>
+          
+          <%= form.text_field "q[name_cont]", 
+                              placeholder: "名前検索", 
+                              value: params.dig(:q, :name_cont),
+                              class: "search-input" %>
+          
+          <%= form.select "q[status_eq]", 
+                          [['すべて', ''], ['実行中', 'running'], ['完了', 'completed'], 
+                           ['失敗', 'failed'], ['一時停止', 'paused'], ['キャンセル', 'cancelled']],
+                          { selected: params.dig(:q, :status_eq) },
+                          { class: "search-select" } %>
+          
+          <%= form.submit "検索", class: "btn btn-secondary" %>
+          <%= link_to "クリア", admin_migrations_path, class: "btn btn-light" %>
+        </div>
+      <% end %>
+    </div>
+    
+    <div class="execution-table-container">
+      <table class="execution-table">
+        <thead>
+          <tr>
+            <th>ステータス</th>
+            <th>バージョン</th>
+            <th>名前</th>
+            <th>実行者</th>
+            <th>開始時刻</th>
+            <th>実行時間</th>
+            <th>進行率</th>
+            <th>アクション</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @migration_executions.each do |execution| %>
+            <tr class="execution-row">
+              <td>
+                <span class="status-badge <%= execution.status %>">
+                  <%= execution.status.humanize %>
+                </span>
+              </td>
+              <td class="version-cell">
+                <code><%= execution.version %></code>
+              </td>
+              <td class="name-cell">
+                <%= link_to execution.name, admin_migration_path(execution), class: "execution-name-link" %>
+              </td>
+              <td class="admin-cell">
+                <%= execution.admin.email %>
+              </td>
+              <td class="time-cell">
+                <% if execution.started_at %>
+                  <%= l(execution.started_at, format: :short) %>
+                <% else %>
+                  <span class="text-muted">未開始</span>
+                <% end %>
+              </td>
+              <td class="duration-cell">
+                <% if execution.execution_duration %>
+                  <%= time_duration_in_words(execution.execution_duration) %>
+                <% elsif execution.started_at && execution.status_running? %>
+                  <%= time_duration_in_words(Time.current - execution.started_at) %> (実行中)
+                <% else %>
+                  <span class="text-muted">-</span>
+                <% end %>
+              </td>
+              <td class="progress-cell">
+                <div class="mini-progress-bar">
+                  <div class="mini-progress-fill" style="width: <%= execution.progress_percentage %>%"></div>
+                </div>
+                <span class="progress-percentage"><%= execution.progress_percentage.round(1) %>%</span>
+              </td>
+              <td class="actions-cell">
+                <div class="action-buttons">
+                  <%= link_to "詳細", admin_migration_path(execution), class: "btn btn-sm btn-outline" %>
+                  
+                  <% if execution.status_paused? %>
+                    <%= button_to "再開", resume_admin_migration_path(execution), 
+                                  method: :post, class: "btn btn-sm btn-success" %>
+                  <% end %>
+                  
+                  <% if execution.can_rollback? %>
+                    <%= button_to "ロールバック", rollback_admin_migration_path(execution), 
+                                  method: :post, class: "btn btn-sm btn-warning",
+                                  confirm: "ロールバックを実行しますか？データが元の状態に戻されます。" %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+      
+      <% if @migration_executions.empty? %>
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <h3>実行履歴がありません</h3>
+          <p>まだマイグレーションが実行されていません。</p>
+        </div>
+      <% end %>
+    </div>
+    
+    <%# ページネーション %>
+    <div class="pagination-wrapper">
+      <%= paginate @migration_executions if respond_to?(:paginate) %>
+    </div>
+  </section>
+</div>
+
+<%# JavaScript %>
+<%= javascript_tag do %>
+  // マイグレーション選択時の自動名前設定
+  document.addEventListener('DOMContentLoaded', function() {
+    const versionSelect = document.getElementById('migration_version_select');
+    const nameInput = document.querySelector('input[name="migration_execution[migration_name]"]');
+    
+    if (versionSelect && nameInput) {
+      const migrationData = <%= raw @available_migrations.to_json %>;
+      
+      versionSelect.addEventListener('change', function() {
+        const selectedVersion = this.value;
+        const migration = migrationData.find(m => m.version === selectedVersion);
+        
+        if (migration) {
+          nameInput.value = migration.name;
+        } else {
+          nameInput.value = '';
+        }
+      });
+    }
+  });
+<% end %>
+
+<%# TODO: 次フェーズでの機能追加 %>
+<%# - リアルタイム進行状況更新（ActionCable） %>
+<%# - システムリソース監視グラフ %>
+<%# - マイグレーション実行予約機能 %>
+<%# - バッチ実行機能 %>
+<%# - 詳細な統計・レポート機能 %>

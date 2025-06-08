@@ -43,10 +43,13 @@ test:
   password: <%= ENV.fetch("DATABASE_PASSWORD", "password") %>
   pool: <%= ENV.fetch("TEST_DATABASE_POOL", 5).to_i %>
   timeout: <%= ENV.fetch("TEST_DATABASE_TIMEOUT", 5000).to_i %>
-  # CI環境での接続最適化
-  connect_timeout: <%= ENV.fetch("TEST_DATABASE_CONNECT_TIMEOUT", 10).to_i %>
-  read_timeout: <%= ENV.fetch("TEST_DATABASE_READ_TIMEOUT", 10).to_i %>
-  write_timeout: <%= ENV.fetch("TEST_DATABASE_WRITE_TIMEOUT", 10).to_i %>
+  # CI環境での接続最適化（GitHub Actions対応）
+  connect_timeout: <%= ENV.fetch("TEST_DATABASE_CONNECT_TIMEOUT", 30).to_i %>
+  read_timeout: <%= ENV.fetch("TEST_DATABASE_READ_TIMEOUT", 30).to_i %>
+  write_timeout: <%= ENV.fetch("TEST_DATABASE_WRITE_TIMEOUT", 30).to_i %>
+  # CI環境での再接続設定
+  reconnect: true
+  retry: 3
   # TODO: テスト環境でのMySQL設定最適化（優先度：高）
   # variables:
   #   sql_mode: TRADITIONAL
