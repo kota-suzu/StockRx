@@ -94,7 +94,7 @@ gem "kaminari", "~> 1.2"            # ページネーション
 
 # Background Job Processing
 gem "sidekiq", "~> 7.2"
-gem "sidekiq-scheduler", "~> 5.0"  # TODO: 将来の定期実行ジョブ用（月次レポート生成など）
+gem "sidekiq-scheduler", "~> 6.0"  # TODO: 将来の定期実行ジョブ用（月次レポート生成など）
 gem "rack-protection", "~> 4.0"   # Sidekiq Web UI のセキュリティ強化
 
 # TODO: 外部API連携機能（Ruby 3.x対応）- CLAUDE.md参照
