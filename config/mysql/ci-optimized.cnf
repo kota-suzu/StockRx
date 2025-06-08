@@ -1,0 +1,100 @@
+# CI環境用MySQL設定ファイル
+# 目的: テスト実行速度の最適化とタイムアウト問題の解決
+# 作成日: 2025年6月9日
+# 対象: Docker環境でのテスト実行（GitHub Actions互換）
+
+[mysqld]
+# ============================================
+# CI環境でのパフォーマンス最適化設定
+# ============================================
+
+# タイムアウト設定の最適化
+wait_timeout = 300
+interactive_timeout = 300
+net_read_timeout = 60
+net_write_timeout = 30
+connect_timeout = 30
+
+# 接続設定
+max_connections = 50
+max_connect_errors = 10000
+
+# ============================================
+# テスト速度向上のための設定
+# データ整合性よりパフォーマンスを優先
+# ============================================
+
+# InnoDBの最適化
+innodb_flush_log_at_trx_commit = 2    # ログを1秒毎にフラッシュ（速度優先）
+innodb_doublewrite = 0                # ダブルライト無効
+innodb_buffer_pool_size = 128M        # メモリ使用量制限
+innodb_log_buffer_size = 16M          # ログバッファサイズ
+innodb_flush_method = O_DIRECT        # ダイレクトI/O使用
+
+# バイナリログの無効化（テスト環境では不要）
+skip-log-bin
+sync_binlog = 0
+
+# ============================================
+# メモリ使用量の最適化
+# ============================================
+key_buffer_size = 32M
+table_open_cache = 64
+sort_buffer_size = 2M
+read_buffer_size = 1M
+read_rnd_buffer_size = 2M
+myisam_sort_buffer_size = 32M
+thread_cache_size = 8
+# query_cache は MySQL 8.0 で削除済みのため設定不要
+
+# ============================================
+# 一時テーブルとファイル設定
+# ============================================
+tmp_table_size = 64M
+max_heap_table_size = 64M
+max_allowed_packet = 16M
+
+# ============================================
+# ログ設定（CI環境では最小限）
+# ============================================
+log_error_verbosity = 1               # エラーログレベルを最小に
+slow_query_log = 0                    # スロークエリログ無効
+general_log = 0                       # 一般ログ無効
+
+# ============================================
+# 文字セット設定
+# ============================================
+character-set-server = utf8mb4
+collation-server = utf8mb4_general_ci
+
+# ============================================
+# セキュリティ設定（テスト環境用）
+# ============================================
+sql_mode = TRADITIONAL
+local_infile = 1                      # LOCAL INFILE許可（テスト用）
+
+# ============================================
+# パフォーマンススキーマの軽量化
+# ============================================
+performance_schema = OFF              # パフォーマンススキーマ無効（メモリ節約）
+
+# ============================================
+# MyISAMテーブル設定（使用している場合）
+# ============================================
+concurrent_insert = 2
+delay_key_write = ALL
+
+# ============================================
+# TODO: 将来的な拡張設定（優先度：低）
+# ============================================
+# CI環境でのさらなる最適化オプション：
+# - innodb_io_capacity = 200           # SSD環境での最適化
+# - innodb_read_io_threads = 4         # 並列読み込みスレッド数
+# - innodb_write_io_threads = 4        # 並列書き込みスレッド数
+# - innodb_purge_threads = 1           # パージスレッド数
+
+[client]
+default-character-set = utf8mb4
+
+[mysql]
+default-character-set = utf8mb4

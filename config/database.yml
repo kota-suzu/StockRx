@@ -43,16 +43,29 @@ test:
   password: <%= ENV.fetch("DATABASE_PASSWORD", "password") %>
   pool: <%= ENV.fetch("TEST_DATABASE_POOL", 5).to_i %>
   timeout: <%= ENV.fetch("TEST_DATABASE_TIMEOUT", 5000).to_i %>
-  # CI環境での接続最適化
-  connect_timeout: <%= ENV.fetch("TEST_DATABASE_CONNECT_TIMEOUT", 10).to_i %>
-  read_timeout: <%= ENV.fetch("TEST_DATABASE_READ_TIMEOUT", 10).to_i %>
-  write_timeout: <%= ENV.fetch("TEST_DATABASE_WRITE_TIMEOUT", 10).to_i %>
-  # TODO: テスト環境でのMySQL設定最適化（優先度：高）
-  # variables:
-  #   sql_mode: TRADITIONAL
-  #   innodb_flush_log_at_trx_commit: 2  # テスト速度向上のため
-  #   sync_binlog: 0                     # テスト環境ではバイナリログ同期無効
-  #   innodb_doublewrite: 0              # ダブルライト無効でパフォーマンス向上
+  
+  # CI環境での接続最適化（2025年6月9日修正）
+  # MySQL 8.4 + Docker環境でのタイムアウト問題対応
+  connect_timeout: <%= ENV.fetch("TEST_DATABASE_CONNECT_TIMEOUT", 30).to_i %>  # 10s → 30s
+  read_timeout: <%= ENV.fetch("TEST_DATABASE_READ_TIMEOUT", 60).to_i %>        # 10s → 60s  
+  write_timeout: <%= ENV.fetch("TEST_DATABASE_WRITE_TIMEOUT", 30).to_i %>      # 10s → 30s
+  
+  # CI環境での追加最適化設定
+  reconnect: <%= ENV.fetch("TEST_DATABASE_RECONNECT", "true") == "true" %>
+  encoding: utf8mb4
+  collation: utf8mb4_general_ci
+  # CI環境でのMySQL最適化設定（2025年6月9日実装）
+  # MySQL 8.4 では多くの変数がGLOBAL変数になっているため、
+  # 設定ファイル（.cnf）側で設定し、Rails側では最小限の設定のみ行う
+  variables:
+    sql_mode: TRADITIONAL              # 接続レベルで設定可能
+    # 以下はGLOBAL変数のため、MySQL設定ファイル（ci-optimized.cnf）で設定済み：
+    # - innodb_flush_log_at_trx_commit
+    # - sync_binlog  
+    # - innodb_doublewrite
+    # - wait_timeout
+    # - interactive_timeout
+    # - max_connections
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is

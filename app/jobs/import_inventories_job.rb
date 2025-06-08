@@ -14,6 +14,19 @@
 #
 class ImportInventoriesJob < ApplicationJob
   # ============================================
+  # セキュリティ設定
+  # ============================================
+  # CSVインポートでの機密情報保護設定
+  SENSITIVE_IMPORT_PARAMS = %w[
+    file_path admin_id user_email user_info
+    file_content csv_data import_data
+    admin_credentials user_credentials
+  ].freeze
+
+  # ファイルパス保護レベル
+  FILEPATH_PROTECTION_LEVEL = :partial_masking  # :full_masking, :partial_masking, :directory_only
+
+  # ============================================
   # 設定定数
   # ============================================
   # ファイル制限

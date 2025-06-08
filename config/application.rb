@@ -11,8 +11,18 @@ module App
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 7.2
 
-    # Zeitwerk関連のエラー修正
-    config.add_autoload_paths_to_load_path = false
+    # Rails 8.0 Zeitwerk互換性設定
+    # TODO: Rails 8.0対応 - autoload paths の凍結エラー解決（優先度：緊急）
+    # Rails 8.0ではautoload pathsの管理方法が変更されている
+    # config.add_autoload_paths_to_load_path = false は Rails 8.0 で問題を引き起こす可能性
+    # テスト環境での安定性を優先し、デフォルト設定を使用
+    if Rails.env.test?
+      # テスト環境では autoload_paths_to_load_path をデフォルト（true）に設定
+      config.add_autoload_paths_to_load_path = true
+    else
+      # 本番・開発環境では Rails 8.0 推奨設定を使用
+      config.add_autoload_paths_to_load_path = false
+    end
 
     # 全例外をRoutes配下で処理するよう設定
     config.exceptions_app = self.routes
