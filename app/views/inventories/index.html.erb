@@ -4,6 +4,23 @@
     <%= link_to "新規登録", new_inventory_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded", data: { turbo_frame: "modal" } %>
   </div>
 
+  <!-- TODO: 横展開確認 - フラッシュメッセージ表示パターンを他のビューにも適用 -->
+  <!-- フラッシュメッセージの表示 -->
+  <% flash.each do |type, message| %>
+    <div class="mb-4 p-4 rounded-md <%= type == 'alert' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700' %>">
+      <%= message %>
+    </div>
+  <% end %>
+
+  <!-- 検索条件のサマリー表示 -->
+  <% if @search_form.has_search_conditions? %>
+    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+      <p class="text-sm text-blue-800">
+        <strong>検索条件:</strong> <%= @search_form.conditions_summary %>
+      </p>
+    </div>
+  <% end %>
+
   <% if @show_advanced %>
     <!-- 高度な検索フォーム -->
     <%= render "advanced_search_form" %>
@@ -12,15 +29,15 @@
     <div class="mb-6">
       <%= form_with url: inventories_path, method: :get, data: { turbo_frame: "inventories_list", turbo_action: "replace" }, class: "flex flex-wrap gap-4" do |f| %>
         <div class="flex-1 min-w-[300px]">
-          <%= f.search_field :q, value: params[:q], placeholder: "商品名で検索", class: "w-full px-3 py-2 border border-gray-300 rounded-md" %>
+          <%= f.search_field :q, value: @search_form.effective_name, placeholder: "商品名で検索", class: "w-full px-3 py-2 border border-gray-300 rounded-md" %>
         </div>
         
         <div class="flex-none">
-          <%= f.select :status, options_for_select(Inventory::STATUSES.map { |k, _| [k.humanize, k] }, params[:status]), { include_blank: "全ステータス" }, class: "px-3 py-2 border border-gray-300 rounded-md" %>
+          <%= f.select :status, options_for_select(Inventory::STATUSES.map { |k, _| [k.humanize, k] }, @search_form.status), { include_blank: "全ステータス" }, class: "px-3 py-2 border border-gray-300 rounded-md" %>
         </div>
         
         <div class="flex-none">
-          <%= f.check_box :low_stock, { checked: params[:low_stock] == "true" }, "true", "false" %>
+          <%= f.check_box :low_stock, { checked: @search_form.low_stock }, "true", "false" %>
           <%= f.label :low_stock, "在庫切れ商品のみ表示", class: "ml-2" %>
         </div>
         
@@ -41,13 +58,13 @@
         <thead class="bg-gray-50">
           <tr>
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <%= link_to "商品名", inventories_path(sort: "name", direction: params[:sort] == "name" && params[:direction] == "asc" ? "desc" : "asc", q: params[:q], status: params[:status], low_stock: params[:low_stock]), data: { turbo_frame: "inventories_list" } %>
+              <%= link_to "商品名", inventories_path(@search_form.to_search_params.merge(sort: "name", direction: @search_form.sort_field == "name" && @search_form.sort_direction == "asc" ? "desc" : "asc")), data: { turbo_frame: "inventories_list" } %>
             </th>
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <%= link_to "在庫数", inventories_path(sort: "quantity", direction: params[:sort] == "quantity" && params[:direction] == "asc" ? "desc" : "asc", q: params[:q], status: params[:status], low_stock: params[:low_stock]), data: { turbo_frame: "inventories_list" } %>
+              <%= link_to "在庫数", inventories_path(@search_form.to_search_params.merge(sort: "quantity", direction: @search_form.sort_field == "quantity" && @search_form.sort_direction == "asc" ? "desc" : "asc")), data: { turbo_frame: "inventories_list" } %>
             </th>
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <%= link_to "価格", inventories_path(sort: "price", direction: params[:sort] == "price" && params[:direction] == "asc" ? "desc" : "asc", q: params[:q], status: params[:status], low_stock: params[:low_stock]), data: { turbo_frame: "inventories_list" } %>
+              <%= link_to "価格", inventories_path(@search_form.to_search_params.merge(sort: "price", direction: @search_form.sort_field == "price" && @search_form.sort_direction == "asc" ? "desc" : "asc")), data: { turbo_frame: "inventories_list" } %>
             </th>
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               ステータス

@@ -1,9 +1,13 @@
-class ErrorsController < ApplicationController
+class ErrorsController < ActionController::Base
   # CSRFチェックをスキップ（エラーページは状態変更なし）
   skip_before_action :verify_authenticity_token
 
   # レイアウトを指定（シンプルなエラーページ用レイアウト）
   layout "error"
+
+  # TODO: 横展開確認 - 他のエラーハンドリングも同様に認証をスキップ
+  # エラーページでは認証チェックを行わない
+  # （ログイン画面のエラーページなど、認証前のエラーページのため）
 
   # エラーページの表示
   # @param code [String] エラーコード (404, 403, 500など)
@@ -22,8 +26,9 @@ class ErrorsController < ApplicationController
               Rack::Utils::HTTP_STATUS_CODES[@status] ||
               "エラーが発生しました"
 
-    # HTTPステータスコードを設定
-    render status: @status
+    # TODO: 横展開確認 - render時にstatusオプションを明示的に設定
+    # renderメソッドのstatusオプションで確実にステータスコードを設定
+    render "show", status: @status
   end
 
   private
@@ -32,6 +37,12 @@ class ErrorsController < ApplicationController
   # 例: /404 -> 404, /500 -> 500
   # @return [String] ステータスコード
   def extract_status_code_from_path
-    request.path.split("/").last.to_i.to_s
+    path_segment = request.path.split("/").last
+    # 数値のパスセグメントのみ考慮
+    if path_segment&.match?(/\A\d+\z/)
+      path_segment
+    else
+      "500" # default fallback
+    end
   end
 end

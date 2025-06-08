@@ -64,13 +64,27 @@ RSpec.describe Receipt, type: :model do
     end
   end
 
-  describe 'scopes' do
+    describe 'scopes' do
     describe '.recent' do
       it '作成日時順で取得すること' do
-        old_receipt = create(:receipt, created_at: 1.day.ago)
-        new_receipt = create(:receipt, created_at: 1.hour.ago)
+        # 既存のReceiptデータをクリア
+        Receipt.destroy_all
 
-        expect(Receipt.recent.first).to eq(new_receipt)
+        # Timecopを使って確実に時間をコントロール
+        old_receipt = nil
+        new_receipt = nil
+
+        Timecop.freeze(2.days.ago) do
+          old_receipt = create(:receipt)
+        end
+
+        Timecop.freeze(1.day.ago) do
+          new_receipt = create(:receipt)
+        end
+
+        recent_receipts = Receipt.recent
+        expect(recent_receipts.first).to eq(new_receipt)
+        expect(recent_receipts.last).to eq(old_receipt)
       end
     end
 

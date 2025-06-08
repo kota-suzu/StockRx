@@ -54,6 +54,7 @@ group :development, :test do
   gem "shoulda-matchers", "~> 6.0"     # RSpecマッチャー拡張
   gem "faker"                          # ダミーデータ生成
   gem "database_cleaner-active_record" # テスト間のDB掃除
+  gem "rails-controller-testing"       # Controller testing helpers (assigns, etc.)
 
   # N+1問題検出
   gem "bullet"                         # N+1クエリ検出
