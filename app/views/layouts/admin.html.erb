@@ -12,15 +12,36 @@
 
   <body class="admin-layout">
     <header class="admin-header">
-      <div class="brand">StockRx 管理パネル</div>
+      <div class="brand">
+        <%= link_to admin_root_path, class: "brand-link" do %>
+          📦 StockRx 管理パネル
+        <% end %>
+      </div>
       <% if admin_signed_in? %>
         <nav class="admin-nav">
-          <%= link_to "ダッシュボード", admin_root_path %>
-          <%# 将来的な拡張用メニュー %>
-          <%#= link_to "在庫管理", admin_inventories_path %>
-          <%#= link_to "レポート", admin_reports_path %>
-          <%#= link_to "設定", admin_settings_path %>
-          <%= button_to "ログアウト", destroy_admin_session_path, method: :delete, class: "logout-btn" %>
+          <%= link_to admin_root_path, class: "nav-link #{'active' if current_page?(admin_root_path)}" do %>
+            🏠 ダッシュボード
+          <% end %>
+          <%= link_to admin_inventories_path, class: "nav-link #{'active' if current_page?(admin_inventories_path)}" do %>
+            📦 在庫管理
+          <% end %>
+          <%= link_to inventory_logs_path, class: "nav-link #{'active' if current_page?(inventory_logs_path)}" do %>
+            📋 在庫履歴
+          <% end %>
+          <%= link_to "/admin/sidekiq", class: "nav-link", target: "_blank" do %>
+            ⚙️ ジョブ監視
+          <% end %>
+          
+          <div class="nav-divider"></div>
+          
+          <div class="user-menu">
+            <div class="user-info">
+              <span class="user-email"><%= current_admin.email %></span>
+            </div>
+            <%= button_to destroy_admin_session_path, method: :delete, class: "logout-btn", title: "ログアウト" do %>
+              🚪 ログアウト
+            <% end %>
+          </div>
         </nav>
       <% end %>
     </header>
