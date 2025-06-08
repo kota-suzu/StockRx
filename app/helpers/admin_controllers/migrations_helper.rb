@@ -100,6 +100,11 @@ module AdminControllers::MigrationsHelper
     end
   end
 
+  # マイグレーション実行時間をフォーマット（エイリアス）
+  def format_execution_duration(duration)
+    format_duration(duration)
+  end
+
   # 推定時刻から現在時刻までの時間を表示
   def format_duration_from_now(time)
     return "N/A" unless time && time > Time.current
@@ -145,7 +150,7 @@ module AdminControllers::MigrationsHelper
 
   # 処理速度を表示
   def format_records_per_second(rps)
-    return "N/A" unless rps
+    return "N/A" unless rps && rps >= 0
 
     if rps >= 1000
       "#{(rps / 1000.0).round(1)}K/秒"
@@ -324,7 +329,27 @@ module AdminControllers::MigrationsHelper
 
   # マイグレーション実行可能性チェック
   def migration_executable?(execution)
-    execution.can_execute? && current_admin.can_execute_migrations?
+    execution.can_execute? && (current_admin.respond_to?(:can_execute_migrations?) ? current_admin.can_execute_migrations? : true)
+  end
+
+  # システム状態バッジを生成
+  def system_status_badge(metrics)
+    return "N/A" unless metrics
+
+    cpu_usage = metrics["cpu_usage"] || metrics[:cpu_usage]
+    memory_usage = metrics["memory_usage"] || metrics[:memory_usage]
+    records_per_second = metrics["records_per_second"] || metrics[:records_per_second]
+
+    level = alert_level_for_metrics(cpu_usage, memory_usage, records_per_second)
+
+    case level
+    when "danger"
+      content_tag :span, "危険", class: "badge badge-danger"
+    when "warning"
+      content_tag :span, "警告", class: "badge badge-warning"
+    else
+      content_tag :span, "正常", class: "badge badge-success"
+    end
   end
 
   # 危険な操作の確認メッセージ

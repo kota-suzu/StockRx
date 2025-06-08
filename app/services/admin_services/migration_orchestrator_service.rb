@@ -11,7 +11,7 @@
 # - 単一責任原則
 # - セキュリティバイデザイン
 # - 可観測性確保
-module Admin
+module AdminServices
   class MigrationOrchestratorService
     include ActiveModel::Model
     include ActiveModel::Attributes
@@ -20,17 +20,17 @@ module Admin
     # 設定可能属性
     # ============================================
 
-    attribute :admin, :object
-    attribute :version, :string
-    attribute :migration_name, :string
-    attribute :configuration, :object, default: {}
+    attr_accessor :admin, :version, :migration_name, :configuration
 
     # ============================================
     # 初期化
     # ============================================
 
     def initialize(attributes = {})
-      super
+      @admin = attributes[:admin]
+      @version = attributes[:version]
+      @migration_name = attributes[:migration_name]
+      @configuration = attributes[:configuration] || {}
       @execution = nil
       @errors = []
     end

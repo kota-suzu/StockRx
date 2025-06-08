@@ -285,10 +285,10 @@ RSpec.describe "Api::V1::Inventories", type: :request do
     # 状態: PENDING（Not yet implemented）
     # 必要性: API利用者の利便性向上
     # 推定工数: 5-7日（設計・実装・テスト含む）
-    # 
+    #
     # ビジネス価値: API利用拡大時のユーザビリティ向上
     # 技術的負債: 現在の基本API機能で十分動作しているため緊急性は低い
-    
+
     # TODO: ページネーション機能テスト
     context "pagination" do
       # TODO: 🟢 Phase 3 - ページネーション機能の包括的実装
@@ -324,7 +324,7 @@ RSpec.describe "Api::V1::Inventories", type: :request do
       # ```
       pending "implements pagination parameter tests"
       # it "returns paginated results with correct metadata"
-      # it "handles page and per_page parameters correctly"  
+      # it "handles page and per_page parameters correctly"
       # it "returns proper pagination metadata"
       # it "includes RFC 5988 compliant Link headers"
       # it "enforces maximum per_page limits for security"
@@ -403,7 +403,7 @@ RSpec.describe "Api::V1::Inventories", type: :request do
     end
 
     # TODO: 🔵 長期 - Phase 4（推定2-3週間）- APIの高度な機能拡張
-    # 
+    #
     # 追加実装検討項目:
     # 1. GraphQL API エンドポイント
     # 2. WebSocket によるリアルタイム更新通知

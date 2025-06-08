@@ -74,17 +74,17 @@ RSpec.describe AdminControllers::InventoryLogsHelper, type: :helper do
   #   it 'generates secure HTML for add operation' do
   #     log = build(:inventory_log, operation_type: :add)
   #     result = helper.log_type_badge(log)
-  #     
+  #
   #     expect(result).to be_html_safe
   #     expect(result).to include('badge-success')
   #     expect(result).to include('aria-label="入庫"')
   #     expect(result).to include('role="status"')
   #   end
-  #   
+  #
   #   it 'escapes malicious content safely' do
   #     log = build(:inventory_log, operation_type: :add)
   #     allow(log).to receive(:operation_type).and_return('<script>alert("xss")</script>')
-  #     
+  #
   #     result = helper.log_type_badge(log)
   #     expect(result).not_to include('<script>')
   #     expect(result).to include('&lt;script&gt;')

@@ -53,8 +53,8 @@ class Admin < ApplicationRecord
   def migration_execution_stats
     {
       total_executions: migration_executions.count,
-      successful_executions: migration_executions.status_completed.count,
-      failed_executions: migration_executions.status_failed.count,
+      successful_executions: migration_executions.completed.count,
+      failed_executions: migration_executions.failed.count,
       total_duration: migration_executions.sum(&:execution_duration),
       last_execution_at: migration_executions.maximum(:completed_at)
     }

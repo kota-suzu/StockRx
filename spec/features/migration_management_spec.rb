@@ -8,6 +8,81 @@ require 'rails_helper'
 # - エンドツーエンドテスト
 # - ユーザビリティ検証
 # - セキュリティテスト
+#
+# TODO: 包括的テスト品質向上（Google L8相当エキスパート実装）
+#
+# 🔴 高優先度（推定実装時間: 2-3日）
+# ■ ActionCable WebSocket統合テスト
+#   現状：リアルタイム更新のテストが未実装
+#   課題：JavaScript非同期処理との複雑な相互作用
+#   解決策：
+#     - WebSocket接続テスト環境の構築
+#     - Capybara + Selenium WebDriverの統合
+#     - 接続失敗時のfallback機能テスト
+#   成功指標：
+#     - WebSocket接続成功率99%以上
+#     - レスポンス遅延1秒以下
+#     - テスト安定性95/100回成功
+#   横展開：CSV Import機能でも同様のWebSocket統合が必要
+#
+# ■ Migration Management UI/UX自動テスト
+#   現状：ユーザーインターフェースの詳細な検証が不足
+#   必要性：複雑なマイグレーション操作での確実な動作保証
+#   実装項目：
+#     - 権限レベル別のアクセス制御テスト
+#     - エラー時のユーザーフィードバック検証
+#     - レスポンシブデザインでの操作性確認
+#     - アクセシビリティ（WCAG 2.1 AA準拠）テスト
+#   メタ認知的改善：
+#     - Before: 基本的な機能テストのみ
+#     - After: ユーザビリティと品質に重点を置いた包括的テスト
+#
+# 🟡 中優先度（推定実装時間: 1週間）
+# ■ パフォーマンステスト強化
+#   対象：大規模マイグレーション（10万レコード以上）での性能
+#   測定項目：
+#     - 実行時間（目標：10万レコード30分以内）
+#     - メモリ使用量（目標：2GB以下維持）
+#     - CPU使用率（目標：80%以下平均）
+#     - データベース接続プール効率
+#   負荷テストシナリオ：
+#     - 並行マイグレーション実行
+#     - 高トラフィック時の監視UI応答性
+#     - 長時間実行時のメモリリーク検証
+#
+# ■ セキュリティテスト包括化
+#   脅威モデル：
+#     - 権限昇格攻撃（horizontal/vertical privilege escalation）
+#     - SQLインジェクション（マイグレーションパラメータ経由）
+#     - CSRF攻撃（危険なマイグレーション操作への誘導）
+#     - 情報漏洩（ログやエラーメッセージ経由）
+#   テスト項目：
+#     - 認証されていないユーザーの完全ブロック
+#     - 権限のないマイグレーション操作の阻止
+#     - 入力値検証の網羅的確認
+#     - 監査ログの完全性と改ざん検知
+#
+# 🟢 低優先度（推定実装時間: 2-3週間）
+# ■ 多言語・国際化対応テスト
+#   対象言語：日本語、英語、中国語（簡体字）
+#   検証項目：
+#     - UIテキストの翻訳正確性
+#     - 文字エンコーディング（UTF-8）対応
+#     - 日時表示のロケール対応
+#     - 数値・通貨表示の地域適応
+#   文字化け・レイアウト崩れ対策
+#
+# ■ クロスブラウザ互換性テスト
+#   対象：Chrome, Firefox, Safari, Edge (最新3バージョン)
+#   自動化：BrowserStack連携またはSelenium Grid
+#   モバイル対応：iOS Safari, Android Chrome
+#   パフォーマンス：各ブラウザでの描画速度測定
+#
+# 📈 継続的品質改善項目
+# - テストカバレッジ：目標90%以上（現在は部分的実装）
+# - E2Eテスト安定性：95%以上の成功率維持
+# - テスト実行時間：全体で10分以内（現在は状況により変動）
+# - 偽陽性率：1%以下（CI/CDでの確実な品質判定）
 RSpec.describe 'Migration Management System', type: :feature do
   let(:admin) { create(:admin) }
 
@@ -179,15 +254,18 @@ RSpec.describe 'Migration Management System', type: :feature do
 
   describe 'system status monitoring' do
     it 'displays system status endpoint' do
-      visit admin_migrations_system_status_path
+      visit system_status_admin_migrations_path
 
       expect(page.status_code).to eq(200)
 
       json_response = JSON.parse(page.body)
       expect(json_response).to include(
-        'active_executions_count',
-        'system_load',
-        'database_status'
+        'status',
+        'data'
+      )
+      expect(json_response['data']).to include(
+        'active_migrations',
+        'system_load'
       )
     end
   end

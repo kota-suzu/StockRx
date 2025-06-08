@@ -36,17 +36,7 @@ class MigrationProgressLog < ApplicationRecord
             numericality: { greater_than_or_equal_to: 0 },
             allow_nil: true
 
-  # ログレベル制限
-  validates :log_level, inclusion: {
-    in: %w[debug info warn error fatal],
-    message: "%{value}は有効なログレベルではありません"
-  }
-
-  # フェーズ値制限
-  validates :phase, inclusion: {
-    in: %w[initialization schema_change data_migration index_creation validation cleanup rollback],
-    message: "%{value}は有効なフェーズではありません"
-  }
+  # ログレベルとフェーズの制限はenumで自動的に処理される
 
   # JSON構造検証
   validate :validate_metrics_structure
@@ -55,15 +45,15 @@ class MigrationProgressLog < ApplicationRecord
   # Enum定義
   # ============================================
 
-  enum log_level: {
+  enum :log_level, {
     debug: "debug",
     info: "info",
     warn: "warn",
     error: "error",
     fatal: "fatal"
-  }, _prefix: true
+  }
 
-  enum phase: {
+  enum :phase, {
     initialization: "initialization",      # 初期化
     schema_change: "schema_change",        # スキーマ変更
     data_migration: "data_migration",      # データ移行
@@ -71,7 +61,7 @@ class MigrationProgressLog < ApplicationRecord
     validation: "validation",              # 検証
     cleanup: "cleanup",                    # クリーンアップ
     rollback: "rollback"                   # ロールバック
-  }, _prefix: true
+  }
 
   # ============================================
   # スコープ定義
@@ -171,12 +161,12 @@ class MigrationProgressLog < ApplicationRecord
     memory_penalty = [ memory_usage - 70, 0 ].max * 0.3  # メモリ70%超過でペナルティ
 
     score = (records_per_second / base_rps * 100) - cpu_penalty - memory_penalty
-    [ score, 0 ].max.round(1)
+    [ [ score, 0 ].max, 100.0 ].min.round(1)
   end
 
   # アラート判定
   def requires_alert?
-    log_level_error? || log_level_fatal? ||
+    error? || fatal? ||
     (cpu_usage && cpu_usage > 90) ||
     (memory_usage && memory_usage > 95) ||
     (records_per_second && records_per_second < 10)
@@ -226,12 +216,12 @@ class MigrationProgressLog < ApplicationRecord
     {
       total_logs: logs.count,
       error_count: logs.errors_and_fatals.count,
-      warning_count: logs.log_level_warn.count,
-      phases_completed: logs.distinct.pluck(:phase),
+      warning_count: logs.warn.count,
+      phases_completed: logs.select("DISTINCT phase").pluck(:phase),
       latest_progress: logs.last&.progress_percentage || 0,
       average_rps: logs.with_performance_data.average(:records_per_second)&.round(2),
-      peak_memory: logs.maximum("metrics->>'memory_usage'")&.to_f,
-      peak_cpu: logs.maximum("metrics->>'cpu_usage'")&.to_f
+      peak_memory: logs.maximum("JSON_EXTRACT(metrics, '$.memory_usage')")&.to_f,
+      peak_cpu: logs.maximum("JSON_EXTRACT(metrics, '$.cpu_usage')")&.to_f
     }
   end
 
@@ -257,7 +247,7 @@ class MigrationProgressLog < ApplicationRecord
 
   def should_broadcast?
     # リアルタイム配信が必要な条件
-    log_level_info? || log_level_warn? || log_level_error? || log_level_fatal? ||
+    info? || warn? || error? || fatal? ||
     (progress_percentage % 5 == 0) || # 5%刻みで配信
     requires_alert?
   end

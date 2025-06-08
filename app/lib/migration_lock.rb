@@ -25,16 +25,19 @@ class MigrationLock
 
       lock_acquired = false
       attempts = 0
+      monitor_thread = nil
 
       begin
-        attempts += 1
-        lock_acquired = acquire_lock(migration_name, timeout)
+        # ロック取得のリトライループ
+        loop do
+          attempts += 1
+          lock_acquired = acquire_lock(migration_name, timeout)
 
-        unless lock_acquired
-          if attempts < retry_count
-            Rails.logger.warn "Failed to acquire lock for #{migration_name}, retrying in #{retry_delay}s..."
+          if lock_acquired
+            break
+          elsif attempts < retry_count
+            Rails.logger.warn "Failed to acquire lock for #{migration_name}, retrying in #{retry_delay}s... (attempt #{attempts}/#{retry_count})"
             sleep(retry_delay)
-            retry
           else
             raise LockTimeoutError, "Could not acquire lock for migration: #{migration_name} after #{attempts} attempts"
           end

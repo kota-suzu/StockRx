@@ -28,11 +28,7 @@ class MigrationExecution < ApplicationRecord
   validates :status, presence: true
   validates :admin_id, presence: true
 
-  # ステータス値制限
-  validates :status, inclusion: {
-    in: %w[pending running completed failed rolled_back paused cancelled],
-    message: "%{value}は有効なステータスではありません"
-  }
+  # ステータス値制限はenumで自動的に処理される
 
   # 数値範囲チェック
   validates :processed_records, :total_records,
@@ -53,7 +49,7 @@ class MigrationExecution < ApplicationRecord
   # Enum定義（型安全性向上）
   # ============================================
 
-  enum status: {
+  enum :status, {
     pending: "pending",           # 実行待ち
     running: "running",           # 実行中
     completed: "completed",       # 完了
@@ -61,7 +57,7 @@ class MigrationExecution < ApplicationRecord
     rolled_back: "rolled_back",  # ロールバック済み
     paused: "paused",            # 一時停止
     cancelled: "cancelled"        # キャンセル
-  }, _prefix: true
+  }
 
   # ============================================
   # スコープ定義（クエリ最適化）
@@ -98,17 +94,17 @@ class MigrationExecution < ApplicationRecord
 
   # 実行可能性チェック
   def can_execute?
-    status_pending? && migration_exists?
+    pending? && migration_exists?
   end
 
   # 一時停止可能性チェック
   def can_pause?
-    status_running?
+    running?
   end
 
   # ロールバック可能性チェック
   def can_rollback?
-    status_completed? && rollback_data.present?
+    completed? && rollback_data.present?
   end
 
   # キャンセル可能性チェック
@@ -124,7 +120,7 @@ class MigrationExecution < ApplicationRecord
 
   # 推定完了時刻
   def estimated_completion_time
-    return nil unless started_at && status_running? && progress_percentage > 0
+    return nil unless started_at && running? && progress_percentage > 0
 
     elapsed = Time.current - started_at
     estimated_total = elapsed * (100.0 / progress_percentage)
@@ -138,7 +134,7 @@ class MigrationExecution < ApplicationRecord
     elapsed = (completed_at || Time.current) - started_at
     return 0 if elapsed <= 0
 
-    processed_records / elapsed
+    (processed_records.to_f / elapsed).round(10)
   end
 
   # 最新の進行状況ログ
@@ -200,6 +196,7 @@ class MigrationExecution < ApplicationRecord
     update!(
       status: "completed",
       completed_at: Time.current,
+      processed_records: total_records || processed_records,
       progress_percentage: 100.0
     )
   end
@@ -223,7 +220,7 @@ class MigrationExecution < ApplicationRecord
 
   # 再開
   def resume!
-    return false unless status_paused?
+    return false unless paused?
     update!(status: "running")
   end
 
