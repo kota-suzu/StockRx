@@ -43,6 +43,8 @@ module Api
 
       # 将来的に認証情報を追加
       # Current.user = ...
+      # TODO: API認証実装時にCurrent.adminを設定
+      # Current.admin = current_admin if respond_to?(:current_admin) && current_admin
     end
 
     # ==============================================================

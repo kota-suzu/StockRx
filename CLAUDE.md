@@ -362,7 +362,7 @@ IMPORTANT: セキュリティベストプラクティスに従う
 
 ---
 
-## TODO: 残タスク（優先度順）
+## TODO: 残タスク（優先度順・更新版）
 
 ### 🔴 緊急 - Phase 1（推定1-2日） - 即座対応必要
 
@@ -392,7 +392,7 @@ IMPORTANT: セキュリティベストプラクティスに従う
 # 場所: spec/features/csv_import_spec.rb:244-293
 # 問題: ActionCable接続失敗の適切なハンドリング
 # 解決策: WebSocketテスト環境の改善とfallback機能実装
-# 修正済み: TODOコメント追加完了 ✅
+# 優先度: 🔴 高（本番環境でのCSV機能の信頼性確保のため）
 ```
 
 #### Sidekiq Integration Tests
@@ -401,7 +401,7 @@ IMPORTANT: セキュリティベストプラクティスに従う
 # 場所: spec/jobs/import_inventories_job_spec.rb:273-318
 # 問題: 非同期処理テストの不安定性とRedis mock問題
 # 解決策: テスト用同期実行モードの実装
-# 修正済み: TODOコメント追加完了 ✅
+# 優先度: 🔴 高（バックグラウンドジョブの品質保証のため）
 ```
 
 ### 🟡 重要 - Phase 2（推定2-3日） - 品質改善
@@ -412,7 +412,7 @@ IMPORTANT: セキュリティベストプラクティスに従う
 # 場所: spec/services/advanced_search_query_spec.rb:492-519
 # 問題: 複雑な検索条件での予期しない結果
 # 解決策: SQLクエリ最適化とテストデータの改善
-# 修正済み: TODOコメント追加完了 ✅
+# 優先度: 🟡 中（検索機能の精度向上）
 ```
 
 #### Feature Tests Stabilization
@@ -421,17 +421,10 @@ IMPORTANT: セキュリティベストプラクティスに従う
 # 場所: spec/features/inventory_search_feature_spec.rb
 # 問題: DOM要素の非同期読み込みタイミング
 # 解決策: 適切な待機処理とTurboフレーム対応
+# 優先度: 🟡 中（UI/UXテストの安定性）
 ```
 
 ### 🟢 推奨 - Phase 3（推定1週間） - 機能拡張
-
-#### API Tests Enhancement
-```ruby
-# TODO: API v1テストの完全化
-# 場所: spec/requests/api/v1/inventories_spec.rb
-# 問題: エラーレスポンス形式の統一
-# 解決策: 標準エラーレスポンス形式の実装
-```
 
 #### Helper Tests Implementation
 ```ruby
@@ -439,7 +432,7 @@ IMPORTANT: セキュリティベストプラクティスに従う
 # 場所: spec/helpers/*_helper_spec.rb
 # 状態: PENDING（Not yet implemented）
 # 必要性: ビューヘルパーメソッドの信頼性向上
-# 修正済み: TODOコメント追加完了 ✅
+# 優先度: 🟢 低（既存機能は動作しているため）
 ```
 
 #### Controller Tests Addition
@@ -448,7 +441,15 @@ IMPORTANT: セキュリティベストプラクティスに従う
 # 場所: spec/requests/admin_controllers/*
 # 状態: PENDING（Not yet implemented）
 # 必要性: 管理機能の網羅的テスト
-# 修正済み: TODOコメント追加完了 ✅
+# 優先度: 🟢 低（基本機能は動作確認済み）
+```
+
+#### OpenAPI/Swagger仕様書自動生成
+```ruby
+# TODO: API仕様書の自動生成機能
+# 目的: API利用者向けドキュメント整備
+# 技術: rswag gemまたはcommittee gem
+# 優先度: 🟢 低（API利用拡大時に必要）
 ```
 
 ### 🔵 長期 - Phase 4（推定2-3週間） - インフラ改善
@@ -459,6 +460,7 @@ IMPORTANT: セキュリティベストプラクティスに従う
 # 対象: 大量データでの検索・インポート性能
 # 目標: レスポンス時間1秒以内維持
 # 手法: ベンチマークテスト、N+1クエリ解消
+# 優先度: 🔵 将来（データ量増加時に対応）
 ```
 
 #### Security Test Enhancement
@@ -467,14 +469,15 @@ IMPORTANT: セキュリティベストプラクティスに従う
 # 対象: 認証・認可、入力バリデーション
 # 手法: ペネトレーションテスト、脆弱性スキャン
 # 参考: ApplicationController security comments
+# 優先度: 🔵 将来（セキュリティ監査時に対応）
 ```
 
 #### Monitoring & Observability
 ```ruby
 # TODO: 運用監視機能の実装
 # 機能: メトリクス収集、アラート機能
-# ツール: Prometheus、Grafana、ELKスタック連携
-# 対象: パフォーマンス、エラー率、ビジネスメトリクス
+# 統合: Prometheus, Grafana, Sidekiq Web UI
+# 優先度: 🔵 将来（プロダクション運用拡大時に必要）
 ```
 
 ## 🎯 横展開確認項目（メタ認知的チェックリスト）

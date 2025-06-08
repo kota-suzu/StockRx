@@ -62,8 +62,9 @@ RSpec.describe "Inventories", type: :request do
           expect(response).to have_http_status(:not_found)
 
           json = JSON.parse(response.body)
-          expect(json["code"]).to eq("resource_not_found")
-          expect(json).to have_key("message")
+          expect(json["success"]).to be false
+          expect(json["message"]).to be_present
+          expect(json["metadata"]["type"]).to eq("not_found")
         end
       end
     end
@@ -125,8 +126,8 @@ RSpec.describe "Inventories", type: :request do
         expect(response).to have_http_status(:bad_request)
 
         json = JSON.parse(response.body)
-        expect(json["code"]).to eq("parameter_missing")
-        expect(json).to have_key("message")
+        expect(json["success"]).to be false
+        expect(json["message"]).to be_present
       end
     end
   end
