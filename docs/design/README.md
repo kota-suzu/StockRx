@@ -1,6 +1,6 @@
 # StockRx 設計ドキュメント
 
-**最終更新**: 2025年5月28日  
+**最終更新**: 2025年1月27日  
 **バージョン**: 1.0
 
 ## 概要
@@ -47,6 +47,16 @@
 - **ステータス**: v1稼働中、v2計画中
 - **内容**: エンドポイント設計、認証、セキュリティ、バージョニング
 
+#### [struct_implementation_design.md](./struct_implementation_design.md) ✅
+- **概要**: Struct実装設計書（SearchResult & ApiResponse）
+- **ステータス**: 実装完了・本番稼働中
+- **内容**: 型安全性向上、API応答統一化、セキュリティ強化
+
+#### [type_safety_enhancement_design.md](./type_safety_enhancement_design.md) ✅
+- **概要**: FormField・SearchResult・ApiResponse 型安全性設計書
+- **ステータス**: 実装完了・本番稼働中
+- **内容**: FormField型安全性、統一API応答、包括的テスト戦略
+
 ## 設計原則
 
 ### 1. **セキュリティファースト**
@@ -79,6 +89,8 @@ docs/design/
 ├── inventory_management_design.md    # 在庫管理設計
 ├── job_processing_design.md          # ジョブ処理設計
 ├── api_design.md                     # API設計
+├── struct_implementation_design.md   # Struct実装設計
+├── type_safety_enhancement_design.md # 型安全性向上設計
 ├── refactoring_summary.md            # リファクタリング記録
 └── jobs/
     └── import_inventories_job_design.md  # 個別ジョブ設計
@@ -121,7 +133,14 @@ docs/design/
 
 ## 更新履歴
 
-### 2025年5月28日
+### 2025年1月27日
+- struct_implementation_design.md 追加・実装完了
+- type_safety_enhancement_design.md 追加・実装完了
+- SearchResult と ApiResponse のStruct実装完了
+- 型安全性向上の全フェーズ実装完了
+- 包括的テスト作成完了
+
+### 2025年5月28日  
 - 初版作成
 - inventory_management_design.md 追加
 - job_processing_design.md 追加

@@ -45,6 +45,44 @@ RSpec.describe "Api::V1::Inventories", type: :request do
     { "Accept" => "application/json", "Content-Type" => "application/json" }
   end
 
+  # TODO: ベストプラクティス - 共通のヘルパーメソッド
+  # APIレスポンス構造の検証を共通化
+  def parse_api_response(response)
+    JSON.parse(response.body)
+  end
+
+  def expect_successful_response(response, status = :ok)
+    expect(response).to have_http_status(status)
+    expect(response.content_type).to match(/application\/json/)
+
+    json = parse_api_response(response)
+    expect(json["success"]).to be true
+    expect(json["data"]).to be_present
+    expect(json["message"]).to be_present
+    expect(json["errors"]).to be_an(Array)
+    expect(json["metadata"]).to be_a(Hash)
+
+    json
+  end
+
+  def expect_error_response(response, status, expected_error_type = nil)
+    expect(response).to have_http_status(status)
+    expect(response.content_type).to match(/application\/json/)
+
+    json = parse_api_response(response)
+    expect(json["success"]).to be false
+    expect(json["data"]).to be_nil
+    expect(json["message"]).to be_present
+    expect(json["errors"]).to be_an(Array)
+    expect(json["metadata"]).to be_a(Hash)
+
+    if expected_error_type
+      expect(json["metadata"]["type"]).to eq(expected_error_type)
+    end
+
+    json
+  end
+
   describe "GET /api/v1/inventories" do
     # TODO: テストアイソレーション強化（優先度：高）
     # 他のテストの影響を受けないよう、各テストで独立したデータセットを使用
@@ -58,15 +96,19 @@ RSpec.describe "Api::V1::Inventories", type: :request do
 
       get api_v1_inventories_path, headers: headers
 
-      expect(response).to have_http_status(:ok)
-      expect(response.content_type).to match(/application\/json/)
+      json = expect_successful_response(response)
 
-      json = JSON.parse(response.body)
-      expect(json.size).to eq(3)
+      # ApiResponse構造でのデータアクセス
+      inventories_data = json["data"]
+      expect(inventories_data.size).to eq(3)
 
       # データの整合性も確認
-      inventory_names = json.map { |item| item["name"] }
+      inventory_names = inventories_data.map { |item| item["name"] }
       expect(inventory_names).to all(include("API Test Item"))
+
+      # メタデータの検証
+      expect(json["metadata"]["pagination"]).to be_present
+      expect(json["metadata"]["search"]).to be_present
     end
   end
 
@@ -77,11 +119,12 @@ RSpec.describe "Api::V1::Inventories", type: :request do
       it "returns the inventory" do
         get api_v1_inventory_path(inventory), headers: headers
 
-        expect(response).to have_http_status(:ok)
+        json = expect_successful_response(response)
 
-        json = JSON.parse(response.body)
-        expect(json["id"]).to eq(inventory.id)
-        expect(json["name"]).to eq(inventory.name)
+        # ApiResponse構造でのデータアクセス
+        inventory_data = json["data"]
+        expect(inventory_data["id"]).to eq(inventory.id)
+        expect(inventory_data["name"]).to eq(inventory.name)
       end
     end
 
@@ -89,11 +132,10 @@ RSpec.describe "Api::V1::Inventories", type: :request do
       it "returns 404 with proper error format" do
         get api_v1_inventory_path(id: "non-existent"), headers: headers
 
-        expect(response).to have_http_status(:not_found)
+        json = expect_error_response(response, :not_found, "not_found")
 
-        json = JSON.parse(response.body)
-        expect(json["code"]).to eq("resource_not_found")
-        expect(json["message"]).to be_present
+        # エラーメッセージの検証
+        expect(json["message"]).to include("見つかりません")
       end
     end
   end
@@ -107,10 +149,11 @@ RSpec.describe "Api::V1::Inventories", type: :request do
                headers: headers
         }.to change(Inventory, :count).by(1)
 
-        expect(response).to have_http_status(:created)
+        json = expect_successful_response(response, :created)
 
-        json = JSON.parse(response.body)
-        expect(json["name"]).to eq(valid_attributes[:name])
+        # ApiResponse構造でのデータアクセス
+        inventory_data = json["data"]
+        expect(inventory_data["name"]).to eq(valid_attributes[:name])
       end
     end
 
@@ -120,12 +163,10 @@ RSpec.describe "Api::V1::Inventories", type: :request do
              params: { inventory: invalid_attributes }.to_json,
              headers: headers
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        json = expect_error_response(response, :unprocessable_entity, "validation_error")
 
-        json = JSON.parse(response.body)
-        expect(json["code"]).to eq("validation_error")
-        expect(json["message"]).to be_present
-        expect(json["details"]).to be_an(Array)
+        # バリデーションエラーの詳細確認
+        expect(json["errors"]).not_to be_empty
       end
     end
 
@@ -135,11 +176,10 @@ RSpec.describe "Api::V1::Inventories", type: :request do
              params: { wrong_root: valid_attributes }.to_json,
              headers: headers
 
-        expect(response).to have_http_status(:bad_request)
+        json = expect_error_response(response, :bad_request)
 
-        json = JSON.parse(response.body)
-        expect(json["code"]).to eq("parameter_missing")
-        expect(json["message"]).to be_present
+        # パラメータ不足エラーの確認（実際のメッセージに合わせる）
+        expect(json["message"]).to include("param is missing")
       end
     end
   end
@@ -154,10 +194,11 @@ RSpec.describe "Api::V1::Inventories", type: :request do
             params: { inventory: new_attributes }.to_json,
             headers: headers
 
-        expect(response).to have_http_status(:ok)
+        json = expect_successful_response(response)
 
-        json = JSON.parse(response.body)
-        expect(json["name"]).to eq(new_attributes[:name])
+        # ApiResponse構造でのデータアクセス
+        inventory_data = json["data"]
+        expect(inventory_data["name"]).to eq(new_attributes[:name])
 
         inventory.reload
         expect(inventory.name).to eq(new_attributes[:name])
@@ -170,11 +211,10 @@ RSpec.describe "Api::V1::Inventories", type: :request do
             params: { inventory: { name: "" } }.to_json,
             headers: headers
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        json = expect_error_response(response, :unprocessable_entity, "validation_error")
 
-        json = JSON.parse(response.body)
-        expect(json["code"]).to eq("validation_error")
-        expect(json["details"]).to be_an(Array)
+        # バリデーションエラーの詳細確認
+        expect(json["errors"]).not_to be_empty
       end
     end
 
@@ -184,10 +224,7 @@ RSpec.describe "Api::V1::Inventories", type: :request do
             params: { inventory: new_attributes }.to_json,
             headers: headers
 
-        expect(response).to have_http_status(:not_found)
-
-        json = JSON.parse(response.body)
-        expect(json["code"]).to eq("resource_not_found")
+        json = expect_error_response(response, :not_found, "not_found")
       end
     end
   end
@@ -206,7 +243,20 @@ RSpec.describe "Api::V1::Inventories", type: :request do
           delete api_v1_inventory_path(test_inventory), headers: headers
         }.to change(Inventory, :count).by(-1)
 
+        # 204 No Contentレスポンスの検証
         expect(response).to have_http_status(:no_content)
+
+        # 204レスポンスの場合、ボディが空の可能性があるため条件分岐
+        if response.body.present? && !response.body.strip.empty?
+          json = parse_api_response(response)
+          expect(json["success"]).to be true
+          expect(json["data"]).to be_nil
+          expect(json["message"]).to include("削除されました")
+        else
+          # 空のボディの場合はHTTPステータスコードのみ確認
+          # これはRESTの標準的な204 No Contentレスポンス
+          Rails.logger.info "204 No Content with empty body (standard REST response)"
+        end
 
         # 削除されたことを確認
         expect(Inventory.find_by(id: test_inventory.id)).to be_nil
@@ -217,11 +267,42 @@ RSpec.describe "Api::V1::Inventories", type: :request do
       it "returns 404" do
         delete api_v1_inventory_path(id: "non-existent"), headers: headers
 
-        expect(response).to have_http_status(:not_found)
-
-        json = JSON.parse(response.body)
-        expect(json["code"]).to eq("resource_not_found")
+        json = expect_error_response(response, :not_found, "not_found")
       end
+    end
+  end
+
+  # TODO: 追加テストケース（横展開確認）
+  # 1. ページネーション機能のテスト
+  # 2. 並び替え機能のテスト
+  # 3. フィルタリング機能のテスト
+  # 4. レート制限テスト
+  # 5. 楽観的ロック競合テスト
+
+  describe "Additional API Features (TODO)" do
+    # TODO: ページネーション機能テスト
+    context "pagination" do
+      pending "implements pagination parameter tests"
+      # it "returns paginated results with correct metadata"
+      # it "handles page and per_page parameters correctly"
+      # it "returns proper pagination metadata"
+    end
+
+    # TODO: 検索・フィルタリング機能テスト
+    context "search and filtering" do
+      pending "implements search parameter tests"
+      # it "filters by name parameter"
+      # it "filters by status parameter"
+      # it "filters by price range"
+      # it "combines multiple filters correctly"
+    end
+
+    # TODO: 並び替え機能テスト
+    context "sorting" do
+      pending "implements sorting parameter tests"
+      # it "sorts by different fields"
+      # it "handles sort direction correctly"
+      # it "defaults to appropriate sorting"
     end
   end
 end
