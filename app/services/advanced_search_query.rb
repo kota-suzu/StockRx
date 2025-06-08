@@ -10,11 +10,24 @@ class AdvancedSearchQuery
     inventories.name inventories.description inventories.price inventories.quantity
     inventories.status inventories.created_at inventories.updated_at
     batches.lot_code batches.expires_on batches.quantity
-    inventory_logs.action inventory_logs.quantity_change inventory_logs.created_at
-    shipments.status shipments.destination shipments.scheduled_date shipments.tracking_number
-    receipts.status receipts.source receipts.receipt_date receipts.cost
+    inventory_logs.operation_type inventory_logs.delta inventory_logs.created_at
+    shipments.shipment_status shipments.destination shipments.scheduled_date shipments.tracking_number
+    receipts.receipt_status receipts.source receipts.receipt_date receipts.cost_per_unit
     audit_logs.action audit_logs.changed_fields audit_logs.created_at
   ].freeze
+
+  # TODO: セキュリティとパフォーマンス強化（推定2-3日）
+  # 1. SQLインジェクション対策の強化
+  #    - 動的クエリ生成の検証強化
+  #    - ユーザー入力のサニタイゼーション改善
+  # 2. クエリパフォーマンス最適化
+  #    - インデックス利用の最適化
+  #    - N+1問題の完全解決
+  #    - クエリキャッシュの活用
+  # 3. 検索機能の拡張
+  #    - 全文検索（PostgreSQL, Elasticsearch）
+  #    - ファジー検索対応
+  #    - 検索結果のランキング機能
 
   # 許可されたカラム名のマッピング（シンプルなフィールド名から完全なフィールド名へ）
   FIELD_MAPPING = {
@@ -39,8 +52,8 @@ class AdvancedSearchQuery
   end
 
   # AND条件での検索
-  def where(conditions)
-    @base_scope = @base_scope.where(conditions)
+  def where(*args)
+    @base_scope = @base_scope.where(*args)
     self
   end
 
@@ -219,28 +232,33 @@ class AdvancedSearchQuery
   # 期限切れ間近の商品検索
   def expiring_soon(days = 30)
     ensure_join(:batches)
-    where("batches.expires_on BETWEEN ? AND ?", Date.current, days.days.from_now)
+    @base_scope = @base_scope.where("batches.expires_on BETWEEN ? AND ?", Date.current, days.days.from_now)
+    self
   end
 
   # 在庫切れ商品の検索
   def out_of_stock
-    where("inventories.quantity <= 0")
+    @base_scope = @base_scope.where("inventories.quantity <= 0")
+    self
   end
 
   # 低在庫商品の検索（カスタム閾値）
   def low_stock(threshold = 10)
-    where("inventories.quantity > 0 AND inventories.quantity <= ?", threshold)
+    @base_scope = @base_scope.where("inventories.quantity > 0 AND inventories.quantity <= ?", threshold)
+    self
   end
 
   # 最近更新された商品
   def recently_updated(days = 7)
-    where("inventories.updated_at >= ?", days.days.ago)
+    @base_scope = @base_scope.where("inventories.updated_at >= ?", days.days.ago)
+    self
   end
 
   # 特定ユーザーが操作した商品
   def modified_by_user(user_id)
     ensure_join(:inventory_logs)
-    where("inventory_logs.user_id = ?", user_id)
+    @base_scope = @base_scope.where("inventory_logs.user_id = ?", user_id)
+    self
   end
 
   # ソート
@@ -403,11 +421,11 @@ class AdvancedSearchQuery
     end
 
     def action_type(type)
-      @scope = @scope.where("inventory_logs.action = ?", type)
+      @scope = @scope.where("inventory_logs.operation_type = ?", type)
     end
 
     def quantity_changed_by(amount)
-      @scope = @scope.where("inventory_logs.quantity_change = ?", amount)
+      @scope = @scope.where("inventory_logs.delta = ?", amount)
     end
 
     def changed_after(date)
@@ -430,7 +448,7 @@ class AdvancedSearchQuery
     end
 
     def status(status)
-      @scope = @scope.where("shipments.status = ?", status)
+      @scope = @scope.where("shipments.shipment_status = ?", status)
     end
 
     def destination_like(destination)
@@ -457,7 +475,7 @@ class AdvancedSearchQuery
     end
 
     def status(status)
-      @scope = @scope.where("receipts.status = ?", status)
+      @scope = @scope.where("receipts.receipt_status = ?", status)
     end
 
     def source_like(source)
@@ -469,7 +487,7 @@ class AdvancedSearchQuery
     end
 
     def cost_range(min, max)
-      @scope = @scope.where("receipts.cost BETWEEN ? AND ?", min, max)
+      @scope = @scope.where("receipts.cost_per_unit BETWEEN ? AND ?", min, max)
     end
 
     def apply_to(base_scope)

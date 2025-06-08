@@ -3,10 +3,12 @@
 require "rails_helper"
 
 RSpec.describe AdvancedSearchQuery do
-  let!(:inventory1) { create(:inventory, name: "Product A", quantity: 100, price: 50.0, status: "active") }
-  let!(:inventory2) { create(:inventory, name: "Product B", quantity: 0, price: 100.0, status: "active") }
-  let!(:inventory3) { create(:inventory, name: "Item C", quantity: 5, price: 25.0, status: "archived") }
-  let!(:inventory4) { create(:inventory, name: "Item D", quantity: 50, price: 75.0, status: "active") }
+  # テストアイソレーション強化：一意な識別子付きでデータ作成
+  let!(:test_prefix) { "ADV_#{SecureRandom.hex(4)}" }
+  let!(:inventory1) { create(:inventory, name: "#{test_prefix}_Product_A", quantity: 100, price: 50.0, status: "active") }
+  let!(:inventory2) { create(:inventory, name: "#{test_prefix}_Product_B", quantity: 0, price: 100.0, status: "active") }
+  let!(:inventory3) { create(:inventory, name: "#{test_prefix}_Item_C", quantity: 5, price: 25.0, status: "archived") }
+  let!(:inventory4) { create(:inventory, name: "#{test_prefix}_Item_D", quantity: 50, price: 75.0, status: "active") }
 
   # バッチデータ
   let!(:batch1) { create(:batch, inventory: inventory1, lot_code: "LOT001", expires_on: 10.days.from_now, quantity: 50) }
@@ -17,29 +19,35 @@ RSpec.describe AdvancedSearchQuery do
   let!(:user1) { create(:admin, email: "user1@example.com") }
   let!(:user2) { create(:admin, email: "user2@example.com") }
 
-  let!(:log1) { create(:inventory_log, inventory: inventory1, user: user1, action: "increment", quantity_change: 10) }
-  let!(:log2) { create(:inventory_log, inventory: inventory2, user: user2, action: "decrement", quantity_change: -5) }
+  let!(:log1) { create(:inventory_log, inventory: inventory1, user: user1, operation_type: "add", delta: 10) }
+  let!(:log2) { create(:inventory_log, inventory: inventory2, user: user2, operation_type: "remove", delta: -5) }
 
   # 出荷・入荷データ
-  let!(:shipment1) { create(:shipment, inventory: inventory1, status: "shipped", destination: "Tokyo", tracking_number: "TRACK001") }
-  let!(:receipt1) { create(:receipt, inventory: inventory2, status: "received", source: "Supplier A", cost: 1000.0) }
+  let!(:shipment1) { create(:shipment, inventory: inventory1, shipment_status: :shipped, destination: "Tokyo", tracking_number: "TRACK001") }
+  let!(:receipt1) { create(:receipt, inventory: inventory2, receipt_status: :completed, source: "Supplier A", cost_per_unit: 1000.0) }
 
   describe ".build" do
     it "creates a new instance with default scope" do
       query = described_class.build
       expect(query).to be_a(described_class)
-      expect(query.results).to match_array([ inventory1, inventory2, inventory3, inventory4 ])
+      # テストアイソレーション：このテストで作成したInventoryのみを対象
+      test_inventories = query.results.where("name LIKE ?", "#{test_prefix}%")
+      expect(test_inventories).to match_array([ inventory1, inventory2, inventory3, inventory4 ])
     end
 
     it "accepts a custom scope" do
-      query = described_class.build(Inventory.active)
+      # テスト用スコープ：このテストで作成したアクティブなInventoryのみ
+      test_scope = Inventory.active.where("name LIKE ?", "#{test_prefix}%")
+      query = described_class.build(test_scope)
       expect(query.results).to match_array([ inventory1, inventory2, inventory4 ])
     end
   end
 
   describe "#where" do
     it "adds AND conditions" do
-      results = described_class.build
+      # テスト用スコープに限定して検索
+      test_scope = Inventory.where("name LIKE ?", "#{test_prefix}%")
+      results = described_class.build(test_scope)
         .where(status: "active")
         .where("quantity > ?", 10)
         .results
@@ -102,7 +110,9 @@ RSpec.describe AdvancedSearchQuery do
 
   describe "#search_keywords" do
     it "searches across multiple fields" do
-      results = described_class.build
+      # テストアイソレーション：テスト用スコープで検索
+      test_scope = Inventory.where("name LIKE ?", "#{test_prefix}%")
+      results = described_class.build(test_scope)
         .search_keywords("Product")
         .results
 
@@ -110,7 +120,9 @@ RSpec.describe AdvancedSearchQuery do
     end
 
     it "accepts custom fields" do
-      results = described_class.build
+      # テストアイソレーション：テスト用スコープで検索
+      test_scope = Inventory.where("name LIKE ?", "#{test_prefix}%")
+      results = described_class.build(test_scope)
         .search_keywords("Item", fields: [ :name ])
         .results
 
@@ -186,7 +198,7 @@ RSpec.describe AdvancedSearchQuery do
     it "searches by log action type" do
       results = described_class.build
         .with_inventory_log_conditions do
-          action_type("increment")
+          action_type("add")
         end
         .results
 
@@ -399,7 +411,7 @@ RSpec.describe AdvancedSearchQuery do
         .search_keywords("Product")
         .with_inventory_log_conditions do
           changed_after(1.week.ago)
-          action_type("increment")
+          action_type("add")
         end
         .order_by(:name)
         .results

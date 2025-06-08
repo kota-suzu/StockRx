@@ -1,5 +1,61 @@
 # frozen_string_literal: true
 
+# ============================================
+# TODO: Featureテスト環境の包括的改善計画
+# ============================================
+#
+# 🔴 緊急 - CI/CD環境での安定性確保（推定2-3日）
+# TODO: Selenium WebDriver接続エラーの根本解決
+# - Headless Chrome設定の最適化
+# - CI環境でのWebDriver起動順序問題の解決
+# - Docker環境での安定した実行環境構築
+# - WebDriverタイムアウト設定の適切な調整
+#
+# TODO: CI/CD pipeline完全対応
+# - GitHub Actions用のWebDriverサービス設定
+# - パラレル実行対応とテストアイソレーション強化
+# - Selenium Grid使用による負荷分散
+# - スクリーンショット自動取得（テスト失敗時）
+#
+# 🟡 重要 - テスト品質・メンテナンス性向上（推定1週間）
+# TODO: Page Object Model導入
+# - 再利用可能なページオブジェクトクラス作成
+# - 複雑なUIインタラクションの抽象化
+# - テストコードの可読性・メンテナンス性向上
+# - セレクターの一元管理
+#
+# TODO: テストデータ管理の最適化
+# - DatabaseCleanerの効率的な設定
+# - テストデータのバックアップ・復元機能
+# - ダミーデータ生成の自動化
+# - テスト間の完全なデータアイソレーション
+#
+# 🟢 推奨 - 高度なUIテスト機能（推定2週間）
+# TODO: 多言語・アクセシビリティテスト
+# - 日本語/英語切り替えテスト
+# - スクリーンリーダー対応テスト
+# - キーボードナビゲーションテスト
+# - レスポンシブデザインテスト（複数デバイス）
+#
+# TODO: パフォーマンス・視覚回帰テスト
+# - ページロード時間測定
+# - 視覚回帰テスト（BackstopJS/Percy）
+# - メモリリーク検出
+# - JavaScript エラー監視
+#
+# 🔵 長期 - テスト自動化・品質保証体系（推定1ヶ月）
+# TODO: E2Eテスト自動化基盤
+# - Playwright導入検討（Seleniumからの移行）
+# - ビジュアルテストの自動化
+# - APIテストとUIテストの統合
+# - テスト結果レポート自動生成（Allure）
+#
+# TODO: クロスブラウザ・クロスプラットフォームテスト
+# - BrowserStack/Sauce Labs連携
+# - モバイルデバイステスト自動化
+# - 異なるOS環境でのテスト実行
+# - ブラウザ互換性マトリックス自動検証
+
 require 'rails_helper'
 
 RSpec.feature 'Inventory Search', type: :feature do
@@ -28,7 +84,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   scenario 'User performs basic search by status' do
     visit inventories_path
 
-    select 'active', from: 'status'
+    select 'Active', from: 'status'
     click_button '検索'
 
     expect(page).to have_content('テスト商品A')
@@ -52,7 +108,7 @@ RSpec.feature 'Inventory Search', type: :feature do
 
     click_link '高度な検索'
 
-    expect(page).to have_field('名前')
+    expect(page).to have_field('キーワード')
     expect(page).to have_field('min_price')
     expect(page).to have_field('max_price')
     expect(page).to have_field('created_from')
@@ -62,7 +118,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   scenario 'User performs advanced search with multiple conditions' do
     visit inventories_path(advanced_search: 1)
 
-    fill_in '名前', with: 'テスト'
+    fill_in 'キーワード', with: 'テスト'
     select 'active', from: 'ステータス'
     fill_in '最低価格', with: '150'
 
@@ -77,7 +133,7 @@ RSpec.feature 'Inventory Search', type: :feature do
     visit inventories_path
 
     fill_in 'q', with: 'テスト'
-    select 'active', from: 'status'
+    select 'Active', from: 'status'
     click_button '検索'
 
     expect(page).to have_content('検索条件:')
@@ -124,7 +180,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   scenario 'User resets search conditions' do
     visit inventories_path(advanced_search: 1)
 
-    fill_in '名前', with: 'テスト'
+    fill_in 'キーワード', with: 'テスト'
     select 'active', from: 'ステータス'
 
     click_link '検索条件をリセット'
@@ -224,14 +280,14 @@ RSpec.feature 'Inventory Search', type: :feature do
     scenario 'Search form retains values after search' do
       visit inventories_path(advanced_search: 1)
 
-      fill_in '名前', with: 'テスト'
+      fill_in 'キーワード', with: 'テスト'
       select 'active', from: 'ステータス'
       fill_in '最低価格', with: '100'
 
       click_button '詳細検索'
 
       # フォームの値が保持されている
-      expect(page).to have_field('名前', with: 'テスト')
+      expect(page).to have_field('キーワード', with: 'テスト')
       expect(page).to have_select('ステータス', selected: 'active')
       expect(page).to have_field('最低価格', with: '100')
     end

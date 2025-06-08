@@ -96,29 +96,8 @@ RSpec.configure do |config|
   end
 
   # Host Authorization完全無効化（403 Blocked host対策）
-  config.before(:each, type: :request) do
-    # ActionDispatch::HostAuthorizationを無効化
-    Rails.application.config.hosts = nil
-
-    # Stubbing the middleware to pass through all requests
-    allow_any_instance_of(ActionDispatch::HostAuthorization).to receive(:call) do |instance, env|
-      instance.instance_variable_get(:@app).call(env)
-    end
-  end
-
-  config.before(:each, type: :system) do
-    Rails.application.config.hosts = nil
-    allow_any_instance_of(ActionDispatch::HostAuthorization).to receive(:call) do |instance, env|
-      instance.instance_variable_get(:@app).call(env)
-    end
-  end
-
-  config.before(:each, type: :feature) do
-    Rails.application.config.hosts = nil
-    allow_any_instance_of(ActionDispatch::HostAuthorization).to receive(:call) do |instance, env|
-      instance.instance_variable_get(:@app).call(env)
-    end
-  end
+  # NOTE: Host Authorization設定は config/application.rb および config/environments/test.rb で
+  # 一元管理されているため、ここでの個別設定は不要です
 
   # You can uncomment this line to turn off ActiveRecord support entirely.
   # config.use_active_record = false

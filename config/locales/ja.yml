@@ -139,6 +139,9 @@ ja:
         date_from_to: "%{from}〜%{to}"
         date_from_only: "%{from}以降"
         date_to_only: "%{to}以前"
+        default_from_to: "%{from}〜%{to}"
+        default_from_only: "%{from}以上"
+        default_to_only: "%{to}以下"
     import:
       success: "%{count}件のデータがインポートされました"
       invalid_records: "%{count}件の無効なデータがありました"

@@ -3,12 +3,14 @@
 require 'rails_helper'
 
 RSpec.describe SearchQueryBuilder, type: :service do
-  let(:builder) { described_class.new }
+  # テストアイソレーション強化：一意な識別子付きでデータ作成
+  let!(:test_prefix) { "SQB_#{SecureRandom.hex(4)}" }
+  let!(:inventory1) { create(:inventory, name: "#{test_prefix}_テスト商品A", price: 100, quantity: 10, status: 'active') }
+  let!(:inventory2) { create(:inventory, name: "#{test_prefix}_テスト商品B", price: 200, quantity: 5, status: 'active') }
+  let!(:inventory3) { create(:inventory, name: "#{test_prefix}_別商品C", price: 150, quantity: 0, status: 'archived') }
 
-  # テスト用のInventoryデータを作成
-  let!(:inventory1) { create(:inventory, name: 'テスト商品A', price: 100, quantity: 10, status: 'active') }
-  let!(:inventory2) { create(:inventory, name: 'テスト商品B', price: 200, quantity: 5, status: 'active') }
-  let!(:inventory3) { create(:inventory, name: '別商品C', price: 150, quantity: 0, status: 'archived') }
+  # テスト用スコープに限定したビルダー
+  let(:builder) { described_class.new(Inventory.where("name LIKE ?", "#{test_prefix}%")) }
 
   describe '#initialize' do
     it 'initializes with default Inventory scope' do
@@ -239,7 +241,11 @@ RSpec.describe SearchQueryBuilder, type: :service do
   describe '#order_by' do
     it 'orders by field and direction' do
       result = builder.order_by('name', :asc).results
-      expect(result.first).to eq(inventory3)  # '別商品C'
+      # 名前の昇順でソートされることを確認（テストプレフィックス付きで検証）
+      sorted_names = result.map(&:name).sort
+      expect(result.map(&:name)).to eq(sorted_names)
+      # 最初のレコードにテストプレフィックスが含まれることを確認
+      expect(result.first.name).to include(test_prefix)
     end
 
     it 'defaults to desc direction' do
