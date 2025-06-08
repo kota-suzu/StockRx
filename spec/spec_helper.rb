@@ -89,4 +89,16 @@ RSpec.configure do |config|
   # test failures related to randomization by passing the same `--seed` value
   # as the one that triggered the failure.
   Kernel.srand config.seed
+
+  # TODO: Host Authorization完全無効化（spec_helper.rbレベル）
+  # 全てのテストタイプで確実にHost Authorizationを無効化
+  config.before(:each) do
+    # 環境変数による強制無効化
+    ENV['DISABLE_HOST_AUTHORIZATION'] = 'true'
+
+    # Railsアプリケーションが読み込まれている場合のみ設定
+    if defined?(Rails) && Rails.application
+      Rails.application.config.hosts = nil rescue nil
+    end
+  end
 end

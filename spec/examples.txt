@@ -1,224 +1,465 @@
-example_id                                                           | status  | run_time               |
--------------------------------------------------------------------- | ------- | ---------------------- |
-./spec/decorators/inventory_decorator_spec.rb[1:1:1:1]               | passed  | 0.00741 seconds        |
-./spec/decorators/inventory_decorator_spec.rb[1:1:2:1]               | passed  | 0.00572 seconds        |
-./spec/decorators/inventory_decorator_spec.rb[1:2:1]                 | passed  | 0.50682 seconds        |
-./spec/decorators/inventory_decorator_spec.rb[1:3:1:1]               | passed  | 0.01272 seconds        |
-./spec/decorators/inventory_decorator_spec.rb[1:3:2:1]               | passed  | 0.01243 seconds        |
-./spec/decorators/inventory_decorator_spec.rb[1:4:1]                 | passed  | 0.00606 seconds        |
-./spec/features/csv_import_spec.rb[1:1:1]                            | unknown |                        |
-./spec/features/csv_import_spec.rb[1:1:2]                            | failed  | 1 minute 18.63 seconds |
-./spec/features/csv_import_spec.rb[1:2:1]                            | unknown |                        |
-./spec/features/csv_import_spec.rb[1:2:2]                            | unknown |                        |
-./spec/features/csv_import_spec.rb[1:3:1]                            | unknown |                        |
-./spec/features/csv_import_spec.rb[1:3:2]                            | unknown |                        |
-./spec/features/csv_import_spec.rb[1:4:1]                            | unknown |                        |
-./spec/features/csv_import_spec.rb[1:5:1]                            | unknown |                        |
-./spec/features/csv_import_spec.rb[1:5:2]                            | unknown |                        |
-./spec/features/csv_import_spec.rb[1:6:1]                            | unknown |                        |
-./spec/features/csv_import_spec.rb[1:6:2]                            | unknown |                        |
-./spec/features/csv_import_spec.rb[1:7:1]                            | failed  | 5 minutes 2 seconds    |
-./spec/features/inventories_spec.rb[1:1]                             | pending | 0.00007 seconds        |
-./spec/features/inventories_spec.rb[1:2]                             | pending | 0 seconds              |
-./spec/features/inventories_spec.rb[1:3]                             | pending | 0.00001 seconds        |
-./spec/features/inventories_spec.rb[1:4]                             | pending | 0 seconds              |
-./spec/features/inventories_spec.rb[1:5]                             | pending | 0 seconds              |
-./spec/features/inventories_spec.rb[1:6]                             | pending | 0 seconds              |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:1:1:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:1:2:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:1:3:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:2:1:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:2:2:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:2:3:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:3:1:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:3:2:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:3:3:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:4:1:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:4:2:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:4:3:1] | unknown |                        |
-./spec/helpers/admin_controllers/inventory_logs_helper_spec.rb[1:1]  | unknown |                        |
-./spec/helpers/inventory_logs_helper_spec.rb[1:1]                    | pending | 0.00001 seconds        |
-./spec/jobs/import_inventories_job_spec.rb[1:1:1]                    | passed  | 0.00503 seconds        |
-./spec/jobs/import_inventories_job_spec.rb[1:1:2]                    | passed  | 0.00271 seconds        |
-./spec/jobs/import_inventories_job_spec.rb[1:1:3]                    | passed  | 0.0026 seconds         |
-./spec/jobs/import_inventories_job_spec.rb[1:2:1]                    | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:2:2]                    | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:2:3]                    | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:2:4]                    | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:2:5]                    | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:2:6]                    | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:1:1]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:1:2]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:2:1]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:2:2]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:2:3]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:2:4]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:3:1]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:3:2]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:3:3]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:4:1]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:4:2]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:5:1]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:5:2]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:6:1]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:3:6:2]                  | unknown |                        |
-./spec/jobs/import_inventories_job_spec.rb[1:4:1]                    | unknown |                        |
-./spec/models/admin_spec.rb[1:1:1]                                   | passed  | 0.00093 seconds        |
-./spec/models/admin_spec.rb[1:1:2]                                   | passed  | 0.00092 seconds        |
-./spec/models/admin_spec.rb[1:1:3]                                   | passed  | 0.00089 seconds        |
-./spec/models/admin_spec.rb[1:1:4]                                   | passed  | 0.00174 seconds        |
-./spec/models/admin_spec.rb[1:1:5]                                   | passed  | 0.00095 seconds        |
-./spec/models/admin_spec.rb[1:1:6]                                   | passed  | 0.00098 seconds        |
-./spec/models/admin_spec.rb[1:1:7]                                   | passed  | 0.00102 seconds        |
-./spec/models/admin_spec.rb[1:2:1]                                   | passed  | 0.16861 seconds        |
-./spec/models/admin_spec.rb[1:3:1]                                   | passed  | 0.00258 seconds        |
-./spec/models/admin_spec.rb[1:3:2]                                   | passed  | 0.02493 seconds        |
-./spec/models/admin_spec.rb[1:3:3:1]                                 | passed  | 0.17159 seconds        |
-./spec/models/admin_spec.rb[1:3:3:2]                                 | passed  | 0.17331 seconds        |
-./spec/models/batch_spec.rb[1:1:1]                                   | passed  | 0.00723 seconds        |
-./spec/models/batch_spec.rb[1:2:1]                                   | passed  | 0.02896 seconds        |
-./spec/models/batch_spec.rb[1:2:2]                                   | passed  | 0.04947 seconds        |
-./spec/models/batch_spec.rb[1:2:3:1]                                 | passed  | 0.13648 seconds        |
-./spec/models/batch_spec.rb[1:3:1:1]                                 | passed  | 0.03763 seconds        |
-./spec/models/batch_spec.rb[1:3:2:1]                                 | passed  | 0.01549 seconds        |
-./spec/models/batch_spec.rb[1:3:3:1]                                 | passed  | 0.01567 seconds        |
-./spec/models/batch_spec.rb[1:4:1:1]                                 | passed  | 0.03117 seconds        |
-./spec/models/batch_spec.rb[1:4:2:1]                                 | passed  | 0.02981 seconds        |
-./spec/models/batch_spec.rb[1:4:3:1]                                 | passed  | 0.03194 seconds        |
-./spec/models/batch_spec.rb[1:4:4:1]                                 | passed  | 0.03927 seconds        |
-./spec/models/batch_spec.rb[1:4:5:1]                                 | passed  | 0.01551 seconds        |
-./spec/models/batch_spec.rb[1:5:1:1]                                 | passed  | 0.17121 seconds        |
-./spec/models/batch_spec.rb[1:5:2:1]                                 | passed  | 0.03443 seconds        |
-./spec/models/batch_spec.rb[1:6:1:1]                                 | passed  | 0.04258 seconds        |
-./spec/models/batch_spec.rb[1:6:2:1]                                 | passed  | 0.0297 seconds         |
-./spec/models/batch_spec.rb[1:6:3:1]                                 | passed  | 0.02341 seconds        |
-./spec/models/batch_spec.rb[1:7:1:1]                                 | unknown |                        |
-./spec/models/batch_spec.rb[1:7:1:2]                                 | unknown |                        |
-./spec/models/batch_spec.rb[1:7:2:1]                                 | unknown |                        |
-./spec/models/batch_spec.rb[1:7:2:2]                                 | unknown |                        |
-./spec/models/batch_spec.rb[1:7:3:1]                                 | unknown |                        |
-./spec/models/batch_spec.rb[1:7:3:2]                                 | unknown |                        |
-./spec/models/batch_spec.rb[1:7:3:3]                                 | unknown |                        |
-./spec/models/batch_spec.rb[1:7:4:1]                                 | unknown |                        |
-./spec/models/batch_spec.rb[1:7:4:2]                                 | unknown |                        |
-./spec/models/batch_spec.rb[1:7:5:1]                                 | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:1:1]                           | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:2:1]                           | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:2:2]                           | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:2:3]                           | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:2:4]                           | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:2:5]                           | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:2:6]                           | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:2:7]                           | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:3:1]                           | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:4:1]                           | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:5:1]                           | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:6:1:1]                         | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:6:1:2]                         | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:6:2:1]                         | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:6:2:2]                         | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:6:3:1]                         | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:6:3:2]                         | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:6:4:1]                         | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:6:4:2]                         | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:6:4:3]                         | unknown |                        |
-./spec/models/inventory_log_spec.rb[1:6:5:1]                         | unknown |                        |
-./spec/models/inventory_spec.rb[1:1:1]                               | passed  | 0.00125 seconds        |
-./spec/models/inventory_spec.rb[1:2:1]                               | passed  | 0.00533 seconds        |
-./spec/models/inventory_spec.rb[1:2:2]                               | passed  | 0.00295 seconds        |
-./spec/models/inventory_spec.rb[1:2:3]                               | passed  | 0.00988 seconds        |
-./spec/models/inventory_spec.rb[1:3:1]                               | passed  | 0.00144 seconds        |
-./spec/models/inventory_spec.rb[1:4:1]                               | passed  | 0.0111 seconds         |
-./spec/models/inventory_spec.rb[1:4:2:1]                             | passed  | 0.34165 seconds        |
-./spec/models/inventory_spec.rb[1:5:1:1]                             | passed  | 0.01237 seconds        |
-./spec/models/inventory_spec.rb[1:5:2:1]                             | passed  | 0.01079 seconds        |
-./spec/models/inventory_spec.rb[1:5:3:1]                             | passed  | 0.01751 seconds        |
-./spec/models/inventory_spec.rb[1:5:3:2]                             | passed  | 0.00773 seconds        |
-./spec/models/inventory_spec.rb[1:6:1]                               | passed  | 0.01717 seconds        |
-./spec/models/inventory_spec.rb[1:7:1]                               | passed  | 0.00453 seconds        |
-./spec/models/inventory_spec.rb[1:7:2]                               | passed  | 0.00773 seconds        |
-./spec/models/inventory_spec.rb[1:8:1]                               | passed  | 0.11729 seconds        |
-./spec/models/inventory_spec.rb[1:8:2]                               | passed  | 0.00911 seconds        |
-./spec/models/inventory_spec.rb[1:8:3]                               | passed  | 0.00763 seconds        |
-./spec/models/inventory_spec.rb[1:9:1]                               | passed  | 0.01667 seconds        |
-./spec/models/inventory_spec.rb[1:10:1]                              | passed  | 0.02934 seconds        |
-./spec/models/inventory_spec.rb[1:10:2]                              | passed  | 0.01263 seconds        |
-./spec/models/inventory_spec.rb[1:11:1:1]                            | passed  | 0.03095 seconds        |
-./spec/models/inventory_spec.rb[1:11:1:2]                            | passed  | 0.01524 seconds        |
-./spec/models/inventory_spec.rb[1:11:2:1]                            | passed  | 0.02401 seconds        |
-./spec/models/inventory_spec.rb[1:11:3:1]                            | passed  | 0.02672 seconds        |
-./spec/models/receipt_spec.rb[1:1:1]                                 | passed  | 0.00235 seconds        |
-./spec/models/receipt_spec.rb[1:2:1]                                 | passed  | 0.00192 seconds        |
-./spec/models/receipt_spec.rb[1:2:2]                                 | passed  | 0.00272 seconds        |
-./spec/models/receipt_spec.rb[1:2:3]                                 | passed  | 0.00186 seconds        |
-./spec/models/receipt_spec.rb[1:2:4]                                 | passed  | 0.004 seconds          |
-./spec/models/receipt_spec.rb[1:2:5]                                 | passed  | 0.0017 seconds         |
-./spec/models/receipt_spec.rb[1:2:6]                                 | passed  | 0.00227 seconds        |
-./spec/models/receipt_spec.rb[1:3:1]                                 | passed  | 0.00183 seconds        |
-./spec/models/receipt_spec.rb[1:4:1:1]                               | passed  | 0.01095 seconds        |
-./spec/models/receipt_spec.rb[1:4:2:1]                               | passed  | 0.00998 seconds        |
-./spec/models/receipt_spec.rb[1:5:1:1]                               | passed  | 0.00834 seconds        |
-./spec/models/receipt_spec.rb[1:5:2:1]                               | passed  | 0.00625 seconds        |
-./spec/models/receipt_spec.rb[1:6:1]                                 | passed  | 0.00647 seconds        |
-./spec/models/receipt_spec.rb[1:7:1:1]                               | passed  | 0.01431 seconds        |
-./spec/models/receipt_spec.rb[1:7:2:1]                               | passed  | 0.0154 seconds         |
-./spec/models/receipt_spec.rb[1:7:3:1]                               | passed  | 0.01765 seconds        |
-./spec/models/shipment_spec.rb[1:1:1]                                | unknown |                        |
-./spec/models/shipment_spec.rb[1:2:1]                                | unknown |                        |
-./spec/models/shipment_spec.rb[1:2:2]                                | unknown |                        |
-./spec/models/shipment_spec.rb[1:2:3]                                | unknown |                        |
-./spec/models/shipment_spec.rb[1:2:4]                                | unknown |                        |
-./spec/models/shipment_spec.rb[1:2:5]                                | unknown |                        |
-./spec/models/shipment_spec.rb[1:3:1]                                | unknown |                        |
-./spec/models/shipment_spec.rb[1:4:1:1]                              | unknown |                        |
-./spec/models/shipment_spec.rb[1:4:2:1]                              | unknown |                        |
-./spec/models/shipment_spec.rb[1:5:1:1]                              | unknown |                        |
-./spec/models/shipment_spec.rb[1:5:2:1]                              | unknown |                        |
-./spec/requests/admin_controllers/inventory_logs_spec.rb[1:1:1]      | unknown |                        |
-./spec/requests/api/v1/inventories_spec.rb[1:1:1]                    | unknown |                        |
-./spec/requests/api/v1/inventories_spec.rb[1:2:1:1]                  | unknown |                        |
-./spec/requests/api/v1/inventories_spec.rb[1:2:2:1]                  | unknown |                        |
-./spec/requests/api/v1/inventories_spec.rb[1:3:1:1]                  | unknown |                        |
-./spec/requests/api/v1/inventories_spec.rb[1:3:2:1]                  | unknown |                        |
-./spec/requests/api/v1/inventories_spec.rb[1:3:3:1]                  | unknown |                        |
-./spec/requests/api/v1/inventories_spec.rb[1:4:1:1]                  | unknown |                        |
-./spec/requests/api/v1/inventories_spec.rb[1:4:2:1]                  | unknown |                        |
-./spec/requests/api/v1/inventories_spec.rb[1:4:3:1]                  | unknown |                        |
-./spec/requests/api/v1/inventories_spec.rb[1:5:1:1]                  | unknown |                        |
-./spec/requests/api/v1/inventories_spec.rb[1:5:2:1]                  | unknown |                        |
-./spec/requests/errors_spec.rb[1:1:1:1]                              | unknown |                        |
-./spec/requests/errors_spec.rb[1:1:1:2]                              | unknown |                        |
-./spec/requests/errors_spec.rb[1:1:1:3]                              | unknown |                        |
-./spec/requests/errors_spec.rb[1:1:1:4]                              | unknown |                        |
-./spec/requests/errors_spec.rb[1:1:2:1]                              | unknown |                        |
-./spec/requests/errors_spec.rb[1:1:3:1]                              | unknown |                        |
-./spec/requests/errors_spec.rb[1:2:1]                                | unknown |                        |
-./spec/requests/errors_spec.rb[1:3:1]                                | unknown |                        |
-./spec/requests/errors_spec.rb[1:4:1]                                | unknown |                        |
-./spec/requests/errors_spec.rb[1:5:1]                                | unknown |                        |
-./spec/requests/errors_spec.rb[1:6:1]                                | unknown |                        |
-./spec/requests/errors_spec.rb[1:6:2]                                | unknown |                        |
-./spec/requests/inventories_spec.rb[1:1:1]                           | unknown |                        |
-./spec/requests/inventories_spec.rb[1:1:2:1]                         | unknown |                        |
-./spec/requests/inventories_spec.rb[1:2:1:1]                         | unknown |                        |
-./spec/requests/inventories_spec.rb[1:2:2:1]                         | unknown |                        |
-./spec/requests/inventories_spec.rb[1:2:2:2:1]                       | unknown |                        |
-./spec/requests/inventories_spec.rb[1:3:1:1]                         | unknown |                        |
-./spec/requests/inventories_spec.rb[1:3:1:2:1]                       | unknown |                        |
-./spec/requests/inventories_spec.rb[1:3:2:1]                         | unknown |                        |
-./spec/requests/inventories_spec.rb[1:3:2:2:1]                       | unknown |                        |
-./spec/requests/inventories_spec.rb[1:3:3:1]                         | unknown |                        |
-./spec/requests/inventories_spec.rb[1:4:1:1]                         | unknown |                        |
-./spec/requests/inventories_spec.rb[1:4:2:1]                         | unknown |                        |
-./spec/requests/inventories_spec.rb[1:4:3:1]                         | unknown |                        |
-./spec/requests/inventories_spec.rb[1:5:1:1]                         | unknown |                        |
-./spec/requests/inventories_spec.rb[1:5:1:2:1]                       | unknown |                        |
-./spec/requests/inventories_spec.rb[1:5:2:1]                         | unknown |                        |
-./spec/requests/inventory_logs_spec.rb[1:1:1]                        | unknown |                        |
-./spec/validators/password_strength_validator_spec.rb[1:1:1]         | passed  | 0.00327 seconds        |
-./spec/validators/password_strength_validator_spec.rb[1:2:1]         | passed  | 0.00376 seconds        |
-./spec/validators/password_strength_validator_spec.rb[1:2:2]         | passed  | 0.00294 seconds        |
-./spec/validators/password_strength_validator_spec.rb[1:2:3]         | passed  | 0.00271 seconds        |
-./spec/validators/password_strength_validator_spec.rb[1:2:4]         | passed  | 0.00642 seconds        |
-./spec/validators/password_strength_validator_spec.rb[1:2:5]         | passed  | 0.0027 seconds         |
-./spec/validators/password_strength_validator_spec.rb[1:3:1]         | passed  | 0.00255 seconds        |
+example_id                                                           | status  | run_time        |
+-------------------------------------------------------------------- | ------- | --------------- |
+./spec/decorators/inventory_decorator_spec.rb[1:1:1:1]               | passed  | 0.00191 seconds |
+./spec/decorators/inventory_decorator_spec.rb[1:1:2:1]               | passed  | 0.00242 seconds |
+./spec/decorators/inventory_decorator_spec.rb[1:2:1]                 | passed  | 0.00408 seconds |
+./spec/decorators/inventory_decorator_spec.rb[1:3:1:1]               | passed  | 0.01464 seconds |
+./spec/decorators/inventory_decorator_spec.rb[1:3:2:1]               | passed  | 0.00511 seconds |
+./spec/decorators/inventory_decorator_spec.rb[1:4:1]                 | passed  | 0.00349 seconds |
+./spec/features/csv_import_spec.rb[1:1:1]                            | failed  | 0.10864 seconds |
+./spec/features/csv_import_spec.rb[1:1:2]                            | failed  | 0.11131 seconds |
+./spec/features/csv_import_spec.rb[1:2:1]                            | failed  | 0.11014 seconds |
+./spec/features/csv_import_spec.rb[1:2:2]                            | failed  | 0.10297 seconds |
+./spec/features/csv_import_spec.rb[1:3:1]                            | failed  | 0.1205 seconds  |
+./spec/features/csv_import_spec.rb[1:3:2]                            | failed  | 0.11404 seconds |
+./spec/features/csv_import_spec.rb[1:4:1]                            | failed  | 0.11805 seconds |
+./spec/features/csv_import_spec.rb[1:5:1]                            | failed  | 0.11415 seconds |
+./spec/features/csv_import_spec.rb[1:5:2]                            | failed  | 0.02 seconds    |
+./spec/features/csv_import_spec.rb[1:6:1]                            | failed  | 0.10419 seconds |
+./spec/features/csv_import_spec.rb[1:6:2]                            | failed  | 0.10044 seconds |
+./spec/features/csv_import_spec.rb[1:7:1]                            | failed  | 3.31 seconds    |
+./spec/features/inventories_spec.rb[1:1]                             | pending | 0 seconds       |
+./spec/features/inventories_spec.rb[1:2]                             | pending | 0 seconds       |
+./spec/features/inventories_spec.rb[1:3]                             | pending | 0 seconds       |
+./spec/features/inventories_spec.rb[1:4]                             | pending | 0 seconds       |
+./spec/features/inventories_spec.rb[1:5]                             | pending | 0 seconds       |
+./spec/features/inventories_spec.rb[1:6]                             | pending | 0 seconds       |
+./spec/features/inventory_search_feature_spec.rb[1:1]                | passed  | 0.03965 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:2]                | failed  | 0.02911 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:3]                | failed  | 0.04839 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:4]                | failed  | 0.04874 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:5]                | failed  | 0.02922 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:6]                | failed  | 0.03207 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:7]                | failed  | 0.0463 seconds  |
+./spec/features/inventory_search_feature_spec.rb[1:8]                | failed  | 0.03964 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:9]                | failed  | 0.0524 seconds  |
+./spec/features/inventory_search_feature_spec.rb[1:10]               | failed  | 0.02363 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:11]               | passed  | 0.04266 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:12]               | failed  | 0.11092 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:13]               | failed  | 0.05012 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:14]               | passed  | 0.03117 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:15]               | passed  | 0.0209 seconds  |
+./spec/features/inventory_search_feature_spec.rb[1:16:1]             | failed  | 0.11489 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:17:1]             | passed  | 0.04707 seconds |
+./spec/features/inventory_search_feature_spec.rb[1:18:1]             | failed  | 0.03459 seconds |
+./spec/forms/base_search_form_spec.rb[1:1:1]                         | passed  | 0.0014 seconds  |
+./spec/forms/base_search_form_spec.rb[1:1:2]                         | passed  | 0.00181 seconds |
+./spec/forms/base_search_form_spec.rb[1:1:3]                         | passed  | 0.00122 seconds |
+./spec/forms/base_search_form_spec.rb[1:1:4]                         | passed  | 0.00122 seconds |
+./spec/forms/base_search_form_spec.rb[1:2:1:1]                       | passed  | 0.00368 seconds |
+./spec/forms/base_search_form_spec.rb[1:2:1:2]                       | passed  | 0.00166 seconds |
+./spec/forms/base_search_form_spec.rb[1:2:2:1]                       | passed  | 0.00434 seconds |
+./spec/forms/base_search_form_spec.rb[1:2:2:2]                       | passed  | 0.00249 seconds |
+./spec/forms/base_search_form_spec.rb[1:2:3:1]                       | passed  | 0.00517 seconds |
+./spec/forms/base_search_form_spec.rb[1:2:3:2]                       | passed  | 0.002 seconds   |
+./spec/forms/base_search_form_spec.rb[1:3:1]                         | passed  | 0.00515 seconds |
+./spec/forms/base_search_form_spec.rb[1:3:2]                         | passed  | 0.00215 seconds |
+./spec/forms/base_search_form_spec.rb[1:4:1]                         | passed  | 0.00149 seconds |
+./spec/forms/base_search_form_spec.rb[1:5:1]                         | passed  | 0.0026 seconds  |
+./spec/forms/base_search_form_spec.rb[1:6:1]                         | passed  | 0.00209 seconds |
+./spec/forms/base_search_form_spec.rb[1:6:2]                         | passed  | 0.00315 seconds |
+./spec/forms/base_search_form_spec.rb[1:6:3]                         | passed  | 0.00228 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:1:1]                    | passed  | 0.01387 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:1:2]                    | passed  | 0.0115 seconds  |
+./spec/forms/inventory_search_form_spec.rb[1:1:3]                    | passed  | 0.01041 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:1:4]                    | passed  | 0.01054 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:2:1:1]                  | passed  | 0.95966 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:2:1:2]                  | passed  | 0.01839 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:2:1:3]                  | passed  | 0.03003 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:2:1:4]                  | passed  | 0.01215 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:2:1:5]                  | passed  | 0.01095 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:2:2:1]                  | passed  | 0.01257 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:2:2:2]                  | passed  | 0.0115 seconds  |
+./spec/forms/inventory_search_form_spec.rb[1:2:2:3]                  | passed  | 0.01194 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:3:1]                    | passed  | 0.01283 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:3:2]                    | passed  | 0.01335 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:3:3]                    | passed  | 0.01881 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:4:1]                    | passed  | 0.02208 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:4:2]                    | passed  | 0.01249 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:4:3]                    | passed  | 0.01855 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:4:4]                    | passed  | 0.01603 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:4:5]                    | passed  | 0.01326 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:4:6]                    | passed  | 0.0226 seconds  |
+./spec/forms/inventory_search_form_spec.rb[1:5:1]                    | passed  | 0.01383 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:5:2]                    | passed  | 0.01652 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:5:3]                    | passed  | 0.01353 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:5:4]                    | passed  | 0.01445 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:5:5]                    | passed  | 0.01723 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:5:6]                    | passed  | 0.01599 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:6:1:1]                  | passed  | 0.01095 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:6:2:1]                  | passed  | 0.01182 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:6:2:2]                  | passed  | 0.01275 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:6:2:3]                  | passed  | 0.01242 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:6:2:4]                  | passed  | 0.01254 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:6:2:5]                  | passed  | 0.01089 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:6:2:6]                  | passed  | 0.01225 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:6:2:7]                  | passed  | 0.0176 seconds  |
+./spec/forms/inventory_search_form_spec.rb[1:6:2:8]                  | passed  | 0.01184 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:6:3:1]                  | passed  | 0.01208 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:6:3:2]                  | passed  | 0.01282 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:7:1]                    | passed  | 0.01124 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:7:2]                    | passed  | 0.01191 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:7:3]                    | passed  | 0.01168 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:8:1]                    | passed  | 0.01052 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:8:2]                    | passed  | 0.01078 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:8:3]                    | passed  | 0.01096 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:8:4]                    | passed  | 0.01058 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:8:5]                    | passed  | 0.01151 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:8:6]                    | passed  | 0.01084 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:9:1:1]                  | passed  | 0.01127 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:9:1:2]                  | passed  | 0.01121 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:9:1:3]                  | passed  | 0.01075 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:9:2:1]                  | passed  | 0.01125 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:9:3:1]                  | passed  | 0.01068 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:9:3:2]                  | passed  | 0.01088 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:9:3:3]                  | passed  | 0.01017 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:10:1:1]                 | passed  | 0.01648 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:10:1:2]                 | passed  | 0.01428 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:10:2:1]                 | passed  | 0.03005 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:10:2:2]                 | passed  | 0.01634 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:10:3:1]                 | passed  | 0.02628 seconds |
+./spec/forms/inventory_search_form_spec.rb[1:10:3:2]                 | passed  | 0.08394 seconds |
+./spec/forms/search_condition_spec.rb[1:1:1]                         | passed  | 0.00141 seconds |
+./spec/forms/search_condition_spec.rb[1:1:2]                         | passed  | 0.00204 seconds |
+./spec/forms/search_condition_spec.rb[1:1:3]                         | passed  | 0.00235 seconds |
+./spec/forms/search_condition_spec.rb[1:1:4]                         | passed  | 0.0015 seconds  |
+./spec/forms/search_condition_spec.rb[1:1:5]                         | passed  | 0.00272 seconds |
+./spec/forms/search_condition_spec.rb[1:2:1:1]                       | passed  | 0.0015 seconds  |
+./spec/forms/search_condition_spec.rb[1:2:1:2]                       | passed  | 0.00155 seconds |
+./spec/forms/search_condition_spec.rb[1:2:1:3]                       | passed  | 0.0013 seconds  |
+./spec/forms/search_condition_spec.rb[1:2:2:1]                       | passed  | 0.00171 seconds |
+./spec/forms/search_condition_spec.rb[1:2:2:2]                       | passed  | 0.00187 seconds |
+./spec/forms/search_condition_spec.rb[1:2:3:1]                       | passed  | 0.00169 seconds |
+./spec/forms/search_condition_spec.rb[1:2:3:2]                       | passed  | 0.0014 seconds  |
+./spec/forms/search_condition_spec.rb[1:2:4:1]                       | passed  | 0.00142 seconds |
+./spec/forms/search_condition_spec.rb[1:2:4:2]                       | passed  | 0.0014 seconds  |
+./spec/forms/search_condition_spec.rb[1:2:5:1]                       | passed  | 0.0015 seconds  |
+./spec/forms/search_condition_spec.rb[1:2:5:2]                       | passed  | 0.00134 seconds |
+./spec/forms/search_condition_spec.rb[1:2:6:1:1]                     | passed  | 0.00133 seconds |
+./spec/forms/search_condition_spec.rb[1:2:6:1:2]                     | passed  | 0.00148 seconds |
+./spec/forms/search_condition_spec.rb[1:2:6:2:1]                     | passed  | 0.00142 seconds |
+./spec/forms/search_condition_spec.rb[1:2:6:2:2]                     | passed  | 0.00137 seconds |
+./spec/forms/search_condition_spec.rb[1:2:6:2:3]                     | passed  | 0.00174 seconds |
+./spec/forms/search_condition_spec.rb[1:2:6:3:1]                     | passed  | 0.00152 seconds |
+./spec/forms/search_condition_spec.rb[1:2:6:3:2]                     | passed  | 0.00182 seconds |
+./spec/forms/search_condition_spec.rb[1:2:6:4:1]                     | passed  | 0.00152 seconds |
+./spec/forms/search_condition_spec.rb[1:2:6:4:2]                     | passed  | 0.00144 seconds |
+./spec/forms/search_condition_spec.rb[1:3:1:1]                       | passed  | 0.00243 seconds |
+./spec/forms/search_condition_spec.rb[1:3:2:1]                       | passed  | 0.0024 seconds  |
+./spec/forms/search_condition_spec.rb[1:3:3:1]                       | passed  | 0.00245 seconds |
+./spec/forms/search_condition_spec.rb[1:3:4:1]                       | passed  | 0.00318 seconds |
+./spec/forms/search_condition_spec.rb[1:3:5:1]                       | passed  | 0.00299 seconds |
+./spec/forms/search_condition_spec.rb[1:3:6:1]                       | passed  | 0.00302 seconds |
+./spec/forms/search_condition_spec.rb[1:3:7:1]                       | passed  | 0.00281 seconds |
+./spec/forms/search_condition_spec.rb[1:4:1]                         | passed  | 0.00261 seconds |
+./spec/forms/search_condition_spec.rb[1:4:2:1]                       | passed  | 0.00253 seconds |
+./spec/forms/search_condition_spec.rb[1:5:1]                         | passed  | 0.00139 seconds |
+./spec/forms/search_condition_spec.rb[1:6:1]                         | passed  | 0.00149 seconds |
+./spec/forms/search_condition_spec.rb[1:7:1:1]                       | passed  | 0.00251 seconds |
+./spec/forms/search_condition_spec.rb[1:7:2:1]                       | passed  | 0.00259 seconds |
+./spec/forms/search_condition_spec.rb[1:7:3:1]                       | passed  | 0.00232 seconds |
+./spec/forms/search_condition_spec.rb[1:7:4:1]                       | passed  | 0.00342 seconds |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:1:1:1] | passed  | 0.00637 seconds |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:1:2:1] | passed  | 0.00639 seconds |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:1:3:1] | passed  | 0.00434 seconds |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:2:1:1] | passed  | 0.00326 seconds |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:2:2:1] | passed  | 0.00111 seconds |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:2:3:1] | passed  | 0.00152 seconds |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:3:1:1] | passed  | 0.00217 seconds |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:3:2:1] | passed  | 0.00275 seconds |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:3:3:1] | passed  | 0.00156 seconds |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:4:1:1] | passed  | 0.0017 seconds  |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:4:2:1] | passed  | 0.00283 seconds |
+./spec/helpers/admin_controllers/inventories_helper_spec.rb[1:4:3:1] | passed  | 0.0036 seconds  |
+./spec/helpers/admin_controllers/inventory_logs_helper_spec.rb[1:1]  | pending | 0.00006 seconds |
+./spec/helpers/inventory_logs_helper_spec.rb[1:1]                    | pending | 0 seconds       |
+./spec/jobs/import_inventories_job_spec.rb[1:1:1]                    | passed  | 0.00126 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:1:2]                    | passed  | 0.00116 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:1:3]                    | passed  | 0.0015 seconds  |
+./spec/jobs/import_inventories_job_spec.rb[1:2:1]                    | passed  | 0.00141 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:2:2]                    | passed  | 0.00141 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:2:3]                    | passed  | 0.00159 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:2:4]                    | passed  | 0.00151 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:2:5]                    | passed  | 0.00133 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:2:6]                    | passed  | 0.00135 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:3:1:1]                  | passed  | 0.00642 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:3:1:2]                  | passed  | 0.00615 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:3:2:1]                  | passed  | 0.0067 seconds  |
+./spec/jobs/import_inventories_job_spec.rb[1:3:2:2]                  | passed  | 0.00849 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:3:2:3]                  | passed  | 0.00648 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:3:2:4]                  | passed  | 0.0087 seconds  |
+./spec/jobs/import_inventories_job_spec.rb[1:3:3:1]                  | pending | 0 seconds       |
+./spec/jobs/import_inventories_job_spec.rb[1:3:3:2]                  | passed  | 0.0069 seconds  |
+./spec/jobs/import_inventories_job_spec.rb[1:3:3:3]                  | pending | 0.00001 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:3:4:1]                  | pending | 0 seconds       |
+./spec/jobs/import_inventories_job_spec.rb[1:3:4:2]                  | pending | 0 seconds       |
+./spec/jobs/import_inventories_job_spec.rb[1:3:5:1]                  | pending | 0 seconds       |
+./spec/jobs/import_inventories_job_spec.rb[1:3:5:2]                  | pending | 0 seconds       |
+./spec/jobs/import_inventories_job_spec.rb[1:3:6:1]                  | pending | 0 seconds       |
+./spec/jobs/import_inventories_job_spec.rb[1:3:6:2]                  | pending | 0.00001 seconds |
+./spec/jobs/import_inventories_job_spec.rb[1:4:1]                    | passed  | 0.007 seconds   |
+./spec/models/admin_spec.rb[1:1:1]                                   | passed  | 0.00044 seconds |
+./spec/models/admin_spec.rb[1:1:2]                                   | passed  | 0.00047 seconds |
+./spec/models/admin_spec.rb[1:1:3]                                   | passed  | 0.00059 seconds |
+./spec/models/admin_spec.rb[1:1:4]                                   | passed  | 0.00048 seconds |
+./spec/models/admin_spec.rb[1:1:5]                                   | passed  | 0.00059 seconds |
+./spec/models/admin_spec.rb[1:1:6]                                   | passed  | 0.0027 seconds  |
+./spec/models/admin_spec.rb[1:1:7]                                   | passed  | 0.0005 seconds  |
+./spec/models/admin_spec.rb[1:2:1]                                   | passed  | 0.00403 seconds |
+./spec/models/admin_spec.rb[1:3:1]                                   | passed  | 0.00529 seconds |
+./spec/models/admin_spec.rb[1:3:2]                                   | passed  | 0.00914 seconds |
+./spec/models/admin_spec.rb[1:3:3:1]                                 | passed  | 0.00435 seconds |
+./spec/models/admin_spec.rb[1:3:3:2]                                 | passed  | 0.00199 seconds |
+./spec/models/batch_spec.rb[1:1:1]                                   | passed  | 0.00196 seconds |
+./spec/models/batch_spec.rb[1:2:1]                                   | passed  | 0.00296 seconds |
+./spec/models/batch_spec.rb[1:2:2]                                   | passed  | 0.00253 seconds |
+./spec/models/batch_spec.rb[1:2:3:1]                                 | passed  | 0.01044 seconds |
+./spec/models/batch_spec.rb[1:3:1:1]                                 | passed  | 0.00242 seconds |
+./spec/models/batch_spec.rb[1:3:2:1]                                 | passed  | 0.00399 seconds |
+./spec/models/batch_spec.rb[1:3:3:1]                                 | passed  | 0.0027 seconds  |
+./spec/models/batch_spec.rb[1:4:1:1]                                 | passed  | 0.0028 seconds  |
+./spec/models/batch_spec.rb[1:4:2:1]                                 | passed  | 0.00456 seconds |
+./spec/models/batch_spec.rb[1:4:3:1]                                 | passed  | 0.00311 seconds |
+./spec/models/batch_spec.rb[1:4:4:1]                                 | passed  | 0.00318 seconds |
+./spec/models/batch_spec.rb[1:4:5:1]                                 | passed  | 0.00422 seconds |
+./spec/models/batch_spec.rb[1:5:1:1]                                 | passed  | 0.00341 seconds |
+./spec/models/batch_spec.rb[1:5:2:1]                                 | passed  | 0.00463 seconds |
+./spec/models/batch_spec.rb[1:6:1:1]                                 | passed  | 0.00441 seconds |
+./spec/models/batch_spec.rb[1:6:2:1]                                 | passed  | 0.00383 seconds |
+./spec/models/batch_spec.rb[1:6:3:1]                                 | passed  | 0.00313 seconds |
+./spec/models/batch_spec.rb[1:7:1:1]                                 | passed  | 0.00874 seconds |
+./spec/models/batch_spec.rb[1:7:1:2]                                 | passed  | 0.0059 seconds  |
+./spec/models/batch_spec.rb[1:7:2:1]                                 | passed  | 0.00652 seconds |
+./spec/models/batch_spec.rb[1:7:2:2]                                 | passed  | 0.00582 seconds |
+./spec/models/batch_spec.rb[1:7:3:1]                                 | passed  | 0.00773 seconds |
+./spec/models/batch_spec.rb[1:7:3:2]                                 | passed  | 0.00632 seconds |
+./spec/models/batch_spec.rb[1:7:3:3]                                 | passed  | 0.00868 seconds |
+./spec/models/batch_spec.rb[1:7:4:1]                                 | passed  | 0.00475 seconds |
+./spec/models/batch_spec.rb[1:7:4:2]                                 | passed  | 0.00671 seconds |
+./spec/models/batch_spec.rb[1:7:5:1]                                 | passed  | 0.00607 seconds |
+./spec/models/inventory_log_spec.rb[1:1:1]                           | passed  | 0.00206 seconds |
+./spec/models/inventory_log_spec.rb[1:2:1]                           | passed  | 0.00695 seconds |
+./spec/models/inventory_log_spec.rb[1:2:2]                           | passed  | 0.0067 seconds  |
+./spec/models/inventory_log_spec.rb[1:2:3]                           | passed  | 0.01527 seconds |
+./spec/models/inventory_log_spec.rb[1:2:4]                           | passed  | 0.00743 seconds |
+./spec/models/inventory_log_spec.rb[1:2:5]                           | passed  | 0.00705 seconds |
+./spec/models/inventory_log_spec.rb[1:2:6]                           | passed  | 0.0068 seconds  |
+./spec/models/inventory_log_spec.rb[1:2:7]                           | passed  | 0.00803 seconds |
+./spec/models/inventory_log_spec.rb[1:3:1]                           | passed  | 0.00047 seconds |
+./spec/models/inventory_log_spec.rb[1:4:1]                           | passed  | 0.00494 seconds |
+./spec/models/inventory_log_spec.rb[1:5:1]                           | passed  | 0.0127 seconds  |
+./spec/models/inventory_log_spec.rb[1:6:1:1]                         | passed  | 0.01968 seconds |
+./spec/models/inventory_log_spec.rb[1:6:1:2]                         | passed  | 0.01577 seconds |
+./spec/models/inventory_log_spec.rb[1:6:2:1]                         | passed  | 0.01154 seconds |
+./spec/models/inventory_log_spec.rb[1:6:2:2]                         | passed  | 0.0256 seconds  |
+./spec/models/inventory_log_spec.rb[1:6:3:1]                         | passed  | 0.01528 seconds |
+./spec/models/inventory_log_spec.rb[1:6:3:2]                         | passed  | 0.0198 seconds  |
+./spec/models/inventory_log_spec.rb[1:6:4:1]                         | passed  | 0.0175 seconds  |
+./spec/models/inventory_log_spec.rb[1:6:4:2]                         | passed  | 0.01482 seconds |
+./spec/models/inventory_log_spec.rb[1:6:4:3]                         | passed  | 0.02062 seconds |
+./spec/models/inventory_log_spec.rb[1:6:5:1]                         | passed  | 0.03564 seconds |
+./spec/models/inventory_spec.rb[1:1:1]                               | passed  | 0.00189 seconds |
+./spec/models/inventory_spec.rb[1:2:1]                               | passed  | 0.00509 seconds |
+./spec/models/inventory_spec.rb[1:2:2]                               | passed  | 0.00326 seconds |
+./spec/models/inventory_spec.rb[1:2:3]                               | passed  | 0.00439 seconds |
+./spec/models/inventory_spec.rb[1:3:1]                               | passed  | 0.0018 seconds  |
+./spec/models/inventory_spec.rb[1:4:1]                               | passed  | 0.02042 seconds |
+./spec/models/inventory_spec.rb[1:4:2:1]                             | passed  | 0.00442 seconds |
+./spec/models/inventory_spec.rb[1:5:1:1]                             | passed  | 0.00862 seconds |
+./spec/models/inventory_spec.rb[1:5:2:1]                             | passed  | 0.00989 seconds |
+./spec/models/inventory_spec.rb[1:5:3:1]                             | passed  | 0.01087 seconds |
+./spec/models/inventory_spec.rb[1:5:3:2]                             | passed  | 0.00407 seconds |
+./spec/models/inventory_spec.rb[1:6:1]                               | passed  | 0.00824 seconds |
+./spec/models/inventory_spec.rb[1:7:1]                               | passed  | 0.0037 seconds  |
+./spec/models/inventory_spec.rb[1:7:2]                               | passed  | 0.00394 seconds |
+./spec/models/inventory_spec.rb[1:8:1]                               | passed  | 0.00542 seconds |
+./spec/models/inventory_spec.rb[1:8:2]                               | passed  | 0.01014 seconds |
+./spec/models/inventory_spec.rb[1:8:3]                               | passed  | 0.00441 seconds |
+./spec/models/inventory_spec.rb[1:9:1]                               | passed  | 0.00885 seconds |
+./spec/models/inventory_spec.rb[1:10:1]                              | passed  | 0.01424 seconds |
+./spec/models/inventory_spec.rb[1:10:2]                              | passed  | 0.01454 seconds |
+./spec/models/inventory_spec.rb[1:11:1:1]                            | passed  | 0.02123 seconds |
+./spec/models/inventory_spec.rb[1:11:1:2]                            | passed  | 0.00876 seconds |
+./spec/models/inventory_spec.rb[1:11:2:1]                            | passed  | 0.01605 seconds |
+./spec/models/inventory_spec.rb[1:11:3:1]                            | passed  | 0.01768 seconds |
+./spec/models/receipt_spec.rb[1:1:1]                                 | passed  | 0.00118 seconds |
+./spec/models/receipt_spec.rb[1:2:1]                                 | passed  | 0.00151 seconds |
+./spec/models/receipt_spec.rb[1:2:2]                                 | passed  | 0.00214 seconds |
+./spec/models/receipt_spec.rb[1:2:3]                                 | passed  | 0.0016 seconds  |
+./spec/models/receipt_spec.rb[1:2:4]                                 | passed  | 0.00231 seconds |
+./spec/models/receipt_spec.rb[1:2:5]                                 | passed  | 0.00182 seconds |
+./spec/models/receipt_spec.rb[1:2:6]                                 | passed  | 0.00315 seconds |
+./spec/models/receipt_spec.rb[1:3:1]                                 | passed  | 0.00142 seconds |
+./spec/models/receipt_spec.rb[1:4:1:1]                               | passed  | 0.00491 seconds |
+./spec/models/receipt_spec.rb[1:4:2:1]                               | passed  | 0.00422 seconds |
+./spec/models/receipt_spec.rb[1:5:1:1]                               | passed  | 0.00263 seconds |
+./spec/models/receipt_spec.rb[1:5:2:1]                               | passed  | 0.00427 seconds |
+./spec/models/receipt_spec.rb[1:6:1]                                 | passed  | 0.00267 seconds |
+./spec/models/receipt_spec.rb[1:7:1:1]                               | passed  | 0.00636 seconds |
+./spec/models/receipt_spec.rb[1:7:2:1]                               | passed  | 0.00971 seconds |
+./spec/models/receipt_spec.rb[1:7:3:1]                               | passed  | 0.00499 seconds |
+./spec/models/shipment_spec.rb[1:1:1]                                | passed  | 0.00205 seconds |
+./spec/models/shipment_spec.rb[1:2:1]                                | passed  | 0.00169 seconds |
+./spec/models/shipment_spec.rb[1:2:2]                                | passed  | 0.00335 seconds |
+./spec/models/shipment_spec.rb[1:2:3]                                | passed  | 0.00357 seconds |
+./spec/models/shipment_spec.rb[1:2:4]                                | passed  | 0.00142 seconds |
+./spec/models/shipment_spec.rb[1:2:5]                                | passed  | 0.00426 seconds |
+./spec/models/shipment_spec.rb[1:3:1]                                | passed  | 0.0041 seconds  |
+./spec/models/shipment_spec.rb[1:4:1:1]                              | passed  | 0.00421 seconds |
+./spec/models/shipment_spec.rb[1:4:2:1]                              | passed  | 0.00619 seconds |
+./spec/models/shipment_spec.rb[1:5:1:1]                              | passed  | 0.00367 seconds |
+./spec/models/shipment_spec.rb[1:5:2:1]                              | passed  | 0.00565 seconds |
+./spec/requests/admin_controllers/inventory_logs_spec.rb[1:1:1]      | pending | 0.00081 seconds |
+./spec/requests/api/v1/inventories_spec.rb[1:1:1]                    | passed  | 0.02235 seconds |
+./spec/requests/api/v1/inventories_spec.rb[1:2:1:1]                  | passed  | 0.01263 seconds |
+./spec/requests/api/v1/inventories_spec.rb[1:2:2:1]                  | passed  | 0.00764 seconds |
+./spec/requests/api/v1/inventories_spec.rb[1:3:1:1]                  | passed  | 0.0126 seconds  |
+./spec/requests/api/v1/inventories_spec.rb[1:3:2:1]                  | passed  | 0.00812 seconds |
+./spec/requests/api/v1/inventories_spec.rb[1:3:3:1]                  | passed  | 0.00719 seconds |
+./spec/requests/api/v1/inventories_spec.rb[1:4:1:1]                  | passed  | 0.02385 seconds |
+./spec/requests/api/v1/inventories_spec.rb[1:4:2:1]                  | passed  | 0.01023 seconds |
+./spec/requests/api/v1/inventories_spec.rb[1:4:3:1]                  | passed  | 0.00907 seconds |
+./spec/requests/api/v1/inventories_spec.rb[1:5:1:1]                  | passed  | 0.01553 seconds |
+./spec/requests/api/v1/inventories_spec.rb[1:5:2:1]                  | passed  | 0.0091 seconds  |
+./spec/requests/errors_spec.rb[1:1:1:1]                              | passed  | 0.0093 seconds  |
+./spec/requests/errors_spec.rb[1:1:1:2]                              | passed  | 0.0064 seconds  |
+./spec/requests/errors_spec.rb[1:1:1:3]                              | passed  | 0.01017 seconds |
+./spec/requests/errors_spec.rb[1:1:1:4]                              | passed  | 0.00738 seconds |
+./spec/requests/errors_spec.rb[1:1:2:1]                              | passed  | 0.01145 seconds |
+./spec/requests/errors_spec.rb[1:1:3:1]                              | passed  | 0.00855 seconds |
+./spec/requests/errors_spec.rb[1:2:1]                                | passed  | 0.00983 seconds |
+./spec/requests/errors_spec.rb[1:3:1]                                | passed  | 0.00947 seconds |
+./spec/requests/errors_spec.rb[1:4:1]                                | passed  | 0.01178 seconds |
+./spec/requests/errors_spec.rb[1:5:1]                                | passed  | 0.00747 seconds |
+./spec/requests/errors_spec.rb[1:6:1]                                | passed  | 0.01712 seconds |
+./spec/requests/errors_spec.rb[1:6:2]                                | passed  | 0.0969 seconds  |
+./spec/requests/inventories_spec.rb[1:1:1]                           | passed  | 0.03822 seconds |
+./spec/requests/inventories_spec.rb[1:1:2:1]                         | passed  | 0.01509 seconds |
+./spec/requests/inventories_spec.rb[1:2:1:1]                         | passed  | 0.76942 seconds |
+./spec/requests/inventories_spec.rb[1:2:2:1]                         | passed  | 0.01338 seconds |
+./spec/requests/inventories_spec.rb[1:2:2:2:1]                       | passed  | 0.03356 seconds |
+./spec/requests/inventories_spec.rb[1:3:1:1]                         | passed  | 0.12429 seconds |
+./spec/requests/inventories_spec.rb[1:3:1:2:1]                       | passed  | 0.03469 seconds |
+./spec/requests/inventories_spec.rb[1:3:2:1]                         | passed  | 0.04057 seconds |
+./spec/requests/inventories_spec.rb[1:3:2:2:1]                       | passed  | 0.01857 seconds |
+./spec/requests/inventories_spec.rb[1:3:3:1]                         | passed  | 0.00802 seconds |
+./spec/requests/inventories_spec.rb[1:4:1:1]                         | passed  | 0.02668 seconds |
+./spec/requests/inventories_spec.rb[1:4:2:1]                         | passed  | 0.03128 seconds |
+./spec/requests/inventories_spec.rb[1:4:3:1]                         | passed  | 0.01297 seconds |
+./spec/requests/inventories_spec.rb[1:5:1:1]                         | passed  | 0.10379 seconds |
+./spec/requests/inventories_spec.rb[1:5:1:2:1]                       | passed  | 0.03475 seconds |
+./spec/requests/inventories_spec.rb[1:5:2:1]                         | passed  | 0.02337 seconds |
+./spec/requests/inventory_logs_spec.rb[1:1:1]                        | pending | 0 seconds       |
+./spec/requests/inventory_search_spec.rb[1:1:1:1]                    | passed  | 0.01465 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:1:2]                    | passed  | 0.01467 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:1:3]                    | passed  | 0.01316 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:1:4]                    | passed  | 0.01746 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:1:5]                    | passed  | 0.02127 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:2:1]                    | passed  | 0.0259 seconds  |
+./spec/requests/inventory_search_spec.rb[1:1:2:2]                    | passed  | 0.02193 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:2:3]                    | passed  | 0.01577 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:3:1]                    | passed  | 0.01483 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:3:2]                    | passed  | 0.0153 seconds  |
+./spec/requests/inventory_search_spec.rb[1:1:4:1]                    | passed  | 0.01375 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:5:1]                    | passed  | 0.01366 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:5:2]                    | passed  | 0.01732 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:6:1]                    | passed  | 0.01404 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:7:1]                    | passed  | 0.01383 seconds |
+./spec/requests/inventory_search_spec.rb[1:1:7:2]                    | passed  | 0.0181 seconds  |
+./spec/requests/inventory_search_spec.rb[1:2:1]                      | passed  | 0.02277 seconds |
+./spec/requests/inventory_search_spec.rb[1:3:1]                      | passed  | 0.02122 seconds |
+./spec/requests/inventory_search_spec.rb[1:3:2]                      | passed  | 0.02186 seconds |
+./spec/requests/inventory_search_spec.rb[1:3:3]                      | passed  | 0.04619 seconds |
+./spec/requests/inventory_search_spec.rb[1:3:4]                      | passed  | 0.01972 seconds |
+./spec/requests/inventory_search_spec.rb[1:4:1]                      | passed  | 0.01547 seconds |
+./spec/requests/inventory_search_spec.rb[1:4:2]                      | passed  | 0.01609 seconds |
+./spec/requests/inventory_search_spec.rb[1:5:1]                      | passed  | 0.02843 seconds |
+./spec/requests/inventory_search_spec.rb[1:5:2]                      | passed  | 0.0157 seconds  |
+./spec/services/advanced_search_query_spec.rb[1:1:1]                 | passed  | 0.03138 seconds |
+./spec/services/advanced_search_query_spec.rb[1:1:2]                 | passed  | 0.03209 seconds |
+./spec/services/advanced_search_query_spec.rb[1:2:1]                 | failed  | 0.02997 seconds |
+./spec/services/advanced_search_query_spec.rb[1:3:1]                 | failed  | 0.03219 seconds |
+./spec/services/advanced_search_query_spec.rb[1:4:1]                 | failed  | 0.03395 seconds |
+./spec/services/advanced_search_query_spec.rb[1:5:1]                 | passed  | 0.03501 seconds |
+./spec/services/advanced_search_query_spec.rb[1:6:1]                 | failed  | 0.03113 seconds |
+./spec/services/advanced_search_query_spec.rb[1:7:1]                 | failed  | 0.0308 seconds  |
+./spec/services/advanced_search_query_spec.rb[1:7:2]                 | passed  | 0.03516 seconds |
+./spec/services/advanced_search_query_spec.rb[1:8:1]                 | passed  | 0.03582 seconds |
+./spec/services/advanced_search_query_spec.rb[1:9:1]                 | failed  | 0.03026 seconds |
+./spec/services/advanced_search_query_spec.rb[1:10:1]                | failed  | 0.03129 seconds |
+./spec/services/advanced_search_query_spec.rb[1:10:2]                | failed  | 0.03221 seconds |
+./spec/services/advanced_search_query_spec.rb[1:11:1]                | passed  | 0.03108 seconds |
+./spec/services/advanced_search_query_spec.rb[1:11:2]                | failed  | 0.03186 seconds |
+./spec/services/advanced_search_query_spec.rb[1:12:1]                | failed  | 0.03057 seconds |
+./spec/services/advanced_search_query_spec.rb[1:12:2]                | failed  | 0.03107 seconds |
+./spec/services/advanced_search_query_spec.rb[1:13:1]                | failed  | 0.0355 seconds  |
+./spec/services/advanced_search_query_spec.rb[1:13:2]                | passed  | 0.04257 seconds |
+./spec/services/advanced_search_query_spec.rb[1:14:1]                | passed  | 0.03835 seconds |
+./spec/services/advanced_search_query_spec.rb[1:14:2]                | passed  | 0.03159 seconds |
+./spec/services/advanced_search_query_spec.rb[1:15:1]                | failed  | 0.03737 seconds |
+./spec/services/advanced_search_query_spec.rb[1:16:1]                | failed  | 0.08203 seconds |
+./spec/services/advanced_search_query_spec.rb[1:17:1]                | failed  | 0.03267 seconds |
+./spec/services/advanced_search_query_spec.rb[1:18:1]                | failed  | 0.03338 seconds |
+./spec/services/advanced_search_query_spec.rb[1:19:1]                | failed  | 0.03063 seconds |
+./spec/services/advanced_search_query_spec.rb[1:20:1]                | failed  | 0.02982 seconds |
+./spec/services/advanced_search_query_spec.rb[1:21:1]                | failed  | 0.03046 seconds |
+./spec/services/advanced_search_query_spec.rb[1:22:1]                | failed  | 0.05004 seconds |
+./spec/services/advanced_search_query_spec.rb[1:23:1]                | failed  | 0.03309 seconds |
+./spec/services/advanced_search_query_spec.rb[1:24:1]                | failed  | 0.03284 seconds |
+./spec/services/advanced_search_query_spec.rb[1:25:1]                | passed  | 0.03062 seconds |
+./spec/services/advanced_search_query_spec.rb[1:26:1]                | failed  | 0.03062 seconds |
+./spec/services/advanced_search_query_spec.rb[1:26:2]                | failed  | 0.03039 seconds |
+./spec/services/advanced_search_query_spec.rb[1:26:3]                | failed  | 0.03141 seconds |
+./spec/services/search_query_builder_spec.rb[1:1:1]                  | failed  | 0.01791 seconds |
+./spec/services/search_query_builder_spec.rb[1:1:2]                  | passed  | 0.01062 seconds |
+./spec/services/search_query_builder_spec.rb[1:1:3]                  | passed  | 0.01087 seconds |
+./spec/services/search_query_builder_spec.rb[1:2:1]                  | passed  | 0.01106 seconds |
+./spec/services/search_query_builder_spec.rb[1:3:1]                  | passed  | 0.01242 seconds |
+./spec/services/search_query_builder_spec.rb[1:3:2]                  | passed  | 0.011 seconds   |
+./spec/services/search_query_builder_spec.rb[1:3:3]                  | passed  | 0.01198 seconds |
+./spec/services/search_query_builder_spec.rb[1:3:4]                  | passed  | 0.01044 seconds |
+./spec/services/search_query_builder_spec.rb[1:3:5]                  | passed  | 0.01164 seconds |
+./spec/services/search_query_builder_spec.rb[1:4:1]                  | passed  | 0.01294 seconds |
+./spec/services/search_query_builder_spec.rb[1:4:2]                  | passed  | 0.01309 seconds |
+./spec/services/search_query_builder_spec.rb[1:4:3]                  | passed  | 0.01217 seconds |
+./spec/services/search_query_builder_spec.rb[1:4:4]                  | passed  | 0.01013 seconds |
+./spec/services/search_query_builder_spec.rb[1:5:1]                  | passed  | 0.01287 seconds |
+./spec/services/search_query_builder_spec.rb[1:5:2]                  | passed  | 0.01291 seconds |
+./spec/services/search_query_builder_spec.rb[1:5:3]                  | passed  | 0.01448 seconds |
+./spec/services/search_query_builder_spec.rb[1:5:4]                  | passed  | 0.01112 seconds |
+./spec/services/search_query_builder_spec.rb[1:5:5]                  | passed  | 0.01063 seconds |
+./spec/services/search_query_builder_spec.rb[1:6:1]                  | passed  | 0.0132 seconds  |
+./spec/services/search_query_builder_spec.rb[1:6:2]                  | passed  | 0.01283 seconds |
+./spec/services/search_query_builder_spec.rb[1:6:3]                  | passed  | 0.01076 seconds |
+./spec/services/search_query_builder_spec.rb[1:7:1]                  | passed  | 0.01182 seconds |
+./spec/services/search_query_builder_spec.rb[1:7:2]                  | passed  | 0.01207 seconds |
+./spec/services/search_query_builder_spec.rb[1:7:3]                  | passed  | 0.01249 seconds |
+./spec/services/search_query_builder_spec.rb[1:7:4]                  | passed  | 0.01152 seconds |
+./spec/services/search_query_builder_spec.rb[1:7:5]                  | passed  | 0.01083 seconds |
+./spec/services/search_query_builder_spec.rb[1:8:1]                  | passed  | 0.01208 seconds |
+./spec/services/search_query_builder_spec.rb[1:8:2]                  | passed  | 0.01239 seconds |
+./spec/services/search_query_builder_spec.rb[1:8:3]                  | passed  | 0.0122 seconds  |
+./spec/services/search_query_builder_spec.rb[1:8:4]                  | passed  | 0.01187 seconds |
+./spec/services/search_query_builder_spec.rb[1:8:5]                  | passed  | 0.01054 seconds |
+./spec/services/search_query_builder_spec.rb[1:9:1]                  | passed  | 0.03324 seconds |
+./spec/services/search_query_builder_spec.rb[1:9:2]                  | passed  | 0.01228 seconds |
+./spec/services/search_query_builder_spec.rb[1:9:3]                  | passed  | 0.0109 seconds  |
+./spec/services/search_query_builder_spec.rb[1:10:1]                 | passed  | 0.01217 seconds |
+./spec/services/search_query_builder_spec.rb[1:10:2]                 | passed  | 0.01142 seconds |
+./spec/services/search_query_builder_spec.rb[1:10:3]                 | passed  | 0.01084 seconds |
+./spec/services/search_query_builder_spec.rb[1:10:4]                 | passed  | 0.01424 seconds |
+./spec/services/search_query_builder_spec.rb[1:11:1]                 | passed  | 0.01302 seconds |
+./spec/services/search_query_builder_spec.rb[1:11:2]                 | passed  | 0.01172 seconds |
+./spec/services/search_query_builder_spec.rb[1:12:1]                 | passed  | 0.0123 seconds  |
+./spec/services/search_query_builder_spec.rb[1:13:1]                 | passed  | 0.01079 seconds |
+./spec/services/search_query_builder_spec.rb[1:14:1]                 | passed  | 0.01197 seconds |
+./spec/services/search_query_builder_spec.rb[1:14:2]                 | passed  | 0.01047 seconds |
+./spec/services/search_query_builder_spec.rb[1:15:1]                 | passed  | 0.01091 seconds |
+./spec/services/search_query_builder_spec.rb[1:15:2]                 | passed  | 0.01066 seconds |
+./spec/validators/password_strength_validator_spec.rb[1:1:1]         | passed  | 0.00333 seconds |
+./spec/validators/password_strength_validator_spec.rb[1:2:1]         | passed  | 0.00247 seconds |
+./spec/validators/password_strength_validator_spec.rb[1:2:2]         | passed  | 0.00224 seconds |
+./spec/validators/password_strength_validator_spec.rb[1:2:3]         | passed  | 0.00436 seconds |
+./spec/validators/password_strength_validator_spec.rb[1:2:4]         | passed  | 0.00191 seconds |
+./spec/validators/password_strength_validator_spec.rb[1:2:5]         | passed  | 0.00835 seconds |
+./spec/validators/password_strength_validator_spec.rb[1:3:1]         | passed  | 0.00268 seconds |

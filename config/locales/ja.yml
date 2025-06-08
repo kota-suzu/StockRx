@@ -46,6 +46,26 @@ ja:
         missing_upper: "大文字を含める必要があります"
         missing_symbol: "記号を含める必要があります"
   
+  # Rails標準のエラーメッセージ
+  errors:
+    messages:
+      blank: "を入力してください"
+      too_long: "は%{count}文字以内で入力してください"
+      too_short: "%{count}文字以上で入力してください"
+      greater_than_or_equal_to: "は%{count}以上の値にしてください"
+      greater_than: "は%{count}より大きい値にしてください"
+      inclusion: "は一覧にありません"
+      invalid: "は不正な値です"
+      numericality: "は数値で入力してください"
+    # HTTPエラーステータス用メッセージ
+    status:
+      400: "不正なリクエスト"
+      403: "アクセスが拒否されました"
+      404: "ページが見つかりません"
+      422: "処理できません"
+      429: "リクエストが多すぎます"
+      500: "システムエラーが発生しました"
+      
   # アクティブレコードのエラーメッセージ
   activerecord:
     models:
@@ -74,6 +94,12 @@ ja:
         missing_upper: "大文字を含める必要があります"
         missing_symbol: "記号を含める必要があります"
   
+  # フォームオブジェクトのバリデーションメッセージ
+  form_validation:
+    price_range_error: "最高価格は最低価格以上である必要があります"
+    quantity_range_error: "最大数量は最小数量以上である必要があります"
+    date_range_error: "終了日は開始日以降である必要があります"
+    
   # 在庫管理関連の翻訳
   inventories:
     status:
@@ -84,6 +110,38 @@ ja:
       low_stock: "在庫残りわずか"
       expired: "期限切れ"
       expiring_soon: "期限間近"
+    search:
+      stock_filter:
+        out_of_stock: "在庫切れ"
+        low_stock: "在庫少 (%{threshold}以下)"
+        in_stock: "在庫あり (%{threshold}超)"
+      conditions:
+        name: "名前: %{value}"
+        status: "ステータス: %{value}"
+        price: "価格: %{value}"
+        quantity: "数量: %{value}"
+        created_date: "作成日: %{value}"
+        updated_date: "更新日: %{value}"
+        lot_code: "ロット: %{value}"
+        expiry: "期限: %{value}"
+        stock_state: "在庫状態: %{value}"
+        out_of_stock_only: "在庫切れのみ"
+        expiring_soon_days: "期限切れ間近 (%{days}日以内)"
+        recently_updated_days: "最近更新 (%{days}日以内)"
+        all: "すべて"
+      ranges:
+        from_to: "%{from}〜%{to}"
+        from_only: "%{from}以上"
+        to_only: "%{to}以下"
+        yen_from_to: "%{from}円〜%{to}円"
+        yen_from_only: "%{from}円以上"
+        yen_to_only: "%{to}円以下"
+        date_from_to: "%{from}〜%{to}"
+        date_from_only: "%{from}以降"
+        date_to_only: "%{to}以前"
+        default_from_to: "%{from}〜%{to}"
+        default_from_only: "%{from}以上"
+        default_to_only: "%{to}以下"
     import:
       success: "%{count}件のデータがインポートされました"
       invalid_records: "%{count}件の無効なデータがありました"

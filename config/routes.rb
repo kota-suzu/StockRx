@@ -77,21 +77,27 @@ Rails.application.routes.draw do
     end
   end
 
+  # アプリケーションのルートページ
+  # 将来的にはユーザー向けページになる予定
+  root "home#index"
+
   # エラーページルーティング
   # 設計書に基づいて実装
   %w[400 403 404 422 429 500].each do |code|
-    get code, to: "errors#show", code: code, as: "error_#{code}"
+    get code, to: "errors#show", defaults: { code: code }, as: "error_#{code}"
   end
 
   # エラーページへの統一パス
   get "error", to: "errors#show", as: :error
 
   # その他リクエスト漏れ対策 (ActiveStorage等除外)
+  # TODO: 横展開確認 - 他のRails内部パスも適切に除外されることを確認
   match "*path", to: "errors#show", via: :all,
-        constraints: ->(req) { !req.path.start_with?("/rails/") },
-        code: 404
-
-  # アプリケーションのルートページ
-  # 将来的にはユーザー向けページになる予定
-  root "home#index"
+        constraints: ->(req) {
+          # Rails内部ルートを除外
+          !req.path.start_with?("/rails/") &&
+          !req.path.start_with?("/cable") &&
+          !req.path.start_with?("/__cypress/") # テスト環境用
+        },
+        defaults: { code: "404" }
 end

@@ -8,8 +8,19 @@ class InventoriesController < ApplicationController
 
   # GET /inventories
   def index
-    @inventories = SearchQuery.call(search_params).includes(:batches).page(params[:page]).decorate
-    @show_advanced = params[:advanced_search].present?
+    @search_form = InventorySearchForm.new(search_params.except(:page))
+
+    if @search_form.valid? && @search_form.has_search_conditions?
+      @inventories = @search_form.search.includes(:batches).page(params[:page]).decorate
+    elsif @search_form.has_search_conditions?
+      # 検索条件があるがバリデーションエラーの場合
+      flash.now[:alert] = @search_form.errors.full_messages.join(", ")
+      @inventories = Inventory.includes(:batches).page(params[:page]).decorate
+    else
+      @inventories = Inventory.includes(:batches).page(params[:page]).decorate
+    end
+
+    @show_advanced = @search_form.advanced_search || @search_form.complex_search_required?
 
     respond_to do |format|
       format.html # Turbo Frame 対応
@@ -148,22 +159,28 @@ class InventoriesController < ApplicationController
       params.require(:inventory).permit(:name, :quantity, :price, :status, :category, :unit, :minimum_stock)
     end
 
-    # 検索パラメータの許可
+    # 検索パラメータの許可（フォームオブジェクト対応）
     def search_params
       params.permit(
-        :q, :status, :low_stock, :sort, :direction, :page, :advanced_search,
-        # 高度な検索パラメータ
-        :stock_filter, :low_stock_threshold,
-        :min_price, :max_price,
-        :created_from, :created_to,
-        :lot_code, :expires_before, :expires_after,
-        :expiring_soon, :expiring_days,
-        :recently_updated, :updated_days,
-        :shipment_status, :destination,
-        :receipt_status, :source,
-        # OR条件の配列
+        # 基本検索フィールド
+        :name, :q, :status, :min_price, :max_price, :min_quantity, :max_quantity,
+        # 日付関連
+        :created_from, :created_to, :updated_from, :updated_to,
+        # バッチ関連
+        :lot_code, :expires_before, :expires_after, :expiring_days,
+        # 高度な検索オプション
+        :search_type, :include_archived, :stock_filter, :low_stock_threshold,
+        # 従来の互換性パラメータ
+        :low_stock, :advanced_search,
+        # 出荷・入荷関連
+        :shipment_status, :destination, :receipt_status, :source,
+        # 新機能
+        :expiring_soon, :recently_updated, :updated_days,
+        # ページング・ソート
+        :page, :per_page, :sort_field, :sort, :direction,
+        # カスタム条件（将来拡張用）
+        custom_conditions: [],
         or_conditions: [],
-        # 複雑な条件のハッシュ
         complex_condition: {}
       )
     end
