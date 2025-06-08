@@ -128,15 +128,15 @@ RSpec.describe BaseSearchForm, type: :model do
     let(:base_form) { BaseSearchForm.new }
 
     it 'raises NotImplementedError for search method' do
-      expect { base_form.search }.to raise_error(NotImplementedError, /search must be implemented/)
+      expect { base_form.search }.to raise_error(NotImplementedError, /Subclass must implement #search method/)
     end
 
     it 'raises NotImplementedError for has_search_conditions? method' do
-      expect { base_form.has_search_conditions? }.to raise_error(NotImplementedError, /has_search_conditions\? must be implemented/)
+      expect { base_form.has_search_conditions? }.to raise_error(NotImplementedError, /Subclass must implement #has_search_conditions\? method/)
     end
 
     it 'raises NotImplementedError for conditions_summary method' do
-      expect { base_form.conditions_summary }.to raise_error(NotImplementedError, /conditions_summary must be implemented/)
+      expect { base_form.conditions_summary }.to raise_error(NotImplementedError, /Subclass must implement #conditions_summary method/)
     end
   end
 end

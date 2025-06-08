@@ -180,15 +180,23 @@ RSpec.describe "Api::V1::Inventories", type: :request do
   end
 
   describe "DELETE /api/v1/inventories/:id" do
-    let!(:inventory) { create(:inventory) }
+    # TODO: テストアイソレーション強化（優先度：高）
+    # 削除テスト専用のInventoryを作成し、他のテストの影響を排除
+    let!(:test_inventory) { create(:inventory, name: "DELETE_TEST_ITEM_#{SecureRandom.hex(4)}") }
 
     context "when the inventory exists" do
       it "deletes the inventory" do
+        # テスト前の状態確認
+        initial_count = Inventory.count
+
         expect {
-          delete api_v1_inventory_path(inventory), headers: headers
+          delete api_v1_inventory_path(test_inventory), headers: headers
         }.to change(Inventory, :count).by(-1)
 
         expect(response).to have_http_status(:no_content)
+
+        # 削除されたことを確認
+        expect(Inventory.find_by(id: test_inventory.id)).to be_nil
       end
     end
 

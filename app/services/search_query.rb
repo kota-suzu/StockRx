@@ -191,11 +191,11 @@ class SearchQuery
           when "and"
             sub_conditions.each { |cond| q = q.where(cond) }
           when "or"
-            # OR条件は単一のWHERE句として結合
-            or_conditions = sub_conditions.map { |cond|
-              cond.is_a?(Hash) ? cond.map { |k, v| "#{k} = #{ActiveRecord::Base.connection.quote(v)}" }.join(" AND ") : cond
-            }.join(" OR ")
-            q = q.where(or_conditions) if or_conditions.present?
+            # OR条件を安全に構築
+            if sub_conditions.is_a?(Array) && sub_conditions.any?
+              # AdvancedSearchQueryのwhere_anyメソッドを使用
+              q = q.where_any(sub_conditions)
+            end
           end
         end
       end

@@ -119,28 +119,28 @@ class InventorySearchForm < BaseSearchForm
     conditions = []
 
     # 基本条件
-    conditions << "名前: #{effective_name}" if effective_name.present?
-    conditions << "ステータス: #{status_display}" if status.present?
-    conditions << "価格: #{price_range_display}" if price_range_specified?
-    conditions << "数量: #{quantity_range_display}" if quantity_range_specified?
+    conditions << I18n.t("inventories.search.conditions.name", value: effective_name) if effective_name.present?
+    conditions << I18n.t("inventories.search.conditions.status", value: status_display) if status.present?
+    conditions << I18n.t("inventories.search.conditions.price", value: price_range_display) if price_range_specified?
+    conditions << I18n.t("inventories.search.conditions.quantity", value: quantity_range_display) if quantity_range_specified?
 
     # 日付条件
-    conditions << "作成日: #{date_range_display(created_from, created_to)}" if created_date_range_specified?
-    conditions << "更新日: #{date_range_display(updated_from, updated_to)}" if updated_date_range_specified?
+    conditions << I18n.t("inventories.search.conditions.created_date", value: date_range_display(created_from, created_to)) if created_date_range_specified?
+    conditions << I18n.t("inventories.search.conditions.updated_date", value: date_range_display(updated_from, updated_to)) if updated_date_range_specified?
 
     # バッチ条件
-    conditions << "ロット: #{lot_code}" if lot_code.present?
-    conditions << "期限: #{expiry_display}" if expiry_conditions?
+    conditions << I18n.t("inventories.search.conditions.lot_code", value: lot_code) if lot_code.present?
+    conditions << I18n.t("inventories.search.conditions.expiry", value: expiry_display) if expiry_conditions?
 
     # 在庫条件
-    conditions << "在庫状態: #{stock_filter_display}" if stock_filter.present?
-    conditions << "在庫切れのみ" if low_stock
+    conditions << I18n.t("inventories.search.conditions.stock_state", value: stock_filter_display) if stock_filter.present?
+    conditions << I18n.t("inventories.search.conditions.out_of_stock_only") if low_stock
 
     # 特殊条件
-    conditions << "期限切れ間近 (#{expiring_days}日以内)" if expiring_soon
-    conditions << "最近更新 (#{updated_days}日以内)" if recently_updated
+    conditions << I18n.t("inventories.search.conditions.expiring_soon_days", days: expiring_days) if expiring_soon
+    conditions << I18n.t("inventories.search.conditions.recently_updated_days", days: updated_days) if recently_updated
 
-    conditions.empty? ? "すべて" : conditions.join(", ")
+    conditions.empty? ? I18n.t("inventories.search.conditions.all") : conditions.join(", ")
   end
 
   # TODO: キャッシュ戦略 - 検索結果のキャッシュ機能追加
@@ -246,39 +246,23 @@ class InventorySearchForm < BaseSearchForm
 
   # 表示ヘルパー（公開メソッド）
   def price_range_display
-    if min_price.present? && max_price.present?
-      "#{min_price.to_i}円〜#{max_price.to_i}円"
-    elsif min_price.present?
-      "#{min_price.to_i}円以上"
-    elsif max_price.present?
-      "#{max_price.to_i}円以下"
-    else
-      ""
-    end
+    range_display_helper(min_price&.to_i, max_price&.to_i, :yen)
   end
 
   def quantity_range_display
-    if min_quantity.present? && max_quantity.present?
-      "#{min_quantity}〜#{max_quantity}"
-    elsif min_quantity.present?
-      "#{min_quantity}以上"
-    elsif max_quantity.present?
-      "#{max_quantity}以下"
-    else
-      ""
-    end
+    range_display_helper(min_quantity, max_quantity)
   end
 
   def stock_filter_display
+    return "" unless stock_filter.present?
+
     case stock_filter
     when "out_of_stock"
-      "在庫切れ"
+      I18n.t("inventories.search.stock_filter.out_of_stock")
     when "low_stock"
-      "在庫少 (#{low_stock_threshold}以下)"
+      I18n.t("inventories.search.stock_filter.low_stock", threshold: low_stock_threshold)
     when "in_stock"
-      "在庫あり (#{low_stock_threshold}超)"
-    else
-      ""
+      I18n.t("inventories.search.stock_filter.in_stock", threshold: low_stock_threshold)
     end
   end
 
@@ -571,7 +555,7 @@ class InventorySearchForm < BaseSearchForm
     return unless min_price.present? && max_price.present?
 
     if min_price > max_price
-      errors.add(:max_price, "最高価格は最低価格以上である必要があります")
+      errors.add(:max_price, I18n.t("form_validation.price_range_error"))
     end
   end
 
@@ -639,12 +623,28 @@ class InventorySearchForm < BaseSearchForm
   end
 
   def date_range_display(from_date, to_date)
-    if from_date.present? && to_date.present?
-      "#{from_date}〜#{to_date}"
-    elsif from_date.present?
-      "#{from_date}以降"
-    elsif to_date.present?
-      "#{to_date}以前"
+    range_display_helper(from_date, to_date, :date)
+  end
+
+  # 範囲表示の共通ヘルパー
+  def range_display_helper(from_value, to_value, type = :default)
+    return "" if from_value.blank? && to_value.blank?
+
+    if from_value.present? && to_value.present?
+      I18n.t("inventories.search.ranges.#{type}_from_to", from: from_value, to: to_value)
+    elsif from_value.present?
+      I18n.t("inventories.search.ranges.#{type}_from_only", from: from_value)
+    elsif to_value.present?
+      I18n.t("inventories.search.ranges.#{type}_to_only", to: to_value)
+    end
+  rescue I18n::MissingTranslationData
+    # typeが見つからない場合はデフォルトにフォールバック
+    if from_value.present? && to_value.present?
+      I18n.t("inventories.search.ranges.from_to", from: from_value, to: to_value)
+    elsif from_value.present?
+      I18n.t("inventories.search.ranges.from_only", from: from_value)
+    elsif to_value.present?
+      I18n.t("inventories.search.ranges.to_only", to: to_value)
     end
   end
 

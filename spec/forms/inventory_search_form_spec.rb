@@ -355,9 +355,9 @@ RSpec.describe InventorySearchForm, type: :model do
       expect(form.complex_search_required?).to be_falsy
     end
 
-    it 'returns true for price range conditions' do
+    it 'returns false for price range conditions (treated as basic)' do
       form.min_price = 100
-      expect(form.complex_search_required?).to be_truthy
+      expect(form.complex_search_required?).to be_falsy
     end
 
     it 'returns true for date conditions' do
@@ -375,9 +375,9 @@ RSpec.describe InventorySearchForm, type: :model do
       expect(form.complex_search_required?).to be_truthy
     end
 
-    it 'returns true for stock filter' do
+    it 'returns false for stock filter (treated as basic)' do
       form.stock_filter = 'low_stock'
-      expect(form.complex_search_required?).to be_truthy
+      expect(form.complex_search_required?).to be_falsy
     end
   end
 

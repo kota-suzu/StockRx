@@ -3,6 +3,7 @@
 FactoryBot.define do
   factory :inventory_log do
     association :inventory
+    association :user, factory: :admin
     delta { 10 }
     operation_type { :add }
     previous_quantity { 90 }

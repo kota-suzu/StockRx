@@ -204,7 +204,7 @@ RSpec.describe SearchQueryBuilder, type: :service do
 
     it 'adds condition to summary' do
       builder.filter_by_date_range('created_at', yesterday, tomorrow)
-      expect(builder.conditions).to include('Created at')
+      expect(builder.conditions).to include("Created at: #{yesterday}〜#{tomorrow}")
     end
   end
 
