@@ -142,7 +142,8 @@ test-parallel:
 	$(COMPOSE) run --rm -e RAILS_ENV=test -e DISABLE_HOST_AUTHORIZATION=true web bundle exec parallel_rspec spec/models spec/requests spec/helpers spec/decorators
 
 test-coverage:
-	$(RSPEC) && echo "カバレッジ: coverage/index.html"
+	@echo "=== カバレッジ計測付きテスト実行 ==="
+	$(COMPOSE) run --rm -e RAILS_ENV=test -e DISABLE_HOST_AUTHORIZATION=true -e COVERAGE=true web bundle exec rspec && echo "📊 カバレッジレポート: coverage/index.html"
 
 test-profile:
 	$(RSPEC) --profile 10

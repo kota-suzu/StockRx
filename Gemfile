@@ -96,3 +96,14 @@ gem "kaminari", "~> 1.2"            # ページネーション
 gem "sidekiq", "~> 7.2"
 gem "sidekiq-scheduler", "~> 5.0"  # TODO: 将来の定期実行ジョブ用（月次レポート生成など）
 gem "rack-protection", "~> 4.0"   # Sidekiq Web UI のセキュリティ強化
+
+# TODO: 外部API連携機能（Ruby 3.x対応）- CLAUDE.md参照
+# 外部API連携機能を完全に実装するため、以下のgemの追加が必要：
+# gem "faraday", "~> 2.7"           # HTTPクライアント（Net::HTTPのモダンな代替）
+# gem "faraday-retry", "~> 2.2"     # リトライ機能（タイムアウトエラー対応）
+# gem "faraday-multipart", "~> 1.0" # マルチパート対応
+# gem "circuit_breaker", "~> 1.1"   # サーキットブレーカーパターン実装
+# TODO: 実装優先度
+# - 高: 在庫同期、発注システム連携、HTTPクライアント実装
+# - 中: 会計システム連携、価格同期
+# - 低: 監視・アラート機能、高度な同期機能
