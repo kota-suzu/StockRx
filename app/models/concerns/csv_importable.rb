@@ -178,19 +178,57 @@ module CsvImportable
 
       # 在庫ログ用のデータを作成（bulk_insertでは通常のコールバックが動作しないため）
       if self.name == "Inventory"
-        # MySQL doesn't support RETURNING clause, so we need to find inserted records
-        # by their unique characteristics (names in this case)
-        record_names = records.map(&:name)
-        inserted_records = where(name: record_names).order(:id)
-
-        if inserted_records.present?
-          inserted_ids = inserted_records.pluck(:id)
-          # Create inventory logs for the inserted records
-          create_bulk_inventory_logs(records, inserted_ids)
-        end
+        # MySQLとPostgreSQLの差異に対応した正確なIDマッピング
+        create_accurate_inventory_logs(records, result)
       end
 
       result
+    end
+
+    private
+
+    # より正確な在庫ログ作成（名前の重複に対応）
+    def create_accurate_inventory_logs(records, insert_result)
+      return if records.blank?
+
+      # PostgreSQLの場合はRETURNING句でIDを取得
+      if insert_result.respond_to?(:rows) && insert_result.rows.present?
+        inserted_ids = insert_result.rows.flatten
+        create_bulk_inventory_logs(records, inserted_ids)
+      else
+        # MySQLの場合は個別に挿入してIDを確実に追跡
+        create_individual_inventory_logs(records)
+      end
+    end
+
+    # MySQL用の個別ログ作成（確実なIDマッピング）
+    def create_individual_inventory_logs(records)
+      log_entries = []
+      
+      records.each do |record|
+        # 挿入直後に複数の条件で検索してIDを特定
+        # MySQLでは名前、価格、ステータスで一意識別を試みる
+        search_conditions = { name: record.name }
+        search_conditions[:price] = record.price if record.respond_to?(:price) && record.price.present?
+        search_conditions[:status] = record.status if record.respond_to?(:status) && record.status.present?
+        
+        inserted_record = where(search_conditions).order(:id).last
+
+        if inserted_record
+          log_entries << {
+            inventory_id: inserted_record.id,
+            delta: record.quantity,
+            operation_type: "add",
+            previous_quantity: 0,
+            current_quantity: record.quantity,
+            note: "CSVインポートによる登録"
+          }
+        else
+          Rails.logger.warn("CSVインポート後の在庫ログ作成: レコードが見つかりません #{record.name}")
+        end
+      end
+
+      InventoryLog.insert_all(log_entries, record_timestamps: true) if log_entries.present?
     end
 
     # 既存レコードをバルク更新するメソッド
