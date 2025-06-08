@@ -24,5 +24,24 @@ require 'rails_helper'
 # 5. セキュリティ関連ヘルパー（XSS対策等）のテスト
 
 RSpec.describe InventoryLogsHelper, type: :helper do
+  # TODO: 🟢 推奨改善（Phase 3）- InventoryLogsHelperテストの完全実装
+  # 推定工数: 3-4日
+  # 参考実装: AdminControllers::InventoriesHelperのテストパターン
+  #
+  # 実装すべきテスト項目:
+  # 1. #log_type_badge - ログタイプ別のバッジ表示テスト
+  # 2. #formatted_quantity_change - 数量変更の表示形式テスト
+  # 3. #log_action_icon - アクション別のアイコン表示テスト
+  # 4. #relative_time_display - 相対時間表示テスト
+  # 5. #log_description - ログ説明文生成テスト
+  # 6. XSS対策 - HTMLエスケープ処理テスト
+  # 7. 国際化 - 多言語対応テスト
+  #
+  # ベストプラクティス適用:
+  # - Decoratorパターンとの役割分担明確化
+  # - セキュリティテスト（XSS、HTMLインジェクション対策）
+  # - パフォーマンステスト（大量データでの表示確認）
+  # - アクセシビリティテスト（WAI-ARIA対応確認）
+
   pending "add some examples to (or delete) #{__FILE__}"
 end

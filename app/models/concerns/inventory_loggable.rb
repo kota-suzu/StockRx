@@ -115,7 +115,8 @@ module InventoryLoggable
       log_entries = []
 
       records.each_with_index do |record, index|
-        inventory_id = inserted_ids[index][0] # 主キーを取得
+        # Handle both formats: array of arrays (PostgreSQL style) or simple array (MySQL style)
+        inventory_id = inserted_ids[index].is_a?(Array) ? inserted_ids[index][0] : inserted_ids[index]
 
         log_entries << {
           inventory_id: inventory_id,
@@ -123,13 +124,11 @@ module InventoryLoggable
           operation_type: "add",
           previous_quantity: 0,
           current_quantity: record.quantity,
-          note: "CSVインポートによる登録",
-          created_at: Time.current,
-          updated_at: Time.current
+          note: "CSVインポートによる登録"
         }
       end
 
-      InventoryLog.insert_all(log_entries) if log_entries.present?
+      InventoryLog.insert_all(log_entries, record_timestamps: true) if log_entries.present?
     end
 
     # バルクインサート後の在庫ログ一括作成

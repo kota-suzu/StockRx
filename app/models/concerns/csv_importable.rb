@@ -170,17 +170,25 @@ module CsvImportable
 
       # 挿入レコードの属性を収集
       attributes = records.map do |record|
-        record.attributes.except("id", "created_at", "updated_at").merge(
-          created_at: Time.current,
-          updated_at: Time.current
-        )
+        record.attributes.except("id", "created_at", "updated_at")
       end
 
-      # Rails 6+の場合はinsert_allを使用
-      result = insert_all(attributes)
+      # Rails 7+の場合はinsert_allでrecord_timestamps: trueオプションを使用
+      result = insert_all(attributes, record_timestamps: true)
 
       # 在庫ログ用のデータを作成（bulk_insertでは通常のコールバックが動作しないため）
-      create_bulk_inventory_logs(records, result.rows) if result.rows.present? && self.name == "Inventory"
+      if self.name == "Inventory"
+        # MySQL doesn't support RETURNING clause, so we need to find inserted records
+        # by their unique characteristics (names in this case)
+        record_names = records.map(&:name)
+        inserted_records = where(name: record_names).order(:id)
+
+        if inserted_records.present?
+          inserted_ids = inserted_records.pluck(:id)
+          # Create inventory logs for the inserted records
+          create_bulk_inventory_logs(records, inserted_ids)
+        end
+      end
 
       result
     end

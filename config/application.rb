@@ -45,6 +45,11 @@ module App
     config.i18n.fallbacks = [ I18n.default_locale ]
     config.time_zone = "Tokyo"
 
+    # TODO: Rails 8.1対応 - Deprecation警告の解消（優先度：高）
+    # `to_time` will always preserve the full timezone rather than offset
+    # https://guides.rubyonrails.org/configuring.html#config-active-support-to-time-preserves-timezone
+    config.active_support.to_time_preserves_timezone = :zone
+
     # ============================================
     # バックグラウンドジョブ処理設定
     # ============================================
