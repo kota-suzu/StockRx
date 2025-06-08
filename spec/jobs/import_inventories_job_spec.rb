@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
+require 'sidekiq/testing'
 
 # ============================================
 # ImportInventoriesJob テストスイート
@@ -41,6 +42,92 @@ require 'rails_helper'
 #    - ファイルアップロード脆弱性の確認
 #    - 権限チェックの網羅的テスト
 
+# CSV Import Job 統合テスト
+#
+# CLAUDE.md準拠の設計:
+# - バックグラウンドジョブの品質保証
+# - 非同期処理の安定性確保
+# - ActionCable統合
+#
+# TODO: 🔴 Sidekiq統合テストの包括的改善（Google L8相当エキスパート実装）
+#
+# ■ 高優先度修正項目（推定実装時間: 2-3日）
+#
+# 🔴 Redis Mock timing問題の解決
+#   現状：非同期処理テストでRedisMockとActual Redisのタイミング差による失敗
+#   問題分析：
+#     - テスト環境でのSidekiq job実行タイミングの不整合
+#     - ActionCable broadcast受信のタイミング同期問題
+#     - Redis接続プールの非同期処理との相互作用
+#   解決策（Before/After分析）：
+#     Before: Sidekiq.enable_testing でインラインモード、不安定な非同期テスト
+#     After: 段階的テスト実行、同期・非同期の適切な分離
+#   実装方針：
+#     - 同期テスト: Sidekiq::Testing.inline! で即座実行
+#     - 非同期テスト: Sidekiq::Testing.fake! でキューイング確認
+#     - ActionCable: WebMockとCapybara連携での安定化
+#     - エラーハンドリング: タイムアウト、接続失敗の完全対応
+#   成功指標：
+#     - テスト安定性: 95/100回成功率
+#     - 実行時間: 非同期テスト1分以内
+#     - エラー許容: 0件の例外漏れ
+#
+# 🔴 ActionCable broadcast テスト環境の構築
+#   現状：WebSocket broadcast機能のテストが不完全
+#   課題：
+#     - テスト環境でのActionCable接続確立の困難
+#     - JavaScript非同期処理との相互作用
+#     - ブラウザ実環境との差異
+#   解決アプローチ：
+#     - ActionCable::TestHelper の完全活用
+#     - WebSocket接続のモック機能実装
+#     - 接続失敗時のgraceful fallback機能テスト
+#   横展開確認：
+#     - CSV Import機能でも同様のActionCable統合
+#     - リアルタイム更新機能の一貫したテスト手法確立
+#
+# 🟡 中優先度改善項目（推定実装時間: 1-2日）
+#
+# ■ エラーハンドリング完全性の向上
+#   現状：StandardError以外の例外処理の不備
+#   改善方針：
+#     - TimeoutError, IOError, NetworkError の個別対応
+#     - 例外発生時のリカバリーロジック強化
+#     - 監査ログとアラート機能の統合
+#   メタ認知的改善：
+#     - Before: 基本的な例外キャッチのみ
+#     - After: 運用レベルでの包括的エラー対応
+#
+# ■ パフォーマンス最適化
+#   課題：大量データ処理でのメモリ効率と処理速度
+#   実装項目：
+#     - バッチサイズの動的調整機能
+#     - メモリ使用量の監視とアラート
+#     - 処理進捗の詳細レポート機能
+#   技術的考慮：
+#     - ActiveRecord batch処理の最適化
+#     - ガベージコレクション頻度の調整
+#     - Sidekiq worker数の動的スケーリング
+#
+# 🟢 低優先度・将来実装項目（推定実装時間: 1週間）
+#
+# ■ 高度なモニタリング機能
+#   - Prometheus metrics連携
+#   - Grafana dashboard自動生成
+#   - 異常検知による自動スケーリング
+#
+# ■ 国際化・多通貨対応
+#   - CSV フォーマットの地域対応
+#   - 通貨変換機能の統合
+#   - 多言語エラーメッセージ
+#
+# TODO: 横展開確認事項（メタ認知的品質保証）
+#   □ 他のバックグラウンドジョブでも同様の設計パターン適用
+#   □ 同期・非同期テストの標準化
+#   □ ActionCable統合パターンの再利用性確保
+#   □ エラーハンドリング設計の一貫性確認
+#   □ セキュリティ監査での考慮事項の整理
+#
 RSpec.describe ImportInventoriesJob, type: :job do
   include ActiveJob::TestHelper
 

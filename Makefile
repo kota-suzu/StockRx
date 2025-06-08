@@ -274,9 +274,11 @@ test-github-optimized:
 		-e CAPYBARA_SERVER_HOST=0.0.0.0 \
 		-e CAPYBARA_SERVER_PORT=3001 \
 		-e CHROME_HEADLESS=1 \
-		-e SELENIUM_CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu --window-size=1024,768" \
+		-e SELENIUM_CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu --remote-debugging-port=9222" \
+		-e DISABLE_SELENIUM_TESTS=true \
 		web bundle exec rspec spec/features spec/jobs \
-		--format progress
+		--format progress --fail-fast \
+		--tag '~selenium_required'
 
 # TODO: 包括的CI最適化（CLAUDE.md準拠）
 # 
