@@ -204,14 +204,14 @@ module CsvImportable
     # MySQL用の個別ログ作成（確実なIDマッピング）
     def create_individual_inventory_logs(records)
       log_entries = []
-      
+
       records.each do |record|
         # 挿入直後に複数の条件で検索してIDを特定
         # MySQLでは名前、価格、ステータスで一意識別を試みる
         search_conditions = { name: record.name }
         search_conditions[:price] = record.price if record.respond_to?(:price) && record.price.present?
         search_conditions[:status] = record.status if record.respond_to?(:status) && record.status.present?
-        
+
         inserted_record = where(search_conditions).order(:id).last
 
         if inserted_record
