@@ -22,6 +22,9 @@ class Current < ActiveSupport::CurrentAttributes
   # API クライアント情報（API リクエスト時に利用）
   attribute :api_client
 
+  # 管理者情報（認証されたadminユーザー）
+  attribute :admin
+
   # 操作の理由（オプション、管理操作の監査証跡に利用）
   attribute :reason
 

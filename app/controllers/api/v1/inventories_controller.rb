@@ -9,15 +9,39 @@ module Api
 
       # GET /api/v1/inventories
       def index
-        @inventories = SearchQuery.call(params).includes(:batches).decorate
-        render :index, formats: :json
+        # SearchQueryBuilderを使用してSearchResult形式で結果を取得
+        search_builder = SearchQueryBuilder
+          .build(Inventory.includes(:batches))
+          .filter_by_name(params[:name])
+          .filter_by_status(params[:status])
+          .filter_by_price_range(params[:min_price], params[:max_price])
+          .filter_by_stock_status(params[:stock_filter])
+          .order_by(params[:sort] || "updated_at", params[:direction] || "desc")
+
+        search_result = search_builder.execute(
+          page: params[:page] || 1,
+          per_page: params[:per_page] || 20
+        )
+
+        # ApiResponse形式で統一レスポンス
+        response = ApiResponse.paginated(
+          search_result,
+          "在庫データを検索しました",
+          {
+            search_conditions: search_result.conditions_summary,
+            execution_time: search_result.execution_time
+          }
+        )
+
+        render json: response.to_h, status: response.status_code, headers: response.headers
       end
 
       # GET /api/v1/inventories/1
       def show
         # すでにset_inventoryで@inventoryが設定されている
         # エラーハンドリングはset_inventoryとErrorHandlersによって処理される
-        render :show, formats: :json
+        response = ApiResponse.success(@inventory, "在庫情報を取得しました")
+        render json: response.to_h, status: response.status_code, headers: response.headers
       end
 
       # POST /api/v1/inventories
@@ -41,7 +65,8 @@ module Api
         @inventory = @inventory.decorate
 
         # 成功時は201 Created + リソースの内容を返却
-        render :show, status: :created, formats: :json
+        response = ApiResponse.created(@inventory, "在庫が正常に作成されました")
+        render json: response.to_h, status: response.status_code, headers: response.headers
       rescue ActiveRecord::RecordInvalid => e
         # ErrorHandlersがこのエラーをハンドルするため、
         # ここでのrescueは不要だが、デモ用に追加
@@ -67,7 +92,8 @@ module Api
         @inventory.update!(inventory_params)
 
         # 成功時は200 OK + 更新後リソースの内容を返却
-        render :show, formats: :json
+        response = ApiResponse.success(@inventory.reload, "在庫情報が正常に更新されました")
+        render json: response.to_h, status: response.status_code, headers: response.headers
       end
 
       # DELETE /api/v1/inventories/1
@@ -86,7 +112,8 @@ module Api
         @inventory.destroy!
 
         # 成功時は204 No Content + 空ボディを返却
-        head :no_content
+        response = ApiResponse.no_content("在庫が正常に削除されました")
+        render json: response.to_h, status: response.status_code, headers: response.headers
       end
 
       # TODO: 在庫一括取得（ページネーション対応）

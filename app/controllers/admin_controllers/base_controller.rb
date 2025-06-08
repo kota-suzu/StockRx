@@ -40,6 +40,8 @@ module AdminControllers
       return unless admin_signed_in?
 
       @current_admin = current_admin
+      # Currentクラスにadmin情報を設定
+      Current.admin = current_admin
     end
   end
 end

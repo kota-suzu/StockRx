@@ -277,7 +277,7 @@ class SearchQueryBuilder
     self
   end
 
-  # 結果の取得
+  # 結果の取得（従来互換性）
   def results
     apply_distinct if @distinct_applied || joins_applied.any?
     @scope
@@ -292,6 +292,63 @@ class SearchQueryBuilder
   # 検索条件のサマリー
   def conditions_summary
     @conditions.empty? ? "すべて" : @conditions.join(", ")
+  end
+
+  # ============================================
+  # 新しいSearchResult統合メソッド
+  # ============================================
+
+  # SearchResult形式での結果取得（推奨）
+  def execute(page: 1, per_page: 20)
+    start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    # ページネーション適用前のクエリ準備
+    query_scope = prepare_final_scope
+    total = query_scope.count
+
+    # ページネーション適用
+    paginated_scope = query_scope.page(page).per(per_page)
+
+    execution_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+    SearchResult.new(
+      records: paginated_scope,
+      total_count: total,
+      current_page: page.to_i,
+      per_page: per_page.to_i,
+      conditions_summary: conditions_summary,
+      query_metadata: build_query_metadata,
+      execution_time: execution_time,
+      search_params: build_search_params
+    )
+  end
+
+  # 実行可能な検索スコープの準備
+  def prepare_final_scope
+    apply_distinct if @distinct_applied || joins_applied.any?
+    @scope
+  end
+
+  # クエリメタデータの構築
+  def build_query_metadata
+    {
+      joins_count: @joins_applied.size,
+      distinct_applied: @distinct_applied,
+      conditions_count: @conditions.size,
+      joins_applied: @joins_applied.to_a,
+      cache_hit: false # TODO: キャッシュ機能実装時に更新
+    }
+  end
+
+  # 検索パラメータの再構築
+  def build_search_params
+    # TODO: 元のパラメータを保持する仕組みの実装
+    # 現在は条件から推測可能な情報のみ
+    {
+      conditions_applied: @conditions,
+      joins_used: @joins_applied.to_a,
+      distinct_needed: @distinct_applied
+    }
   end
 
   # デバッグ用のSQL表示

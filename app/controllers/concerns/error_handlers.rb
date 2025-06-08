@@ -109,20 +109,25 @@ module ErrorHandlers
     end
   end
 
-  # カスタムエラーの処理
+  # カスタムエラーの処理（ApiResponse統合版）
   # @param exception [CustomError::BaseError] 発生したカスタムエラー
   def render_custom_error(exception)
     status = exception.status
     log_error(status, exception)
 
     respond_to do |format|
-      # JSON API向けレスポンス
+      # JSON API向けレスポンス（ApiResponse統合）
       format.json do
-        render json: {
-          code: exception.code,
-          message: exception.message,
-          details: exception.details
-        }, status: status
+        api_response = ApiResponse.from_exception(
+          exception,
+          {
+            request_id: request.request_id,
+            user_id: defined?(current_admin) ? current_admin&.id : nil,
+            path: request.fullpath,
+            timestamp: Time.current.iso8601
+          }
+        )
+        render json: api_response.to_h, status: api_response.status_code, headers: api_response.headers
       end
 
       # HTML（ブラウザ）向けレスポンス
@@ -196,24 +201,23 @@ module ErrorHandlers
     #    end
   end
 
-  # JSON APIエラーレスポンスの生成
+  # JSON APIエラーレスポンスの生成（ApiResponse統合版）
   # @param status [Integer] HTTPステータスコード
   # @param exception [Exception] 発生した例外
   # @return [Hash] JSONレスポンス用ハッシュ
   def json_error(status, exception)
-    error_code = error_code_for_status(status, exception)
+    # ApiResponseを使用して統一的なエラーレスポンスを生成
+    api_response = ApiResponse.from_exception(
+      exception,
+      {
+        request_id: request.request_id,
+        user_id: defined?(current_admin) ? current_admin&.id : nil,
+        path: request.fullpath,
+        timestamp: Time.current.iso8601
+      }
+    )
 
-    response = {
-      code: error_code,
-      message: exception.message
-    }
-
-    # バリデーションエラーの詳細を追加
-    if error_details = extract_error_details(exception)
-      response[:details] = error_details
-    end
-
-    response
+    api_response.to_h
   end
 
   # ステータスコードとエラー種別からエラーコードを決定
