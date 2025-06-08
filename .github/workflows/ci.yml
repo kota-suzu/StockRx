@@ -110,7 +110,8 @@ jobs:
       - name: Run tests
         env:
           RAILS_ENV: test
-          DATABASE_URL: mysql2://root@127.0.0.1:3306/app_test
+          DATABASE_URL: mysql2://root:@127.0.0.1:3306/app_test
+          DATABASE_PASSWORD: ""
           # REDIS_URL: redis://localhost:6379/0
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
           # Host Authorization完全無効化（ローカル環境との統一）
@@ -125,6 +126,9 @@ jobs:
             sleep 2
           done
           echo "MySQL接続確認完了"
+          
+          # データベース作成確認（存在しない場合は作成）
+          mysql -h 127.0.0.1 -u root -e "CREATE DATABASE IF NOT EXISTS app_test;" 2>/dev/null || true
           
           # データベース準備（Zeitwerkリロードを削除して安全性向上）
           bin/rails db:test:prepare
