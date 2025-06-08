@@ -31,7 +31,7 @@ endef
 # --------------------------- PHONY ターゲット ------------------------------
 .PHONY: build up down restart server logs ps clean \
         db-create db-migrate db-reset db-seed db-setup \
-        setup bundle-install test rspec \
+        setup services-health-check bundle-install test rspec \
         test-fast test-models test-requests test-jobs test-features test-integration \
         test-failed test-parallel test-coverage test-profile test-skip-heavy \
         test-unit-fast test-models-only \
@@ -68,7 +68,22 @@ clean:
 	docker system prune -f
 
 # --------------------------- 初期セットアップ ------------------------------
-setup: db-setup bundle-install
+# TODO: セットアップ処理の堅牢性向上（ヘルスチェック待機、エラーハンドリング）
+# TODO: 段階的なサービス起動とヘルスチェック確認
+setup: services-health-check bundle-install db-setup
+
+services-health-check:
+	@echo "=== サービス起動とヘルスチェック ==="
+	$(COMPOSE) up -d db redis
+	@echo "MySQL初期化待機中..."
+	@for i in {1..30}; do \
+		if docker compose exec -T db mysqladmin ping -h localhost -u root -ppassword > /dev/null 2>&1; then \
+			echo "✅ MySQL起動完了"; \
+			break; \
+		fi; \
+		echo "MySQL初期化中... ($$i/30)"; \
+		sleep 2; \
+	done
 
 bundle-install:
 	mkdir -p tmp/bundle_cache && chmod -R 777 tmp/bundle_cache
@@ -79,17 +94,9 @@ bundle-install:
 db-%:
 	$(WEB_RUN) bin/rails db:$*
 
-# エイリアス
+# エイリアス - TODO: 循環参照の修正完了、db:*タスクへの適切な転送
 .db-aliases: ;
-db-create   : db-create
-
-db-migrate  : db-migrate
-
-db-reset    : db-reset
-
-db-seed     : db-seed
-
-db-setup    : db-setup
+# 以下は不要な循環参照エイリアスを削除し、直接的な依存に変更
 
 # --------------------------- テスト ----------------------------------------
 # TODO: Host Authorization対策 - 全テストでDISABLE_HOST_AUTHORIZATION=trueを設定
@@ -305,10 +312,36 @@ help:
 # --------------------------- 診断 & 修復 ----------------------------------
 diagnose:
 	@echo "=== StockRx システム診断 ===" && echo
-	$(COMPOSE) ps && echo
-	@lsof -i :$(HTTP_PORT) || echo "ポート$(HTTP_PORT)は使用されていません" && echo
-	@if $(CURL) -I http://localhost:$(HTTP_PORT); then echo "✅ HTTP接続正常"; else echo "❌ HTTP接続失敗"; fi && echo
-	@echo "--- Web Logs (最新10行) ---" && $(COMPOSE) logs --tail=10 web || true
+	@echo "Docker version:"
+	@docker --version
+	@echo "Docker Compose version:"
+	@docker compose version
+	@echo ""
+	@echo "=== 実行中のコンテナ ==="
+	@$(COMPOSE) ps
+	@echo ""
+	@echo "=== コンテナ詳細情報 ==="
+	@docker ps -a --filter "name=stockrx"
+	@echo ""
+	@echo "=== ヘルスチェック ==="
+	@docker inspect stockrx-db-1 --format='{{json .State.Health}}' 2>/dev/null | jq '.' || echo "DBコンテナが見つかりません"
+	@echo ""
+	@echo "=== ボリューム情報 ==="
+	@docker volume ls --filter "name=stockrx"
+	@echo ""
+	@echo "=== ネットワーク情報 ==="
+	@docker network ls --filter "name=stockrx"
+	@echo ""
+	@echo "=== ポート使用状況 ==="
+	@lsof -i :$(HTTP_PORT) || echo "ポート$(HTTP_PORT)は使用されていません"
+	@echo ""
+	@echo "=== HTTP接続テスト ==="
+	@if $(CURL) -I http://localhost:$(HTTP_PORT); then echo "✅ HTTP接続正常"; else echo "❌ HTTP接続失敗"; fi
+	@echo ""
+	@echo "--- Web Logs (最新10行) ---"
+	@$(COMPOSE) logs --tail=10 web || true
+	@echo "--- DB Logs (最新10行) ---"
+	@$(COMPOSE) logs --tail=10 db || true
 
 fix-connection:
 	@echo "=== 接続問題の自動修復を試行中... ==="
