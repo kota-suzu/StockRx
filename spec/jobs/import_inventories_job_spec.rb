@@ -235,8 +235,23 @@ RSpec.describe ImportInventoriesJob, type: :job do
       end
 
       xit 'logs error information when job fails' do
-        # TODO: ログ出力のモック設定が複雑なため一時的にpending
-        # Rails.loggerのモック設定を改善する必要がある
+        # TODO: 🟡 重要 - Phase 2（推定2-3日）- バックグラウンドジョブテストの安定化
+        # 場所: spec/jobs/import_inventories_job_spec.rb:237
+        # 問題: Rails.loggerのモック設定が複雑でテストが不安定
+        # 解決策: ログ出力テストの改善と統合テスト環境の整備
+        #
+        # 具体的な修正内容:
+        # 1. Rails.loggerのモック設定を簡素化
+        # 2. ログレベル別のテスト（ERROR、WARN、INFO）
+        # 3. 構造化ログの検証（JSON形式、コンテキスト情報）
+        # 4. ログローテーション機能のテスト
+        # 5. 非同期処理での例外ハンドリングテスト
+        #
+        # ベストプラクティス:
+        # - Rails.logger.taggedを活用したコンテキスト付きログ
+        # - Semantic Loggerの活用検討
+        # - ELKスタック連携のログフォーマット統一
+        # - ログレベルに応じた適切なアラート設定
         allow(Inventory).to receive(:import_from_csv).and_raise(StandardError, 'Test error')
 
         expect(Rails.logger).to receive(:error).at_least(:once)
@@ -271,8 +286,23 @@ RSpec.describe ImportInventoriesJob, type: :job do
       end
 
       xit 'initializes progress tracking when Redis is available' do
-        # TODO: Redis mockの呼び出しタイミングの問題を解決する必要がある
-        # 実装とテストの期待値の不整合を修正
+        # TODO: 🔴 緊急 - Phase 1（推定1-2日）- Sidekiq Integration Tests
+        # 場所: spec/jobs/import_inventories_job_spec.rb:273
+        # 問題: Redis mockの呼び出しタイミングの問題で進捗追跡テストが不安定
+        # 解決策: テスト用同期実行モードの実装とRedis統合テストの改善
+        #
+        # 具体的な修正内容:
+        # 1. Redis mock設定の見直し（タイミング問題の解決）
+        # 2. Sidekiq::Testing.inlineモードでの適切な進捗追跡
+        # 3. ActionCableとRedisの連携テスト環境整備
+        # 4. 進捗情報のTTL設定とexpire処理の検証
+        # 5. Redis接続失敗時のフォールバック動作テスト
+        #
+        # ベストプラクティス:
+        # - Redis接続プールの適切な管理
+        # - 進捗データの構造化（JSON形式での格納）
+        # - 複数ジョブ同時実行時の進捗管理
+        # - メモリ効率的な進捗追跡（大量データ処理時）
         expect(mock_redis).to receive(:hset).at_least(:once)
         expect(mock_redis).to receive(:expire).at_least(:once)
 

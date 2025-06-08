@@ -27,15 +27,23 @@ require 'rspec/rails'
 # Add additional requires below this line. Rails is not loaded until this point!
 require 'capybara/rails'
 require 'capybara/rspec'
-# SimpleCovによるカバレッジ計測
-require 'simplecov'
-SimpleCov.start 'rails' do
-  add_filter '/bin/'
-  add_filter '/db/'
-  add_filter '/spec/'
-  add_filter '/config/'
-  add_filter '/vendor/'
-  add_filter '/lib/tasks/'
+# SimpleCovによるカバレッジ計測（環境変数で制御）
+# TODO: カバレッジレポート生成の無効化
+# 使用方法: COVERAGE=true bundle exec rspec でのみカバレッジ計測を実行
+# 通常のテスト実行では coverage/ ディレクトリは生成されません
+if ENV['COVERAGE'] == 'true'
+  require 'simplecov'
+  SimpleCov.start 'rails' do
+    add_filter '/bin/'
+    add_filter '/db/'
+    add_filter '/spec/'
+    add_filter '/config/'
+    add_filter '/vendor/'
+    add_filter '/lib/tasks/'
+  end
+  puts "📊 SimpleCov カバレッジ計測を有効化しました"
+else
+  puts "⏭️  SimpleCov カバレッジ計測をスキップしました（COVERAGE=true で有効化）"
 end
 
 # ヘルパーはアプリケーション起動時に自動読み込みされる
