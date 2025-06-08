@@ -65,7 +65,7 @@ jobs:
         image: mysql
         env:
           MYSQL_ALLOW_EMPTY_PASSWORD: true
-          MYSQL_DATABASE: stock_rx_test
+          MYSQL_DATABASE: app_test
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -110,15 +110,26 @@ jobs:
       - name: Run tests
         env:
           RAILS_ENV: test
-          DATABASE_URL: mysql2://root@127.0.0.1:3306/stock_rx_test
+          DATABASE_URL: mysql2://root@127.0.0.1:3306/app_test
           # REDIS_URL: redis://localhost:6379/0
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
+          # Host Authorization完全無効化（ローカル環境との統一）
+          DISABLE_HOST_AUTHORIZATION: true
           # Rails 7.2対応：環境変数で明示的に設定
           RAILS_ZEITWERK_MISMATCHES: error
         run: |
-          # キャッシュをクリアして凍結エラーを回避
-          DISABLE_SPRING=1 bundle exec rails runner 'Rails.autoloaders.main.reload' || true
+          # MySQL準備完了待機（ローカルのwait-forスクリプトと同等機能）
+          echo "MySQL接続確認中..."
+          until mysqladmin ping -h 127.0.0.1 -u root --silent 2>/dev/null; do
+            echo "MySQL準備待機中..."
+            sleep 2
+          done
+          echo "MySQL接続確認完了"
+          
+          # データベース準備（Zeitwerkリロードを削除して安全性向上）
           bin/rails db:test:prepare
+          
+          # テスト実行
           bundle exec rspec
 
       - name: Keep screenshots from failed system tests

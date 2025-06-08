@@ -9,56 +9,60 @@ RSpec.describe "Inventory Search", type: :request do
     sign_in admin
   end
 
+  # TODO: テストデータの独立性確保（優先度：高）
+  # 各テストコンテキストでデータをクリーンアップして、他のテストの影響を排除
+  # ベストプラクティス: テストごとに一意な名前を使用してアイソレーションを強化
+
   # テスト用のInventoryデータを作成
-  let!(:inventory1) { create(:inventory, name: 'テスト商品A', price: 100, quantity: 10, status: 'active') }
-  let!(:inventory2) { create(:inventory, name: 'テスト商品B', price: 200, quantity: 5, status: 'active') }
-  let!(:inventory3) { create(:inventory, name: '別商品C', price: 150, quantity: 0, status: 'archived') }
+  let!(:inventory1) { create(:inventory, name: 'SEARCH_TEST_商品A', price: 100, quantity: 10, status: 'active') }
+  let!(:inventory2) { create(:inventory, name: 'SEARCH_TEST_商品B', price: 200, quantity: 5, status: 'active') }
+  let!(:inventory3) { create(:inventory, name: 'SEARCH_TEST_別商品C', price: 150, quantity: 0, status: 'archived') }
 
   describe "GET /inventories with search parameters" do
     context "with basic search parameters" do
       it "searches by name" do
-        get inventories_path, params: { name: 'テスト' }
+        get inventories_path, params: { name: 'SEARCH_TEST_商品' }
 
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include('テスト商品A')
-        expect(response.body).to include('テスト商品B')
-        expect(response.body).not_to include('別商品C')
+        expect(response.body).to include('SEARCH_TEST_商品A')
+        expect(response.body).to include('SEARCH_TEST_商品B')
+        expect(response.body).not_to include('SEARCH_TEST_別商品C')
       end
 
       it "searches by status" do
         get inventories_path, params: { status: 'active' }
 
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include('テスト商品A')
-        expect(response.body).to include('テスト商品B')
-        expect(response.body).not_to include('別商品C')
+        expect(response.body).to include('SEARCH_TEST_商品A')
+        expect(response.body).to include('SEARCH_TEST_商品B')
+        expect(response.body).not_to include('SEARCH_TEST_別商品C')
       end
 
       it "searches by low stock" do
         get inventories_path, params: { low_stock: 'true', include_archived: 'true' }
 
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include('別商品C')
-        expect(response.body).not_to include('テスト商品A')
-        expect(response.body).not_to include('テスト商品B')
+        expect(response.body).to include('SEARCH_TEST_別商品C')
+        expect(response.body).not_to include('SEARCH_TEST_商品A')
+        expect(response.body).not_to include('SEARCH_TEST_商品B')
       end
 
       it "searches by stock filter" do
         get inventories_path, params: { stock_filter: 'out_of_stock', include_archived: 'true' }
 
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include('別商品C')
-        expect(response.body).not_to include('テスト商品A')
-        expect(response.body).not_to include('テスト商品B')
+        expect(response.body).to include('SEARCH_TEST_別商品C')
+        expect(response.body).not_to include('SEARCH_TEST_商品A')
+        expect(response.body).not_to include('SEARCH_TEST_商品B')
       end
 
       it "searches by price range" do
         get inventories_path, params: { min_price: 150, max_price: 250, include_archived: 'true' }
 
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include('テスト商品B')
-        expect(response.body).to include('別商品C')
-        expect(response.body).not_to include('テスト商品A')
+        expect(response.body).to include('SEARCH_TEST_商品B')
+        expect(response.body).to include('SEARCH_TEST_別商品C')
+        expect(response.body).not_to include('SEARCH_TEST_商品A')
       end
     end
 
@@ -66,14 +70,14 @@ RSpec.describe "Inventory Search", type: :request do
       it "searches with advanced search flag" do
         get inventories_path, params: {
           advanced_search: '1',
-          name: 'テスト',
+          name: 'SEARCH_TEST_商品',
           min_price: 150
         }
 
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include('テスト商品B')
-        expect(response.body).not_to include('テスト商品A')
-        expect(response.body).not_to include('別商品C')
+        expect(response.body).to include('SEARCH_TEST_商品B')
+        expect(response.body).not_to include('SEARCH_TEST_商品A')
+        expect(response.body).not_to include('SEARCH_TEST_別商品C')
       end
 
       it "searches with date range" do
@@ -84,9 +88,9 @@ RSpec.describe "Inventory Search", type: :request do
         }
 
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include('テスト商品A')
-        expect(response.body).to include('テスト商品B')
-        expect(response.body).to include('別商品C')
+        expect(response.body).to include('SEARCH_TEST_商品A')
+        expect(response.body).to include('SEARCH_TEST_商品B')
+        expect(response.body).to include('SEARCH_TEST_別商品C')
       end
 
       it "shows advanced search form when advanced parameters are present" do
@@ -141,35 +145,35 @@ RSpec.describe "Inventory Search", type: :request do
 
         expect(response).to have_http_status(:ok)
         # 無効なステータスは無視され、すべての在庫が表示される
-        expect(response.body).to include('テスト商品A')
-        expect(response.body).to include('テスト商品B')
-        expect(response.body).to include('別商品C')
+        expect(response.body).to include('SEARCH_TEST_商品A')
+        expect(response.body).to include('SEARCH_TEST_商品B')
+        expect(response.body).to include('SEARCH_TEST_別商品C')
       end
     end
 
     context "with multiple search conditions" do
       it "combines multiple conditions with AND logic" do
         get inventories_path, params: {
-          name: 'テスト',
+          name: 'SEARCH_TEST_商品',
           status: 'active',
           min_price: 150,
           include_archived: 'true'
         }
 
         expect(response).to have_http_status(:ok)
-        expect(response.body).to include('テスト商品B')
-        expect(response.body).not_to include('テスト商品A')
-        expect(response.body).not_to include('別商品C')
+        expect(response.body).to include('SEARCH_TEST_商品B')
+        expect(response.body).not_to include('SEARCH_TEST_商品A')
+        expect(response.body).not_to include('SEARCH_TEST_別商品C')
       end
     end
 
     context "with search conditions summary" do
       it "displays search conditions summary when conditions are present" do
-        get inventories_path, params: { name: 'テスト', status: 'active' }
+        get inventories_path, params: { name: 'SEARCH_TEST_商品', status: 'active' }
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include('検索条件:')
-        expect(response.body).to include('テスト')
+        expect(response.body).to include('SEARCH_TEST_商品')
         expect(response.body).to include('active')
       end
 
@@ -184,24 +188,35 @@ RSpec.describe "Inventory Search", type: :request do
 
   describe "GET /inventories with JSON format" do
     it "returns filtered JSON results" do
-      get inventories_path, params: { name: 'テスト' }, headers: { "Accept" => "application/json" }
+      # TODO: JSON APIテストの堅牢性向上（優先度：高）
+      # データクリーンアップとテスト専用データで正確な結果を保証
+
+      # 他のテストデータをクリーンアップ
+      Inventory.where.not(name: [ 'SEARCH_TEST_商品A', 'SEARCH_TEST_商品B', 'SEARCH_TEST_別商品C' ]).destroy_all
+
+      get inventories_path, params: { name: 'SEARCH_TEST_商品' }, headers: { "Accept" => "application/json" }
 
       expect(response).to have_http_status(:ok)
       expect(response.content_type).to match(/application\/json/)
 
       json_response = JSON.parse(response.body)
-      expect(json_response.size).to eq(2)  # テスト商品A, テスト商品B
+      expect(json_response.size).to eq(2)  # SEARCH_TEST_商品A, SEARCH_TEST_商品B
+
+      # データの正確性確認
+      names = json_response.map { |item| item["name"] }
+      expect(names).to include('SEARCH_TEST_商品A', 'SEARCH_TEST_商品B')
+      expect(names).not_to include('SEARCH_TEST_別商品C')
     end
   end
 
   describe "Form object assignment" do
     it "assigns search form with valid parameters" do
-      get inventories_path, params: { name: 'テスト', status: 'active' }
+      get inventories_path, params: { name: 'SEARCH_TEST_商品', status: 'active' }
 
       expect(response).to have_http_status(:ok)
       # 検索結果が適切に表示されることを確認
       expect(
-        response.body.include?('テスト商品A') || response.body.include?('テスト商品B')
+        response.body.include?('SEARCH_TEST_商品A') || response.body.include?('SEARCH_TEST_商品B')
       ).to be_truthy
     end
 
@@ -252,20 +267,20 @@ RSpec.describe "Inventory Search", type: :request do
 
   describe "Backward compatibility" do
     it "supports legacy 'q' parameter" do
-      get inventories_path, params: { q: 'テスト' }
+      get inventories_path, params: { q: 'SEARCH_TEST_商品' }
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include('テスト商品A')
-      expect(response.body).to include('テスト商品B')
+      expect(response.body).to include('SEARCH_TEST_商品A')
+      expect(response.body).to include('SEARCH_TEST_商品B')
     end
 
     it "prioritizes 'name' over 'q' parameter" do
-      get inventories_path, params: { name: 'テスト', q: '別商品' }
+      get inventories_path, params: { name: 'SEARCH_TEST_商品', q: 'SEARCH_TEST_別商品' }
 
       expect(response).to have_http_status(:ok)
       # nameパラメータが優先され、テスト商品が表示されることを確認
       expect(
-        response.body.include?('テスト商品A') || response.body.include?('テスト商品B')
+        response.body.include?('SEARCH_TEST_商品A') || response.body.include?('SEARCH_TEST_商品B')
       ).to be_truthy
     end
   end

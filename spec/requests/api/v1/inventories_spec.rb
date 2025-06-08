@@ -33,9 +33,16 @@ RSpec.describe "Api::V1::Inventories", type: :request do
   end
 
   describe "GET /api/v1/inventories" do
-    let!(:inventories) { create_list(:inventory, 3) }
+    # TODO: テストアイソレーション強化（優先度：高）
+    # 他のテストの影響を受けないよう、各テストで独立したデータセットを使用
 
     it "returns all inventories" do
+      # テスト前にクリーンアップしてアイソレーション確保
+      Inventory.destroy_all
+
+      # このテスト専用のデータを作成
+      api_test_inventories = create_list(:inventory, 3, name: "API Test Item")
+
       get api_v1_inventories_path, headers: headers
 
       expect(response).to have_http_status(:ok)
@@ -43,6 +50,10 @@ RSpec.describe "Api::V1::Inventories", type: :request do
 
       json = JSON.parse(response.body)
       expect(json.size).to eq(3)
+
+      # データの整合性も確認
+      inventory_names = json.map { |item| item["name"] }
+      expect(inventory_names).to all(include("API Test Item"))
     end
   end
 

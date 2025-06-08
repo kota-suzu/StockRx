@@ -70,10 +70,29 @@ RSpec.configure do |config|
   # Load support files for better test organization
   Dir[Rails.root.join('spec', 'support', '**', '*.rb')].sort.each { |f| require f }
 
+  # TODO: テストアイソレーション強化（優先度：最高）
+  # ベストプラクティス: 各テストの完全な独立性を保証
+
   # Factory Bot sequence management for test isolation
   config.before(:suite) do
     # テストスイート開始時にシーケンスをリセット
     FactoryBot.rewind_sequences
+  end
+
+  # TODO: データベースクリーンアップ戦略（優先度：高）
+  # 各テストタイプに適した独立性確保手法を実装
+  config.before(:each, type: :request) do
+    # リクエストテスト用：テストデータのリセット（選択的）
+    # 注意：全削除は遅いため、必要な場合のみ使用
+    # ActiveRecord::Base.connection.truncate_tables(*ActiveRecord::Base.connection.tables.reject { |t| t == 'schema_migrations' || t == 'ar_internal_metadata' })
+  end
+
+  config.around(:each, isolation: true) do |example|
+    # 完全分離が必要なテスト用
+    ActiveRecord::Base.transaction do
+      example.run
+      raise ActiveRecord::Rollback
+    end
   end
 
   # Host Authorization完全無効化（403 Blocked host対策）
