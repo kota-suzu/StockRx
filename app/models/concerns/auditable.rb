@@ -3,6 +3,16 @@
 module Auditable
   extend ActiveSupport::Concern
 
+  # TODO: パフォーマンス最適化
+  # - 大量の監査ログ蓄積時のクエリ最適化
+  # - 非同期ログ記録によるメイン処理への影響軽減
+  # - パーティション機能による古いログの効率的管理
+  #
+  # TODO: 機能拡張
+  # - JSON形式のdetailsフィールドの構造化検索機能
+  # - ログレベル（info, warning, critical）の導入
+  # - 操作前後の値変更の詳細トラッキング
+
   included do
     has_many :audit_logs, as: :auditable, dependent: :destroy
 
@@ -99,6 +109,10 @@ module Auditable
     )
   rescue => e
     # ログ記録に失敗しても主処理は継続
+    # TODO: エラーハンドリングの改善
+    # - Sentry等の外部監視ツールへのエラー通知
+    # - ログ記録失敗回数の監視とアラート機能
+    # - フォールバック機能（ファイルベースログ等）
     Rails.logger.error("監査ログ記録エラー: #{e.message}")
   end
 
