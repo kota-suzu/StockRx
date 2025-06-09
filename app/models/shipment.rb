@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class Shipment < ApplicationRecord
-  belongs_to :inventory
+  belongs_to :inventory, counter_cache: true
 
   # 配送ステータスの列挙型（Rails 8 対応：位置引数使用）
   enum :shipment_status, {

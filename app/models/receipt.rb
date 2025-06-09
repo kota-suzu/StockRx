@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class Receipt < ApplicationRecord
-  belongs_to :inventory
+  belongs_to :inventory, counter_cache: true
 
   # 入荷ステータスの列挙型（Rails 8 対応：位置引数使用）
   enum :receipt_status, {
