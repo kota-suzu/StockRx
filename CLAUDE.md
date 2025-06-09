@@ -951,6 +951,57 @@ After: `make diagnose`で自動診断→自動修復の機能追加
 - **認証**: 強固な認証機能実装済み
 - **入力検証**: 包括的バリデーション実装済み
 
+### 暗号化・セキュリティ実装ガイドライン
+
+#### ✅ **修正済み（2025年6月9日）- セキュリティベストプラクティス対応**
+- **AES-256-GCM使用**: padding oracle attacks対策でCBCからGCMに変更
+- **SHA256キー派生**: PBKDF2でSHA1からSHA256に変更
+- **動的コード生成排除**: 非標準的implement_encryption.rbスクリプト削除
+
+#### 🔴 **TODO: 標準的な暗号化実装（優先度：高）**
+```ruby
+# 実装推奨アプローチ（implement_encryption.rb削除に伴う代替案）
+# 1. Rails標準のActiveRecord::Encryptionを使用
+# 2. Rails generatorを使用した安全なファイル生成
+# 3. 段階的マイグレーション戦略
+
+# 推奨実装順序:
+# Phase 1: config/initializers/active_record_encryption.rb
+Rails.application.configure do
+  config.active_record.encryption.primary_key = Rails.application.credentials.active_record_encryption&.primary_key
+  config.active_record.encryption.deterministic_key = Rails.application.credentials.active_record_encryption&.deterministic_key
+  config.active_record.encryption.key_derivation_salt = Rails.application.credentials.active_record_encryption&.key_derivation_salt
+end
+
+# Phase 2: モデルに暗号化フィールド追加
+class Inventory < ApplicationRecord
+  encrypts :sensitive_field, deterministic: true  # 検索可能
+  encrypts :secret_data                           # 非検索
+end
+
+# Phase 3: マイグレーション実装
+rails generate migration AddEncryptedFieldsToInventories encrypted_field:text
+```
+
+#### 🟠 **TODO: セキュリティ監査項目（優先度：中）**
+- [ ] 定期的な脆弱性スキャン（Brakeman, bundler-audit）
+- [ ] 暗号化キーローテーション戦略の実装
+- [ ] セキュリティログ監視システムの構築
+- [ ] ペネトレーションテストの定期実行
+
+#### 🟢 **TODO: 高度なセキュリティ機能（優先度：低）**
+- [ ] HSM（Hardware Security Module）統合
+- [ ] ゼロトラスト・アーキテクチャの段階的導入
+- [ ] 機械学習ベースの異常検知システム
+- [ ] コンプライアンス自動監査（GDPR、PCI DSS）
+
+#### **セキュリティ実装時の必須チェックリスト**
+- [ ] 暗号化アルゴリズムは現在推奨のもの（AES-256-GCM）を使用
+- [ ] キー管理は環境変数またはRails credentialsで適切に分離
+- [ ] 動的コード生成は使用せず、Rails標準機能を活用
+- [ ] セキュリティ関連の変更は必ずコードレビューを実施
+- [ ] 本番環境へのデプロイ前にセキュリティテストを実行
+
 ---
 
 *最終更新: 2024年 (メタ認知的修正サイクル第1次完了)*

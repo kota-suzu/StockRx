@@ -36,8 +36,8 @@ begin
   if secret_key_base.present?
     puts "  ✅ secret_key_base: 設定済み"
 
-    # 実際の暗号化テスト
-    key = ActiveSupport::KeyGenerator.new(secret_key_base).generate_key("test", 32)
+    # 実際の暗号化テスト（SHA256使用）
+    key = ActiveSupport::KeyGenerator.new(secret_key_base, hash_digest_class: OpenSSL::Digest::SHA256).generate_key("test", 32)
     encryptor = ActiveSupport::MessageEncryptor.new(key)
 
     test_message = "sensitive_data_123"

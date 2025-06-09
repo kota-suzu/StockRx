@@ -72,7 +72,7 @@ begin
   # ActiveSupport::MessageEncryptorのテスト
   secret = Rails.application.secret_key_base
   if secret
-    key = ActiveSupport::KeyGenerator.new(secret).generate_key("test", 32)
+    key = ActiveSupport::KeyGenerator.new(secret, hash_digest_class: OpenSSL::Digest::SHA256).generate_key("test", 32)
     encryptor = ActiveSupport::MessageEncryptor.new(key)
 
     test_message = "sensitive_data_123"
@@ -196,7 +196,11 @@ puts "    - 暗号化キーのローテーション"
 # 8. 暗号化実装の提案
 if security_score < 80
   puts "\n🛠️ **暗号化実装の提案**"
-  puts "実行方法: docker compose exec web ruby implement_encryption.rb"
+  puts "📚 標準的なRails方式での実装推奨:"
+  puts "  1. rails credentials:edit でキー設定"
+  puts "  2. config/initializers/active_record_encryption.rb 作成"
+  puts "  3. モデルに encrypts ディレクティブ追加"
+  puts "  詳細: CLAUDE.md の「暗号化・セキュリティ実装ガイドライン」参照"
 end
 
 puts "\n" + "=" * 60
