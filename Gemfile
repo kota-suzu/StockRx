@@ -20,6 +20,13 @@ gem "stimulus-rails"
 gem "jbuilder"
 # Use CSV library (included in Ruby 3.4+)
 gem "csv"
+
+# Excel and PDF generation for monthly reports
+gem "caxlsx", "~> 4.1"           # Excel生成（ActiveX Excel Library）
+gem "caxlsx_rails", "~> 0.6"     # Rails統合
+gem "rubyzip", "~> 2.3"          # ZIP形式対応（Excel内部形式）
+gem "prawn", "~> 2.4"            # PDF生成ライブラリ
+gem "prawn-table", "~> 0.2"      # PDF表組み機能
 # Use Redis adapter to run Action Cable in production
 gem "redis", ">= 4.0.1"
 
