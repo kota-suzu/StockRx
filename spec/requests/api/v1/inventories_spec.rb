@@ -280,29 +280,81 @@ RSpec.describe "Api::V1::Inventories", type: :request do
   # 5. 楽観的ロック競合テスト
 
   describe "Additional API Features (TODO)" do
-    # TODO: ページネーション機能テスト
+    # TODO: 🔴 緊急 - Phase 1（推定1-2日） - ページネーション機能テスト
+    # 優先度: 高（API利用者にとって必須機能）
+    # 実装内容:
+    # - Kaminari gemベースのページネーション実装
+    # - メタデータ（total_count, total_pages, current_page）の返却
+    # - per_page パラメータでの件数制御（デフォルト: 25, 最大: 100）
+    # - レスポンス例: { "data": [...], "meta": { "current_page": 1, "total_pages": 5, "total_count": 120 } }
+    # 横展開確認: 他のAPIエンドポイント（/batches, /inventory_logs）でも同様実装
     context "pagination" do
       pending "implements pagination parameter tests"
       # it "returns paginated results with correct metadata"
       # it "handles page and per_page parameters correctly"
       # it "returns proper pagination metadata"
+      # it "validates page parameter bounds (min: 1)"
+      # it "validates per_page parameter bounds (min: 1, max: 100)"
+      # it "handles invalid page parameters gracefully"
     end
 
-    # TODO: 検索・フィルタリング機能テスト
+    # TODO: 🔴 緊急 - Phase 1（推定1-2日） - 検索・フィルタリング機能テスト
+    # 優先度: 高（在庫検索は基本機能）
+    # 実装内容:
+    # - 商品名による部分一致検索（大文字小文字無視）
+    # - ステータス別フィルタリング（active, inactive, discontinued）
+    # - 価格範囲検索（min_price, max_price）
+    # - 数量範囲検索（min_quantity, max_quantity）
+    # - 複数条件の AND/OR 組み合わせ
+    # - SQLインジェクション対策（パラメータバリデーション）
+    # 横展開確認: web版検索機能（InventorySearchForm）との整合性確保
     context "search and filtering" do
       pending "implements search parameter tests"
       # it "filters by name parameter"
       # it "filters by status parameter"
       # it "filters by price range"
       # it "combines multiple filters correctly"
+      # it "handles empty search results gracefully"
+      # it "validates search parameter safety (XSS, SQLi prevention)"
     end
 
-    # TODO: 並び替え機能テスト
+    # TODO: 🟡 重要 - Phase 2（推定1日） - 並び替え機能テスト
+    # 優先度: 中（ユーザビリティ向上）
+    # 実装内容:
+    # - ソート可能フィールド（name, price, quantity, updated_at, created_at）
+    # - ソート方向（asc, desc）
+    # - デフォルトソート（updated_at desc）
+    # - 複数フィールドソート（例: name asc, price desc）
+    # - 不正フィールド指定時のエラーハンドリング
+    # 横展開確認: web版ソート機能（BaseSearchForm）との一貫性
     context "sorting" do
       pending "implements sorting parameter tests"
       # it "sorts by different fields"
       # it "handles sort direction correctly"
       # it "defaults to appropriate sorting"
+      # it "validates sortable fields"
+      # it "handles invalid sort parameters gracefully"
     end
+
+    # TODO: 🟢 推奨 - Phase 3（推定2-3日） - 高度API機能
+    # 優先度: 低（機能拡張・将来対応）
+    # 実装内容:
+    # - バルク操作API（一括更新、一括削除）
+    # - エクスポート機能（CSV, Excel形式）
+    # - リアルタイム更新（WebSocket/Server-Sent Events）
+    # - API レート制限とクォータ管理
+    # - APIバージョニング（v2 準備）
+    #
+    # context "bulk operations" do
+    #   pending "implements bulk update/delete operations"
+    # end
+    #
+    # context "real-time updates" do
+    #   pending "implements WebSocket/SSE integration"
+    # end
+    #
+    # context "export functionality" do
+    #   pending "implements CSV/Excel export"
+    # end
   end
 end

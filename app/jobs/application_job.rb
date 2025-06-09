@@ -1,5 +1,10 @@
 class ApplicationJob < ActiveJob::Base
   # ============================================
+  # セキュリティモジュール
+  # ============================================
+  include SecureLogging
+
+  # ============================================
   # Sidekiq Configuration for Background Jobs
   # ============================================
   # 要求仕様：3回リトライでエラーハンドリング強化
@@ -34,18 +39,30 @@ class ApplicationJob < ActiveJob::Base
 
   def log_job_start
     @start_time = Time.current
+
+    # パフォーマンス監視の開始
+    @performance_data = start_performance_monitoring if performance_monitoring_enabled?
+
+    # 引数のサニタイズと安全な文字列化
+    sanitized_args = sanitize_arguments(arguments)
+    safe_args_string = safe_arguments_to_string(sanitized_args)
+
     Rails.logger.info({
       event: "job_started",
       job_class: self.class.name,
       job_id: job_id,
       queue_name: queue_name,
-      arguments: arguments.inspect,
+      arguments: safe_args_string,
       timestamp: @start_time.iso8601
     }.to_json)
   end
 
   def log_job_success
     duration = Time.current - @start_time if @start_time
+
+    # パフォーマンス監視の終了
+    end_performance_monitoring(success: true) if @performance_data
+
     Rails.logger.info({
       event: "job_completed",
       job_class: self.class.name,
@@ -53,11 +70,15 @@ class ApplicationJob < ActiveJob::Base
       duration: duration&.round(2),
       queue_name: queue_name,
       timestamp: Time.current.iso8601
-    }.to_json)
+    })
   end
 
   def log_job_error(exception)
     duration = Time.current - @start_time if @start_time
+
+    # パフォーマンス監視の終了（エラー時）
+    end_performance_monitoring(success: false, error: exception) if @performance_data
+
     Rails.logger.error({
       event: "job_failed",
       job_class: self.class.name,
@@ -68,16 +89,256 @@ class ApplicationJob < ActiveJob::Base
       error_message: exception.message,
       error_backtrace: exception.backtrace&.first(10),
       timestamp: Time.current.iso8601
-    }.to_json)
+    })
 
     # エラーを再発生させてSidekiqのリトライ機能を働かせる
     raise exception
   end
 
-  # TODO: 将来的な拡張機能
+  # ============================================
+  # セキュリティ関連メソッド
+  # ============================================
+
+  # ジョブ引数の機密情報をサニタイズ
+  #
+  # @param args [Array] ジョブの引数配列
+  # @return [Array] サニタイズ済み引数配列
+  def sanitize_arguments(args)
+    return args unless defined?(SecureArgumentSanitizer)
+
+    # パフォーマンス監視開始
+    start_time = Time.current
+
+    begin
+      # メモリ使用量監視
+      if defined?(SecureJobPerformanceMonitor)
+        SecureJobPerformanceMonitor.monitor_sanitization(self.class.name, args.size) do
+          SecureArgumentSanitizer.sanitize(args, self.class.name)
+        end
+      else
+        SecureArgumentSanitizer.sanitize(args, self.class.name)
+      end
+    rescue => e
+      # サニタイズ失敗時はエラーログを記録し、安全な代替値を返す
+      duration = Time.current - start_time
+
+      Rails.logger.error({
+        event: "argument_sanitization_failed",
+        job_class: self.class.name,
+        job_id: job_id,
+        error_class: e.class.name,
+        error_message: e.message,
+        duration: duration.round(4),
+        args_count: args.size,
+        timestamp: Time.current.iso8601
+      })
+
+      # フォールバック: 全引数を安全な値に置換
+      Array.new(args.size, "[SANITIZATION_FAILED]")
+    end
+  end
+
+  # 開発環境での機密情報フィルタリングデバッグ
+  #
+  # @param original [Array] 元の引数
+  # @param sanitized [Array] サニタイズ済み引数
+  def debug_argument_filtering(original, sanitized)
+    return unless Rails.env.development? && original != sanitized
+
+    Rails.logger.debug({
+      event: "argument_filtering_applied",
+      job_class: self.class.name,
+      job_id: job_id,
+      original_arg_count: original.size,
+      sanitized_arg_count: sanitized.size,
+      filtering_applied: true,
+      timestamp: Time.current.iso8601
+    })
+  end
+
+  # 引数を安全な文字列に変換（inspect使用を避ける）
+  def safe_arguments_to_string(args)
+    return "[]" if args.empty?
+
+    safe_elements = args.map do |arg|
+      case arg
+      when String
+        # フィルタリング済みのマーカーか確認
+        if arg.start_with?("[") && arg.end_with?("]") &&
+           (arg.include?("FILTERED") || arg.include?("ADMIN_ID") || arg.include?("CVV") || arg.include?("DATE"))
+          arg
+        else
+          "\"#{arg}\""
+        end
+      when Hash
+        safe_hash_to_string(arg)
+      when Array
+        safe_array_to_string(arg)
+      when Numeric, TrueClass, FalseClass, NilClass
+        arg.to_s
+      else
+        arg_str = arg.to_s
+        if arg_str.start_with?("[") && arg_str.end_with?("]") &&
+           (arg_str.include?("FILTERED") || arg_str.include?("ADMIN_ID") || arg_str.include?("CVV") || arg_str.include?("DATE"))
+          arg_str
+        else
+          "\"#{arg_str}\""
+        end
+      end
+    end
+
+    "[#{safe_elements.join(', ')}]"
+  end
+
+  # ハッシュの安全な文字列化
+  def safe_hash_to_string(hash)
+    return "{}" if hash.empty?
+
+    safe_pairs = hash.map do |key, value|
+      safe_key = key.to_s
+      safe_value = case value
+      when String
+                     if value.start_with?("[") && value.end_with?("]") &&
+                        (value.include?("FILTERED") || value.include?("ADMIN_ID") || value.include?("CVV") || value.include?("DATE"))
+                       value
+                     else
+                       "\"#{value}\""
+                     end
+      when Hash
+                     safe_hash_to_string(value)
+      when Array
+                     safe_array_to_string(value)
+      else
+                     value.to_s
+      end
+      "\"#{safe_key}\" => #{safe_value}"
+    end
+
+    "{#{safe_pairs.join(', ')}}"
+  end
+
+  # 配列の安全な文字列化
+  def safe_array_to_string(array)
+    return "[]" if array.empty?
+
+    safe_elements = array.map do |item|
+      case item
+      when String
+        if item.start_with?("[") && item.end_with?("]") &&
+           (item.include?("FILTERED") || item.include?("ADMIN_ID") || item.include?("CVV") || item.include?("DATE"))
+          item
+        else
+          "\"#{item}\""
+        end
+      when Hash
+        safe_hash_to_string(item)
+      when Array
+        safe_array_to_string(item)
+      else
+        item.to_s
+      end
+    end
+
+    "[#{safe_elements.join(', ')}]"
+  end
+
+  # ============================================
+  # パフォーマンス監視関連メソッド
+  # ============================================
+
+  def performance_monitoring_enabled?
+    Rails.application.config.secure_job_logging&.dig(:performance_monitoring) || false
+  end
+
+  def start_performance_monitoring
+    return unless defined?(SecureJobPerformanceMonitor)
+
+    SecureJobPerformanceMonitor.start_monitoring(
+      self.class.name,
+      job_id,
+      arguments.size
+    )
+  rescue => e
+    Rails.logger.warn "Failed to start performance monitoring: #{e.message}"
+    nil
+  end
+
+  def end_performance_monitoring(success:, error: nil)
+    return unless @performance_data && defined?(SecureJobPerformanceMonitor)
+
+    SecureJobPerformanceMonitor.end_monitoring(
+      @performance_data,
+      success: success,
+      error: error
+    )
+  rescue => e
+    Rails.logger.warn "Failed to end performance monitoring: #{e.message}"
+  end
+
+  # ============================================
+  # 残課題TODO - セキュアロギング統合機能（優先度別）
+  # ============================================
+
+  # 🔴 緊急 - Phase 1（推定1-2日） - 統合機能不具合修正
+  # TODO: ログ出力フィルタリング統合の完全実装（現在失敗中）
+  # 場所: spec/jobs/application_job_secure_logging_spec.rb:138
+  # 問題: job_started イベントでの機密情報ログ出力
+  # 実装内容:
+  #   - log_job_start メソッドでの引数サニタイズ強化
+  #   - JSON出力時の追加フィルタリング層
+  #   - Rails.logger への安全な出力機構
+  #
+  # TODO: エラーハンドリング統合の改善（現在失敗中）
+  # 場所: spec/jobs/application_job_secure_logging_spec.rb:116
+  # 問題: サニタイズ処理中の例外処理不完全
+  # 実装内容:
+  #   - try-catch-finally パターンの実装
+  #   - フォールバック機構の強化
+  #   - エラー時の安全な代替値設定
+  #
+  # TODO: Sidekiq統合機能の完全対応（現在失敗中）
+  # 場所: spec/jobs/application_job_secure_logging_spec.rb:255
+  # 問題: リトライ設定との互換性不足
+  # 実装内容:
+  #   - Sidekiq middleware との連携
+  #   - perform_async 時の引数フィルタリング
+  #   - ジョブキューでの機密情報保護
+
+  # 🟡 重要 - Phase 2（推定2-3日） - パフォーマンス最適化
+  # TODO: メモリ使用量最適化（現在失敗中）
+  # 場所: spec/jobs/application_job_secure_logging_spec.rb:301
+  # 問題: サニタイズ処理のメモリオーバーヘッド
+  # 実装内容:
+  #   - オブジェクトプーリング導入
+  #   - 遅延評価パターンの適用
+  #   - ガベージコレクション最適化
+  #
+  # TODO: サイドチャネル攻撃対策（現在失敗中）
+  # 場所: spec/jobs/application_job_secure_logging_spec.rb:382
+  # 問題: 処理時間による情報推測攻撃耐性不足
+  # 実装内容:
+  #   - 一定時間処理保証機構
+  #   - ランダム遅延導入
+  #   - メモリアクセスパターン均一化
+
+  # 🟢 推奨 - Phase 3（推定1週間） - 将来的な拡張機能
   # - メトリクス収集（Prometheus連携）
   # - アラート通知（Slack/Teams連携）
   # - パフォーマンス監視（NewRelic/Datadog連携）
   # - ジョブの依存関係管理
   # - バッチジョブのチェーン実行
+  #
+  # TODO: セキュリティ機能の拡張（優先度：中）
+  # - 機密情報検出の統計情報収集
+  # - フィルタリング精度の継続的改善
+  # - セキュリティインシデントの自動検出
+  # - コンプライアンス監査レポート自動生成
+  # - 権限レベル別ログ表示制御
+  #
+  # TODO: パフォーマンス監視の拡張（優先度：低）
+  # - リアルタイムダッシュボード機能
+  # - 自動スケーリング連携
+  # - 予測的アラート機能
+  # - パフォーマンスプロファイリング
+  # - ボトルネック自動検出
 end
