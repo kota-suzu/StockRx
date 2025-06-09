@@ -388,7 +388,7 @@
 #     context 'ExternalApiSyncJob' do
 #       let(:api_job_args) do
 #         [ 'supplier_api', 'sync_inventory', {
-#           api_token: 'sk_live_secret123',
+#           api_token: 'test_secret123',
 #           credentials: { username: 'user', password: 'pass' },
 #           auth: { bearer_token: 'bearer_abc123' }
 #         } ]
