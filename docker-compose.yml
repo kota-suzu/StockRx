@@ -45,12 +45,21 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      # CI環境用MySQL設定ファイル（2025年6月9日追加）
+      # 環境変数 CI_DATABASE_CONFIG=true でCI最適化設定を適用
+      - type: bind
+        source: ./config/mysql/${CI_DATABASE_CONFIG:-default}.cnf
+        target: /etc/mysql/conf.d/ci-optimized.cnf
+        bind:
+          create_host_path: true
+    # MySQL 8.4+ では default-authentication-plugin は非推奨のためコメントアウト
+    # command: --default-authentication-plugin=mysql_native_password
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-ppassword"]
       interval: 10s
-      timeout: 10s
+      timeout: 15s  # タイムアウトを10s → 15sに延長
       retries: 10
-      start_period: 30s
+      start_period: 40s  # 開始期間を30s → 40sに延長（CI環境での安定性向上）
     ports:
       - "3306:3306"
     networks:
