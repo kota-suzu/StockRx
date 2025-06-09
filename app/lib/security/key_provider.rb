@@ -57,7 +57,7 @@ module Security
         audit_required: false
       },
       session_encryption: {
-        algorithm: "AES-256-CBC",
+        algorithm: "AES-256-GCM", # 修正: AES-256-CBC → AES-256-GCM（padding oracle attacks対策）
         size: 32,
         rotation_interval: 1.hour,
         audit_required: false
@@ -238,8 +238,8 @@ module Security
         metadata = KEY_TYPES[key_type]
         key_length = metadata[:size]
 
-        # PBKDF2による派生キー生成
-        derived_key = ActiveSupport::KeyGenerator.new(base_key).generate_key(salt, key_length)
+        # PBKDF2による派生キー生成（SHA256使用）
+        derived_key = ActiveSupport::KeyGenerator.new(base_key, hash_digest_class: OpenSSL::Digest::SHA256).generate_key(salt, key_length)
 
         Rails.logger.debug "[Security::KeyProvider] Generated derived key for #{key_type} (#{key_length} bytes)"
 
