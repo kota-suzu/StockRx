@@ -65,7 +65,7 @@ RSpec.describe 'Counter Cache Performance', type: :performance do
         expect(inventory.batches_count).to eq(inventory.batches.count)
         expect(inventory.inventory_logs_count).to eq(inventory.inventory_logs.count)
         expect(inventory.shipments_count).to eq(inventory.shipments.count)
-        expect(inventory.receipts_count).to eq(inventory.receipts_count)
+        expect(inventory.receipts_count).to eq(inventory.receipts.count)
       end
     end
   end
