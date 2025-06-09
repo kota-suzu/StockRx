@@ -14,7 +14,7 @@ module AdminControllers
 
     # GET /admin/inventories
     def index
-      @inventories = SearchQuery.call(params).includes(:batches).decorate
+      @inventories = SearchQuery.call(params).includes(:batches, :inventory_logs, :shipments, :receipts).decorate
 
       respond_to do |format|
         format.html # Turbo Frame 対応
@@ -126,7 +126,7 @@ module AdminControllers
 
     # Use callbacks to share common setup or constraints between actions.
     def set_inventory
-      @inventory = Inventory.find(params[:id]).decorate
+      @inventory = Inventory.includes(:batches, :inventory_logs, :shipments, :receipts).find(params[:id]).decorate
     end
 
     # Only allow a list of trusted parameters through.

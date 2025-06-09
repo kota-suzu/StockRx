@@ -78,7 +78,7 @@ module BatchManageable
 
   def sync_total_quantity
     # バッチが存在しない場合は同期しない（初期作成時など）
-    return if batches.count == 0
+    return if batches_count == 0
 
     new_quantity = total_batch_quantity
     update_column(:quantity, new_quantity) if new_quantity != quantity

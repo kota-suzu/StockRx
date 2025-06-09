@@ -11,13 +11,13 @@ class InventoriesController < ApplicationController
     @search_form = InventorySearchForm.new(search_params.except(:page))
 
     if @search_form.valid? && @search_form.has_search_conditions?
-      @inventories = @search_form.search.includes(:batches).page(params[:page]).decorate
+      @inventories = @search_form.search.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page]).decorate
     elsif @search_form.has_search_conditions?
       # 検索条件があるがバリデーションエラーの場合
       flash.now[:alert] = @search_form.errors.full_messages.join(", ")
-      @inventories = Inventory.includes(:batches).page(params[:page]).decorate
+      @inventories = Inventory.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page]).decorate
     else
-      @inventories = Inventory.includes(:batches).page(params[:page]).decorate
+      @inventories = Inventory.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page]).decorate
     end
 
     @show_advanced = @search_form.advanced_search || @search_form.complex_search_required?
@@ -151,7 +151,7 @@ class InventoriesController < ApplicationController
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_inventory
-      @inventory = Inventory.find(params[:id]).decorate
+      @inventory = Inventory.includes(:batches, :inventory_logs, :shipments, :receipts).find(params[:id]).decorate
     end
 
     # Only allow a list of trusted parameters through.
