@@ -354,12 +354,47 @@ diagnose:
 	@lsof -i :$(HTTP_PORT) || echo "ポート$(HTTP_PORT)は使用されていません"
 	@echo ""
 	@echo "=== HTTP接続テスト ==="
-	@if $(CURL) -I http://localhost:$(HTTP_PORT); then echo "✅ HTTP接続正常"; else echo "❌ HTTP接続失敗"; fi
+	@if $(CURL) -I http://localhost:$(HTTP_PORT); then \
+		echo "✅ HTTP接続正常"; \
+	else \
+		echo "❌ HTTP接続失敗"; \
+		echo "🔧 自動修復を試行中..."; \
+		$(MAKE) auto-fix-connection; \
+	fi
 	@echo ""
 	@echo "--- Web Logs (最新10行) ---"
 	@$(COMPOSE) logs --tail=10 web || true
 	@echo "--- DB Logs (最新10行) ---"
 	@$(COMPOSE) logs --tail=10 db || true
+
+# TODO: 自動修復機能の強化 - 段階的なトラブルシューティング
+# 1. Webサーバーコンテナの存在確認 → 未起動なら起動
+# 2. サービス依存関係のチェック（DB、Redis）
+# 3. ネットワーク接続の確認
+# 4. エラーパターンに応じた専用修復手順の実行
+# 横展開: 他のサービス（DB、Redis）の自動修復も同様のパターンで実装
+auto-fix-connection:
+	@echo "=== 自動修復プロセス開始 ==="
+	@echo "1. Webサーバーコンテナの確認..."
+	@if ! docker ps --filter "name=stockrx-web" --format "table {{.Names}}" | grep -q stockrx-web; then \
+		echo "   Webサーバーが停止しています。起動中..."; \
+		$(COMPOSE) up -d web; \
+		sleep 5; \
+	else \
+		echo "   Webサーバーコンテナは存在します。再起動中..."; \
+		$(COMPOSE) restart web; \
+		sleep 5; \
+	fi
+	@echo "2. 依存サービスの確認..."
+	@$(COMPOSE) up -d db redis
+	@echo "3. ヘルスチェック再実行..."
+	@sleep 3
+	@if $(CURL) -I http://localhost:$(HTTP_PORT); then \
+		echo "✅ 修復成功 - サーバーが正常に応答しています"; \
+	else \
+		echo "❌ 修復失敗 - 手動での確認が必要です"; \
+		echo "次のコマンドで詳細確認: docker compose logs web"; \
+	fi
 
 fix-connection:
 	@echo "=== 接続問題の自動修復を試行中... ==="

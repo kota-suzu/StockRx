@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class InventoryLog < ApplicationRecord
-  belongs_to :inventory
+  belongs_to :inventory, counter_cache: true
   belongs_to :user, optional: true, class_name: "Admin"
 
   # バリデーション

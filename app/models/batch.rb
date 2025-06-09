@@ -3,7 +3,7 @@
 class Batch < ApplicationRecord
   include InventoryStatistics
 
-  belongs_to :inventory
+  belongs_to :inventory, counter_cache: true
 
   # バリデーション
   validates :lot_code, presence: true
