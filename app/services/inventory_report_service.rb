@@ -132,6 +132,7 @@ class InventoryReportService
     end
 
     def calculate_low_stock_items
+      # バッチの数量に基づく低在庫判定
       Inventory.joins(:batches)
                .where("batches.quantity <= ?", LOW_STOCK_THRESHOLD)
                .distinct
@@ -150,6 +151,9 @@ class InventoryReportService
     end
 
     def calculate_average_quantity
+      total_items = calculate_total_items
+      return 0 if total_items.zero?
+
       Inventory.average(:quantity)&.round(2) || 0
     end
 
@@ -196,15 +200,22 @@ class InventoryReportService
 
     def calculate_inventory_health_score
       # 在庫健全性スコア（100点満点）
+      total_items = calculate_total_items
+
+      # データが存在しない場合は50点（中立スコア）を返す
+      return 50.0 if total_items.zero?
+
       scores = []
 
       # 在庫バランススコア（40点）
-      low_stock_ratio = calculate_low_stock_items.to_f / calculate_total_items
+      low_stock_count = calculate_low_stock_items
+      low_stock_ratio = low_stock_count.to_f / total_items
       balance_score = [ 40 - (low_stock_ratio * 40), 0 ].max
       scores << balance_score
 
       # 価値効率スコア（30点）
-      high_value_ratio = calculate_high_value_items.to_f / calculate_total_items
+      high_value_count = calculate_high_value_items
+      high_value_ratio = high_value_count.to_f / total_items
       value_score = [ high_value_ratio * 30, 30 ].min
       scores << value_score
 
@@ -222,6 +233,8 @@ class InventoryReportService
 
     def calculate_value_distribution
       # 価値分布の分析
+      total_items = calculate_total_items
+
       ranges = [
         { min: 0, max: 1000, label: "低価格帯" },
         { min: 1000, max: 5000, label: "中価格帯" },
@@ -236,12 +249,14 @@ class InventoryReportService
           Inventory.where("price BETWEEN ? AND ?", range[:min], range[:max] - 1).count
         end
 
+        percentage = total_items.zero? ? 0.0 : (count.to_f / total_items * 100).round(2)
+
         {
           label: range[:label],
           min: range[:min],
           max: range[:max] == Float::INFINITY ? nil : range[:max],
           count: count,
-          percentage: (count.to_f / calculate_total_items * 100).round(2)
+          percentage: percentage
         }
       end
     end

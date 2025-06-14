@@ -28,7 +28,7 @@ RSpec.describe InventoryReportService, type: :service do
 
   let(:target_month) { Date.current.beginning_of_month }
   let!(:inventories) { create_list(:inventory, 15, price: 1000, quantity: 20) }
-  let!(:high_value_inventories) { create_list(:inventory, 3, price: 15000, quantity: 5) }
+  let!(:high_value_inventories) { create_list(:inventory, 3, price: 15000, quantity: 15) }
   let!(:low_stock_inventories) { create_list(:inventory, 5, quantity: 8) } # LOW_STOCK_THRESHOLD以下
 
   before do
@@ -44,7 +44,7 @@ RSpec.describe InventoryReportService, type: :service do
 
     # 高価値在庫のバッチ作成
     high_value_inventories.each do |inventory|
-      create(:batch, inventory: inventory, quantity: 5)
+      create(:batch, inventory: inventory, quantity: 15)
     end
   end
 
@@ -236,6 +236,7 @@ RSpec.describe InventoryReportService, type: :service do
         expect(result[:low_stock_items]).to eq(0)
         expect(result[:high_value_items]).to eq(0)
         expect(result[:average_quantity]).to eq(0)
+        expect(result[:inventory_health_score]).to eq(50.0) # データが存在しない場合の中立スコア
       end
     end
 
