@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_09_134552) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_13_234603) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -90,6 +90,21 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_09_134552) do
     t.index ["inventory_id"], name: "index_batches_on_inventory_id"
   end
 
+  create_table "identities", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.bigint "admin_id", null: false
+    t.string "provider", null: false
+    t.string "uid", null: false
+    t.string "name"
+    t.string "email"
+    t.string "image_url"
+    t.json "raw_info"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["admin_id", "provider"], name: "index_identities_on_admin_id_and_provider", unique: true
+    t.index ["admin_id"], name: "index_identities_on_admin_id"
+    t.index ["provider", "uid"], name: "index_identities_on_provider_and_uid", unique: true
+  end
+
   create_table "inventories", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.integer "quantity", default: 0, null: false
@@ -139,6 +154,41 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_09_134552) do
     t.index ["inventory_id"], name: "index_receipts_on_inventory_id"
   end
 
+  create_table "report_files", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.string "report_type", null: false, comment: "レポート種別 (monthly_summary, inventory_analysis)"
+    t.string "file_format", null: false, comment: "ファイル形式 (excel, pdf)"
+    t.date "report_period", null: false, comment: "レポート対象期間 (YYYY-MM-01形式)"
+    t.string "file_name", null: false, comment: "ファイル名"
+    t.string "file_path", null: false, comment: "ファイル保存パス"
+    t.string "storage_type", default: "local", null: false, comment: "保存場所 (local, s3, gcs)"
+    t.bigint "file_size", comment: "ファイルサイズ（バイト）"
+    t.string "file_hash", comment: "ファイルハッシュ値（整合性確認用）"
+    t.bigint "admin_id", null: false, comment: "生成実行者"
+    t.json "generation_metadata", comment: "生成時のメタデータ（実行時間、パラメータ等）"
+    t.datetime "generated_at", null: false, comment: "ファイル生成日時"
+    t.integer "download_count", default: 0, comment: "ダウンロード回数"
+    t.datetime "last_accessed_at", comment: "最終アクセス日時"
+    t.integer "email_delivery_count", default: 0, comment: "メール配信回数"
+    t.datetime "last_delivered_at", comment: "最終配信日時"
+    t.string "retention_policy", default: "standard", comment: "保持ポリシー (standard, extended, permanent)"
+    t.date "expires_at", comment: "保持期限日"
+    t.string "status", default: "active", comment: "ファイル状態 (active, archived, deleted)"
+    t.datetime "archived_at", comment: "アーカイブ日時"
+    t.datetime "deleted_at", comment: "削除日時"
+    t.string "checksum_algorithm", default: "sha256", comment: "チェックサム算出アルゴリズム"
+    t.text "notes", comment: "管理者メモ"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["admin_id"], name: "idx_report_files_admin_id"
+    t.index ["admin_id"], name: "index_report_files_on_admin_id"
+    t.index ["file_format", "status"], name: "idx_report_files_format_status"
+    t.index ["generated_at"], name: "idx_report_files_generated_at"
+    t.index ["last_accessed_at"], name: "idx_report_files_last_access"
+    t.index ["report_type", "file_format", "report_period", "status"], name: "idx_report_files_unique_active", unique: true
+    t.index ["report_type", "report_period"], name: "idx_report_files_type_period"
+    t.index ["status", "expires_at"], name: "idx_report_files_cleanup"
+  end
+
   create_table "shipments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "quantity"
@@ -159,7 +209,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_09_134552) do
   add_foreign_key "admin_notification_settings", "admins"
   add_foreign_key "audit_logs", "admins", column: "user_id", on_delete: :nullify
   add_foreign_key "batches", "inventories", on_delete: :cascade
+  add_foreign_key "identities", "admins"
   add_foreign_key "inventory_logs", "inventories"
   add_foreign_key "receipts", "inventories"
+  add_foreign_key "report_files", "admins"
   add_foreign_key "shipments", "inventories"
 end

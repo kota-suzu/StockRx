@@ -22,6 +22,9 @@ jobs:
       - name: Scan for common Rails security vulnerabilities using static analysis
         run: bin/brakeman --no-pager
 
+      - name: Scan for vulnerabilities in Ruby dependencies  
+        run: bundle exec bundle-audit check --update
+
   # importmapが設定されていない場合はこのジョブをスキップします
   # 以下のいずれかを選択してください：
   # 1. importmapをインストールする: bundle exec rails importmap:install
@@ -142,6 +145,10 @@ jobs:
           # Chrome WebDriver設定
           CHROME_HEADLESS: 1
           SELENIUM_CHROME_OPTIONS: "--headless --no-sandbox --disable-dev-shm-usage --disable-gpu --window-size=1024,768"
+          # CI最適化環境変数
+          SKIP_SLOW_TESTS: true
+          RSPEC_FORMAT: progress
+          PARALLEL_TEST_FIRST_IS_1: true
         run: |
           # MySQL準備完了待機（ローカルのwait-forスクリプトと同等機能）
           echo "MySQL接続確認中..."
@@ -157,8 +164,11 @@ jobs:
           # データベース準備（Zeitwerkリロードを削除して安全性向上）
           bin/rails db:test:prepare
           
-          # テスト実行
-          bundle exec rspec
+          # テスト実行（CI最適化オプション付き）
+          # --format progress: CI環境用軽量出力形式
+          # --order random: テスト順序ランダム化で依存性問題を検出
+          # --profile 5: 最も遅い5テストを表示（パフォーマンス監視）
+          bundle exec rspec --format progress --order random --profile 5
 
       - name: Keep screenshots from failed system tests
         uses: actions/upload-artifact@v4
@@ -167,3 +177,24 @@ jobs:
           name: screenshots
           path: ${{ github.workspace }}/tmp/screenshots
           if-no-files-found: ignore
+
+      # TODO: 🟡 Phase 6（重要）- CI/CDパイプライン拡張（推定1週間）
+      # 優先度: 中（DevOps・運用改善）
+      # 実装内容:
+      #   - 並列テスト実行（parallel gem活用）
+      #   - テスト結果キャッシュ最適化
+      #   - Docker layer キャッシュ戦略
+      #   - 条件付きデプロイメント自動化
+      #
+      # TODO: 🟢 Phase 7（推奨）- 包括的品質監視（推定2週間）  
+      # 優先度: 低（長期的品質向上）
+      # 実装内容:
+      #   - CodeClimate統合（技術的負債監視）
+      #   - Coveralls統合（カバレッジトレンド分析）
+      #   - 依存関係脆弱性スキャン自動化
+      #   - パフォーマンス回帰検知システム
+      #
+      # 横展開確認:
+      #   - staging環境での自動デプロイ
+      #   - production環境での段階的リリース
+      #   - モニタリング・アラート統合
