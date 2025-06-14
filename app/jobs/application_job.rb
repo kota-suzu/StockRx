@@ -5,6 +5,32 @@ class ApplicationJob < ActiveJob::Base
   include SecureLogging
 
   # ============================================
+  # セキュアロギング設定（クラス変数）
+  # ============================================
+  
+  # セキュアロギング機能の有効/無効を制御
+  # @note デフォルトはtrue（セキュリティファースト）
+  @@secure_logging_enabled = true
+  
+  # クラスメソッド: セキュアロギング有効状態の取得
+  # @return [Boolean] セキュアロギングが有効かどうか
+  def self.secure_logging_enabled
+    @@secure_logging_enabled
+  end
+  
+  # クラスメソッド: セキュアロギング有効状態の設定
+  # @param value [Boolean] セキュアロギングの有効/無効
+  def self.secure_logging_enabled=(value)
+    @@secure_logging_enabled = !!value  # 真偽値に強制変換
+  end
+  
+  # インスタンスメソッド: セキュアロギング有効状態の取得
+  # @return [Boolean] セキュアロギングが有効かどうか
+  def secure_logging_enabled?
+    self.class.secure_logging_enabled
+  end
+
+  # ============================================
   # Sidekiq Configuration for Background Jobs
   # ============================================
   # 要求仕様：3回リトライでエラーハンドリング強化
@@ -104,6 +130,8 @@ class ApplicationJob < ActiveJob::Base
   # @param args [Array] ジョブの引数配列
   # @return [Array] サニタイズ済み引数配列
   def sanitize_arguments(args)
+    # セキュアロギングが無効な場合は元の引数をそのまま返す
+    return args unless secure_logging_enabled?
     return args unless defined?(SecureArgumentSanitizer)
 
     # パフォーマンス監視開始
