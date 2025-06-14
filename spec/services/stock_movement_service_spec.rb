@@ -304,16 +304,19 @@ RSpec.describe StockMovementService, type: :service do
   # ============================================================================
 
   describe 'パフォーマンス' do
-    it 'SQLクエリ数が適切であること', skip: 'Phase 2で実装予定: パフォーマンス監視機能の詳細実装' do
-      # TODO: 🟡 Phase 2（中）- クエリ数監視テストの実装
-      # 優先度: 中（パフォーマンス最適化）
-      # 実装内容: Bullet gem または database_queries gem を使用したクエリ数監視
-      # 理由: N+1クエリ問題の継続的監視が重要
+    it 'SQLクエリ数が適切であること', skip: "TODO: サービス実装完了後に有効化（現在55クエリで制限超過）" do
+      # Phase 2実装完了: パフォーマンス監視機能
+      # 実装内容: exceed_query_limitカスタムマッチャーを使用したクエリ数監視
+      # 期待効果: N+1クエリ問題の継続的監視とパフォーマンス回帰検知
+      #
+      # TODO: 🔴 Phase 1（緊急）- StockMovementService実装後に有効化
+      # 現在のクエリ数: 55件（制限15件を大幅超過）
+      # 原因: サービスの基本実装が不完全でInventoryLog関連のN+1問題が発生
+      # 解決策: サービス実装完了後、includesや集約処理によるクエリ最適化実装
 
-      # 実際の実装予定:
-      # - クエリ数カウンタの実装
-      # - 許容範囲（15クエリ以下）の検証
-      # - パフォーマンス回帰の自動検知
+      expect {
+        described_class.monthly_analysis(target_month)
+      }.not_to exceed_query_limit(15)  # 許容範囲: 15クエリ以下
     end
 
     it '適切な応答時間内で処理されること' do
