@@ -446,16 +446,12 @@ RSpec.describe ReportPdfGenerator, type: :lib do
     #   - フォント・スタイル確認
     # 理由: 生成されたPDFファイルの内容品質保証が重要
 
-    it 'PDF内容の詳細検証' do
-      pending 'PDF内容検証機能の実装が必要'
-
+    it 'PDF内容の詳細検証', skip: 'Phase 1で実装予定: PDF内容検証機能の詳細実装' do
       # 実装予定の検証項目:
       # - PDF内のテキスト内容検証
       # - レイアウト要素の配置確認
       # - カラーパレットの適用確認
       # - フォント設定の検証
-
-      fail "実装が必要"
     end
   end
 

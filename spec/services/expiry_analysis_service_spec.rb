@@ -407,14 +407,11 @@ RSpec.describe ExpiryAnalysisService, type: :service do
   # ============================================================================
 
   describe 'パフォーマンス' do
-    it 'SQLクエリ数が適切であること' do
+    it 'SQLクエリ数が適切であること', skip: 'Phase 2で実装予定: クエリ数監視機能の詳細実装' do
       # TODO: 🟡 Phase 2（中）- クエリ数監視テストの実装
       # 優先度: 中（パフォーマンス最適化）
       # 実装内容: Bullet gem または database_queries gem を使用したクエリ数監視
       # 理由: 複雑な期限切れ分析でのN+1問題防止
-
-      pending "クエリ数監視機能の実装が必要"
-      fail "Not implemented yet"
     end
 
     it '適切な応答時間内で処理されること' do
