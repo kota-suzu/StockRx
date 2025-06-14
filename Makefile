@@ -261,15 +261,24 @@ test-github:
 	  -e CAPYBARA_SERVER_PORT=3001 \
 	  -e CHROME_HEADLESS=1 \
 	  -e SELENIUM_CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu --window-size=1024,768" \
-	  web bundle exec rspec --format progress
-	@echo ""
-	@echo "=== CI成功判定：Failureがなければ成功 ==="
-	@echo "✅ テスト完了: Pendingテストは開発予定機能のため、CI成功条件に影響しません"
-	@echo ""
-	@echo "🎯 メタ認知的確認："
-	@echo "   - 実装済み機能: すべてのテストが成功"  
-	@echo "   - Pending機能: 将来実装予定（CLAUDE.mdのTODOリスト参照）"
-	@echo "   - 横展開状況: 同様のCI成功基準を他のプロジェクトでも適用可能"
+	  web bundle exec rspec --format progress; \
+	  RSPEC_EXIT_CODE=$$?; \
+	  echo ""; \
+	  echo "=== CI成功判定：Failureがなければ成功 ==="; \
+	  if [ $$RSPEC_EXIT_CODE -eq 0 ]; then \
+	    echo "✅ テスト完了: すべてのテストが成功しました"; \
+	    echo ""; \
+	    echo "🎯 メタ認知的確認："; \
+	    echo "   - 実装済み機能: すべてのテストが成功"; \
+	    echo "   - Pending機能: 将来実装予定（CLAUDE.mdのTODOリスト参照）"; \
+	    echo "   - 横展開状況: 同様のCI成功基準を他のプロジェクトでも適用可能"; \
+	    exit 0; \
+	  else \
+	    echo "❌ テスト失敗: RSpecが failures を検出しました"; \
+	    echo "   Exit Code: $$RSPEC_EXIT_CODE"; \
+	    echo "   修正後に再実行してください"; \
+	    exit $$RSPEC_EXIT_CODE; \
+	  fi
 
 # 従来のセキュリティスキャン
 security-scan:

@@ -15,7 +15,7 @@ require 'rails_helper'
 #   - format_log_datetime(datetime) - ログ日時のフォーマット
 #   - operation_badge_class(action) - 操作タイプ別のCSSクラス
 #   - quantity_change_display(before, after) - 数量変更の差分表示
-# 
+#
 # TODO: 🟠 Phase 2（重要）- 高度なヘルパー機能（推定1日）
 # 優先度: 中（ユーザビリティ向上）
 # 実装内容:
@@ -66,7 +66,7 @@ RSpec.describe InventoryLogsHelper, type: :helper do
       pending "TODO: 不明なactionの場合の 'badge badge-secondary' をテスト"
     end
 
-    # TODO: 🔴 Phase 1 - quantity_change_display メソッドのテスト  
+    # TODO: 🔴 Phase 1 - quantity_change_display メソッドのテスト
     context "#quantity_change_display" do
       pending "TODO: quantity_change_display(10, 15) -> '+5' を返すことをテスト"
       pending "TODO: quantity_change_display(20, 18) -> '-2' を返すことをテスト"

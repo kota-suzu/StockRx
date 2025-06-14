@@ -73,7 +73,7 @@ RSpec.describe "AdminControllers::InventoryLogs", type: :request do
       pending "TODO: ページネーション（Kaminari）が正常に動作することをテスト"
       pending "TODO: デフォルトソート（作成日時降順）が適用されることをテスト"
       pending "TODO: 空データの場合の適切な表示をテスト"
-      
+
       # TODO: 🔴 Phase 1 - JSON API対応
       context "JSON APIリクエスト" do
         pending "TODO: Accept: application/json で JSON レスポンスを返すことをテスト"
@@ -163,7 +163,7 @@ RSpec.describe "AdminControllers::InventoryLogs", type: :request do
     end
 
     # TODO: 🟡 Phase 3 - PDF レポート
-    describe "PDF レポート" do  
+    describe "PDF レポート" do
       pending "TODO: GET /admin/inventory_logs.pdf で PDF ファイルが生成されることをテスト"
       pending "TODO: PDF レイアウト（ヘッダー、フッター、ページ番号）のテスト"
       pending "TODO: 日本語フォント対応のテスト"
