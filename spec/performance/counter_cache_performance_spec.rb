@@ -6,6 +6,27 @@ require 'rails_helper'
 #
 # このテストはN+1問題の解決とCounter Cacheの効果を検証します。
 # Counter Cacheが正しく動作し、パフォーマンスが向上していることを確認します。
+#
+# TODO: 🟡 Phase 8（重要）- 包括的パフォーマンステスト拡張（推定1週間）
+# 優先度: 中（スケーラビリティ確保）
+# 実装内容:
+#   - 大量データ（10万件以上）でのパフォーマンステスト
+#   - メモリ使用量プロファイリング（memory_profiler gem）
+#   - データベースクエリプランanalysis
+#   - レスポンス時間閾値監視（< 100ms目標）
+#
+# TODO: 🟢 Phase 9（推奨）- APM統合とリアルタイム監視（推定2週間）
+# 優先度: 低（運用最適化）
+# 実装内容:
+#   - New Relic/DataDog統合
+#   - 自動パフォーマンス回帰検知
+#   - ユーザー体験監視（Real User Monitoring）
+#   - 負荷テスト自動化（JMeter/k6統合）
+#
+# 横展開確認:
+#   - 他の重要エンドポイントでの同様のテスト
+#   - API応答時間とUI応答時間の相関分析
+#   - キャッシュ戦略効果の定量的評価
 RSpec.describe 'Counter Cache Performance', type: :performance do
   # テストデータを分離するため、before(:all)でクリーンアップ
   before(:all) do

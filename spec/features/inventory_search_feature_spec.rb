@@ -65,6 +65,27 @@ RSpec.feature 'Inventory Search', type: :feature do
   before do
     skip "CI環境ではFeatureテストをスキップ" if ENV['CI'].present?
   end
+
+  # TODO: 🟡 Phase 4（重要）- JavaScript テスト専用環境構築（推定1週間）
+  # 優先度: 中（品質向上・E2E テスト強化）
+  # 実装内容:
+  #   - 専用GitHub Actions workflow作成（e2e-tests.yml）
+  #   - Docker Compose E2E環境セットアップ
+  #   - Headless Chrome安定化設定
+  #   - ActionCable WebSocket接続問題解決
+  #
+  # TODO: 🟢 Phase 5（推奨）- E2E テスト拡張（推定2週間）
+  # 優先度: 低（長期的品質向上）
+  # 実装内容:
+  #   - Page Object Modelパターン導入
+  #   - クロスブラウザテスト対応（Firefox、Safari）
+  #   - モバイルビューポートテスト
+  #   - パフォーマンステスト統合（Lighthouse等）
+  #
+  # 横展開確認:
+  #   - 他feature testファイルでの同様のTODO追加
+  #   - CSV import、inventory管理等の統合E2Eシナリオ
+  #   - APIテストとUIテストの連携強化
   let(:admin) { create(:admin) }
 
   before do
