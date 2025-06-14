@@ -414,8 +414,6 @@ RSpec.describe ExpiryAnalysisService, type: :service do
       # 理由: 複雑な期限切れ分析でのN+1問題防止
 
       pending "クエリ数監視機能の実装が必要"
-
-      fail "実装が必要"
     end
 
     it '適切な応答時間内で処理されること' do

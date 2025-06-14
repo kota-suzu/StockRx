@@ -316,8 +316,7 @@ RSpec.describe StockMovementService, type: :service do
       # - クエリ数カウンタの実装
       # - 許容範囲（15クエリ以下）の検証
       # - パフォーマンス回帰の自動検知
-
-      fail "実装が必要"
+      fail "Not implemented yet"
     end
 
     it '適切な応答時間内で処理されること' do
