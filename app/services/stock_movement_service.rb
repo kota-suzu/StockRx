@@ -267,7 +267,7 @@ class StockMovementService
       fast_moving_ids = identify_fast_moving_items(inventories, start_date).map { |item| item[:inventory_id] }
 
       inventories.where.not(id: fast_moving_ids)
-                .joins("LEFT JOIN inventory_logs ON inventory_logs.inventory_id = inventories.id AND inventory_logs.created_at >= '#{start_date}'")
+                .joins(sanitize_sql_array(["LEFT JOIN inventory_logs ON inventory_logs.inventory_id = inventories.id AND inventory_logs.created_at >= ?", start_date]))
                 .group("inventories.id", "inventories.name")
                 .having("COUNT(inventory_logs.id) <= ?", threshold)
                 .order("COUNT(inventory_logs.id) ASC")
@@ -296,7 +296,7 @@ class StockMovementService
 
     def calculate_movement_distribution(inventories, start_date)
       # 移動頻度の分布計算
-      movement_counts = inventories.joins("LEFT JOIN inventory_logs ON inventory_logs.inventory_id = inventories.id AND inventory_logs.created_at >= '#{start_date}'")
+      movement_counts = inventories.joins(sanitize_sql_array(["LEFT JOIN inventory_logs ON inventory_logs.inventory_id = inventories.id AND inventory_logs.created_at >= ?", start_date]))
                                  .group("inventories.id")
                                  .count("inventory_logs.id")
 
