@@ -9,7 +9,7 @@ RSpec.describe InventoryPriceAdjustmentPatch, type: :service do
   # テストデータの作成
   before do
     FactoryBot.create_list(:inventory, 5, price: 1000)
-    FactoryBot.create_list(:inventory, 3, price: 500, category: 'medicine')
+    FactoryBot.create_list(:inventory, 3, price: 500)
   end
 
   describe '.estimate_target_count' do
@@ -18,14 +18,14 @@ RSpec.describe InventoryPriceAdjustmentPatch, type: :service do
       expect(count).to eq(8) # 全8件の在庫
     end
 
-    it 'カテゴリフィルタが正しく適用される' do
-      count = described_class.estimate_target_count({ category: 'medicine' })
-      expect(count).to eq(3) # medicineカテゴリのみ
+    it '価格フィルタが正しく適用される' do
+      count = described_class.estimate_target_count({ min_price: 600 })
+      expect(count).to eq(5) # 600円以上の商品（1000円の5件）
     end
 
-    it '価格範囲フィルタが正しく適用される' do
-      count = described_class.estimate_target_count({ min_price: 600 })
-      expect(count).to eq(5) # 600円以上の商品
+    it '価格上限フィルタが正しく適用される' do
+      count = described_class.estimate_target_count({ max_price: 800 })
+      expect(count).to eq(3) # 800円以下の商品（500円の3件）
     end
   end
 
@@ -59,7 +59,7 @@ RSpec.describe InventoryPriceAdjustmentPatch, type: :service do
 
         expect(result[:count]).to be > 0
         expect(result[:finished]).to be true # 全データを処理
-        
+
         # 実際のデータは変更されていない
         expect(Inventory.where(price: 1000).count).to eq(5)
       end
@@ -67,7 +67,7 @@ RSpec.describe InventoryPriceAdjustmentPatch, type: :service do
       it 'dry_run結果がサマリーに反映される' do
         patch.execute_batch(10, 0)
         summary = patch.dry_run_summary
-        
+
         expect(summary).to include('価格調整 Dry-run 結果サマリー')
         expect(summary).to include('対象商品数: 8件')
       end
@@ -77,14 +77,14 @@ RSpec.describe InventoryPriceAdjustmentPatch, type: :service do
       let(:patch_options) { { adjustment_type: 'percentage', adjustment_value: 10, dry_run: false } }
 
       it '実際にデータが更新される' do
-        expect { patch.execute_batch(10, 0) }.to change { 
-          Inventory.where(price: 1100).count 
+        expect { patch.execute_batch(10, 0) }.to change {
+          Inventory.where(price: 1100).count
         }.from(0).to(5) # 1000円の商品が1100円に更新
       end
 
       it 'InventoryLogが作成される' do
-        expect { patch.execute_batch(10, 0) }.to change { 
-          InventoryLog.where(action: 'price_adjustment').count 
+        expect { patch.execute_batch(10, 0) }.to change {
+          InventoryLog.where(operation_type: 'adjust').count
         }.by(8)
       end
     end
@@ -109,7 +109,9 @@ RSpec.describe InventoryPriceAdjustmentPatch, type: :service do
       end
 
       it '負の価格にならない' do
-        new_price = patch.send(:calculate_new_price, 50)
+        # -200円の調整（50円商品が負にならないよう0円に制限）
+        negative_patch = described_class.new({ adjustment_type: 'fixed_amount', adjustment_value: -200 })
+        new_price = negative_patch.send(:calculate_new_price, 50)
         expect(new_price).to eq(0) # 最低0円
       end
     end
@@ -140,7 +142,7 @@ RSpec.describe InventoryPriceAdjustmentPatch, type: :service do
 
     it 'execution_statisticsが正しく計算される' do
       stats = patch.execution_statistics
-      
+
       expect(stats[:total_processed]).to eq(8)
       expect(stats[:adjustment_type]).to eq('percentage')
       expect(stats[:adjustment_value]).to eq(10)
@@ -150,11 +152,11 @@ RSpec.describe InventoryPriceAdjustmentPatch, type: :service do
 
     it 'dry_run_summaryが正しく生成される' do
       summary = patch.dry_run_summary
-      
+
       expect(summary).to include('対象商品数: 8件')
-      expect(summary).to include('調整前合計金額: 6,500円')
-      expect(summary).to include('調整後合計金額: 7,150円')
-      expect(summary).to include('差額: +650円')
+      expect(summary).to include('調整前合計金額: 6,500')
+      expect(summary).to include('調整後合計金額: 7,150')
+      expect(summary).to include('差額: +650')
     end
   end
 
@@ -166,12 +168,12 @@ RSpec.describe InventoryPriceAdjustmentPatch, type: :service do
         # 特定の在庫でエラーを発生させる
         inventory = Inventory.first
         allow(inventory).to receive(:update!).and_raise(ActiveRecord::RecordInvalid)
-        allow(Inventory).to receive_message_chain(:where, :limit, :offset, :includes).and_return([inventory])
+        allow(Inventory).to receive_message_chain(:where, :limit, :offset, :includes).and_return([ inventory ])
       end
 
       it 'エラーが記録され、処理が継続される' do
         result = patch.execute_batch(1, 0)
-        
+
         expect(result[:records].first[:success]).to be false
         expect(result[:records].first[:error]).to be_present
       end
@@ -211,7 +213,7 @@ RSpec.describe InventoryPriceAdjustmentPatch, type: :service do
 
     it 'メタデータが正しく設定されている' do
       metadata = DataPatchRegistry.patch_metadata('inventory_price_adjustment')
-      
+
       expect(metadata[:description]).to include('価格一括調整')
       expect(metadata[:category]).to eq('inventory')
       expect(metadata[:target_tables]).to include('inventories')
@@ -229,7 +231,7 @@ RSpec.describe InventoryPriceAdjustmentPatch, type: :service do
     it '大量データでも適切な時間で完了する', :performance do
       # 大量データ作成（1000件）
       FactoryBot.create_list(:inventory, 1000, price: 1000)
-      
+
       start_time = Time.current
       patch.execute_batch(100, 0) # 100件ずつ処理
       execution_time = Time.current - start_time

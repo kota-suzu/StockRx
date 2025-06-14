@@ -106,7 +106,7 @@ RSpec.describe BatchProcessor, type: :service do
     context '動的バッチサイズの場合' do
       it 'カスタムバッチサイズ計算が適用される' do
         dynamic_batch_size = ->(processed_count) { processed_count < 10 ? 5 : 15 }
-        
+
         batch_sizes = []
         processor.process_with_custom_control(dynamic_batch_size: dynamic_batch_size) do |batch_size, offset|
           batch_sizes << batch_size
@@ -135,10 +135,10 @@ RSpec.describe BatchProcessor, type: :service do
       it 'メモリ使用量に応じてバッチサイズが調整される' do
         batch_sizes = []
         call_count = 0
-        
+
         # メモリ制限チェックを一時的に無効化
         allow(processor).to receive(:check_memory_usage)
-        
+
         # メモリ使用量を段階的に増加させる
         allow(processor).to receive(:current_memory_usage) do
           call_count += 1
@@ -148,7 +148,7 @@ RSpec.describe BatchProcessor, type: :service do
           else 85.0           # 85% - 50%サイズ
           end
         end
-        
+
         processor.process_with_custom_control(memory_adaptive: true) do |batch_size, offset|
           batch_sizes << batch_size
           batch = test_data[offset, batch_size]
@@ -170,11 +170,11 @@ RSpec.describe BatchProcessor, type: :service do
         # GetProcessMemクラスを定義してモック
         process_mem_instance = double('GetProcessMemInstance')
         allow(process_mem_instance).to receive(:mb).and_return(256.5)
-        
+
         get_process_mem_class = Class.new do
           define_singleton_method(:new) { process_mem_instance }
         end
-        
+
         stub_const('GetProcessMem', get_process_mem_class)
       end
 
@@ -236,7 +236,7 @@ RSpec.describe BatchProcessor, type: :service do
   describe '終了条件判定' do
     it 'Array型の場合は空配列で終了' do
       expect(processor.send(:batch_finished?, [])).to be true
-      expect(processor.send(:batch_finished?, [1, 2, 3])).to be false
+      expect(processor.send(:batch_finished?, [ 1, 2, 3 ])).to be false
     end
 
     it 'Hash型の場合はcountが0で終了' do
@@ -276,7 +276,7 @@ RSpec.describe BatchProcessor, type: :service do
   describe 'パフォーマンスベンチマーク' do
     it '1万件処理が適切な時間で完了する', :performance do
       large_data = Array.new(10000) { |i| "item_#{i}" }
-      
+
       start_time = Time.current
       processor.process_with_monitoring do |batch_size, offset|
         batch = large_data[offset, batch_size]

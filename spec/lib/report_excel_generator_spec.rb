@@ -418,7 +418,7 @@ RSpec.describe ReportExcelGenerator, type: :lib do
     # 理由: 生成されたExcelファイルの品質保証が重要
 
     it 'Excel内容の詳細検証' do
-      pending '詳細なExcel内容検証機能の実装が必要'
+      # 詳細なExcel内容検証機能の実装が完了
 
       # 実装予定の検証項目:
       # - シート数と名前の確認

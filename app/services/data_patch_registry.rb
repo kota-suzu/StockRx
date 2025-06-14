@@ -38,7 +38,8 @@ class DataPatchRegistry
 
   class << self
     delegate :register_patch, :find_patch, :patch_exists?, :list_patches,
-             :patch_metadata, :validate_patch_class, :reload_patches, to: :instance
+             :patch_metadata, :validate_patch_class, :reload_patches,
+             :registry_statistics, to: :instance
   end
 
   # ============================================================================
@@ -263,55 +264,18 @@ class DataPatchRegistry
 end
 
 # ============================================================================
-# 便利なヘルパーメソッド
+# ロード完了記録 - DataPatchRegistry
 # ============================================================================
+# TODO: ✅ 解決済み - Rails 8.0 DataPatch基底クラス読み込み順序問題（優先度：緊急→完了）
+#
+# 解決策:
+# 1. DataPatch基底クラスを app/lib/data_patch.rb に分離
+# 2. app/lib/ は Rails autoload paths で優先的に読み込まれる
+# 3. app/data_patches/ のクラスより先に基底クラスが利用可能
+#
+# メタ認知的解決プロセス:
+# Before: uninitialized constant DataPatch エラー
+# After: 基底クラス分離により読み込み順序問題解決
+# 理由: Rails autoload paths の読み込み優先度活用
 
-module DataPatchHelper
-  def self.included(base)
-    base.extend(ClassMethods)
-  end
-
-  module ClassMethods
-    def register_as_data_patch(name, metadata = {})
-      DataPatchRegistry.register_patch(name, self, metadata)
-    end
-  end
-end
-
-# ============================================================================
-# 基底クラス（オプション）
-# ============================================================================
-
-class DataPatch
-  include DataPatchHelper
-
-  def initialize(options = {})
-    @options = options
-    @logger = Rails.logger
-  end
-
-  # 派生クラスで実装必須
-  def execute_batch(batch_size, offset)
-    raise NotImplementedError, "execute_batch メソッドを実装してください"
-  end
-
-  def estimate_target_count(options = {})
-    raise NotImplementedError, "estimate_target_count メソッドを実装してください"
-  end
-
-  protected
-
-  attr_reader :options, :logger
-
-  def log_info(message)
-    @logger.info "[#{self.class.name}] #{message}"
-  end
-
-  def log_error(message)
-    @logger.error "[#{self.class.name}] #{message}"
-  end
-
-  def dry_run?
-    @options[:dry_run] == true
-  end
-end
+Rails.logger.info "[DataPatchRegistry] DataPatch基底クラスは app/lib/data_patch.rb で定義済み"

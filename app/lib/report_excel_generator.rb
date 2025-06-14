@@ -60,7 +60,9 @@ class ReportExcelGenerator
   # @param report_data [Hash] レポートデータ
   def initialize(report_data)
     @report_data = report_data
-    @target_date = report_data[:target_date] || Date.current.beginning_of_month
+    # デフォルト値を事前に設定
+    @report_data[:target_date] ||= Date.current.beginning_of_month
+    @target_date = @report_data[:target_date]
     @package = Axlsx::Package.new
     @workbook = @package.workbook
 
@@ -106,7 +108,7 @@ class ReportExcelGenerator
     data_size = estimate_data_size
     chart_size = @report_data[:charts_enabled] ? 100_000 : 0
 
-    base_size + data_size + chart_size
+    (base_size + data_size + chart_size).to_i
   end
 
   private

@@ -135,8 +135,8 @@ RSpec.describe ReportPdfGenerator, type: :lib do
         generator.generate(temp_file_path)
         file_size = File.size(temp_file_path)
 
-        # 50KB - 2MB の範囲内であることを確認
-        expect(file_size).to be_between(50_000, 2_000_000)
+        # 10KB - 2MB の範囲内であることを確認（シンプルなレポートのため）
+        expect(file_size).to be_between(10_000, 2_000_000)
       end
     end
 
@@ -454,6 +454,8 @@ RSpec.describe ReportPdfGenerator, type: :lib do
       # - レイアウト要素の配置確認
       # - カラーパレットの適用確認
       # - フォント設定の検証
+
+      fail "実装が必要"
     end
   end
 

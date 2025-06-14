@@ -29,7 +29,7 @@ class StockMovementService
   # ============================================================================
   # 定数定義
   # ============================================================================
-  MOVEMENT_TYPES = %w[received sold adjusted returned damaged].freeze
+  MOVEMENT_TYPES = %w[add remove adjust ship receive].freeze
   ANALYSIS_PERIOD_DAYS = 30
   HIGH_ACTIVITY_THRESHOLD = 10
 
@@ -145,7 +145,7 @@ class StockMovementService
       InventoryLog.joins(:inventory)
                  .where(created_at: start_date..end_date)
                  .group(:inventory_id, "inventories.name")
-                 .order("COUNT(*) DESC")
+                 .order(Arel.sql("COUNT(*) DESC"))
                  .limit(limit)
                  .count
                  .map do |key, count|
@@ -267,7 +267,8 @@ class StockMovementService
       fast_moving_ids = identify_fast_moving_items(inventories, start_date).map { |item| item[:inventory_id] }
 
       inventories.where.not(id: fast_moving_ids)
-                .joins(sanitize_sql_array([ "LEFT JOIN inventory_logs ON inventory_logs.inventory_id = inventories.id AND inventory_logs.created_at >= ?", start_date ]))
+                .left_joins(:inventory_logs)
+                .where(inventory_logs: { created_at: start_date.. })
                 .group("inventories.id", "inventories.name")
                 .having("COUNT(inventory_logs.id) <= ?", threshold)
                 .order("COUNT(inventory_logs.id) ASC")
@@ -296,7 +297,8 @@ class StockMovementService
 
     def calculate_movement_distribution(inventories, start_date)
       # 移動頻度の分布計算
-      movement_counts = inventories.joins(sanitize_sql_array([ "LEFT JOIN inventory_logs ON inventory_logs.inventory_id = inventories.id AND inventory_logs.created_at >= ?", start_date ]))
+      movement_counts = inventories.left_joins(:inventory_logs)
+                                 .where(inventory_logs: { created_at: start_date.. })
                                  .group("inventories.id")
                                  .count("inventory_logs.id")
 
@@ -339,7 +341,7 @@ class StockMovementService
                      id: log.id,
                      inventory_name: log.inventory.name,
                      operation_type: log.operation_type,
-                     quantity_change: log.quantity_change,
+                     quantity_change: log.delta,
                      created_at: log.created_at,
                      time_ago: time_ago_in_words(log.created_at)
                    }

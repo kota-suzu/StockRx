@@ -219,9 +219,14 @@ FactoryBot.define do
     end
 
     trait :without_physical_file do
-      after(:build) do |report_file|
-        # ファイルパスは設定するが実際のファイルは作成しない
+      # ファイル作成をスキップするため、基本のbefore(:create)を無効化
+      before(:create) { |report_file| nil } # 何もしない
+
+      after(:create) do |report_file|
+        # 念のため、存在する場合は削除
         File.delete(report_file.file_path) if File.exist?(report_file.file_path)
+        # ファイルサイズとハッシュも無効化
+        report_file.update_columns(file_size: nil, file_hash: nil)
       end
     end
 

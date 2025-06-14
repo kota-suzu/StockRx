@@ -16,14 +16,9 @@ class BatchExpiryUpdatePatch < DataPatch
   # クラスレベル設定とメタデータ
   # ============================================================================
 
-  register_as_data_patch "batch_expiry_update", {
-    description: "期限切れバッチの状態更新とクリーンアップ処理",
-    category: "maintenance",
-    target_tables: [ "batches", "inventory_logs" ],
-    estimated_records: 50000,
-    memory_limit: 512,
-    batch_size: 1000
-  }
+  # TODO: ✅ Rails 8.0対応 - パッチ登録を config/initializers/data_patch_registration.rb に移動
+  # 理由: eager loading時の DataPatch基底クラス読み込み順序問題の回避
+  # 登録情報は data_patch_registration.rb で管理
 
   # ============================================================================
   # クラスメソッド

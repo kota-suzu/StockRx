@@ -11,20 +11,15 @@
 
 class InventoryPriceAdjustmentPatch < DataPatch
   include DataPatchHelper
+  include ActionView::Helpers::NumberHelper
 
   # ============================================================================
   # クラスレベル設定とメタデータ
   # ============================================================================
 
-  # パッチの自動登録
-  register_as_data_patch "inventory_price_adjustment", {
-    description: "在庫商品の価格一括調整（消費税率変更・仕入れ価格変動対応）",
-    category: "inventory",
-    target_tables: [ "inventories" ],
-    estimated_records: 100000,
-    memory_limit: 1024,
-    batch_size: 2000
-  }
+  # TODO: ✅ Rails 8.0対応 - パッチ登録を config/initializers/data_patch_registration.rb に移動
+  # 理由: eager loading時の DataPatch基底クラス読み込み順序問題の回避
+  # 登録情報は data_patch_registration.rb で管理
 
   # ============================================================================
   # クラスメソッド（DataPatchRegistry用）
@@ -38,10 +33,11 @@ class InventoryPriceAdjustmentPatch < DataPatch
   def self.build_target_conditions(options)
     conditions = {}
 
-    # カテゴリフィルタ
-    if options[:category].present?
-      conditions[:category] = options[:category]
-    end
+    # TODO: ✅ 修正済み - Inventoryモデルにcategoryカラム未存在のため削除
+    # 将来的にcategoryカラムが追加された場合は以下のコードを有効化:
+    # if options[:category].present?
+    #   conditions[:category] = options[:category]
+    # end
 
     # 価格範囲フィルタ
     if options[:min_price].present?
@@ -177,18 +173,15 @@ class InventoryPriceAdjustmentPatch < DataPatch
   end
 
   def create_inventory_log(inventory, old_price, new_price)
+    # InventoryLogは在庫数量の変化を記録するため、価格変更では数量変化なし
     InventoryLog.create!(
       inventory: inventory,
-      admin: Current.admin,
-      action: "price_adjustment",
-      details: {
-        old_price: old_price,
-        new_price: new_price,
-        adjustment_type: @adjustment_type,
-        adjustment_value: @adjustment_value,
-        patch_execution_id: @options[:execution_id]
-      }.to_json,
-      created_at: Time.current
+      user_id: Current.admin&.id,
+      operation_type: "adjust",  # OPERATION_TYPESに存在する値を使用
+      delta: 0,  # 価格変更では数量変化なし
+      previous_quantity: inventory.quantity,
+      current_quantity: inventory.quantity,
+      note: "価格調整: #{old_price}円 → #{new_price}円 (#{@adjustment_type}:#{@adjustment_value})"
     )
   rescue => error
     log_error "InventoryLog作成エラー: #{error.message}"
@@ -237,9 +230,9 @@ class InventoryPriceAdjustmentPatch < DataPatch
     summary = []
     summary << "=== 価格調整 Dry-run 結果サマリー ==="
     summary << "対象商品数: #{total_count}件"
-    summary << "調整前合計金額: #{total_old_amount.to_s(:delimited)}円"
-    summary << "調整後合計金額: #{total_new_amount.to_s(:delimited)}円"
-    summary << "差額: #{difference >= 0 ? '+' : ''}#{difference.to_s(:delimited)}円"
+    summary << "調整前合計金額: #{number_with_delimiter(total_old_amount)}円"
+    summary << "調整後合計金額: #{number_with_delimiter(total_new_amount)}円"
+    summary << "差額: #{difference >= 0 ? '+' : ''}#{number_with_delimiter(difference)}円"
     summary << "調整タイプ: #{@adjustment_type}"
     summary << "調整値: #{@adjustment_value}"
     summary << "=" * 50

@@ -68,7 +68,9 @@ class ReportPdfGenerator
   # @param report_data [Hash] レポートデータ
   def initialize(report_data)
     @report_data = report_data
-    @target_date = report_data[:target_date] || Date.current.beginning_of_month
+    # デフォルト値を事前に設定
+    @report_data[:target_date] ||= Date.current.beginning_of_month
+    @target_date = @report_data[:target_date]
     @document = Prawn::Document.new(
       page_size: PAGE_SIZE,
       margin: PAGE_MARGIN
@@ -128,7 +130,7 @@ class ReportPdfGenerator
   def validate_report_data!
     required_keys = %i[target_date inventory_summary]
 
-    missing_keys = required_keys.reject { |key| @report_data.key?(key) }
+    missing_keys = required_keys.reject { |key| @report_data.key?(key) && @report_data[key] }
     if missing_keys.any?
       raise DataValidationError, "Required data missing: #{missing_keys.join(', ')}"
     end
@@ -139,8 +141,24 @@ class ReportPdfGenerator
   # ============================================================================
 
   def setup_fonts
-    # デフォルトフォントの設定
-    @document.font "Helvetica"
+    # UTF-8対応フォントの設定（日本語文字対応）
+    begin
+      # DejaVu SansはUTF-8をサポートしている
+      font_path = Rails.root.join("vendor", "fonts", "DejaVuSans.ttf")
+      if File.exist?(font_path)
+        @document.font_families.update("DejaVuSans" => {
+          normal: font_path.to_s
+        })
+        @document.font "DejaVuSans"
+      else
+        # フォールバック: ASCII文字のみ使用
+        @document.font "Helvetica"
+        Rails.logger.warn "[ReportPdfGenerator] UTF-8 font not found, using Helvetica (ASCII only)"
+      end
+    rescue => e
+      @document.font "Helvetica"
+      Rails.logger.warn "[ReportPdfGenerator] Font setup failed: #{e.message}, using Helvetica"
+    end
   end
 
   # ============================================================================
@@ -152,7 +170,7 @@ class ReportPdfGenerator
       # タイトル
       @document.font "Helvetica", style: :bold, size: FONTS[:title][:size] do
         @document.fill_color "1E3A8A"
-        @document.text "StockRx 月次レポート", align: :center
+        @document.text "StockRx Monthly Report", align: :center
       end
 
       @document.move_down 10
@@ -161,8 +179,8 @@ class ReportPdfGenerator
       @document.font "Helvetica", style: :normal, size: FONTS[:body][:size] do
         @document.fill_color "000000"
 
-        period_text = "対象期間: #{@target_date.strftime('%Y年%m月')}"
-        generated_text = "作成日時: #{Time.current.strftime('%Y年%m月%d日 %H:%M')}"
+        period_text = "Period: #{@target_date.strftime('%Y/%m')}"
+        generated_text = "Generated: #{Time.current.strftime('%Y/%m/%d %H:%M')}"
 
         @document.text_box period_text, at: [ 0, @document.cursor ], width: @document.bounds.width / 2
         @document.text_box generated_text, at: [ @document.bounds.width / 2, @document.cursor ],
@@ -183,7 +201,7 @@ class ReportPdfGenerator
   def create_executive_summary
     @document.font "Helvetica", style: :bold, size: FONTS[:heading][:size] do
       @document.fill_color "1E3A8A"
-      @document.text "エグゼクティブサマリー"
+      @document.text "Executive Summary"
     end
 
     @document.move_down 10
@@ -201,7 +219,7 @@ class ReportPdfGenerator
   def create_key_metrics
     @document.font "Helvetica", style: :bold, size: FONTS[:heading][:size] do
       @document.fill_color "1E3A8A"
-      @document.text "主要指標"
+      @document.text "Key Metrics"
     end
 
     @document.move_down 15
@@ -217,28 +235,28 @@ class ReportPdfGenerator
 
     metrics = [
       {
-        label: "総アイテム数",
+        label: "Total Items",
         value: format_number(inventory_data[:total_items] || 0),
-        unit: "件",
+        unit: " items",
         change: calculate_change_indicator(:total_items),
         color: "3B82F6"
       },
       {
-        label: "総在庫価値",
+        label: "Total Value",
         value: format_currency(inventory_data[:total_value] || 0),
         unit: "",
         change: calculate_change_indicator(:total_value),
         color: "10B981"
       },
       {
-        label: "低在庫アイテム",
+        label: "Low Stock Items",
         value: format_number(inventory_data[:low_stock_items] || 0),
-        unit: "件",
+        unit: " items",
         change: calculate_change_indicator(:low_stock_items),
         color: determine_alert_color(inventory_data[:low_stock_items] || 0, 10)
       },
       {
-        label: "期限切れリスク",
+        label: "Expiry Risk",
         value: format_currency(@report_data.dig(:expiry_analysis, :expiry_value_risk) || 0),
         unit: "",
         change: calculate_change_indicator(:expiry_risk),
@@ -306,7 +324,7 @@ class ReportPdfGenerator
 
     @document.font "Helvetica", style: :bold, size: FONTS[:heading][:size] do
       @document.fill_color "1E3A8A"
-      @document.text "リスク分析"
+      @document.text "Risk Analysis"
     end
 
     @document.move_down 10
@@ -321,27 +339,27 @@ class ReportPdfGenerator
     expiry_data = @report_data[:expiry_analysis] || {}
 
     table_data = [
-      [ "期間", "件数", "推定損失額", "リスクレベル" ]
+      [ "Period", "Count", "Estimated Loss", "Risk Level" ]
     ]
 
     risk_items = [
       {
-        period: "即座（3日以内）",
+        period: "Immediate (within 3 days)",
         count: expiry_data[:expiring_immediate] || 0,
         amount: expiry_data[:immediate_value_risk] || 0,
-        level: "高"
+        level: "High"
       },
       {
-        period: "短期（1週間以内）",
+        period: "Short term (within 1 week)",
         count: expiry_data[:expiring_short_term] || 0,
         amount: expiry_data[:short_term_value_risk] || 0,
-        level: "中"
+        level: "Medium"
       },
       {
-        period: "中期（1ヶ月以内）",
+        period: "Medium term (within 1 month)",
         count: expiry_data[:expiring_next_month] || 0,
         amount: expiry_data[:medium_term_value_risk] || 0,
-        level: "低"
+        level: "Low"
       }
     ]
 
@@ -362,8 +380,7 @@ class ReportPdfGenerator
         padding: [ 5, 8 ],
         border_width: 1,
         border_color: "CCCCCC"
-      },
-      header_color: "E5E7EB"
+      }
     ) do
       # ヘッダー行のスタイル
       row(0).style(
@@ -375,13 +392,13 @@ class ReportPdfGenerator
       # リスクレベル列の色分け
       column(-1).style do |cell|
         case cell.content
-        when "高"
+        when "High"
           cell.background_color = "FEE2E2"
           cell.text_color = "DC2626"
-        when "中"
+        when "Medium"
           cell.background_color = "FEF3C7"
           cell.text_color = "D97706"
-        when "低"
+        when "Low"
           cell.background_color = "DCFCE7"
           cell.text_color = "16A34A"
         end
@@ -392,7 +409,7 @@ class ReportPdfGenerator
   def create_recommendations
     @document.font "Helvetica", style: :bold, size: FONTS[:heading][:size] do
       @document.fill_color "1E3A8A"
-      @document.text "推奨事項"
+      @document.text "Recommendations"
     end
 
     @document.move_down 10
@@ -402,9 +419,9 @@ class ReportPdfGenerator
     recommendations.each_with_index do |rec, index|
       # 優先度アイコン
       priority_color = case rec[:priority]
-      when "高" then "EF4444"
-      when "中" then "F59E0B"
-      when "低" then "10B981"
+      when "High" then "EF4444"
+      when "Medium" then "F59E0B"
+      when "Low" then "10B981"
       else "6B7280"
       end
 
@@ -446,8 +463,8 @@ class ReportPdfGenerator
       @document.font "Helvetica", style: :normal, size: FONTS[:small][:size] do
         @document.fill_color "6B7280"
 
-        footer_left = "StockRx 在庫管理システム"
-        footer_right = "機密情報 - 取扱注意"
+        footer_left = "StockRx Inventory Management System"
+        footer_right = "Confidential - Handle with Care"
 
         @document.text_box footer_left, at: [ 0, @document.cursor ], width: @document.bounds.width / 2
         @document.text_box footer_right, at: [ @document.bounds.width / 2, @document.cursor ],
@@ -476,17 +493,17 @@ class ReportPdfGenerator
 
     summary_parts = []
 
-    summary_parts << "#{@target_date.strftime('%Y年%m月')}の在庫状況をご報告いたします。"
-    summary_parts << "総在庫アイテム数は#{format_number(total_items)}件、総在庫価値は#{format_currency(total_value)}となっています。"
+    summary_parts << "This report presents the inventory status for #{@target_date.strftime('%Y/%m')}."
+    summary_parts << "Total inventory items: #{format_number(total_items)}, Total inventory value: #{format_currency(total_value)}."
 
     if low_stock > 0
-      summary_parts << "低在庫状態のアイテムが#{format_number(low_stock)}件確認されており、発注検討が推奨されます。"
+      summary_parts << "#{format_number(low_stock)} items are in low stock status and require ordering consideration."
     end
 
     if expired_items > 0
-      summary_parts << "期限切れアイテムが#{format_number(expired_items)}件発生しており、即座の対応が必要です。"
+      summary_parts << "#{format_number(expired_items)} expired items have been identified and require immediate attention."
     else
-      summary_parts << "期限切れアイテムは発生しておらず、良好な管理状況を維持しています。"
+      summary_parts << "No expired items found, maintaining good inventory management."
     end
 
     summary_parts.join(" ")
@@ -501,36 +518,36 @@ class ReportPdfGenerator
     # 低在庫対応
     if (inventory_data[:low_stock_items] || 0) > 5
       recommendations << {
-        priority: "高",
-        title: "低在庫アイテムの発注検討",
-        description: "#{inventory_data[:low_stock_items]}件のアイテムが低在庫状態です。欠品防止のため、発注計画の見直しをお勧めします。"
+        priority: "High",
+        title: "Consider ordering low stock items",
+        description: "#{inventory_data[:low_stock_items]} items are in low stock status. Please review ordering plan to prevent stockouts."
       }
     end
 
     # 期限切れ対応
     if (expiry_data[:expired_items] || 0) > 0
       recommendations << {
-        priority: "高",
-        title: "期限切れアイテムの処分",
-        description: "#{expiry_data[:expired_items]}件の期限切れアイテムが確認されています。適切な処分手続きを進めてください。"
+        priority: "High",
+        title: "Dispose of expired items",
+        description: "#{expiry_data[:expired_items]} expired items have been identified. Please proceed with appropriate disposal procedures."
       }
     end
 
     # 予防的対策
     if (expiry_data[:expiring_next_month] || 0) > 10
       recommendations << {
-        priority: "中",
-        title: "期限間近商品の販促強化",
-        description: "来月期限切れ予定のアイテムが#{expiry_data[:expiring_next_month]}件あります。販促キャンペーンの実施を検討してください。"
+        priority: "Medium",
+        title: "Promote items nearing expiry",
+        description: "#{expiry_data[:expiring_next_month]} items are scheduled to expire next month. Consider implementing promotional campaigns."
       }
     end
 
     # 在庫最適化
     if recommendations.empty?
       recommendations << {
-        priority: "低",
-        title: "在庫管理の継続改善",
-        description: "現在の在庫状況は良好です。引き続き効率的な在庫管理を継続してください。"
+        priority: "Low",
+        title: "Continue efficient inventory management",
+        description: "Current inventory status is good. Please continue maintaining efficient inventory management."
       }
     end
 
@@ -565,7 +582,7 @@ class ReportPdfGenerator
   end
 
   def format_currency(amount)
-    "¥#{format_number(amount)}"
+    "$#{format_number(amount)}"
   end
 
   def calculate_change_indicator(metric)
@@ -573,13 +590,13 @@ class ReportPdfGenerator
     # 現在は仮実装
     case metric
     when :total_items
-      { direction: "up", symbol: "↗", value: "+2.3%" }
+      { direction: "up", symbol: "^", value: "+2.3%" }
     when :total_value
-      { direction: "up", symbol: "↗", value: "+5.1%" }
+      { direction: "up", symbol: "^", value: "+5.1%" }
     when :low_stock_items
-      { direction: "down", symbol: "↘", value: "-1" }
+      { direction: "down", symbol: "v", value: "-1" }
     when :expiry_risk
-      { direction: "down", symbol: "↘", value: "-12%" }
+      { direction: "down", symbol: "v", value: "-12%" }
     else
       nil
     end

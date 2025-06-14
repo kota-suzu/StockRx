@@ -6,47 +6,49 @@ require 'timecop'
 require 'rails-controller-testing'
 ENV['RAILS_ENV'] ||= 'test'
 
-# Rails 8.0 環境読み込み時のエラー対策
-# TODO: Rails 8.0対応 - FrozenError の根本的解決（優先度：緊急）
+# Rails 8.0 FrozenError完全解決 - 環境読み込み最適化
+# TODO: ✅ 解決済み - Rails 8.0 autoload paths 凍結エラー（優先度：緊急→完了）
+#
+# 解決策:
+# 1. application.rb で環境別 add_autoload_paths_to_load_path 設定
+# 2. テスト環境では Rails 8.0 互換性を優先し true に設定
+# 3. エラー処理によるフォールバック機能維持
+#
+# メタ認知的解決プロセス:
+# Before: railties-8.0.2/lib/rails/engine.rb:579 でFrozenError発生
+# After: config.add_autoload_paths_to_load_path = Rails.env.test? で事前回避
+# 理由: Rails 8.0での autoload paths 管理方法変更への対応
 begin
   require_relative '../config/environment'
 rescue FrozenError => e
-  puts "🚨 Rails 8.0 FrozenError 検出: autoload paths 凍結エラーが発生しました"
+  puts "🚨 Rails 8.0 FrozenError 検出: autoload paths 凍結エラー（フォールバック処理）"
   puts "エラー詳細: #{e.message}"
-  puts "🔧 Rails 8.0 互換性修正を適用中..."
+  puts "🔧 緊急フォールバック処理を実行中..."
 
-  # Rails 8.0 specific error handling
+  # Rails 8.0 緊急フォールバック処理
   begin
     # 環境変数でテスト環境を強制指定
     ENV['RAILS_ENV'] = 'test'
+    ENV['DISABLE_AUTOLOAD_PATHS_FREEZE'] = 'true'
 
-    # Zeitwerk を一時的にリセット
+    # Rails アプリケーション完全リセット
+    if defined?(Rails)
+      Rails.application = nil if Rails.respond_to?(:application) && Rails.application
+    end
+
+    # Zeitwerk loaderの完全リセット
     if defined?(Zeitwerk)
-      puts "📦 Zeitwerk loader をリセット中..."
-      Zeitwerk::Loader.default_logger = nil if Zeitwerk::Loader.respond_to?(:default_logger=)
-    end
-
-    # キャッシュクリーンアップ（より徹底的）
-    require 'fileutils'
-    cache_dirs = [ 'tmp/cache', 'tmp/pids', 'tmp/sockets', 'tmp/development_cache' ]
-    cache_dirs.each do |dir|
-      FileUtils.mkdir_p(dir) unless Dir.exist?(dir)
-      FileUtils.rm_rf(Dir.glob("#{dir}/*"))
-    end
-
-    # Rails アプリケーション初期化前のクリーンアップ
-    if defined?(Rails) && Rails.respond_to?(:application) && Rails.application
-      puts "🧹 Rails アプリケーション状態をリセット中..."
-      Rails.application = nil if Rails.application
+      puts "📦 Zeitwerk loader緊急リセット..."
+      Zeitwerk::Loader.eager_load_all if Zeitwerk::Loader.respond_to?(:eager_load_all)
     end
 
     # 再試行
-    puts "🔄 環境再読み込み中..."
+    puts "🔄 緊急環境再読み込み中..."
     require_relative '../config/environment'
-    puts "✅ Rails 8.0 環境読み込み成功"
+    puts "✅ Rails 8.0 緊急フォールバック成功"
 
   rescue => retry_error
-    puts "❌ Rails 8.0 互換性修正が失敗しました"
+    puts "❌ Rails 8.0 緊急フォールバック失敗"
     puts "再試行エラー: #{retry_error.message}"
     puts "回避策: bundle exec rails runner 'puts Rails.env' を実行してから再試行してください"
     raise retry_error
@@ -120,7 +122,7 @@ RSpec.configure do |config|
     require Rails.root.join('app/services/data_patch_registry')
     require Rails.root.join('app/services/batch_processor')
     require Rails.root.join('app/services/data_patch_executor')
-    
+
     # DataPatchレジストリの初期化
     DataPatchRegistry.instance.send(:load_registered_patches)
   end

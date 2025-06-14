@@ -112,14 +112,26 @@ class ReportFile < ApplicationRecord
   # ============================================================================
 
   before_validation :set_default_values
+  before_validation :set_retention_expiry, on: :create
   before_create :calculate_file_hash
-  before_create :set_retention_expiry
   after_create :log_file_creation
   before_destroy :cleanup_physical_file
 
   # ============================================================================
   # インスタンスメソッド
   # ============================================================================
+
+  # expires_atの明示的設定を追跡
+  def expires_at=(value)
+    @expires_at_set_explicitly = true
+    super(value)
+  end
+
+  # retention_policyの設定を追跡
+  def retention_policy=(value)
+    @retention_policy_changed = true
+    super(value)
+  end
 
   # ファイルの物理的存在確認
   def file_exists?
@@ -382,11 +394,14 @@ class ReportFile < ApplicationRecord
   end
 
   def set_retention_expiry
+    # 明示的にexpires_atが設定されている場合は何もしない
+    return if @expires_at_set_explicitly
+
     # permanentポリシーの場合はexpires_atをnilに設定
     if retention_policy == "permanent"
       self.expires_at = nil
     elsif expires_at.nil?
-      # その他のポリシーで期限が未設定の場合のみ自動計算
+      # 期限が未設定の場合のみ自動計算
       self.expires_at = calculate_expiry_date(retention_policy)
     end
   end

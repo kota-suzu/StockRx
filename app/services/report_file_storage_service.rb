@@ -427,7 +427,7 @@ class ReportFileStorageService
 
     def create_report_file_record(file_path, report_type, file_format, report_period, admin, options)
       generation_metadata = {
-        generated_by: self.class.name,
+        generated_by: "ReportFileStorageService",
         generation_time: Time.current,
         rails_env: Rails.env,
         options: options
@@ -440,7 +440,7 @@ class ReportFileStorageService
         file_name: File.basename(file_path),
         file_path: file_path,
         admin: admin,
-        generation_metadata: generation_metadata,
+        generation_metadata: generation_metadata.deep_stringify_keys,
         generated_at: Time.current
       )
     end
