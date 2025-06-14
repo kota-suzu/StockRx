@@ -1,0 +1,178 @@
+# データパッチ設定ファイル
+# 本番環境でのデータパッチ実行時の設定を定義
+
+patches:
+  inventory_price_adjustment:
+    description: "在庫商品の価格一括調整（消費税率変更・仕入れ価格変動対応）"
+    category: "inventory"
+    target_tables:
+      - "inventories"
+      - "inventory_logs"
+    estimated_records: 100000
+    memory_limit: 1024  # MB
+    batch_size: 2000
+    # カスタムオプション例
+    default_options:
+      adjustment_type: "percentage"
+      adjustment_value: 0
+      grace_period: 0
+
+  batch_expiry_update:
+    description: "期限切れバッチの状態更新とクリーンアップ処理"
+    category: "maintenance"
+    target_tables:
+      - "batches"
+      - "inventory_logs"
+    estimated_records: 50000
+    memory_limit: 512   # MB
+    batch_size: 1000
+    # カスタムオプション例
+    default_options:
+      grace_period: 3
+      include_expiring_soon: true
+      warning_days: 30
+      update_inventory_status: true
+      create_notification: true
+
+  # TODO: 🟡 Phase 3（中）- 追加データパッチの実装
+  # 実装予定: ユーザーデータクリーンアップ、統計データ再計算等
+  # user_data_cleanup:
+  #   description: "非アクティブユーザーデータのクリーンアップ"
+  #   category: "maintenance"
+  #   target_tables: ["admins", "admin_notification_settings"]
+  #   estimated_records: 10000
+  #   memory_limit: 256
+  #   batch_size: 500
+
+# セキュリティ設定
+security:
+  log_encryption: true
+  audit_retention_days: 90
+  notification_channels:
+    - slack
+    - email
+  
+  # TODO: 🟡 Phase 3（中）- セキュリティ機能強化
+  # 実装予定: 暗号化キー管理、アクセス制御強化
+  # encryption_key_rotation_days: 30
+  # require_approval_for_production: true
+  # max_concurrent_executions: 1
+
+# スケジューリング設定
+scheduling:
+  default_timezone: "Asia/Tokyo"
+  
+  # メンテナンス時間帯
+  maintenance_windows:
+    - start: "02:00"
+      end: "04:00"
+      days: ["sunday", "wednesday"]
+    - start: "03:00"
+      end: "05:00"
+      days: ["saturday"]
+  
+  # 定期実行スケジュール（sidekiq-scheduler用）
+  recurring_patches:
+    batch_expiry_update:
+      cron: "0 2 * * 0,3"  # 日曜・水曜の午前2時
+      enabled: true
+      options:
+        grace_period: 3
+        include_expiring_soon: true
+        notification_enabled: true
+
+# 実行環境別設定
+environments:
+  development:
+    default_dry_run: true
+    notification_enabled: false
+    batch_size: 100  # 開発環境では小さいバッチサイズ
+    memory_limit: 128
+
+  test:
+    default_dry_run: true
+    notification_enabled: false
+    audit_enabled: false
+    batch_size: 10
+    memory_limit: 64
+
+  production:
+    default_dry_run: false
+    notification_enabled: true
+    audit_enabled: true
+    # 本番環境では個別設定を使用
+
+# 通知設定
+notifications:
+  slack:
+    enabled: true
+    webhook_url: "${SLACK_WEBHOOK_URL}"  # 環境変数から取得
+    channel: "#stockrx-maintenance"
+    username: "StockRx DataPatch Bot"
+    
+    # 通知条件
+    conditions:
+      success: true
+      error: true
+      dry_run: false  # Dry-runは通知しない
+      min_processed_records: 100  # 100件以上処理した場合のみ通知
+
+  email:
+    enabled: true
+    smtp_settings:
+      # Rails標準のActionMailer設定を使用
+      delivery_method: :smtp
+    
+    recipients:
+      - "admin@stockrx.example.com"
+      - "devops@stockrx.example.com"
+    
+    conditions:
+      error: true  # エラー時のみメール通知
+      critical_patches: ["inventory_price_adjustment"]
+
+# ログ設定
+logging:
+  level: "info"
+  structured_format: true
+  
+  # ログローテーション
+  retention_days: 30
+  max_file_size: "100MB"
+  
+  # 機密情報フィルタリング
+  filter_sensitive_data: true
+  sensitive_patterns:
+    - "password"
+    - "secret"
+    - "token"
+    - "api_key"
+
+# パフォーマンス監視
+monitoring:
+  memory_check_frequency: 10  # バッチ毎
+  gc_frequency: 50           # バッチ毎
+  
+  # アラート閾値
+  thresholds:
+    memory_usage_percent: 80
+    execution_time_multiplier: 3.0  # 予想時間の3倍
+    error_rate_percent: 5.0
+
+# データベース設定
+database:
+  # トランザクション設定
+  transaction_timeout: 3600  # 秒
+  lock_timeout: 300         # 秒
+  
+  # 接続プール設定
+  pool_size: 5
+  checkout_timeout: 5
+
+# TODO: 🟡 Phase 3（中）- 高度な設定項目
+# 実装予定項目:
+# - A/Bテスト対応
+# - カナリアリリース対応
+# - 自動ロールバック条件設定
+# - 外部システム連携設定
+# - コンプライアンス監査設定

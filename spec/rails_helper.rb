@@ -113,6 +113,18 @@ RSpec.configure do |config|
   # Load support files for better test organization
   Dir[Rails.root.join('spec', 'support', '**', '*.rb')].sort.each { |f| require f }
 
+  # データパッチシステム関連クラスの事前読み込み（テスト環境用）
+  # NOTE: Rails 8.0のautoloading問題対策
+  config.before(:suite) do
+    # データパッチシステムの基底クラスとレジストリを事前に読み込み
+    require Rails.root.join('app/services/data_patch_registry')
+    require Rails.root.join('app/services/batch_processor')
+    require Rails.root.join('app/services/data_patch_executor')
+    
+    # DataPatchレジストリの初期化
+    DataPatchRegistry.instance.send(:load_registered_patches)
+  end
+
   # TODO: テストアイソレーション強化（優先度：最高）
   # ベストプラクティス: 各テストの完全な独立性を保証
 
