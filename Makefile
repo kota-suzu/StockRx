@@ -206,7 +206,7 @@ lint-github:
 #   - 監査対応用エビデンス自動収集
 #   - SOC2/ISO27001対応レポート生成
 
-# GitHub Actions完全互換のテスト実行（シンプル化版 - 2025年6月9日修正）
+# GitHub Actions完全互換のテスト実行（修正版 - Pendingテスト対応）
 test-github:
 	@echo "=== GitHub Actions互換 - テスト環境準備 ==="
 	# キャッシュクリア（GitHub Actionsと同じ）
@@ -261,7 +261,15 @@ test-github:
 	  -e CAPYBARA_SERVER_PORT=3001 \
 	  -e CHROME_HEADLESS=1 \
 	  -e SELENIUM_CHROME_OPTIONS="--headless --no-sandbox --disable-dev-shm-usage --disable-gpu --window-size=1024,768" \
-	  web bundle exec rspec
+	  web bundle exec rspec --format progress
+	@echo ""
+	@echo "=== CI成功判定：Failureがなければ成功 ==="
+	@echo "✅ テスト完了: Pendingテストは開発予定機能のため、CI成功条件に影響しません"
+	@echo ""
+	@echo "🎯 メタ認知的確認："
+	@echo "   - 実装済み機能: すべてのテストが成功"  
+	@echo "   - Pending機能: 将来実装予定（CLAUDE.mdのTODOリスト参照）"
+	@echo "   - 横展開状況: 同様のCI成功基準を他のプロジェクトでも適用可能"
 
 # 従来のセキュリティスキャン
 security-scan:
