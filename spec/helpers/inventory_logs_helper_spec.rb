@@ -43,131 +43,131 @@ RSpec.describe InventoryLogsHelper, type: :helper do
   describe "基本ヘルパーメソッド群" do
     # TODO: 🔴 Phase 1 - action_type_display メソッドのテスト
     context "#action_type_display" do
-      pending "TODO: action_type_display('increment') -> '入庫' を返すことをテスト"
-      pending "TODO: action_type_display('decrement') -> '出庫' を返すことをテスト"
-      pending "TODO: action_type_display('adjustment') -> '調整' を返すことをテスト"
-      pending "TODO: 不明なaction_typeの場合のデフォルト表示をテスト"
-      pending "TODO: nilやblank値の場合のハンドリングをテスト"
+      it "action_type_display('increment') -> '入庫' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "action_type_display('decrement') -> '出庫' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "action_type_display('adjustment') -> '調整' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "不明なaction_typeの場合のデフォルト表示をテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "nilやblank値の場合のハンドリングをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
     end
 
     # TODO: 🔴 Phase 1 - format_log_datetime メソッドのテスト
     context "#format_log_datetime" do
-      pending "TODO: DateTime.current -> '2024-06-14 13:45:32' 形式でフォーマットすることをテスト"
-      pending "TODO: タイムゾーンを考慮した表示をテスト（JST表示）"
-      pending "TODO: nilやinvalid dateの場合の安全なハンドリングをテスト"
-      pending "TODO: 相対時間表示（'3時間前'など）のオプションをテスト"
+      it "DateTime.current -> '2024-06-14 13:45:32' 形式でフォーマットすることをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "タイムゾーンを考慮した表示をテスト（JST表示）", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "nilやinvalid dateの場合の安全なハンドリングをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "相対時間表示（'3時間前'など）のオプションをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
     end
 
     # TODO: 🔴 Phase 1 - operation_badge_class メソッドのテスト
     context "#operation_badge_class" do
-      pending "TODO: 'increment' -> 'badge badge-success' を返すことをテスト"
-      pending "TODO: 'decrement' -> 'badge badge-warning' を返すことをテスト"
-      pending "TODO: 'adjustment' -> 'badge badge-info' を返すことをテスト"
-      pending "TODO: 不明なactionの場合の 'badge badge-secondary' をテスト"
+      it "'increment' -> 'badge badge-success' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "'decrement' -> 'badge badge-warning' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "'adjustment' -> 'badge badge-info' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "不明なactionの場合の 'badge badge-secondary' をテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
     end
 
     # TODO: 🔴 Phase 1 - quantity_change_display メソッドのテスト
     context "#quantity_change_display" do
-      pending "TODO: quantity_change_display(10, 15) -> '+5' を返すことをテスト"
-      pending "TODO: quantity_change_display(20, 18) -> '-2' を返すことをテスト"
-      pending "TODO: quantity_change_display(10, 10) -> '±0' を返すことをテスト"
-      pending "TODO: 大きな数値での表示（カンマ区切り）をテスト"
+      it "quantity_change_display(10, 15) -> '+5' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "quantity_change_display(20, 18) -> '-2' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "quantity_change_display(10, 10) -> '±0' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+      it "大きな数値での表示（カンマ区切り）をテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
     end
   end
 
   describe "高度なヘルパーメソッド群" do
     # TODO: 🟠 Phase 2 - user_display_name メソッドのテスト
     context "#user_display_name" do
-      pending "TODO: 通常ユーザーの場合の名前表示をテスト"
-      pending "TODO: adminユーザーの場合の特別表示をテスト"
-      pending "TODO: 削除済みユーザーの場合の '（削除済みユーザー）' 表示をテスト"
-      pending "TODO: nilユーザーの場合の 'システム' 表示をテスト"
+      it "通常ユーザーの場合の名前表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
+      it "adminユーザーの場合の特別表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
+      it "削除済みユーザーの場合の '（削除済みユーザー）' 表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
+      it "nilユーザーの場合の 'システム' 表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
     end
 
     # TODO: 🟠 Phase 2 - batch_info_summary メソッドのテスト
     context "#batch_info_summary" do
-      pending "TODO: ロット番号と期限日の組み合わせ表示をテスト"
-      pending "TODO: 期限切れバッチの警告表示をテスト"
-      pending "TODO: バッチ情報がない場合のデフォルト表示をテスト"
-      pending "TODO: 複数バッチが関連する場合の表示をテスト"
+      it "ロット番号と期限日の組み合わせ表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
+      it "期限切れバッチの警告表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
+      it "バッチ情報がない場合のデフォルト表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
+      it "複数バッチが関連する場合の表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
     end
 
     # TODO: 🟠 Phase 2 - operation_trend_icon メソッドのテスト
     context "#operation_trend_icon" do
-      pending "TODO: 在庫増加トレンドの場合の上矢印アイコンをテスト"
-      pending "TODO: 在庫減少トレンドの場合の下矢印アイコンをテスト"
-      pending "TODO: 安定状態の場合の横矢印アイコンをテスト"
-      pending "TODO: データ不足の場合のデフォルトアイコンをテスト"
+      it "在庫増加トレンドの場合の上矢印アイコンをテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
+      it "在庫減少トレンドの場合の下矢印アイコンをテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
+      it "安定状態の場合の横矢印アイコンをテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
+      it "データ不足の場合のデフォルトアイコンをテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
     end
   end
 
   describe "分析・レポート機能" do
     # TODO: 🟡 Phase 3 - operation_statistics_chart メソッドのテスト
     context "#operation_statistics_chart" do
-      pending "TODO: Chart.jsまたはGoogle Charts用のデータ形式生成をテスト"
-      pending "TODO: 日別・週別・月別の集計オプションをテスト"
-      pending "TODO: 操作タイプ別の色分け設定をテスト"
-      pending "TODO: 空データの場合のチャート生成をテスト"
+      it "Chart.jsまたはGoogle Charts用のデータ形式生成をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "日別・週別・月別の集計オプションをテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "操作タイプ別の色分け設定をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "空データの場合のチャート生成をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
     end
 
     # TODO: 🟡 Phase 3 - inventory_activity_timeline メソッドのテスト
     context "#inventory_activity_timeline" do
-      pending "TODO: 時系列でのアクティビティ表示HTMLの生成をテスト"
-      pending "TODO: 同日内の複数操作のグループ化をテスト"
-      pending "TODO: アクティビティアイコンの適切な選択をテスト"
-      pending "TODO: レスポンシブ対応のタイムライン表示をテスト"
+      it "時系列でのアクティビティ表示HTMLの生成をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "同日内の複数操作のグループ化をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "アクティビティアイコンの適切な選択をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "レスポンシブ対応のタイムライン表示をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
     end
 
     # TODO: 🟡 Phase 3 - frequency_analysis_helper メソッドのテスト
     context "#frequency_analysis_helper" do
-      pending "TODO: 操作頻度の分析結果の表示をテスト"
-      pending "TODO: 頻度異常の検知と警告表示をテスト"
-      pending "TODO: 時間帯別・曜日別の頻度分析をテスト"
-      pending "TODO: ユーザー別の操作頻度比較をテスト"
+      it "操作頻度の分析結果の表示をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "頻度異常の検知と警告表示をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "時間帯別・曜日別の頻度分析をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "ユーザー別の操作頻度比較をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
     end
 
     # TODO: 🟡 Phase 3 - anomaly_detection_badge メソッドのテスト
     context "#anomaly_detection_badge" do
-      pending "TODO: 異常な数量変更の検知バッジをテスト"
-      pending "TODO: 時間外操作の検知バッジをテスト"
-      pending "TODO: 連続操作の検知バッジをテスト"
-      pending "TODO: 権限外操作の検知バッジをテスト"
+      it "異常な数量変更の検知バッジをテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "時間外操作の検知バッジをテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "連続操作の検知バッジをテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+      it "権限外操作の検知バッジをテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
     end
   end
 
   describe "国際化・アクセシビリティ対応" do
     # TODO: 🟢 Phase 4 - 国際化対応テスト
     context "国際化対応" do
-      pending "TODO: 日本語・英語での表示切り替えをテスト"
-      pending "TODO: 数値フォーマットのロケール対応をテスト"
-      pending "TODO: 日時フォーマットのロケール対応をテスト"
-      pending "TODO: エラーメッセージの国際化をテスト"
+      it "日本語・英語での表示切り替えをテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
+      it "数値フォーマットのロケール対応をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
+      it "日時フォーマットのロケール対応をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
+      it "エラーメッセージの国際化をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
     end
 
     # TODO: 🟢 Phase 4 - アクセシビリティ対応テスト
     context "アクセシビリティ対応" do
-      pending "TODO: ARIA属性の適切な設定をテスト"
-      pending "TODO: スクリーンリーダー対応のalt text設定をテスト"
-      pending "TODO: キーボードナビゲーション対応をテスト"
-      pending "TODO: カラーコントラスト比の確保をテスト"
+      it "ARIA属性の適切な設定をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
+      it "スクリーンリーダー対応のalt text設定をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
+      it "キーボードナビゲーション対応をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
+      it "カラーコントラスト比の確保をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
     end
   end
 
   describe "パフォーマンス・セキュリティ" do
     # TODO: 🟢 Phase 4 - パフォーマンステスト
     context "パフォーマンス" do
-      pending "TODO: 大量ログデータでのヘルパー呼び出し性能をテスト"
-      pending "TODO: HTMLエスケープ処理の性能をテスト"
-      pending "TODO: キャッシュ機能の効果をテスト"
-      pending "TODO: メモリ使用量の最適化をテスト"
+      it "大量ログデータでのヘルパー呼び出し性能をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
+      it "HTMLエスケープ処理の性能をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
+      it "キャッシュ機能の効果をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
+      it "メモリ使用量の最適化をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
     end
 
     # TODO: 🟢 Phase 4 - セキュリティテスト
     context "セキュリティ" do
-      pending "TODO: XSS脆弱性の防止をテスト（HTMLエスケープ）"
-      pending "TODO: 機密情報の適切なマスキングをテスト"
-      pending "TODO: 権限に応じた情報表示制御をテスト"
-      pending "TODO: ログ情報の不正アクセス防止をテスト"
+      it "XSS脆弱性の防止をテスト（HTMLエスケープ）", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
+      it "機密情報の適切なマスキングをテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
+      it "権限に応じた情報表示制御をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
+      it "ログ情報の不正アクセス防止をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
     end
   end
 

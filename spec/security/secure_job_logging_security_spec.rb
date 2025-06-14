@@ -70,126 +70,96 @@ RSpec.describe 'Secure Job Logging Security', type: :security do
 
     # TODO: 🔴 Phase 1 - 基本機密情報フィルタリング実装
     context '基本的な機密情報保護' do
-      it 'API認証情報が完全にフィルタリングされる' do
-        pending "Phase 1で実装予定: SecureArgumentSanitizerの基本機能統合"
+      it 'API認証情報が完全にフィルタリングされる', skip: "Phase 1で実装予定: SecureArgumentSanitizerの基本機能統合" do
         # 実装予定: SecureArgumentSanitizerでAPI認証情報を[FILTERED]に変換
         # 期待動作: Stripe、Slack等のAPIトークンの自動検出・マスキング
-        fail "Not implemented yet"
       end
 
-      it '個人情報が適切に保護される' do
-        pending "Phase 1で実装予定: GDPR準拠の個人情報検出・マスキング機能"
+      it '個人情報が適切に保護される', skip: "Phase 1で実装予定: GDPR準拠の個人情報検出・マスキング機能" do
         # 実装予定: メールアドレス、電話番号等の個人情報自動検出
         # 期待動作: 個人情報の部分マスキング（例: email@*****.com）
-        fail "Not implemented yet"
       end
 
-      it '財務情報が安全に処理される' do
-        pending "Phase 1で実装予定: PCI DSS準拠の金融データ保護機能"
+      it '財務情報が安全に処理される', skip: "Phase 1で実装予定: PCI DSS準拠の金融データ保護機能" do
         # 実装予定: クレジットカード番号、金額等の財務情報保護
         # 期待動作: PCI DSS準拠のマスキング（例: ****-****-****-1111）
-        fail "Not implemented yet"
       end
     end
 
     # TODO: 🟠 Phase 2 - 高度攻撃対策実装
     context 'タイミング攻撃対策' do
-      it 'サニタイズ処理時間が機密情報の有無に依存しない' do
-        pending "Phase 2で実装予定: 定数時間アルゴリズム実装"
+      it 'サニタイズ処理時間が機密情報の有無に依存しない', skip: "Phase 2で実装予定: 定数時間アルゴリズム実装" do
         # 実装予定: 機密情報の有無に関わらず一定時間での処理
         # セキュリティ要件: タイミング攻撃によるデータ推測の防止
-        fail "Not implemented yet"
       end
     end
 
     # TODO: 🟠 Phase 2 - コンプライアンス対応実装
     context 'GDPR準拠の個人情報保護' do
-      it 'EUユーザーの個人情報が適切に保護される' do
-        pending "Phase 2で実装予定: EU一般データ保護規則準拠機能"
+      it 'EUユーザーの個人情報が適切に保護される', skip: "Phase 2で実装予定: EU一般データ保護規則準拠機能" do
         # 実装予定: GDPR Article 32準拠のデータ保護機能
         # 期待動作: EU圏ユーザーデータの特別保護処理
-        fail "Not implemented yet"
       end
 
-      it 'データ処理履歴が適切に記録される' do
-        pending "Phase 2で実装予定: GDPR準拠のデータ処理ログ記録"
+      it 'データ処理履歴が適切に記録される', skip: "Phase 2で実装予定: GDPR準拠のデータ処理ログ記録" do
         # 実装予定: データ処理活動の監査証跡記録
         # 期待動作: いつ、誰が、何のデータを処理したかの詳細ログ
-        fail "Not implemented yet"
       end
     end
 
     context 'PCI DSS準拠のクレジットカード情報保護' do
-      it 'クレジットカード番号が完全にマスキングされる' do
-        pending "Phase 2で実装予定: Payment Card Industry標準準拠"
+      it 'クレジットカード番号が完全にマスキングされる', skip: "Phase 2で実装予定: Payment Card Industry標準準拠" do
         # 実装予定: PCI DSS Requirement 3.4準拠のPAN保護
         # 期待動作: カード番号の最初6桁と最後4桁以外の完全マスキング
-        fail "Not implemented yet"
       end
 
-      it 'CVVコードが即座に削除される' do
-        pending "Phase 2で実装予定: センシティブ認証データの即座削除"
+      it 'CVVコードが即座に削除される', skip: "Phase 2で実装予定: センシティブ認証データの即座削除" do
         # 実装予定: PCI DSS Requirement 3.2準拠のCVV削除
         # 期待動作: CVV、PIN等のセンシティブデータの即座削除
-        fail "Not implemented yet"
       end
     end
 
     # TODO: 🟡 Phase 3 - 高度攻撃手法対策実装
     context '高度な攻撃手法対策' do
-      it 'JSON埋め込み攻撃に対する防御機能' do
-        pending "Phase 3で実装予定: JSONペイロード内悪意コード検出"
+      it 'JSON埋め込み攻撃に対する防御機能', skip: "Phase 3で実装予定: JSONペイロード内悪意コード検出" do
         # 実装予定: JSON内の悪意あるスクリプト・コード検出機能
         # 期待動作: Base64エンコード等で隠蔽された攻撃コードの検出
-        fail "Not implemented yet"
       end
 
-      it 'SQLインジェクション試行の検出と無害化' do
-        pending "Phase 3で実装予定: SQL攻撃コード検出・フィルタリング"
+      it 'SQLインジェクション試行の検出と無害化', skip: "Phase 3で実装予定: SQL攻撃コード検出・フィルタリング" do
         # 実装予定: ログデータに含まれるSQL攻撃パターンの検出
         # 期待動作: UNION SELECT、DROP TABLE等の危険SQLの無害化
-        fail "Not implemented yet"
       end
 
-      it 'スクリプト埋め込み攻撃への対策' do
-        pending "Phase 3で実装予定: 悪意スクリプトコード検出機能"
+      it 'スクリプト埋め込み攻撃への対策', skip: "Phase 3で実装予定: 悪意スクリプトコード検出機能" do
         # 実装予定: JavaScript、shell script等の悪意コード検出
         # 期待動作: XSS、RCE攻撃を狙うスクリプトの検出・削除
-        fail "Not implemented yet"
       end
     end
 
     # TODO: 🟡 Phase 3 - 大規模データ処理最適化
     context '大規模データ処理でのパフォーマンス' do
-      it '100万件のログデータを効率的に処理する' do
-        pending "Phase 3で実装予定: 大規模データメモリ効率・速度最適化"
+      it '100万件のログデータを効率的に処理する', skip: "Phase 3で実装予定: 大規模データメモリ効率・速度最適化" do
         # 実装予定: 1MB以上のジョブ引数での安定動作確保
         # 性能要件: メモリ使用量制限内、処理時間5秒以内での完了
-        fail "Not implemented yet"
       end
     end
 
     # TODO: 🟡 Phase 3 - 監査・監視機能実装
     context 'セキュリティ監査・監視機能' do
-      it 'セキュリティイベントが適切に記録される' do
-        pending "Phase 3で実装予定: 機密情報アクセス監査ログ記録"
+      it 'セキュリティイベントが適切に記録される', skip: "Phase 3で実装予定: 機密情報アクセス監査ログ記録" do
         # 実装予定: 機密情報アクセス試行の詳細監査ログ
         # 期待動作: WHO、WHEN、WHAT、WHYの完全トレーサビリティ
-        fail "Not implemented yet"
       end
 
-      it '異常なアクセスパターンが検出される' do
-        pending "Phase 3で実装予定: ML異常検出機能"
+      it '異常なアクセスパターンが検出される', skip: "Phase 3で実装予定: ML異常検出機能" do
         # 実装予定: 機械学習ベースの異常アクセスパターン検出
         # 期待動作: 通常と異なるデータアクセスパターンの自動検出・アラート
-        fail "Not implemented yet"
       end
 
-      it 'セキュリティレポートが生成される' do
-        pending "Phase 3で実装予定: 定期セキュリティ状況レポート"
+      it 'セキュリティレポートが生成される', skip: "Phase 3で実装予定: 定期セキュリティ状況レポート" do
         # 実装予定: 週次・月次のセキュリティ状況自動レポート生成
         # 期待動作: エグゼクティブ向けサマリー、技術者向け詳細レポート
-        fail "Not implemented yet"
       end
     end
   end
