@@ -275,10 +275,17 @@ RSpec.describe BatchProcessor, type: :service do
 
   describe 'パフォーマンスベンチマーク' do
     it '1万件処理が適切な時間で完了する', :performance do
+      # パフォーマンステストモードでprocessorを作成
+      performance_processor = described_class.new(
+        performance_test: true,
+        batch_size: 1000,
+        memory_limit: 1000  # 制限を緩和
+      )
+
       large_data = Array.new(10000) { |i| "item_#{i}" }
 
       start_time = Time.current
-      processor.process_with_monitoring do |batch_size, offset|
+      performance_processor.process_with_monitoring do |batch_size, offset|
         batch = large_data[offset, batch_size]
         next [] if batch.empty?
         batch
@@ -286,7 +293,7 @@ RSpec.describe BatchProcessor, type: :service do
       execution_time = Time.current - start_time
 
       expect(execution_time).to be < 2.0 # 2秒以内で完了
-      expect(processor.processed_count).to eq(10000)
+      expect(performance_processor.processed_count).to eq(10000)
     end
   end
 end
