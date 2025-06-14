@@ -306,7 +306,7 @@ class ApplicationJob < ActiveJob::Base
   # ============================================================================
   # ✅ 完了済み修正（2025年6月14日）
   # ============================================================================
-  
+
   # ✅ Phase 1: secure_logging機能実装完了
   # - ApplicationJob.secure_logging_enabled クラスメソッド実装
   # - secure_logging_enabled? インスタンスメソッド実装
@@ -328,7 +328,7 @@ class ApplicationJob < ActiveJob::Base
   #   - 横展開確認: 全Job系クラスでの統一実装
   #
   # TODO: PCI DSS準拠のクレジットカード情報保護
-  # 場所: spec/security/secure_job_logging_security_spec.rb:99-103  
+  # 場所: spec/security/secure_job_logging_security_spec.rb:99-103
   # 状態: PENDING（実装待ち）
   # 実装内容:
   #   - クレジットカード番号の完全マスキング
