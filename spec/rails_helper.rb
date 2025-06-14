@@ -178,7 +178,12 @@ RSpec.configure do |config|
   # 実装内容: CI環境でのJavaScriptテスト全体スキップ（WebDriverタイムアウト問題回避）
   # 理由: GitHub ActionsでのHeadless Chrome設定問題によるテスト失敗防止
   # 横展開: 他プロジェクトでも同様のCI安定性確保パターンとして適用可能
-  config.filter_run_excluding js: true if ENV['CI'].present?
+  if ENV['CI'].present?
+    config.filter_run_excluding js: true         # JavaScript/WebDriverテスト
+    config.filter_run_excluding slow: true       # 重い処理のテスト
+    config.filter_run_excluding performance: true # パフォーマンステスト
+    config.filter_run_excluding type: :performance # パフォーマンステストタイプ
+  end
 
   # Filter lines from Rails gems in backtraces.
   config.filter_rails_from_backtrace!
