@@ -25,7 +25,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # テスト用データセットアップ
   # ============================================================================
-  
+
   let(:target_date) { Date.current.beginning_of_month }
   let(:valid_report_data) do
     {
@@ -67,7 +67,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # 正常系テスト - 初期化
   # ============================================================================
-  
+
   describe '#initialize' do
     it '有効なレポートデータで正常に初期化されること' do
       expect { generator }.not_to raise_error
@@ -102,7 +102,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # 正常系テスト - ファイル生成
   # ============================================================================
-  
+
   describe '#generate' do
     context 'ファイルパスを指定した場合' do
       subject { generator.generate(temp_file_path) }
@@ -115,10 +115,10 @@ RSpec.describe ReportPdfGenerator, type: :lib do
 
       it '生成されたファイルが有効なPDFファイルであること' do
         generator.generate(temp_file_path)
-        
+
         # ファイルサイズの確認
         expect(File.size(temp_file_path)).to be > 0
-        
+
         # PDF ファイルのマジックナンバー確認
         file_content = File.read(temp_file_path, 8)
         expect(file_content).to start_with("%PDF") # PDFヘッダー
@@ -127,14 +127,14 @@ RSpec.describe ReportPdfGenerator, type: :lib do
       it 'ログメッセージが出力されること' do
         expect(Rails.logger).to receive(:info).with(/Starting PDF generation/)
         expect(Rails.logger).to receive(:info).with(/PDF file generated/)
-        
+
         generator.generate(temp_file_path)
       end
 
       it '生成されたPDFファイルが適切なサイズであること' do
         generator.generate(temp_file_path)
         file_size = File.size(temp_file_path)
-        
+
         # 50KB - 2MB の範囲内であることを確認
         expect(file_size).to be_between(50_000, 2_000_000)
       end
@@ -145,11 +145,11 @@ RSpec.describe ReportPdfGenerator, type: :lib do
 
       it '自動生成されたパスにファイルが作成されること' do
         result_path = subject
-        
+
         expect(result_path).to include('monthly_report_summary_')
         expect(result_path).to end_with('.pdf')
         expect(File.exist?(result_path)).to be true
-        
+
         # テスト後のクリーンアップ
         File.delete(result_path) if File.exist?(result_path)
       end
@@ -157,11 +157,11 @@ RSpec.describe ReportPdfGenerator, type: :lib do
       it 'ファイル名に年月とタイムスタンプが含まれること' do
         result_path = subject
         filename = File.basename(result_path, '.pdf')
-        
+
         expect(filename).to include(target_date.year.to_s)
         expect(filename).to include(target_date.month.to_s.rjust(2, '0'))
         expect(filename).to match(/\d{8}_\d{6}/) # YYYYMMDD_HHMMSS
-        
+
         # テスト後のクリーンアップ
         File.delete(result_path) if File.exist?(result_path)
       end
@@ -171,7 +171,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # 正常系テスト - ファイルサイズ推定
   # ============================================================================
-  
+
   describe '#estimate_file_size' do
     subject { generator.estimate_file_size }
 
@@ -190,7 +190,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
       excel_generator = ReportExcelGenerator.new(valid_report_data)
       excel_size = excel_generator.estimate_file_size
       pdf_size = generator.estimate_file_size
-      
+
       expect(pdf_size).to be >= excel_size
     end
   end
@@ -198,7 +198,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # 異常系テスト - バリデーション
   # ============================================================================
-  
+
   describe 'バリデーション' do
     context '必須データが不足している場合' do
       let(:incomplete_data) do
@@ -228,7 +228,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # 異常系テスト - エラーハンドリング
   # ============================================================================
-  
+
   describe 'エラーハンドリング' do
     context 'ファイル生成時にエラーが発生した場合' do
       before do
@@ -244,7 +244,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
 
       it 'エラーログが出力されること' do
         expect(Rails.logger).to receive(:error).with(/Error generating PDF/)
-        
+
         expect {
           generator.generate(temp_file_path)
         }.to raise_error(ReportPdfGenerator::PdfGenerationError)
@@ -279,7 +279,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # 境界値テスト
   # ============================================================================
-  
+
   describe '境界値テスト' do
     context '最小限のデータの場合' do
       let(:minimal_data) do
@@ -316,7 +316,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
 
       it 'ページ分割が適切に行われること' do
         large_generator.generate(temp_file_path)
-        
+
         # PDFのページ数を確認（prawn の内部APIを使用）
         document = large_generator.instance_variable_get(:@document)
         expect(document.page_count).to be >= 1
@@ -364,13 +364,13 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # パフォーマンステスト
   # ============================================================================
-  
+
   describe 'パフォーマンス' do
     it '適切な時間内でファイルが生成されること' do
       start_time = Time.current
       generator.generate(temp_file_path)
       elapsed_time = Time.current - start_time
-      
+
       # PDF生成は3秒以内
       expect(elapsed_time).to be < 3.seconds
     end
@@ -379,7 +379,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
       before_memory = get_memory_usage
       generator.generate(temp_file_path)
       after_memory = get_memory_usage
-      
+
       memory_increase = after_memory - before_memory
       # 30MB以下の増加であることを確認
       expect(memory_increase).to be < 30_000_000
@@ -387,16 +387,16 @@ RSpec.describe ReportPdfGenerator, type: :lib do
 
     it '複数回生成でもメモリリークが発生しないこと' do
       initial_memory = get_memory_usage
-      
+
       3.times do |i|
         temp_path = Rails.root.join('tmp', "test_report_#{i}.pdf").to_s
         generator.generate(temp_path)
         File.delete(temp_path) if File.exist?(temp_path)
       end
-      
+
       final_memory = get_memory_usage
       memory_increase = final_memory - initial_memory
-      
+
       # メモリ使用量の増加が50MB以下であることを確認
       expect(memory_increase).to be < 50_000_000
     end
@@ -414,7 +414,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # PDF品質テスト
   # ============================================================================
-  
+
   describe 'PDF品質' do
     before do
       generator.generate(temp_file_path)
@@ -423,7 +423,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
     it 'PDFファイルが破損していないこと' do
       # PDFリーダーで読み込めることを確認
       pdf_content = File.read(temp_file_path)
-      
+
       # PDF の基本構造確認
       expect(pdf_content).to include('%PDF-')  # PDFヘッダー
       expect(pdf_content).to include('%%EOF')  # PDFフッター
@@ -434,7 +434,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
       # 優先度: 中（品質向上）
       # 実装内容: PDF-reader gem を使用したメタデータ検証
       # 理由: 生成されたPDFファイルのメタデータ品質保証
-      
+
       skip 'PDFメタデータ検証機能の実装が必要'
     end
 
@@ -448,10 +448,10 @@ RSpec.describe ReportPdfGenerator, type: :lib do
 
     it 'PDF内容の詳細検証' do
       pending 'PDF内容検証機能の実装が必要'
-      
+
       # 実装予定の検証項目:
       # - PDF内のテキスト内容検証
-      # - レイアウト要素の配置確認  
+      # - レイアウト要素の配置確認
       # - カラーパレットの適用確認
       # - フォント設定の検証
     end
@@ -460,7 +460,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # データ整合性テスト
   # ============================================================================
-  
+
   describe 'データ整合性' do
     context '数値フォーマットの確認' do
       let(:numeric_data) do
@@ -478,7 +478,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
       it '大きな数値が適切にフォーマットされること' do
         result_path = numeric_generator.generate(temp_file_path)
         expect(File.exist?(temp_file_path)).to be true
-        
+
         # TODO: PDF内容を読み込んで数値フォーマットを確認
         # 現在は生成成功のみ確認
       end
@@ -488,7 +488,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
       it '日本語形式で日付がフォーマットされること' do
         generator.generate(temp_file_path)
         expect(File.exist?(temp_file_path)).to be true
-        
+
         # TODO: PDF内容を読み込んで日付フォーマットを確認
       end
     end
@@ -497,12 +497,12 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # 統合テスト
   # ============================================================================
-  
+
   describe '統合テスト' do
     context '実際のサービスデータとの統合' do
       let!(:inventories) { create_list(:inventory, 5) }
       let!(:batches) { inventories.map { |inv| create(:batch, inventory: inv) } }
-      
+
       before do
         # 実際のサービスからデータを取得
         @real_inventory_data = InventoryReportService.monthly_summary(target_date)
@@ -518,7 +518,7 @@ RSpec.describe ReportPdfGenerator, type: :lib do
 
         real_generator = described_class.new(real_report_data)
         result_path = real_generator.generate(temp_file_path)
-        
+
         expect(File.exist?(temp_file_path)).to be true
         expect(File.size(temp_file_path)).to be > 0
       end
@@ -529,18 +529,18 @@ RSpec.describe ReportPdfGenerator, type: :lib do
         # PDF生成
         pdf_path = temp_file_path
         generator.generate(pdf_path)
-        
+
         # Excel生成
         excel_path = temp_file_path.gsub('.pdf', '.xlsx')
         excel_generator = ReportExcelGenerator.new(valid_report_data)
         excel_generator.generate(excel_path)
-        
+
         # 両方のファイルが正常に生成されることを確認
         expect(File.exist?(pdf_path)).to be true
         expect(File.exist?(excel_path)).to be true
         expect(File.size(pdf_path)).to be > 0
         expect(File.size(excel_path)).to be > 0
-        
+
         # クリーンアップ
         File.delete(excel_path) if File.exist?(excel_path)
       end
@@ -550,17 +550,17 @@ RSpec.describe ReportPdfGenerator, type: :lib do
   # ============================================================================
   # 横展開確認項目（メタ認知的チェックリスト）
   # ============================================================================
-  
+
   # TODO: 🟢 Phase 3（推奨）- PDFテストパターンの標準化
   # - Excel生成テストとの統一パターン
   # - ファイル形式別テストの体系化
   # - PDF固有の品質テスト強化
-  
+
   # TODO: 🟡 Phase 2（中）- PDF高度機能のテスト
   # - 複数ページレイアウトのテスト
   # - 表・グラフ要素の品質テスト
   # - カラー設定の一貫性テスト
-  
+
   # TODO: 🟢 Phase 3（推奨）- アクセシビリティテスト
   # - PDF/A標準への準拠確認
   # - スクリーンリーダー対応テスト

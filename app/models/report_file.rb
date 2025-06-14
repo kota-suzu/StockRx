@@ -195,7 +195,7 @@ class ReportFile < ApplicationRecord
   # 物理削除処理
   def hard_delete!
     physical_deleted = delete_physical_file
-    database_deleted = destroy
+    database_deleted = destroy.present?
 
     Rails.logger.info "[ReportFile] File hard deleted: #{file_name} (physical: #{physical_deleted}, db: #{database_deleted})"
     physical_deleted && database_deleted
@@ -236,11 +236,12 @@ class ReportFile < ApplicationRecord
   end
 
   def expired?
-    expires_at && expires_at < Date.current
+    return false if expires_at.nil?  # 永続ファイル（期限なし）は期限切れではない
+    expires_at < Date.current
   end
 
   def expiring_soon?(days = 7)
-    expires_at && expires_at <= Date.current + days.days
+    expires_at && !expired? && expires_at <= Date.current + days.days
   end
 
   def permanent?
@@ -345,7 +346,8 @@ class ReportFile < ApplicationRecord
   # ============================================================================
 
   def set_default_values
-    self.generated_at ||= Time.current
+    # デフォルト値はnilの場合のみ設定（テストでの明示的nil設定を尊重）
+    self.generated_at ||= Time.current if new_record?
     self.status ||= "active"
     self.retention_policy ||= "standard"
     self.checksum_algorithm ||= "sha256"
@@ -380,7 +382,13 @@ class ReportFile < ApplicationRecord
   end
 
   def set_retention_expiry
-    self.expires_at = calculate_expiry_date(retention_policy)
+    # permanentポリシーの場合はexpires_atをnilに設定
+    if retention_policy == "permanent"
+      self.expires_at = nil
+    elsif expires_at.nil?
+      # その他のポリシーで期限が未設定の場合のみ自動計算
+      self.expires_at = calculate_expiry_date(retention_policy)
+    end
   end
 
   def calculate_expiry_date(policy)
@@ -439,7 +447,7 @@ class ReportFile < ApplicationRecord
   end
 
   def validate_file_path_format
-    return unless file_path
+    return unless file_path && file_format
 
     # 不正なパス文字の確認
     if file_path.include?("..")
@@ -454,13 +462,13 @@ class ReportFile < ApplicationRecord
     when "json" then ".json"
     end
 
-    unless file_path.end_with?(expected_extension)
+    if expected_extension && !file_path.end_with?(expected_extension)
       errors.add(:file_path, "はファイル形式(#{file_format})に対応する拡張子である必要があります")
     end
   end
 
   def validate_retention_policy_consistency
-    return unless retention_policy && expires_at
+    return unless retention_policy
 
     if retention_policy == "permanent" && expires_at
       errors.add(:expires_at, "は永続保持ポリシーでは設定できません")

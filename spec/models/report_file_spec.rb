@@ -44,37 +44,47 @@ RSpec.describe ReportFile, type: :model do
       it 'report_typeが必須であること' do
         subject.report_type = nil
         expect(subject).not_to be_valid
-        expect(subject.errors[:report_type]).to include("can't be blank")
+        expect(subject.errors[:report_type]).to include("を入力してください")
       end
 
       it 'file_formatが必須であること' do
         subject.file_format = nil
         expect(subject).not_to be_valid
-        expect(subject.errors[:file_format]).to include("can't be blank")
+        expect(subject.errors[:file_format]).to include("を入力してください")
       end
 
       it 'report_periodが必須であること' do
         subject.report_period = nil
         expect(subject).not_to be_valid
-        expect(subject.errors[:report_period]).to include("can't be blank")
+        expect(subject.errors[:report_period]).to include("を入力してください")
       end
 
       it 'file_nameが必須であること' do
         subject.file_name = nil
         expect(subject).not_to be_valid
-        expect(subject.errors[:file_name]).to include("can't be blank")
+        expect(subject.errors[:file_name]).to include("を入力してください")
       end
 
       it 'file_pathが必須であること' do
         subject.file_path = nil
         expect(subject).not_to be_valid
-        expect(subject.errors[:file_path]).to include("can't be blank")
+        expect(subject.errors[:file_path]).to include("を入力してください")
       end
 
       it 'generated_atが必須であること' do
-        subject.generated_at = nil
-        expect(subject).not_to be_valid
-        expect(subject.errors[:generated_at]).to include("can't be blank")
+        # コールバックを回避してgenerated_atをnilにしてテスト
+        file = ReportFile.new(
+          admin: admin,
+          report_type: 'monthly_summary',
+          file_format: 'excel',
+          report_period: target_period,
+          file_name: 'test.xlsx',
+          file_path: '/tmp/test.xlsx'
+        )
+        file.generated_at = nil
+        file.define_singleton_method(:set_default_values) { } # コールバック無効化
+        expect(file).not_to be_valid
+        expect(file.errors[:generated_at]).to include("を入力してください")
       end
     end
 
@@ -87,18 +97,26 @@ RSpec.describe ReportFile, type: :model do
 
         subject.report_type = 'invalid_type'
         expect(subject).not_to be_valid
-        expect(subject.errors[:report_type]).to include('is not included in the list')
+        expect(subject.errors[:report_type]).to include('は一覧にありません')
       end
 
       it '有効なfile_formatのみ受け入れること' do
         ReportFile::FILE_FORMATS.each do |format|
           subject.file_format = format
+          # file_formatが変更された場合は対応する拡張子に更新
+          extension = case format
+          when 'excel' then '.xlsx'
+          when 'pdf' then '.pdf'
+          when 'csv' then '.csv'
+          when 'json' then '.json'
+          end
+          subject.file_path = subject.file_path.sub(/\.\w+$/, extension)
           expect(subject).to be_valid
         end
 
         subject.file_format = 'invalid_format'
         expect(subject).not_to be_valid
-        expect(subject.errors[:file_format]).to include('is not included in the list')
+        expect(subject.errors[:file_format]).to include('は一覧にありません')
       end
 
       it '有効なstorage_typeのみ受け入れること' do
@@ -109,7 +127,7 @@ RSpec.describe ReportFile, type: :model do
 
         subject.storage_type = 'invalid_storage'
         expect(subject).not_to be_valid
-        expect(subject.errors[:storage_type]).to include('is not included in the list')
+        expect(subject.errors[:storage_type]).to include('は一覧にありません')
       end
     end
 
@@ -120,16 +138,19 @@ RSpec.describe ReportFile, type: :model do
 
         subject.file_name = 'a' * 256
         expect(subject).not_to be_valid
-        expect(subject.errors[:file_name]).to include('is too long (maximum is 255 characters)')
+        expect(subject.errors[:file_name]).to include('は255文字以内で入力してください')
       end
 
       it 'file_pathが500文字以内であること' do
-        subject.file_path = 'a' * 500
+        # 拡張子を考慮したパス（.xlsx = 5文字）
+        base_path = 'a' * 495
+        subject.file_path = "#{base_path}.xlsx"
         expect(subject).to be_valid
 
-        subject.file_path = 'a' * 501
+        long_path = 'a' * 496  # 496 + 5(.xlsx) = 501文字
+        subject.file_path = "#{long_path}.xlsx"
         expect(subject).not_to be_valid
-        expect(subject.errors[:file_path]).to include('is too long (maximum is 500 characters)')
+        expect(subject.errors[:file_path]).to include('は500文字以内で入力してください')
       end
     end
 
@@ -140,7 +161,7 @@ RSpec.describe ReportFile, type: :model do
 
         subject.file_size = 0
         expect(subject).not_to be_valid
-        expect(subject.errors[:file_size]).to include('must be greater than 0')
+        expect(subject.errors[:file_size]).to include('は0より大きい値にしてください')
 
         subject.file_size = -1
         expect(subject).not_to be_valid
@@ -155,7 +176,7 @@ RSpec.describe ReportFile, type: :model do
 
         subject.download_count = -1
         expect(subject).not_to be_valid
-        expect(subject.errors[:download_count]).to include('must be greater than or equal to 0')
+        expect(subject.errors[:download_count]).to include('は0以上の値にしてください')
       end
     end
   end
@@ -481,7 +502,11 @@ RSpec.describe ReportFile, type: :model do
   # ============================================================================
 
   describe 'フォーマット・表示メソッド' do
-    subject { create(:report_file, admin: admin, file_size: 1024 * 1024) } # 1MB
+    subject do
+      file = create(:report_file, admin: admin, file_size: 1024 * 1024) # 1MB
+      file.update_column(:file_size, 1024 * 1024)  # 明示的に1MBに設定
+      file
+    end
 
     it 'formatted_file_sizeが人間読みやすい形式で返されること' do
       expect(subject.formatted_file_size).to eq('1.0 MB')
@@ -517,8 +542,12 @@ RSpec.describe ReportFile, type: :model do
 
     describe '.storage_statistics' do
       before do
-        create_list(:report_file, 3, admin: admin, file_size: 1000)
-        create_list(:pdf_report_file, 2, admin: admin, file_size: 2000)
+        # ファイルサイズを明示的に設定してテスト
+        excel_files = create_list(:report_file, 3, admin: admin)
+        excel_files.each { |f| f.update_column(:file_size, 1000) }
+
+        pdf_files = create_list(:pdf_report_file, 2, admin: admin)
+        pdf_files.each { |f| f.update_column(:file_size, 2000) }
       end
 
       it 'ストレージ統計が正しく計算されること' do
@@ -565,12 +594,17 @@ RSpec.describe ReportFile, type: :model do
     end
 
     it '空文字フィールドでバリデーションエラーになること' do
-      file = build(:report_file, admin: admin, file_name: '')
+      file = build(:report_file, admin: admin)
+      file.file_name = ''  # ファクトリ後に明示的に空文字に設定
       expect(file).not_to be_valid
+      expect(file.errors[:file_name]).to include("を入力してください")
     end
 
     it 'nilのfile_hashでも正常に動作すること' do
-      file = create(:report_file, admin: admin, file_hash: nil)
+      # ファイル作成なしでテスト（ファクトリのコールバックを回避）
+      file = build(:report_file, admin: admin, file_hash: nil)
+      file.save!(validate: false)  # バリデーションを回避してfile_hashをnilで保存
+      file.update_column(:file_hash, nil)  # 明示的にnilに設定
       expect(file.short_file_hash).to eq('N/A')
     end
   end

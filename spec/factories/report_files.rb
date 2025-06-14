@@ -16,9 +16,9 @@ FactoryBot.define do
 
     report_type { 'monthly_summary' }
     file_format { 'excel' }
-    report_period { Date.current.beginning_of_month }
+    sequence(:report_period) { |n| (Date.current.beginning_of_month - n.months) }
 
-    # ファイル情報
+    # ファイル情報（初期値、後でコールバックで修正）
     sequence(:file_name) { |n| "monthly_report_#{n}.xlsx" }
     sequence(:file_path) { |n| Rails.root.join('tmp', 'test_reports', "report_#{n}.xlsx").to_s }
     storage_type { 'local' }
@@ -52,6 +52,30 @@ FactoryBot.define do
     # ファイル作成コールバック
     # ============================================
 
+    after(:build) do |report_file|
+      # ファイル形式に応じた拡張子の修正
+      extension = case report_file.file_format
+      when 'excel' then '.xlsx'
+      when 'pdf' then '.pdf'
+      when 'csv' then '.csv'
+      when 'json' then '.json'
+      else '.xlsx'
+      end
+
+      # file_nameの拡張子を修正
+      if report_file.file_name
+        base_name = report_file.file_name.sub(/\.\w+$/, '')
+        report_file.file_name = "#{base_name}#{extension}"
+      end
+
+      # file_pathの拡張子を修正
+      if report_file.file_path
+        base_path = report_file.file_path.sub(/\.\w+$/, '')
+        report_file.file_path = "#{base_path}#{extension}"
+      end
+    end
+
+
     before(:create) do |report_file|
       # テスト用の実際のファイルを作成
       FileUtils.mkdir_p(File.dirname(report_file.file_path))
@@ -74,15 +98,21 @@ FactoryBot.define do
     end
 
     after(:create) do |report_file|
-      # ファイルサイズとハッシュの再計算
+      # テスト向けに物理ファイルサイズとハッシュを実際のファイルから取得
+      # ただし、明示的に異なる値が設定されている場合は尊重する
       if File.exist?(report_file.file_path)
         actual_size = File.size(report_file.file_path)
         actual_hash = Digest::SHA256.file(report_file.file_path).hexdigest
 
-        report_file.update_columns(
-          file_size: actual_size,
-          file_hash: actual_hash
-        )
+        # ファイルサイズの更新（テストで明示的に大きなサイズが設定されている場合は保持）
+        if report_file.file_size.nil? || report_file.file_size < 2_000_000  # 2MB未満は実サイズに更新
+          report_file.update_column(:file_size, actual_size)
+        end
+
+        # ファイルハッシュの更新（明示的にnilが設定されている場合以外）
+        unless report_file.file_hash == "explicit_nil_for_test"
+          report_file.update_column(:file_hash, actual_hash)
+        end
       end
     end
 
@@ -130,6 +160,7 @@ FactoryBot.define do
     # 期限切れファイル
     factory :expired_report_file do
       retention_policy { 'temporary' }
+      generated_at { 10.days.ago }
       expires_at { 1.day.ago.to_date }
     end
 

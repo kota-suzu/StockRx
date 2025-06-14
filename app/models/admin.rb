@@ -13,6 +13,9 @@ class Admin < ApplicationRecord
   devise :database_authenticatable, :recoverable, :rememberable,
          :validatable, :lockable, :timeoutable, :trackable
 
+  # アソシエーション
+  has_many :report_files, dependent: :destroy
+
   # Deviseのデフォルトバリデーション（:validatable）に加えて
   # 独自のパスワード強度チェックを追加
   validates :password, password_strength: true, if: :password_required?
