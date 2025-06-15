@@ -34,6 +34,23 @@ class InventoryDecorator < Draper::Decorator
     h.l(updated_at, format: :short) if updated_at.present?
   end
 
+  # バッチ数を効率的に取得（N+1クエリ対策）
+  def batches_count
+    # Counter Cacheカラムが存在する場合は最優先で使用
+    if object.has_attribute?('batches_count') && !object.batches_count.nil?
+      object.batches_count
+    # サブクエリで取得したカウンターキャッシュを利用
+    elsif respond_to?(:batches_count_cache) && batches_count_cache.present?
+      batches_count_cache
+    # eager loadingされたデータを利用
+    elsif batches.loaded?
+      batches.size
+    # フォールバック（単発クエリ）
+    else
+      batches.count
+    end
+  end
+
   # JSON出力用の属性ハッシュ
   def as_json_with_decorated
     {
@@ -44,7 +61,8 @@ class InventoryDecorator < Draper::Decorator
       status: status,
       updated_at: updated_at,
       formatted_price: formatted_price,
-      alert_status: quantity <= 0 ? "low" : "ok"
+      alert_status: quantity <= 0 ? "low" : "ok",
+      batches_count: batches_count
     }
   end
 end
