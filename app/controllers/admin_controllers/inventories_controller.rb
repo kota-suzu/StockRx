@@ -14,13 +14,16 @@ module AdminControllers
 
     # GET /admin/inventories
     def index
-      # Kaminariページネーション実装（1ページあたり20件、最大100件まで）
-      per_page = [ params[:per_page]&.to_i || 20, 100 ].min
+      # Kaminariページネーション実装（50/100/200件切り替え可能）
+      per_page = validate_per_page_param(params[:per_page])
 
-      @inventories = SearchQuery.call(params)
-                                .page(params[:page])
-                                .per(per_page)
-                                .decorate
+      # Kaminariのページネーション情報を保持
+      @inventories_raw = SearchQuery.call(params)
+                                   .page(params[:page])
+                                   .per(per_page)
+
+      # デコレートはKaminariメソッドにアクセスした後に実行
+      @inventories = @inventories_raw.decorate
 
       respond_to do |format|
         format.html # Turbo Frame 対応
@@ -28,10 +31,10 @@ module AdminControllers
           render json: {
             inventories: @inventories.map(&:as_json_with_decorated),
             pagination: {
-              current_page: @inventories.current_page,
-              total_pages: @inventories.total_pages,
-              total_count: @inventories.total_count,
-              per_page: @inventories.limit_value
+              current_page: @inventories_raw.current_page,
+              total_pages: @inventories_raw.total_pages,
+              total_count: @inventories_raw.total_count,
+              per_page: @inventories_raw.limit_value
             }
           }
         }
@@ -149,6 +152,18 @@ module AdminControllers
     # Only allow a list of trusted parameters through.
     def inventory_params
       params.require(:inventory).permit(:name, :quantity, :price, :status)
+    end
+
+    # Per page パラメータの検証（50/100/200のみ許可）
+    def validate_per_page_param(per_page_param)
+      allowed_per_page = [ 50, 100, 200 ]
+      per_page = per_page_param&.to_i || 50  # デフォルト50件
+
+      if allowed_per_page.include?(per_page)
+        per_page
+      else
+        50  # 不正な値の場合はデフォルトに戻す
+      end
     end
   end
 end

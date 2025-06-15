@@ -1,6 +1,3 @@
 <li class="page-item">
-  <%= link_to_unless current_page.first?, url, remote: remote, class: 'page-link', 'aria-label': '最初のページ' do %>
-    <i class="fas fa-angle-double-left" aria-hidden="true"></i>
-    <span class="d-none d-sm-inline ms-1">最初</span>
-  <% end %>
+  <%= link_to_unless current_page.first?, raw('<i class="fas fa-backward me-1"></i>最初'), url, remote: remote, class: 'page-link' %>
 </li>

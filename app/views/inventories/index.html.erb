@@ -110,7 +110,7 @@
       <div class="card-header bg-primary text-white">
         <h5 class="card-title mb-0">
           <i class="fas fa-table me-2"></i>在庫一覧
-          <span class="badge bg-light text-dark ms-2"><%= @inventories.total_count %>件</span>
+          <span class="badge bg-light text-dark ms-2"><%= @inventories_raw.total_count %>件</span>
         </h5>
       </div>
       <div class="card-body p-0">
@@ -244,15 +244,15 @@
   <% end %>
   
   <%# ページネーション %>
-  <% if @inventories.respond_to?(:current_page) && @inventories.total_pages > 1 %>
+  <% if @inventories_raw.respond_to?(:current_page) && @inventories_raw.total_pages > 1 %>
     <div class="d-flex justify-content-center align-items-center mt-4">
       <div class="me-3">
         <small class="text-muted">
-          <%= @inventories.total_count %>件中 
-          <%= @inventories.offset_value + 1 %>-<%= [@inventories.offset_value + @inventories.limit_value, @inventories.total_count].min %>件を表示
+          <%= @inventories_raw.total_count %>件中 
+          <%= @inventories_raw.offset_value + 1 %>-<%= [@inventories_raw.offset_value + @inventories_raw.limit_value, @inventories_raw.total_count].min %>件を表示
         </small>
       </div>
-      <%= paginate @inventories %>
+      <%= paginate @inventories_raw %>
     </div>
   <% end %>
   

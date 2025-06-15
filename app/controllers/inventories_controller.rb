@@ -11,14 +11,17 @@ class InventoriesController < ApplicationController
     @search_form = InventorySearchForm.new(search_params.except(:page))
 
     if @search_form.valid? && @search_form.has_search_conditions?
-      @inventories = @search_form.search.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page]).decorate
+      @inventories_raw = @search_form.search.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page])
     elsif @search_form.has_search_conditions?
       # 検索条件があるがバリデーションエラーの場合
       flash.now[:alert] = @search_form.errors.full_messages.join(", ")
-      @inventories = Inventory.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page]).decorate
+      @inventories_raw = Inventory.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page])
     else
-      @inventories = Inventory.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page]).decorate
+      @inventories_raw = Inventory.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page])
     end
+
+    # デコレートはKaminariメソッドにアクセスした後に実行
+    @inventories = @inventories_raw.decorate
 
     @show_advanced = @search_form.advanced_search || @search_form.complex_search_required?
 
