@@ -169,8 +169,14 @@
   <% end %>
   
   <%# ページネーション %>
-  <% if @logs.respond_to?(:current_page) %>
-    <div class="d-flex justify-content-center mt-4">
+  <% if @logs.respond_to?(:current_page) && @logs.total_pages > 1 %>
+    <div class="d-flex justify-content-center align-items-center mt-4">
+      <div class="me-3">
+        <small class="text-muted">
+          <%= @logs.total_count %>件中 
+          <%= @logs.offset_value + 1 %>-<%= [@logs.offset_value + @logs.limit_value, @logs.total_count].min %>件を表示
+        </small>
+      </div>
       <%= paginate @logs %>
     </div>
   <% end %>
