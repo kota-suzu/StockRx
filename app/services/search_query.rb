@@ -17,9 +17,9 @@ class SearchQuery
 
     # シンプルな検索（従来の実装）
     def simple_search(params)
-      # 必要な関連データのみをeager loadingで取得（batches_countで使用）
-      query = Inventory.includes(:batches)
-                      .select('inventories.*, (SELECT COUNT(*) FROM batches WHERE batches.inventory_id = inventories.id) as batches_count_cache')
+      # Counter Cacheカラムを使用するため、includesは不要
+      # サブクエリで取得したカウンターキャッシュは予備として保持
+      query = Inventory.select('inventories.*, (SELECT COUNT(*) FROM batches WHERE batches.inventory_id = inventories.id) as batches_count_cache')
 
       # キーワード検索
       if params[:q].present?
@@ -62,10 +62,14 @@ class SearchQuery
     def advanced_search(params)
       query = AdvancedSearchQuery.build
 
-      # 基本的には:batchesのみ、条件に応じて他の関連データもinclude
-      includes_array = [:batches]
+      # 条件に応じて必要な関連データのみをinclude
+      includes_array = []
       
-      # バッチ関連の検索がある場合は既に含まれている
+      # バッチ関連の検索がある場合のみ:batchesをinclude
+      if params[:lot_code].present? || params[:expires_before].present? || params[:expires_after].present? || params[:expiring_soon].present?
+        includes_array << :batches
+      end
+      
       # 出荷関連の検索がある場合
       if params[:shipment_status].present? || params[:destination].present?
         includes_array << :shipments
@@ -79,7 +83,8 @@ class SearchQuery
       # ログ関連の検索がある場合（現在は直接的な条件はないが、将来の拡張用）
       # includes_array << :inventory_logs if params[:log_search].present?
       
-      query = query.includes(includes_array)
+      # 必要な関連データがある場合のみincludesを適用
+      query = query.includes(includes_array) if includes_array.any?
 
       # 基本的な検索条件
       if params[:q].present?

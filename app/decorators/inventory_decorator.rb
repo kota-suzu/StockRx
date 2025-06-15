@@ -36,18 +36,17 @@ class InventoryDecorator < Draper::Decorator
 
   # バッチ数を効率的に取得（N+1クエリ対策）
   def batches_count
-    # Counter Cacheカラムが存在する場合は最優先で使用
-    if object.has_attribute?('batches_count') && !object.batches_count.nil?
-      object.batches_count
-    # サブクエリで取得したカウンターキャッシュを利用
+    # Counter Cacheカラムが存在する場合は最優先で使用（通常のケース）
+    if object.has_attribute?('batches_count')
+      # nilの場合は0として扱う（Counter Cacheの標準動作）
+      object.batches_count || 0
+    # サブクエリで取得したカウンターキャッシュを利用（SearchQuery使用時）
     elsif respond_to?(:batches_count_cache) && batches_count_cache.present?
       batches_count_cache
-    # eager loadingされたデータを利用
-    elsif batches.loaded?
-      batches.size
-    # フォールバック（単発クエリ）
+    # フォールバック: 直接カウントクエリ（Counter Cacheが無効な場合のみ）
     else
-      batches.count
+      # eager loadingチェックを避けて直接countを実行
+      object.association(:batches).target&.size || object.batches.count
     end
   end
 
