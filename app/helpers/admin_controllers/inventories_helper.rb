@@ -43,7 +43,25 @@ module AdminControllers::InventoriesHelper
   # CSVインポート用のサンプルフォーマットを返す
   # @return [String] CSVサンプル
   def csv_sample_format
-    "name,quantity,price,status\n商品A,100,1000,active\n商品B,50,500,active"
+    "name,quantity,price,status\nノートパソコン ThinkPad X1,15,128000,active\nワイヤレスマウス Logitech MX,50,7800,active\nモニター 27インチ 4K,25,45000,active"
+  end
+
+  # 拡張CSVサンプル（より多くの例を含む）
+  # @return [String] 拡張CSVサンプル
+  def csv_extended_sample_format
+    <<~CSV
+      name,quantity,price,status
+      ノートパソコン ThinkPad X1,15,128000,active
+      デスクトップPC Dell OptiPlex,8,89000,active
+      モニター 27インチ 4K,25,45000,active
+      ワイヤレスマウス Logitech MX,50,7800,active
+      メカニカルキーボード,30,12000,active
+      在庫切れ商品例,0,5000,active
+      アーカイブ商品例,10,3000,archived
+      高額商品例,2,250000,active
+      小数点価格例,100,1499.99,active
+      特殊文字商品「テスト」,75,2500,active
+    CSV
   end
 
   # バッチ状態に応じた行のスタイルクラスを返す（Bootstrap 5版）
