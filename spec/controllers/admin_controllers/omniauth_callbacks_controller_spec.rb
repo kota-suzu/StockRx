@@ -70,7 +70,7 @@ RSpec.describe AdminControllers::OmniauthCallbacksController, type: :controller 
       before do
         allow(Admin).to receive(:from_omniauth).and_return(invalid_admin)
         allow(invalid_admin).to receive(:persisted?).and_return(false)
-        allow(invalid_admin).to receive_message_chain(:errors, :full_messages).and_return([ 'エラーが発生しました' ])
+        allow(invalid_admin).to receive_message_chain(:errors, :full_messages).and_return(['エラーが発生しました'])
       end
 
       it 'ログインページにリダイレクトされること' do

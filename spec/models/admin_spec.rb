@@ -12,7 +12,7 @@ RSpec.describe Admin, type: :model do
     it { should be_a(Devise::Models::Timeoutable) }
     it { should be_a(Devise::Models::Trackable) }
     it { should be_a(Devise::Models::Omniauthable) }
-
+    
     it 'GitHub OmniAuthプロバイダーが設定されていること' do
       expect(Admin.omniauth_providers).to include(:github)
     end
@@ -68,7 +68,7 @@ RSpec.describe Admin, type: :model do
 
       it '適切な属性が設定されること' do
         admin = Admin.from_omniauth(auth_hash)
-
+        
         expect(admin.provider).to eq('github')
         expect(admin.uid).to eq('123456')
         expect(admin.email).to eq('github-user@example.com')
@@ -85,7 +85,7 @@ RSpec.describe Admin, type: :model do
 
     context '既存GitHubユーザーの場合' do
       let!(:existing_admin) do
-        create(:admin, provider: 'github', uid: '123456',
+        create(:admin, provider: 'github', uid: '123456', 
                email: 'old-email@example.com', sign_in_count: 5)
       end
 
@@ -97,7 +97,7 @@ RSpec.describe Admin, type: :model do
 
       it '既存アカウントの情報が更新されること' do
         admin = Admin.from_omniauth(auth_hash)
-
+        
         expect(admin.id).to eq(existing_admin.id)
         expect(admin.email).to eq('github-user@example.com')
         expect(admin.sign_in_count).to eq(6)
