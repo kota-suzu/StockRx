@@ -8,7 +8,7 @@ class AddOmniauthToAdmins < ActiveRecord::Migration[8.0]
     add_index :admins, [ :provider, :uid ], unique: true,
               name: 'index_admins_on_provider_and_uid'
 
-    # provider単体でも検索するためのインデックス  
+    # provider単体でも検索するためのインデックス
     add_index :admins, :provider, name: 'index_admins_on_provider'
 
     # セキュリティとパフォーマンス向上のためのインデックス追加
