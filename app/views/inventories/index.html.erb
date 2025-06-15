@@ -1,116 +1,270 @@
-<div class="container mx-auto px-4 py-8">
-  <div class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-bold">在庫一覧</h1>
-    <%= link_to "新規登録", new_inventory_path, class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded", data: { turbo_frame: "modal" } %>
+<%# Bootstrap 5 モダン在庫一覧ページ - StockRx 公開インターフェース %>
+<div class="container-fluid py-4">
+  <%# ページヘッダー %>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h2 mb-1">
+        <i class="fas fa-boxes me-2 text-primary"></i>在庫一覧
+      </h1>
+      <p class="text-muted mb-0">商品在庫の検索・閲覧</p>
+    </div>
+    <div>
+      <%= link_to new_inventory_path, 
+          class: "btn btn-primary", 
+          data: { turbo_frame: "modal" } do %>
+        <i class="fas fa-plus me-2"></i>新規登録
+      <% end %>
+    </div>
   </div>
 
-  <!-- TODO: 横展開確認 - フラッシュメッセージ表示パターンを他のビューにも適用 -->
-  <!-- フラッシュメッセージの表示 -->
+  <%# フラッシュメッセージ（Bootstrap 5 Alerts） %>
   <% flash.each do |type, message| %>
-    <div class="mb-4 p-4 rounded-md <%= type == 'alert' ? 'bg-red-50 border border-red-200 text-red-700' : 'bg-green-50 border border-green-200 text-green-700' %>">
-      <%= message %>
+    <div class="alert <%= type == 'alert' ? 'alert-danger' : 'alert-success' %> alert-dismissible fade show mb-4" role="alert">
+      <div class="d-flex align-items-center">
+        <i class="fas <%= type == 'alert' ? 'fa-exclamation-triangle' : 'fa-check-circle' %> me-2"></i>
+        <div><%= message %></div>
+      </div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
   <% end %>
 
-  <!-- 検索条件のサマリー表示 -->
+  <%# 検索条件サマリー %>
   <% if @search_form.has_search_conditions? %>
-    <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-      <p class="text-sm text-blue-800">
-        <strong>検索条件:</strong> <%= @search_form.conditions_summary %>
-      </p>
+    <div class="alert alert-info border-0 mb-4">
+      <div class="d-flex align-items-center">
+        <i class="fas fa-filter me-2"></i>
+        <div>
+          <strong>現在の検索条件:</strong> <%= @search_form.conditions_summary %>
+        </div>
+      </div>
     </div>
   <% end %>
 
   <% if @show_advanced %>
-    <!-- 高度な検索フォーム -->
+    <%# 高度な検索フォーム %>
     <%= render "advanced_search_form" %>
   <% else %>
-    <!-- シンプルな検索フォーム -->
-    <div class="mb-6">
-      <%= form_with url: inventories_path, method: :get, data: { turbo_frame: "inventories_list", turbo_action: "replace" }, class: "flex flex-wrap gap-4" do |f| %>
-        <div class="flex-1 min-w-[300px]">
-          <%= f.search_field :q, value: @search_form.effective_name, placeholder: "商品名で検索", class: "w-full px-3 py-2 border border-gray-300 rounded-md" %>
-        </div>
-        
-        <div class="flex-none">
-          <%= f.select :status, options_for_select(Inventory::STATUSES.map { |k, _| [k.humanize, k] }, @search_form.status), { include_blank: "全ステータス" }, class: "px-3 py-2 border border-gray-300 rounded-md" %>
-        </div>
-        
-        <div class="flex-none">
-          <%= f.check_box :low_stock, { checked: @search_form.low_stock }, "true", "false" %>
-          <%= f.label :low_stock, "在庫切れ商品のみ表示", class: "ml-2" %>
-        </div>
-        
-        <div class="flex-none">
-          <%= f.submit "検索", class: "bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded" %>
-        </div>
-        
-        <div class="flex-none">
-          <%= link_to "高度な検索", inventories_path(advanced_search: 1), class: "text-blue-600 hover:text-blue-800 underline text-sm self-center" %>
-        </div>
-      <% end %>
+    <%# シンプルな検索フォーム %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-light">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-search me-2"></i>在庫検索
+        </h5>
+      </div>
+      <div class="card-body">
+        <%= form_with url: inventories_path, method: :get, 
+            data: { turbo_frame: "inventories_list", turbo_action: "replace" }, 
+            class: "row g-3 align-items-end" do |f| %>
+          
+          <%# 商品名検索 %>
+          <div class="col-md-4">
+            <%= f.label :q, "商品名", class: "form-label" %>
+            <div class="input-group">
+              <span class="input-group-text">
+                <i class="fas fa-search text-muted"></i>
+              </span>
+              <%= f.search_field :q, 
+                  value: @search_form.effective_name, 
+                  placeholder: "商品名で検索", 
+                  class: "form-control" %>
+            </div>
+          </div>
+          
+          <%# ステータス選択 %>
+          <div class="col-md-2">
+            <%= f.label :status, "ステータス", class: "form-label" %>
+            <%= f.select :status, 
+                options_for_select(Inventory::STATUSES.map { |k, _| [k.humanize, k] }, @search_form.status), 
+                { include_blank: "全ステータス" }, 
+                class: "form-select" %>
+          </div>
+          
+          <%# 在庫切れフィルター %>
+          <div class="col-md-3">
+            <div class="form-check mt-4">
+              <%= f.check_box :low_stock, 
+                  { checked: @search_form.low_stock }, 
+                  "true", "false", 
+                  class: "form-check-input" %>
+              <%= f.label :low_stock, "在庫切れ商品のみ表示", class: "form-check-label" %>
+            </div>
+          </div>
+          
+          <%# アクションボタン %>
+          <div class="col-md-3">
+            <div class="d-flex gap-2">
+              <%= f.submit "検索", class: "btn btn-outline-primary flex-grow-1" %>
+              <%= link_to inventories_path(advanced_search: 1), 
+                  class: "btn btn-outline-secondary" do %>
+                <i class="fas fa-cog me-1"></i>詳細
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
     </div>
   <% end %>
 
+  <%# 在庫一覧テーブル（Turbo Frame対応） %>
   <%= turbo_frame_tag "inventories_list" do %>
-    <div class="overflow-x-auto bg-white shadow-md rounded-lg">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <%= link_to "商品名", inventories_path(@search_form.to_search_params.merge(sort: "name", direction: @search_form.sort_field == "name" && @search_form.sort_direction == "asc" ? "desc" : "asc")), data: { turbo_frame: "inventories_list" } %>
-            </th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <%= link_to "在庫数", inventories_path(@search_form.to_search_params.merge(sort: "quantity", direction: @search_form.sort_field == "quantity" && @search_form.sort_direction == "asc" ? "desc" : "asc")), data: { turbo_frame: "inventories_list" } %>
-            </th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              <%= link_to "価格", inventories_path(@search_form.to_search_params.merge(sort: "price", direction: @search_form.sort_field == "price" && @search_form.sort_direction == "asc" ? "desc" : "asc")), data: { turbo_frame: "inventories_list" } %>
-            </th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              ステータス
-            </th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              アラート
-            </th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              アクション
-            </th>
-          </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-          <% @inventories.each do |inventory| %>
-            <tr class="<%= inventory.quantity <= 0 ? 'bg-amber-50' : '' %>">
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                <%= link_to inventory.name, inventory_path(inventory), data: { turbo_frame: "_top" } %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <%= inventory.quantity %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <%= inventory.formatted_price %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <%= inventory.status_badge %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <%= inventory.alert_badge %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 flex gap-2">
-                <%= link_to "編集", edit_inventory_path(inventory), class: "text-indigo-600 hover:text-indigo-900", data: { turbo_frame: "modal" } %>
-                <%= button_to "削除", inventory_path(inventory), method: :delete, form: { data: { turbo_confirm: "本当に削除しますか？" } }, class: "text-red-600 hover:text-red-900 bg-transparent border-none p-0 cursor-pointer" %>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
+    <div class="card shadow-sm">
+      <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+          <i class="fas fa-table me-2"></i>在庫一覧
+          <span class="badge bg-light text-dark ms-2"><%= @inventories.total_count %>件</span>
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th scope="col" class="text-nowrap">
+                  <%= link_to inventories_path(@search_form.to_search_params.merge(
+                      sort: "name", 
+                      direction: @search_form.sort_field == "name" && @search_form.sort_direction == "asc" ? "desc" : "asc"
+                    )), 
+                    data: { turbo_frame: "inventories_list" },
+                    class: "text-decoration-none" do %>
+                    <i class="fas fa-box me-2"></i>商品名
+                    <% if @search_form.sort_field == "name" %>
+                      <i class="fas fa-sort-<%= @search_form.sort_direction == "asc" ? "up" : "down" %> ms-1"></i>
+                    <% else %>
+                      <i class="fas fa-sort ms-1 text-muted"></i>
+                    <% end %>
+                  <% end %>
+                </th>
+                <th scope="col" class="text-center text-nowrap">
+                  <%= link_to inventories_path(@search_form.to_search_params.merge(
+                      sort: "quantity", 
+                      direction: @search_form.sort_field == "quantity" && @search_form.sort_direction == "asc" ? "desc" : "asc"
+                    )), 
+                    data: { turbo_frame: "inventories_list" },
+                    class: "text-decoration-none" do %>
+                    <i class="fas fa-cubes me-2"></i>在庫数
+                    <% if @search_form.sort_field == "quantity" %>
+                      <i class="fas fa-sort-<%= @search_form.sort_direction == "asc" ? "up" : "down" %> ms-1"></i>
+                    <% else %>
+                      <i class="fas fa-sort ms-1 text-muted"></i>
+                    <% end %>
+                  <% end %>
+                </th>
+                <th scope="col" class="text-center text-nowrap">
+                  <%= link_to inventories_path(@search_form.to_search_params.merge(
+                      sort: "price", 
+                      direction: @search_form.sort_field == "price" && @search_form.sort_direction == "asc" ? "desc" : "asc"
+                    )), 
+                    data: { turbo_frame: "inventories_list" },
+                    class: "text-decoration-none" do %>
+                    <i class="fas fa-yen-sign me-2"></i>価格
+                    <% if @search_form.sort_field == "price" %>
+                      <i class="fas fa-sort-<%= @search_form.sort_direction == "asc" ? "up" : "down" %> ms-1"></i>
+                    <% else %>
+                      <i class="fas fa-sort ms-1 text-muted"></i>
+                    <% end %>
+                  <% end %>
+                </th>
+                <th scope="col" class="text-center">
+                  <i class="fas fa-info-circle me-2"></i>ステータス
+                </th>
+                <th scope="col" class="text-center">
+                  <i class="fas fa-exclamation-triangle me-2"></i>アラート
+                </th>
+                <th scope="col" class="text-center">
+                  <i class="fas fa-cog me-2"></i>アクション
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @inventories.each do |inventory| %>
+                <tr class="<%= inventory.quantity <= 0 ? 'table-warning' : '' %>">
+                  <td class="align-middle">
+                    <%= link_to inventory.name, inventory_path(inventory), 
+                        data: { turbo_frame: "_top" }, 
+                        class: "text-decoration-none fw-medium" %>
+                  </td>
+                  <td class="text-center align-middle">
+                    <span class="badge <%= inventory.quantity <= 0 ? 'bg-danger' : 'bg-secondary' %>">
+                      <%= number_with_delimiter(inventory.quantity) %>
+                    </span>
+                  </td>
+                  <td class="text-center align-middle">
+                    <span class="fw-medium">
+                      <%= inventory.formatted_price %>
+                    </span>
+                  </td>
+                  <td class="text-center align-middle">
+                    <%= inventory.status_badge %>
+                  </td>
+                  <td class="text-center align-middle">
+                    <%= inventory.alert_badge %>
+                  </td>
+                  <td class="text-center align-middle">
+                    <div class="btn-group btn-group-sm" role="group">
+                      <%= link_to edit_inventory_path(inventory), 
+                          class: "btn btn-outline-primary btn-sm", 
+                          data: { turbo_frame: "modal" },
+                          title: "編集" do %>
+                        <i class="fas fa-edit"></i>
+                      <% end %>
+                      <%= button_to inventory_path(inventory), 
+                          method: :delete, 
+                          form: { data: { turbo_confirm: "本当に削除しますか？" } }, 
+                          class: "btn btn-outline-danger btn-sm",
+                          title: "削除" do %>
+                        <i class="fas fa-trash"></i>
+                      <% end %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
     
+    <%# 空状態表示 %>
     <% if @inventories.empty? %>
-      <div class="bg-white shadow-md rounded-lg p-6 text-center">
-        <p class="text-gray-500">検索条件に一致する在庫がありません。</p>
+      <div class="card shadow-sm mt-4">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-inbox text-muted fa-3x mb-3"></i>
+          <h5 class="text-muted">在庫が見つかりません</h5>
+          <p class="text-muted mb-4">
+            検索条件に一致する在庫がありません。<br>
+            検索条件を変更するか、新しい在庫を追加してください。
+          </p>
+          <%= link_to new_inventory_path, 
+              class: "btn btn-primary", 
+              data: { turbo_frame: "modal" } do %>
+            <i class="fas fa-plus me-2"></i>最初の在庫を追加
+          <% end %>
+        </div>
       </div>
     <% end %>
   <% end %>
   
+  <%# ページネーション %>
+  <% if @inventories.respond_to?(:current_page) && @inventories.total_pages > 1 %>
+    <div class="d-flex justify-content-center align-items-center mt-4">
+      <div class="me-3">
+        <small class="text-muted">
+          <%= @inventories.total_count %>件中 
+          <%= @inventories.offset_value + 1 %>-<%= [@inventories.offset_value + @inventories.limit_value, @inventories.total_count].min %>件を表示
+        </small>
+      </div>
+      <%= paginate @inventories %>
+    </div>
+  <% end %>
+  
+  <%# Turbo Frame Modal %>
   <%= turbo_frame_tag "modal" %>
+
+  <%# TODO: 🟡 Phase 2 - 在庫一覧高度機能 %>
+  <%# 優先度: 中（ユーザビリティ向上） %>
+  <%# 実装内容: 一括操作、CSV エクスポート、フィルタ保存 %>
+  <%# 理由: 大量データ管理の効率化 %>
+  <%# 期待効果: 運用効率向上、ユーザー満足度向上 %>
+  <%# 工数見積: 3日 %>
+  <%# 依存関係: CSV エクスポート機能の実装 %>
 </div> 
