@@ -1,27 +1,255 @@
-<div class="admin-change-password-container">
-  <h2>パスワードを変更する</h2>
+<%# Bootstrap 5 モダンパスワード変更ページ - StockRx 管理者認証 %>
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-6 col-lg-5">
+        
+        <%# ブランドヘッダー %>
+        <div class="text-center mb-4">
+          <div class="mb-3">
+            <i class="fas fa-boxes-stacked fa-3x text-primary"></i>
+          </div>
+          <h1 class="h3 mb-2 fw-bold text-dark">StockRx 管理画面</h1>
+          <p class="text-muted mb-0">在庫管理システム</p>
+        </div>
 
-  <%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :put, data: { turbo: false } }) do |f| %>
-    <%= render "admin_controllers/shared/error_messages", resource: resource %>
-    <%= f.hidden_field :reset_password_token %>
+        <%# パスワード変更カード %>
+        <div class="card shadow-lg border-0">
+          <div class="card-header bg-success text-white text-center py-3">
+            <h2 class="h5 mb-0">
+              <i class="fas fa-lock me-2"></i>新しいパスワードの設定
+            </h2>
+          </div>
+          
+          <div class="card-body p-4">
+            <%# パスワード要件説明 %>
+            <div class="alert alert-info border-0 mb-4">
+              <div class="d-flex">
+                <div class="me-3">
+                  <i class="fas fa-info-circle"></i>
+                </div>
+                <div>
+                  <h6 class="alert-heading mb-2">パスワード要件</h6>
+                  <ul class="mb-0 small">
+                    <li>12文字以上で設定してください</li>
+                    <li>大文字・小文字・数字・記号を含めてください</li>
+                    <li>推測しやすい単語は避けてください</li>
+                    <li>過去に使用したパスワードは使用できません</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
 
-    <div class="field">
-      <%= f.label :password, "新しいパスワード" %><br />
-      <% if @minimum_password_length %>
-        <em>（<%= @minimum_password_length %>文字以上で、大文字・小文字・数字・記号を含めてください）</em><br />
-      <% end %>
-      <%= f.password_field :password, autofocus: true, autocomplete: "new-password" %>
+            <%# エラーメッセージ表示エリア %>
+            <%= render "admin_controllers/shared/error_messages", resource: resource %>
+            
+            <%= form_for(resource, as: resource_name, url: password_path(resource_name), 
+                         html: { method: :put, data: { turbo: false } }, 
+                         class: "needs-validation", novalidate: true) do |f| %>
+              
+              <%= f.hidden_field :reset_password_token %>
+              
+              <%# 新しいパスワード入力 %>
+              <div class="mb-4">
+                <%= f.label :password, "新しいパスワード", class: "form-label fw-medium" %>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="fas fa-lock text-muted"></i>
+                  </span>
+                  <%= f.password_field :password, 
+                      autofocus: true, 
+                      autocomplete: "new-password",
+                      class: "form-control form-control-lg",
+                      placeholder: "新しいパスワードを入力",
+                      minlength: 12,
+                      required: true %>
+                  <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                  <div class="invalid-feedback">
+                    パスワードは12文字以上で入力してください。
+                  </div>
+                </div>
+                
+                <%# パスワード強度インジケーター %>
+                <div class="mt-2">
+                  <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-muted">パスワード強度:</small>
+                    <small id="password-strength-text" class="text-muted">-</small>
+                  </div>
+                  <div class="progress" style="height: 4px;">
+                    <div id="password-strength-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <%# パスワード確認入力 %>
+              <div class="mb-4">
+                <%= f.label :password_confirmation, "パスワード確認", class: "form-label fw-medium" %>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="fas fa-check-circle text-muted"></i>
+                  </span>
+                  <%= f.password_field :password_confirmation, 
+                      autocomplete: "new-password",
+                      class: "form-control form-control-lg",
+                      placeholder: "パスワードを再入力",
+                      required: true %>
+                  <div class="invalid-feedback">
+                    パスワードが一致しません。
+                  </div>
+                </div>
+                <div id="password-match" class="form-text"></div>
+              </div>
+
+              <%# 変更ボタン %>
+              <div class="d-grid mb-3">
+                <%= f.submit "パスワードを変更する", 
+                    class: "btn btn-success btn-lg fw-medium",
+                    data: { 
+                      disable_with: '<i class="fas fa-spinner fa-spin me-2"></i>変更中...' 
+                    } %>
+              </div>
+            <% end %>
+
+            <%# セキュリティ注意事項 %>
+            <div class="alert alert-light border mb-0">
+              <div class="d-flex">
+                <div class="me-3">
+                  <i class="fas fa-shield-alt text-success"></i>
+                </div>
+                <div>
+                  <h6 class="mb-2">セキュリティのヒント</h6>
+                  <ul class="mb-0 small">
+                    <li>パスワードマネージャーの使用を推奨します</li>
+                    <li>定期的なパスワード変更でセキュリティを向上させましょう</li>
+                    <li>他のサービスと同じパスワードは使用しないでください</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <%# フッターリンク %>
+          <div class="card-footer bg-light text-center py-3">
+            <%= render "admin_controllers/shared/links" %>
+          </div>
+        </div>
+
+        <%# セキュリティ情報 %>
+        <div class="text-center mt-4">
+          <small class="text-muted">
+            <i class="fas fa-shield-alt me-1"></i>
+            このサイトは SSL で保護されています
+          </small>
+        </div>
+        
+        <%# TODO: 🟡 Phase 2 - パスワード履歴チェック %>
+        <%# 優先度: 中（セキュリティ向上） %>
+        <%# 実装内容: 過去のパスワードとの重複チェック %>
+        <%# 理由: パスワード再利用防止によるセキュリティ向上 %>
+        <%# 期待効果: アカウント乗っ取りリスク軽減 %>
+        <%# 工数見積: 2日 %>
+        <%# 依存関係: パスワード履歴テーブルの追加 %>
+
+      </div>
     </div>
+  </div>
+</div>
 
-    <div class="field">
-      <%= f.label :password_confirmation, "新しいパスワード（確認用）" %><br />
-      <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
-    </div>
+<%# パスワード強度チェック & Bootstrap 5 Form Validation %>
+<script>
+(function() {
+  'use strict';
+  
+  // パスワード表示切り替え
+  document.getElementById('togglePassword')?.addEventListener('click', function() {
+    const passwordField = document.querySelector('[name="admin[password]"]');
+    const icon = this.querySelector('i');
+    
+    if (passwordField.type === 'password') {
+      passwordField.type = 'text';
+      icon.classList.remove('fa-eye');
+      icon.classList.add('fa-eye-slash');
+    } else {
+      passwordField.type = 'password';
+      icon.classList.remove('fa-eye-slash');
+      icon.classList.add('fa-eye');
+    }
+  });
 
-    <div class="actions">
-      <%= f.submit "パスワードを変更する" %>
-    </div>
-  <% end %>
+  // パスワード強度チェック
+  function checkPasswordStrength(password) {
+    let score = 0;
+    let feedback = '';
+    
+    if (password.length >= 12) score += 25;
+    if (/[a-z]/.test(password)) score += 25;
+    if (/[A-Z]/.test(password)) score += 25;
+    if (/[0-9]/.test(password)) score += 12.5;
+    if (/[^A-Za-z0-9]/.test(password)) score += 12.5;
+    
+    const strengthBar = document.getElementById('password-strength-bar');
+    const strengthText = document.getElementById('password-strength-text');
+    
+    if (score < 25) {
+      strengthBar.className = 'progress-bar bg-danger';
+      feedback = '弱い';
+    } else if (score < 50) {
+      strengthBar.className = 'progress-bar bg-warning';
+      feedback = '普通';
+    } else if (score < 75) {
+      strengthBar.className = 'progress-bar bg-info';
+      feedback = '良い';
+    } else {
+      strengthBar.className = 'progress-bar bg-success';
+      feedback = '強い';
+    }
+    
+    strengthBar.style.width = score + '%';
+    strengthText.textContent = feedback;
+  }
 
-  <%= render "admin_controllers/shared/links" %>
-</div> 
+  // パスワード一致チェック
+  function checkPasswordMatch() {
+    const password = document.querySelector('[name="admin[password]"]').value;
+    const confirmation = document.querySelector('[name="admin[password_confirmation]"]').value;
+    const matchDiv = document.getElementById('password-match');
+    
+    if (confirmation.length > 0) {
+      if (password === confirmation) {
+        matchDiv.innerHTML = '<i class="fas fa-check text-success me-1"></i><small class="text-success">パスワードが一致しています</small>';
+      } else {
+        matchDiv.innerHTML = '<i class="fas fa-times text-danger me-1"></i><small class="text-danger">パスワードが一致しません</small>';
+      }
+    } else {
+      matchDiv.innerHTML = '';
+    }
+  }
+
+  // イベントリスナー設定
+  window.addEventListener('load', function() {
+    const passwordField = document.querySelector('[name="admin[password]"]');
+    const confirmationField = document.querySelector('[name="admin[password_confirmation]"]');
+    
+    passwordField?.addEventListener('input', function() {
+      checkPasswordStrength(this.value);
+      checkPasswordMatch();
+    });
+    
+    confirmationField?.addEventListener('input', checkPasswordMatch);
+
+    // フォームバリデーション
+    var forms = document.getElementsByClassName('needs-validation');
+    var validation = Array.prototype.filter.call(forms, function(form) {
+      form.addEventListener('submit', function(event) {
+        if (form.checkValidity() === false) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  }, false);
+})();
+</script> 

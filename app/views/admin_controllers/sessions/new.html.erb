@@ -1,28 +1,150 @@
-<div class="admin-login-container">
-  <h2>管理者ログイン</h2>
+<%# Bootstrap 5 モダンログインページ - StockRx 管理者認証 %>
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-6 col-lg-4">
+        
+        <%# ブランドヘッダー %>
+        <div class="text-center mb-4">
+          <div class="mb-3">
+            <i class="fas fa-boxes-stacked fa-3x text-primary"></i>
+          </div>
+          <h1 class="h3 mb-2 fw-bold text-dark">StockRx 管理画面</h1>
+          <p class="text-muted mb-0">在庫管理システム</p>
+        </div>
 
-  <%= form_for(resource, as: resource_name, url: session_path(resource_name), data: { turbo: false }) do |f| %>
-    <div class="field">
-      <%= f.label :email, "メールアドレス" %><br />
-      <%= f.email_field :email, autofocus: true, autocomplete: "email" %>
-    </div>
+        <%# ログインカード %>
+        <div class="card shadow-lg border-0">
+          <div class="card-header bg-primary text-white text-center py-3">
+            <h2 class="h5 mb-0">
+              <i class="fas fa-sign-in-alt me-2"></i>管理者ログイン
+            </h2>
+          </div>
+          
+          <div class="card-body p-4">
+            <%# エラーメッセージ表示エリア %>
+            <%= render "admin_controllers/shared/error_messages", resource: resource %>
+            
+            <%= form_for(resource, as: resource_name, url: session_path(resource_name), 
+                         data: { turbo: false }, class: "needs-validation", novalidate: true) do |f| %>
+              
+              <%# メールアドレス入力 %>
+              <div class="mb-3">
+                <%= f.label :email, "メールアドレス", class: "form-label fw-medium" %>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="fas fa-envelope text-muted"></i>
+                  </span>
+                  <%= f.email_field :email, 
+                      autofocus: true, 
+                      autocomplete: "email",
+                      class: "form-control form-control-lg",
+                      placeholder: "admin@example.com",
+                      required: true %>
+                  <div class="invalid-feedback">
+                    有効なメールアドレスを入力してください。
+                  </div>
+                </div>
+              </div>
 
-    <div class="field">
-      <%= f.label :password, "パスワード" %><br />
-      <%= f.password_field :password, autocomplete: "current-password" %>
-    </div>
+              <%# パスワード入力 %>
+              <div class="mb-3">
+                <%= f.label :password, "パスワード", class: "form-label fw-medium" %>
+                <div class="input-group">
+                  <span class="input-group-text bg-light">
+                    <i class="fas fa-lock text-muted"></i>
+                  </span>
+                  <%= f.password_field :password, 
+                      autocomplete: "current-password",
+                      class: "form-control form-control-lg",
+                      placeholder: "パスワードを入力",
+                      required: true %>
+                  <div class="invalid-feedback">
+                    パスワードを入力してください。
+                  </div>
+                </div>
+              </div>
 
-    <% if devise_mapping.rememberable? %>
-      <div class="field remember-me">
-        <%= f.check_box :remember_me %>
-        <%= f.label :remember_me, "ログイン状態を保持する" %>
+              <%# ログイン状態保持 %>
+              <% if devise_mapping.rememberable? %>
+                <div class="mb-4">
+                  <div class="form-check">
+                    <%= f.check_box :remember_me, class: "form-check-input" %>
+                    <%= f.label :remember_me, "ログイン状態を保持する", class: "form-check-label text-muted" %>
+                  </div>
+                </div>
+              <% end %>
+
+              <%# ログインボタン %>
+              <div class="d-grid mb-3">
+                <%= f.submit "ログイン", 
+                    class: "btn btn-primary btn-lg fw-medium",
+                    data: { 
+                      disable_with: '<i class="fas fa-spinner fa-spin me-2"></i>ログイン中...' 
+                    } %>
+              </div>
+            <% end %>
+
+            <%# GitHubソーシャルログイン %>
+            <div class="text-center">
+              <div class="d-flex align-items-center mb-3">
+                <hr class="flex-grow-1">
+                <span class="px-3 text-muted small">または</span>
+                <hr class="flex-grow-1">
+              </div>
+              
+              <%= link_to admin_omniauth_authorize_path(:github), 
+                  method: :post,
+                  class: "btn btn-outline-dark btn-lg w-100",
+                  data: { turbo: false } do %>
+                <i class="fab fa-github me-2"></i>GitHubでログイン
+              <% end %>
+            </div>
+          </div>
+          
+          <%# フッターリンク %>
+          <div class="card-footer bg-light text-center py-3">
+            <%= render "admin_controllers/shared/links" %>
+          </div>
+        </div>
+
+        <%# セキュリティ情報 %>
+        <div class="text-center mt-4">
+          <small class="text-muted">
+            <i class="fas fa-shield-alt me-1"></i>
+            このサイトは SSL で保護されています
+          </small>
+        </div>
+        
+        <%# TODO: 🟡 Phase 2 - ログイン試行回数制限表示 %>
+        <%# 優先度: 中（セキュリティ向上） %>
+        <%# 実装内容: 残り試行回数、ロック時間の表示 %>
+        <%# 理由: ユーザビリティ向上とセキュリティ意識向上 %>
+        <%# 期待効果: ブルートフォース攻撃抑制 %>
+        <%# 工数見積: 1日 %>
+        <%# 依存関係: Devise lockable設定の詳細化 %>
+
       </div>
-    <% end %>
-
-    <div class="actions">
-      <%= f.submit "ログイン" %>
     </div>
-  <% end %>
+  </div>
+</div>
 
-  <%= render "admin_controllers/shared/links" %>
-</div> 
+<%# Bootstrap 5 Form Validation %>
+<script>
+(function() {
+  'use strict';
+  window.addEventListener('load', function() {
+    // フォームバリデーション機能
+    var forms = document.getElementsByClassName('needs-validation');
+    var validation = Array.prototype.filter.call(forms, function(form) {
+      form.addEventListener('submit', function(event) {
+        if (form.checkValidity() === false) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+      }, false);
+    });
+  }, false);
+})();
+</script> 
