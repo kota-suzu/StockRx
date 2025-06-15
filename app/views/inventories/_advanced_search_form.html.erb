@@ -165,9 +165,8 @@
                 <div class="col-md-6">
                   <div class="form-check">
                     <%= f.check_box :expiring_soon, 
-                        { checked: f.object.expiring_soon }, 
-                        "true", "false", 
-                        class: "form-check-input" %>
+                        { checked: f.object.expiring_soon, class: "form-check-input" }, 
+                        "true", "false" %>
                     <%= f.label :expiring_soon, class: "form-check-label" do %>
                       期限切れ間近（
                       <%= f.number_field :expiring_days, 
@@ -268,9 +267,8 @@
                 <div class="col-md-6">
                   <div class="form-check">
                     <%= f.check_box :recently_updated, 
-                        { checked: f.object.recently_updated }, 
-                        "true", "false", 
-                        class: "form-check-input" %>
+                        { checked: f.object.recently_updated, class: "form-check-input" }, 
+                        "true", "false" %>
                     <%= f.label :recently_updated, class: "form-check-label" do %>
                       最近更新された（
                       <%= f.number_field :updated_days, 

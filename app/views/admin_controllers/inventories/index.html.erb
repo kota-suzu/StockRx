@@ -107,12 +107,23 @@
           <div id="directionHelp" class="form-text visually-hidden">昇順または降順を選択</div>
         </div>
 
+        <%# 表示件数選択 - レスポンシブ対応 %>
+        <div class="col-lg-2 col-md-3 col-6">
+          <%= f.label :per_page, "表示件数", class: "form-label" %>
+          <%= f.select :per_page, 
+                       [["50件", 50], ["100件", 100], ["200件", 200]], 
+                       { selected: params[:per_page] || 50 }, 
+                       class: "form-select",
+                       "aria-describedby": "perPageHelp" %>
+          <div id="perPageHelp" class="form-text visually-hidden">1ページあたりの表示件数</div>
+        </div>
+
         <%# フィルターオプション - レスポンシブ対応 %>
         <div class="col-lg-2 col-md-3 col-6 d-flex flex-column justify-content-end">
           <div class="form-check">
             <%= f.check_box :low_stock, 
-                           { checked: params[:low_stock] == "true" }, 
-                           { class: "form-check-input", "aria-describedby": "lowStockHelp" } %>
+                           { checked: params[:low_stock] == "true", class: "form-check-input", "aria-describedby": "lowStockHelp" }, 
+                           "true", "false" %>
             <%= f.label :low_stock, "在庫切れのみ", class: "form-check-label" %>
             <div id="lowStockHelp" class="form-text visually-hidden">在庫切れの商品のみ表示</div>
           </div>
@@ -195,142 +206,254 @@
       </div>
     </div>
 
-    <%# レスポンシブカードグリッド %>
-    <div class="row g-4 mb-4">
-      <% @inventories.each do |inventory| %>
-        <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12">
-          <div class="card h-100 shadow-sm <%= inventory_row_class(inventory) == 'table-danger' ? 'border-danger' : inventory_row_class(inventory) == 'table-warning' ? 'border-warning' : 'border-light' %>" data-inventory-id="<%= inventory.id %>">
-            <%# カードヘッダー - 選択チェックボックス、商品名とステータス %>
-            <div class="card-header py-3">
-              <div class="d-flex justify-content-between align-items-start">
-                <div class="d-flex align-items-start">
-                  <div class="form-check me-3 mt-1">
-                    <input class="form-check-input inventory-checkbox" type="checkbox" value="<%= inventory.id %>" id="inventory_<%= inventory.id %>">
-                    <label class="form-check-label visually-hidden" for="inventory_<%= inventory.id %>">
-                      <%= inventory.name %>を選択
-                    </label>
+    <%# 1行表示テーブル - レスポンシブ対応 %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-primary text-white py-2">
+        <div class="d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-table me-2"></i>在庫一覧
+          </h5>
+          <span class="badge bg-light text-dark">
+            <i class="fas fa-database me-1"></i><%= @inventories_raw.total_count %>件
+          </span>
+        </div>
+      </div>
+
+      <% if @inventories.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0" style="min-width: 900px;">
+            <thead class="table-light">
+              <tr>
+                <th scope="col" class="text-center" style="width: 50px;">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="selectAll" title="全選択">
+                    <label class="form-check-label visually-hidden" for="selectAll">全選択</label>
                   </div>
-                  <div class="flex-grow-1">
-                    <h5 class="card-title mb-1 text-truncate">
-                      <%= link_to inventory.name, admin_inventory_path(inventory), 
-                                 class: "text-decoration-none fw-bold text-dark stretched-link" %>
-                    </h5>
+                </th>
+                <th scope="col" class="text-nowrap">
+                  <%= link_to admin_inventories_path(
+                        sort: "name", 
+                        direction: sort_direction_for("name"), 
+                        q: params[:q], 
+                        status: params[:status],
+                        per_page: params[:per_page]
+                      ), 
+                      data: { turbo_frame: "inventory_list" },
+                      class: "text-decoration-none text-dark" do %>
+                    <i class="fas fa-box me-1"></i>商品名
+                    <%= sort_icon_for("name") %>
+                  <% end %>
+                </th>
+                <th scope="col" class="text-center text-nowrap" style="width: 100px;">
+                  <%= link_to admin_inventories_path(
+                        sort: "quantity", 
+                        direction: sort_direction_for("quantity"), 
+                        q: params[:q], 
+                        status: params[:status],
+                        per_page: params[:per_page]
+                      ), 
+                      data: { turbo_frame: "inventory_list" },
+                      class: "text-decoration-none text-dark" do %>
+                    <i class="fas fa-cubes me-1"></i>在庫数
+                    <%= sort_icon_for("quantity") %>
+                  <% end %>
+                </th>
+                <th scope="col" class="text-center text-nowrap" style="width: 100px;">
+                  <%= link_to admin_inventories_path(
+                        sort: "price", 
+                        direction: sort_direction_for("price"), 
+                        q: params[:q], 
+                        status: params[:status],
+                        per_page: params[:per_page]
+                      ), 
+                      data: { turbo_frame: "inventory_list" },
+                      class: "text-decoration-none text-dark" do %>
+                    <i class="fas fa-yen-sign me-1"></i>価格
+                    <%= sort_icon_for("price") %>
+                  <% end %>
+                </th>
+                <th scope="col" class="text-center" style="width: 90px;">ステータス</th>
+                <th scope="col" class="text-center" style="width: 80px;">バッチ数</th>
+                <th scope="col" class="text-center" style="width: 70px;">アラート</th>
+                <th scope="col" class="text-center" style="width: 80px;">更新日</th>
+                <th scope="col" class="text-center" style="width: 180px; min-width: 180px;">アクション</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @inventories.each do |inventory| %>
+                <tr class="<%= inventory_row_class(inventory) %>" data-inventory-id="<%= inventory.id %>">
+                  <%# 選択チェックボックス %>
+                  <td class="text-center align-middle">
+                    <div class="form-check">
+                      <input class="form-check-input inventory-checkbox" type="checkbox" 
+                             value="<%= inventory.id %>" id="inventory_<%= inventory.id %>">
+                      <label class="form-check-label visually-hidden" for="inventory_<%= inventory.id %>">
+                        <%= inventory.name %>を選択
+                      </label>
+                    </div>
+                  </td>
+
+                  <%# 商品名 %>
+                  <td class="align-middle">
+                    <%= link_to inventory.name, admin_inventory_path(inventory), 
+                               class: "text-decoration-none fw-medium text-dark" %>
+                    <br>
                     <small class="text-muted">
                       <i class="fas fa-clock me-1"></i><%= inventory.updated_at_formatted %>
                     </small>
-                  </div>
-                </div>
-                <div class="ms-2">
-                  <%= inventory.status_badge %>
-                </div>
-              </div>
-            </div>
+                  </td>
 
-            <%# カードボディ - 主要情報 %>
-            <div class="card-body position-relative">
-              <%# 価格表示 %>
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-muted small">価格</span>
-                <span class="h5 mb-0 text-primary fw-bold">
-                  <i class="fas fa-yen-sign me-1"></i><%= inventory.formatted_price %>
-                </span>
-              </div>
+                  <%# 在庫数 %>
+                  <td class="text-center align-middle">
+                    <span class="fw-bold <%= inventory.quantity <= 0 ? 'text-danger' : inventory.quantity < 10 ? 'text-warning' : 'text-success' %>">
+                      <%= number_with_delimiter(inventory.quantity) %>
+                    </span>
+                    <small class="text-muted d-block">個</small>
+                  </td>
 
-              <%# 在庫数量とアラート %>
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-muted small">在庫数量</span>
-                <div class="d-flex align-items-center">
-                  <span class="fw-bold me-2 <%= inventory.quantity <= 0 ? 'text-danger' : inventory.quantity < 10 ? 'text-warning' : 'text-success' %>">
-                    <%= inventory.quantity %> 個
-                  </span>
-                  <%= inventory.alert_badge %>
-                </div>
-              </div>
+                  <%# 価格 %>
+                  <td class="text-center align-middle">
+                    <span class="fw-medium text-primary">
+                      <%= inventory.formatted_price %>
+                    </span>
+                  </td>
 
-              <%# バッチ数 %>
-              <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-muted small">バッチ数</span>
-                <span class="badge bg-secondary">
-                  <i class="fas fa-boxes me-1"></i><%= inventory.batches_count %>
-                </span>
-              </div>
+                  <%# ステータス %>
+                  <td class="text-center align-middle">
+                    <%= inventory.status_badge %>
+                  </td>
 
-              <%# 在庫状態インジケーター %>
-              <div class="progress mb-3" style="height: 8px;">
-                <% 
-                  max_quantity = 100 # TODO: 動的に設定可能にする
-                  progress_percentage = [(inventory.quantity.to_f / max_quantity * 100), 100].min
-                  progress_class = inventory.quantity <= 0 ? 'bg-danger' : inventory.quantity < 10 ? 'bg-warning' : 'bg-success'
-                %>
-                <div class="progress-bar <%= progress_class %>" 
-                     role="progressbar" 
-                     style="width: <%= progress_percentage %>%" 
-                     aria-valuenow="<%= inventory.quantity %>" 
-                     aria-valuemin="0" 
-                     aria-valuemax="<%= max_quantity %>">
-                </div>
-              </div>
+                  <%# バッチ数 %>
+                  <td class="text-center align-middle">
+                    <span class="badge bg-secondary">
+                      <i class="fas fa-boxes me-1"></i><%= inventory.batches_count %>
+                    </span>
+                  </td>
 
-              <%# アクションボタン %>
-              <div class="d-grid gap-1 mt-auto position-relative" style="z-index: 10;">
-                <div class="btn-group" role="group">
-                  <%= link_to admin_inventory_path(inventory), 
-                             class: "btn btn-outline-primary btn-sm position-relative",
-                             style: "z-index: 11;" do %>
-                    <i class="fas fa-eye me-1"></i>詳細
-                  <% end %>
-                  <%= link_to edit_admin_inventory_path(inventory), 
-                             class: "btn btn-outline-warning btn-sm position-relative",
-                             style: "z-index: 11;" do %>
-                    <i class="fas fa-edit me-1"></i>編集
-                  <% end %>
-                  <%= button_to admin_inventory_path(inventory), 
-                               method: :delete,
-                               form: { 
-                                 data: { turbo_confirm: "この在庫を削除してもよろしいですか？" },
-                                 class: "position-relative",
-                                 style: "z-index: 11; display: inline-block;"
-                               },
-                               class: "btn btn-outline-danger btn-sm position-relative",
-                               style: "z-index: 11;" do %>
-                    <i class="fas fa-trash me-1"></i>削除
-                  <% end %>
-                </div>
-              </div>
-            </div>
-          </div>
+                  <%# アラート %>
+                  <td class="text-center align-middle">
+                    <%= inventory.alert_badge %>
+                  </td>
+
+                  <%# 更新日 %>
+                  <td class="text-center align-middle">
+                    <small class="text-muted">
+                      <%= inventory.updated_at.strftime("%m/%d") %>
+                    </small>
+                  </td>
+
+                  <%# アクション %>
+                  <td class="text-center align-middle" style="white-space: nowrap; width: 180px;">
+                    <div class="d-flex justify-content-center gap-1 action-buttons">
+                      <%= link_to admin_inventory_path(inventory), 
+                                 class: "btn btn-outline-primary btn-sm",
+                                 style: "width: 35px; height: 32px; display: flex; align-items: center; justify-content: center;",
+                                 title: "詳細表示",
+                                 data: { bs_toggle: "tooltip" } do %>
+                        <i class="fas fa-eye"></i>
+                      <% end %>
+                      <%= link_to edit_admin_inventory_path(inventory), 
+                                 class: "btn btn-outline-warning btn-sm",
+                                 style: "width: 35px; height: 32px; display: flex; align-items: center; justify-content: center;",
+                                 title: "編集",
+                                 data: { bs_toggle: "tooltip" } do %>
+                        <i class="fas fa-edit"></i>
+                      <% end %>
+                      <%= button_to admin_inventory_path(inventory), 
+                                   method: :delete,
+                                   form: { 
+                                     data: { turbo_confirm: "この在庫を削除してもよろしいですか？" }
+                                   },
+                                   class: "btn btn-outline-danger btn-sm",
+                                   style: "width: 35px; height: 32px;",
+                                   title: "削除",
+                                   data: { bs_toggle: "tooltip" } do %>
+                        <i class="fas fa-trash"></i>
+                      <% end %>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
         </div>
-      <% end %>
-
-      <%# 空状態表示 %>
-      <% if @inventories.empty? %>
-        <div class="col-12">
-          <div class="card text-center py-5">
-            <div class="card-body">
-              <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-              <h4 class="text-muted">在庫データがありません</h4>
-              <p class="text-muted mb-4">新しい在庫を登録するか、CSVでインポートしてください。</p>
-              <div class="d-flex gap-2 justify-content-center">
-                <%= link_to "新規登録", new_admin_inventory_path, class: "btn btn-primary" %>
-                <%= link_to "CSVインポート", import_form_admin_inventories_path, class: "btn btn-outline-success" %>
-              </div>
-            </div>
+      <% else %>
+        <%# 空状態表示 %>
+        <div class="card-body text-center py-5">
+          <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+          <h4 class="text-muted">在庫データがありません</h4>
+          <p class="text-muted mb-4">新しい在庫を登録するか、CSVでインポートしてください。</p>
+          <div class="d-flex gap-2 justify-content-center">
+            <%= link_to "新規登録", new_admin_inventory_path, class: "btn btn-primary" %>
+            <%= link_to "CSVインポート", import_form_admin_inventories_path, class: "btn btn-outline-success" %>
           </div>
         </div>
       <% end %>
     </div>
 
-    <%# ページネーション %>
-    <% if @inventories.respond_to?(:current_page) && @inventories.total_pages > 1 %>
-      <div class="d-flex justify-content-center align-items-center mt-4">
-        <div class="me-3">
+    <%# ページネーション（改善版） %>
+    <% if @inventories_raw.respond_to?(:current_page) %>
+      <div class="row mt-4">
+        <div class="col-md-6 d-flex align-items-center">
           <small class="text-muted">
-            <%= @inventories.total_count %>件中 
-            <%= @inventories.offset_value + 1 %>-<%= [@inventories.offset_value + @inventories.limit_value, @inventories.total_count].min %>件を表示
+            <%= @inventories_raw.total_count %>件中 
+            <%= @inventories_raw.offset_value + 1 %>-<%= [@inventories_raw.offset_value + @inventories_raw.limit_value, @inventories_raw.total_count].min %>件を表示
+            <span class="badge bg-secondary ms-2"><%= params[:per_page] || 50 %>件/ページ</span>
           </small>
         </div>
-        <%= paginate @inventories %>
+        <div class="col-md-6">
+          <% if @inventories_raw.total_pages > 1 %>
+            <div class="d-flex justify-content-end">
+              <%= paginate @inventories_raw, 
+                          params: { 
+                            q: params[:q], 
+                            status: params[:status], 
+                            sort: params[:sort], 
+                            direction: params[:direction], 
+                            low_stock: params[:low_stock],
+                            per_page: params[:per_page]
+                          } %>
+            </div>
+          <% end %>
+        </div>
       </div>
+      
+      <%# ページネーション情報カード（多数のページがある場合） %>
+      <% if @inventories_raw.total_pages > 20 %>
+        <div class="card border-info mt-3">
+          <div class="card-body py-2">
+            <div class="row align-items-center">
+              <div class="col-md-8">
+                <small class="text-muted">
+                  <i class="fas fa-info-circle me-1"></i>
+                  全<%= @inventories_raw.total_pages %>ページ中の<%= @inventories_raw.current_page %>ページ目を表示中
+                </small>
+              </div>
+              <div class="col-md-4 text-end">
+                <div class="input-group input-group-sm" style="width: 150px; margin-left: auto;">
+                  <%= form_with url: admin_inventories_path, method: :get, 
+                               data: { turbo_frame: "inventory_list" }, 
+                               class: "d-flex" do |f| %>
+                    <%= f.hidden_field :q, value: params[:q] %>
+                    <%= f.hidden_field :status, value: params[:status] %>
+                    <%= f.hidden_field :sort, value: params[:sort] %>
+                    <%= f.hidden_field :direction, value: params[:direction] %>
+                    <%= f.hidden_field :low_stock, value: params[:low_stock] %>
+                    <%= f.hidden_field :per_page, value: params[:per_page] %>
+                    <%= f.number_field :page, 
+                                      value: @inventories_raw.current_page, 
+                                      min: 1, 
+                                      max: @inventories_raw.total_pages,
+                                      class: "form-control form-control-sm",
+                                      placeholder: "ページ" %>
+                    <%= f.submit "移動", class: "btn btn-outline-primary btn-sm" %>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
     <% end %>
   <% end %>
 
@@ -383,6 +506,34 @@
     </div>
   </div>
 </div>
+
+<%# アクションボタンのスタイル調整 %>
+<style>
+  .action-buttons .btn {
+    width: 35px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 2px !important;
+  }
+  
+  .action-buttons form {
+    display: inline-block !important;
+    margin: 0 !important;
+  }
+  
+  .action-buttons form .btn {
+    border: 1px solid #dc3545 !important;
+    background: transparent !important;
+  }
+  
+  .action-buttons form .btn:hover {
+    background: #dc3545 !important;
+    color: white !important;
+  }
+</style>
 
 <%# バルクアクション JavaScript - Phase 3 Interactive Elements %>
 <script>
@@ -489,6 +640,12 @@ document.addEventListener('DOMContentLoaded', function() {
   if (quickFiltersContainer) {
     quickFiltersContainer.appendChild(selectAllBtn);
   }
+
+  // Bootstrap ツールチップの初期化
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
 });
 </script>
 
