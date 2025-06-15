@@ -11,7 +11,7 @@ RSpec.describe InventoryDecorator, type: :decorator do
 
       it '要補充の警告バッジを返すこと' do
         expect(inventory.alert_badge).to include('要補充')
-        expect(inventory.alert_badge).to include('bg-amber-200')
+        expect(inventory.alert_badge).to include('bg-danger')
       end
     end
 
@@ -20,7 +20,7 @@ RSpec.describe InventoryDecorator, type: :decorator do
 
       it 'OKのバッジを返すこと' do
         expect(inventory.alert_badge).to include('OK')
-        expect(inventory.alert_badge).to include('bg-emerald-200')
+        expect(inventory.alert_badge).to include('bg-success')
       end
     end
   end
@@ -38,7 +38,7 @@ RSpec.describe InventoryDecorator, type: :decorator do
 
       it '有効のバッジを返すこと' do
         expect(inventory.status_badge).to include('有効')
-        expect(inventory.status_badge).to include('bg-blue-200')
+        expect(inventory.status_badge).to include('bg-primary')
       end
     end
 
@@ -47,7 +47,7 @@ RSpec.describe InventoryDecorator, type: :decorator do
 
       it 'アーカイブのバッジを返すこと' do
         expect(inventory.status_badge).to include('アーカイブ')
-        expect(inventory.status_badge).to include('bg-gray-200')
+        expect(inventory.status_badge).to include('bg-secondary')
       end
     end
   end

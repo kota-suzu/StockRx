@@ -39,7 +39,7 @@ class InventoryDecorator < Draper::Decorator
   # バッチ数を効率的に取得（N+1クエリ対策）
   def batches_count
     # Counter Cacheカラムが存在する場合は最優先で使用（通常のケース）
-    if object.has_attribute?('batches_count')
+    if object.has_attribute?("batches_count")
       # nilの場合は0として扱う（Counter Cacheの標準動作）
       object.batches_count || 0
     # サブクエリで取得したカウンターキャッシュを利用（SearchQuery使用時）
