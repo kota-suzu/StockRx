@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 module AdminControllers::InventoriesHelper
-  # 在庫状態に応じた行のスタイルクラスを返す
+  # 在庫状態に応じた行のスタイルクラスを返す（Bootstrap 5版）
   # @param inventory [Inventory] 在庫オブジェクト
-  # @return [String] CSSクラス（在庫切れ：bg-red-50、在庫不足：bg-yellow-50、正常：空文字）
+  # @return [String] CSSクラス（在庫切れ：table-danger、在庫不足：table-warning、正常：空文字）
   def inventory_row_class(inventory)
     if inventory.quantity <= 0
-      "bg-red-50"
+      "table-danger"
     elsif inventory.low_stock?
-      "bg-yellow-50"
+      "table-warning"
     else
       ""
     end
@@ -26,7 +26,7 @@ module AdminControllers::InventoriesHelper
     end
   end
 
-  # ソートアイコンを表示
+  # ソートアイコンを表示（Bootstrap 5版）
   # 現在のソート状態に応じたアイコンを表示
   # @param column [String] 列名
   # @return [ActiveSupport::SafeBuffer] HTMLアイコン
@@ -34,9 +34,9 @@ module AdminControllers::InventoriesHelper
     return "".html_safe unless params[:sort] == column
 
     if params[:direction] == "asc"
-      tag.i(class: "fas fa-sort-up ml-1")
+      tag.i(class: "fas fa-sort-up ms-1")
     else
-      tag.i(class: "fas fa-sort-down ml-1")
+      tag.i(class: "fas fa-sort-down ms-1")
     end
   end
 
@@ -46,14 +46,14 @@ module AdminControllers::InventoriesHelper
     "name,quantity,price,status\n商品A,100,1000,active\n商品B,50,500,active"
   end
 
-  # バッチ状態に応じた行のスタイルクラスを返す
+  # バッチ状態に応じた行のスタイルクラスを返す（Bootstrap 5版）
   # @param batch [Batch] バッチオブジェクト
-  # @return [String] CSSクラス（期限切れ：bg-red-50、期限間近：bg-yellow-50、正常：空文字）
+  # @return [String] CSSクラス（期限切れ：table-danger、期限間近：table-warning、正常：空文字）
   def batch_row_class(batch)
     if batch.expired?
-      "bg-red-50"
+      "table-danger"
     elsif batch.expiring_soon?
-      "bg-yellow-50"
+      "table-warning"
     else
       ""
     end
