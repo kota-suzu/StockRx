@@ -1,171 +1,358 @@
-<%# 在庫詳細 - 管理画面 %>
-<div class="container mx-auto px-4 py-8">
-  <div class="flex justify-between items-center mb-6">
-    <div class="flex items-center">
-      <%= link_to admin_inventories_path, class: "text-blue-500 hover:text-blue-700 mr-2" do %>
-        <i class="fas fa-arrow-left"></i> 一覧に戻る
+<%# 在庫詳細 - Bootstrap 5版 %>
+<div class="container-fluid py-4">
+  <%# ページヘッダー %>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+      <%= link_to admin_inventories_path, class: "btn btn-outline-secondary me-3" do %>
+        <i class="fas fa-arrow-left me-2"></i>一覧に戻る
       <% end %>
-      <h1 class="text-2xl font-bold"><%= @inventory.name %></h1>
+      <div>
+        <h1 class="h2 mb-1">
+          <i class="fas fa-box me-2 text-primary"></i><%= @inventory.name %>
+        </h1>
+        <div class="d-flex align-items-center gap-2">
+          <%= @inventory.status_badge %>
+          <%= @inventory.alert_badge %>
+          <small class="text-muted">
+            最終更新: <%= l(@inventory.updated_at, format: :short) if @inventory.updated_at.present? %>
+          </small>
+        </div>
+      </div>
     </div>
-    <div class="flex gap-2">
-      <%= link_to "編集", edit_admin_inventory_path(@inventory), class: "bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded" %>
-      <%= button_to "削除", admin_inventory_path(@inventory), method: :delete, form: { data: { turbo_confirm: "この在庫を削除してもよろしいですか？" } }, class: "bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded" %>
+    <div class="d-flex gap-2">
+      <%= link_to edit_admin_inventory_path(@inventory), class: "btn btn-warning" do %>
+        <i class="fas fa-edit me-2"></i>編集
+      <% end %>
+      <%= button_to admin_inventory_path(@inventory), 
+                   method: :delete, 
+                   form: { data: { turbo_confirm: "この在庫を削除してもよろしいですか？" } }, 
+                   class: "btn btn-danger" do %>
+        <i class="fas fa-trash me-2"></i>削除
+      <% end %>
     </div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <%# メイン情報カード群 %>
+  <div class="row g-4 mb-4">
     <%# 基本情報 %>
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-medium text-gray-900">基本情報</h2>
-      </div>
-      <div class="p-6">
-        <dl>
-          <div class="mb-4">
-            <dt class="text-sm font-medium text-gray-500">名称</dt>
-            <dd class="mt-1 text-lg text-gray-900"><%= @inventory.name %></dd>
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-primary text-white">
+          <h2 class="card-title mb-0">
+            <i class="fas fa-info-circle me-2"></i>基本情報
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="bg-light p-3 rounded">
+                <h6 class="text-muted mb-1">商品名</h6>
+                <h4 class="mb-0"><%= @inventory.name %></h4>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="text-center">
+                <div class="h5 text-success mb-1">
+                  <i class="fas fa-yen-sign me-1"></i><%= number_with_delimiter(@inventory.price) %>
+                </div>
+                <small class="text-muted">価格（円）</small>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="text-center">
+                <div class="h5 mb-1 <%= @inventory.quantity <= 0 ? 'text-danger' : @inventory.quantity < 10 ? 'text-warning' : 'text-success' %>">
+                  <i class="fas fa-boxes me-1"></i><%= @inventory.quantity %>
+                </div>
+                <small class="text-muted">在庫数（個）</small>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted">ステータス</span>
+                <%= @inventory.status_badge %>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted">在庫状態</span>
+                <%= @inventory.alert_badge %>
+              </div>
+            </div>
+            <div class="col-12">
+              <small class="text-muted">
+                最終更新: <%= l(@inventory.updated_at, format: :long) if @inventory.updated_at.present? %>
+              </small>
+            </div>
           </div>
-          <div class="mb-4">
-            <dt class="text-sm font-medium text-gray-500">価格</dt>
-            <dd class="mt-1 text-lg text-gray-900"><%= @inventory.formatted_price %></dd>
-          </div>
-          <div class="mb-4">
-            <dt class="text-sm font-medium text-gray-500">在庫数</dt>
-            <dd class="mt-1 text-lg text-gray-900 flex items-center">
-              <%= @inventory.quantity %> <%= @inventory.alert_badge %>
-            </dd>
-          </div>
-          <div class="mb-4">
-            <dt class="text-sm font-medium text-gray-500">ステータス</dt>
-            <dd class="mt-1"><%= @inventory.status_badge %></dd>
-          </div>
-          <div>
-            <dt class="text-sm font-medium text-gray-500">最終更新日</dt>
-            <dd class="mt-1 text-sm text-gray-900"><%= l(@inventory.updated_at, format: :long) if @inventory.updated_at.present? %></dd>
-          </div>
-        </dl>
+        </div>
       </div>
     </div>
 
     <%# バッチ情報サマリー %>
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-medium text-gray-900">バッチ情報</h2>
-      </div>
-      <div class="p-6">
-        <dl>
-          <div class="mb-4">
-            <dt class="text-sm font-medium text-gray-500">バッチ総数</dt>
-            <dd class="mt-1 text-lg text-gray-900"><%= @inventory.batches.count %></dd>
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-info text-white">
+          <h2 class="card-title mb-0">
+            <i class="fas fa-layer-group me-2"></i>バッチ情報
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="row g-3 text-center">
+            <div class="col-12">
+              <div class="bg-light p-3 rounded">
+                <div class="h3 text-info mb-1">
+                  <i class="fas fa-boxes me-1"></i><%= @inventory.batches_count %>
+                </div>
+                <h6 class="text-muted mb-0">バッチ総数</h6>
+              </div>
+            </div>
+            <div class="col-6">
+              <% expired_count = @inventory.batches.select(&:expired?).count %>
+              <div class="p-2 <%= expired_count > 0 ? 'bg-danger bg-opacity-10' : 'bg-light' %> rounded">
+                <div class="h5 mb-1 <%= expired_count > 0 ? 'text-danger' : 'text-muted' %>">
+                  <i class="fas fa-exclamation-triangle me-1"></i><%= expired_count %>
+                </div>
+                <small class="text-muted">期限切れ</small>
+                <% if expired_count > 0 %>
+                  <div class="mt-1">
+                    <span class="badge bg-danger">要確認</span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+            <div class="col-6">
+              <% expiring_soon_count = @inventory.batches.select(&:expiring_soon?).count %>
+              <div class="p-2 <%= expiring_soon_count > 0 ? 'bg-warning bg-opacity-10' : 'bg-light' %> rounded">
+                <div class="h5 mb-1 <%= expiring_soon_count > 0 ? 'text-warning' : 'text-muted' %>">
+                  <i class="fas fa-clock me-1"></i><%= expiring_soon_count %>
+                </div>
+                <small class="text-muted">期限間近</small>
+                <% if expiring_soon_count > 0 %>
+                  <div class="mt-1">
+                    <span class="badge bg-warning">確認推奨</span>
+                  </div>
+                <% end %>
+              </div>
+            </div>
           </div>
-          <div class="mb-4">
-            <dt class="text-sm font-medium text-gray-500">期限切れバッチ</dt>
-            <dd class="mt-1 flex items-center">
-              <% expired_count = @inventory.expired_batches.count %>
-              <span class="text-lg text-gray-900 mr-2"><%= expired_count %></span>
-              <% if expired_count > 0 %>
-                <span class="bg-red-200 text-red-700 px-2 py-1 rounded text-xs">要確認</span>
-              <% end %>
-            </dd>
-          </div>
-          <div>
-            <dt class="text-sm font-medium text-gray-500">期限切れ間近バッチ</dt>
-            <dd class="mt-1 flex items-center">
-              <% expiring_soon_count = @inventory.expiring_soon_batches.count %>
-              <span class="text-lg text-gray-900 mr-2"><%= expiring_soon_count %></span>
-              <% if expiring_soon_count > 0 %>
-                <span class="bg-yellow-200 text-yellow-700 px-2 py-1 rounded text-xs">確認推奨</span>
-              <% end %>
-            </dd>
-          </div>
-        </dl>
+          <% if @inventory.batches_count > 0 %>
+            <div class="mt-3">
+              <div class="progress" style="height: 8px;">
+                <% 
+                  normal_count = @inventory.batches_count - expired_count - expiring_soon_count
+                  normal_percentage = (normal_count.to_f / @inventory.batches_count * 100).round(1)
+                  expiring_percentage = (expiring_soon_count.to_f / @inventory.batches_count * 100).round(1)
+                  expired_percentage = (expired_count.to_f / @inventory.batches_count * 100).round(1)
+                %>
+                <div class="progress-bar bg-success" style="width: <%= normal_percentage %>%" title="正常: <%= normal_count %>件"></div>
+                <div class="progress-bar bg-warning" style="width: <%= expiring_percentage %>%" title="期限間近: <%= expiring_soon_count %>件"></div>
+                <div class="progress-bar bg-danger" style="width: <%= expired_percentage %>%" title="期限切れ: <%= expired_count %>件"></div>
+              </div>
+              <div class="mt-1 small text-muted text-center">
+                正常 <%= normal_count %>件 | 期限間近 <%= expiring_soon_count %>件 | 期限切れ <%= expired_count %>件
+              </div>
+            </div>
+          <% end %>
+        </div>
       </div>
     </div>
 
-    <%# 操作履歴（将来実装） %>
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-medium text-gray-900">操作履歴</h2>
-      </div>
-      <div class="p-6">
-        <p class="text-gray-500 text-sm">
-          将来的に実装予定の機能です。在庫の操作履歴を表示します。
-        </p>
-        <%# TODO: 在庫操作履歴の実装 %>
+    <%# 操作履歴・統計情報 %>
+    <div class="col-lg-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-secondary text-white">
+          <h2 class="card-title mb-0">
+            <i class="fas fa-chart-line me-2"></i>統計・履歴
+          </h2>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="alert alert-info">
+                <h6 class="alert-heading">
+                  <i class="fas fa-info-circle me-2"></i>統計情報
+                </h6>
+                <ul class="mb-0 small">
+                  <li>バッチ登録日: <%= l(@inventory.created_at, format: :short) %></li>
+                  <li>最後の更新: <%= l(@inventory.updated_at, format: :short) %></li>
+                  <li>在庫ID: #<%= @inventory.id %></li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="alert alert-warning">
+                <h6 class="alert-heading">
+                  <i class="fas fa-tools me-2"></i>将来実装予定
+                </h6>
+                <ul class="mb-0 small">
+                  <li>在庫の操作履歴表示</li>
+                  <li>入出庫履歴の詳細</li>
+                  <li>売上・回転率統計</li>
+                  <li>アラート・通知設定</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <%# バッチ一覧 %>
-  <div class="bg-white rounded-lg shadow overflow-hidden mb-6">
-    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-      <h2 class="text-lg font-medium text-gray-900">バッチ一覧</h2>
-      <% # TODO: バッチ追加機能の実装 %>
-      <button class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-        バッチ追加
-      </button>
+  <%# バッチ一覧テーブル %>
+  <div class="card shadow-sm mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h2 class="card-title mb-0">
+        <i class="fas fa-layer-group me-2"></i>バッチ一覧
+      </h2>
+      <div>
+        <%# TODO: バッチ追加機能の実装 %>
+        <button class="btn btn-success" disabled>
+          <i class="fas fa-plus me-2"></i>バッチ追加
+        </button>
+        <small class="text-muted ms-2">（実装予定）</small>
+      </div>
     </div>
 
-    <table class="min-w-full divide-y divide-gray-200">
-      <thead class="bg-gray-50">
-        <tr>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            ロットコード
-          </th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            数量
-          </th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            有効期限
-          </th>
-          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            状態
-          </th>
-          <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-            アクション
-          </th>
-        </tr>
-      </thead>
-      <tbody class="bg-white divide-y divide-gray-200">
-        <% if @inventory.batches.present? %>
-          <% @inventory.batches.each do |batch| %>
-            <tr class="<%= batch_row_class(batch) %>">
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                <%= batch.lot_code %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <%= batch.quantity %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <%= l(batch.expires_on, format: :long) if batch.expires_on.present? %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <% if batch.expired? %>
-                  <span class="bg-red-200 text-red-700 px-2 py-1 rounded">期限切れ</span>
-                <% elsif batch.expiring_soon? %>
-                  <span class="bg-yellow-200 text-yellow-700 px-2 py-1 rounded">期限間近</span>
-                <% else %>
-                  <span class="bg-green-200 text-green-700 px-2 py-1 rounded">正常</span>
-                <% end %>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                <% # TODO: バッチの編集・削除機能の実装 %>
-                <button class="text-yellow-600 hover:text-yellow-900 mr-2">編集</button>
-                <button class="text-red-600 hover:text-red-900">削除</button>
-              </td>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th scope="col">
+                <i class="fas fa-barcode me-1"></i>ロットコード
+              </th>
+              <th scope="col">
+                <i class="fas fa-boxes me-1"></i>数量
+              </th>
+              <th scope="col">
+                <i class="fas fa-calendar-alt me-1"></i>有効期限
+              </th>
+              <th scope="col">
+                <i class="fas fa-traffic-light me-1"></i>状態
+              </th>
+              <th scope="col" class="text-end">
+                <i class="fas fa-cogs me-1"></i>アクション
+              </th>
             </tr>
-          <% end %>
-        <% else %>
-          <tr>
-            <td colspan="5" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">
-              バッチデータがありません。「バッチ追加」ボタンからバッチを登録してください。
-            </td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
+          </thead>
+          <tbody>
+            <% if @inventory.batches.present? %>
+              <% @inventory.batches.each do |batch| %>
+                <tr class="<%= batch_row_class(batch) %>">
+                  <td class="fw-bold">
+                    <code class="text-primary"><%= batch.lot_code %></code>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary">
+                      <%= batch.quantity %> 個
+                    </span>
+                  </td>
+                  <td>
+                    <% if batch.expires_on.present? %>
+                      <i class="fas fa-calendar me-1 text-muted"></i>
+                      <%= l(batch.expires_on, format: :short) %>
+                    <% else %>
+                      <span class="text-muted">-</span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <% if batch.expired? %>
+                      <span class="badge bg-danger">
+                        <i class="fas fa-exclamation-triangle me-1"></i>期限切れ
+                      </span>
+                    <% elsif batch.expiring_soon? %>
+                      <span class="badge bg-warning">
+                        <i class="fas fa-clock me-1"></i>期限間近
+                      </span>
+                    <% else %>
+                      <span class="badge bg-success">
+                        <i class="fas fa-check-circle me-1"></i>正常
+                      </span>
+                    <% end %>
+                  </td>
+                  <td class="text-end">
+                    <div class="btn-group btn-group-sm" role="group">
+                      <%# TODO: バッチの編集・削除機能の実装 %>
+                      <button class="btn btn-outline-warning" disabled>
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-outline-danger" disabled>
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              <% end %>
+            <% else %>
+              <tr>
+                <td colspan="5" class="text-center py-5">
+                  <div class="text-muted">
+                    <i class="fas fa-box-open fa-3x mb-3"></i>
+                    <h6>バッチデータがありません</h6>
+                    <p class="mb-0">「バッチ追加」ボタンからバッチを登録してください</p>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
-<%# バッチ関連のヘルパーメソッドは app/helpers/admin_controllers/inventories_helper.rb に実装済み %>
-<%# TODO: バッチ詳細ページの実装とバッチCRUD機能の追加が必要 %> 
+<%# Enhanced JavaScript for interactive features %>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // ツールチップの初期化（Bootstrap 5）
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+
+  // プログレスバーのホバー効果
+  const progressBars = document.querySelectorAll('.progress-bar');
+  progressBars.forEach(bar => {
+    bar.addEventListener('mouseenter', function() {
+      this.style.opacity = '0.8';
+    });
+    bar.addEventListener('mouseleave', function() {
+      this.style.opacity = '1';
+    });
+  });
+
+  // カードのホバー効果
+  const cards = document.querySelectorAll('.card');
+  cards.forEach(card => {
+    card.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-2px)';
+      this.style.transition = 'all 0.2s ease-in-out';
+    });
+    card.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0)';
+    });
+  });
+
+  // 削除ボタンの確認ダイアログ強化
+  const deleteButton = document.querySelector('button[formmethod="delete"]');
+  if (deleteButton) {
+    deleteButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      const inventoryName = '<%= j(@inventory.name) %>';
+      const confirmText = `商品「${inventoryName}」を削除してもよろしいですか？\n\nこの操作は取り消せません。関連するバッチ情報も全て削除されます。`;
+      
+      if (confirm(confirmText)) {
+        this.closest('form').submit();
+      }
+    });
+  }
+});
+</script>
+
+<%# TODO: 実装予定機能 %>
+<%# - バッチCRUD機能（追加・編集・削除） %>
+<%# - 在庫操作履歴の表示 %>
+<%# - 在庫アラート・通知設定 %>
+<%# - 在庫統計・分析機能 %>
+<%# - エクスポート機能（PDF・Excel） %> 
