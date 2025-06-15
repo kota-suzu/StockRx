@@ -14,11 +14,27 @@ module AdminControllers
 
     # GET /admin/inventories
     def index
-      @inventories = SearchQuery.call(params).decorate
+      # Kaminariページネーション実装（1ページあたり20件、最大100件まで）
+      per_page = [ params[:per_page]&.to_i || 20, 100 ].min
+
+      @inventories = SearchQuery.call(params)
+                                .page(params[:page])
+                                .per(per_page)
+                                .decorate
 
       respond_to do |format|
         format.html # Turbo Frame 対応
-        format.json { render json: @inventories.map(&:as_json_with_decorated) }
+        format.json {
+          render json: {
+            inventories: @inventories.map(&:as_json_with_decorated),
+            pagination: {
+              current_page: @inventories.current_page,
+              total_pages: @inventories.total_pages,
+              total_count: @inventories.total_count,
+              per_page: @inventories.limit_value
+            }
+          }
+        }
         format.turbo_stream # 必要に応じて実装
       end
     end

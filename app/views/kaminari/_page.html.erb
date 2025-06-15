@@ -1,22 +1,12 @@
-<%# Link showing page number
-  - available local variables
-    page:          a page object for "this" page
-    url:           url to this page
-    current_page:  a page object for the currently displayed page
-    total_pages:   total number of pages
-    per_page:      number of items to fetch per page
-    remote:        data-remote
--%>
 <% if page.current? %>
-  <li class="mx-1">
-    <span class="px-3 py-2 bg-blue-500 text-white rounded">
+  <li class="page-item active" aria-current="page">
+    <span class="page-link">
       <%= page %>
+      <span class="visually-hidden">(現在のページ)</span>
     </span>
   </li>
 <% else %>
-  <li class="mx-1">
-    <%= link_to page, url, 
-      class: "px-3 py-2 bg-white border border-gray-300 text-gray-800 hover:bg-gray-100 rounded",
-      rel: page.rel %>
+  <li class="page-item">
+    <%= link_to page, url, remote: remote, rel: page.rel, class: 'page-link', 'aria-label': "ページ #{page} に移動" %>
   </li>
 <% end %>

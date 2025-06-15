@@ -323,7 +323,7 @@
     <%# ページネーション（必要に応じて） %>
     <% if @inventories.respond_to?(:total_pages) %>
       <div class="d-flex justify-content-center">
-        <%= paginate @inventories, theme: 'bootstrap-5' %>
+        <%= paginate @inventories %>
       </div>
     <% end %>
   <% end %>
