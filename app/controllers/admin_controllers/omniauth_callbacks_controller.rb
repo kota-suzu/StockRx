@@ -44,8 +44,8 @@ module AdminControllers
     def failure
       redirect_to new_admin_session_path, alert: "GitHub認証に失敗しました。再度お試しください。"
 
-      # セキュリティログ記録
-      Rails.logger.warn "OAuth authentication failed: #{failure_message}"
+      # セキュリティログ記録（機密情報を含む詳細は除外）
+      Rails.logger.warn "OAuth authentication failed - Error type: #{failure_error_type}"
 
       # TODO: 🟡 Phase 3（中）- OAuth失敗理由の詳細分析・ユーザー案内
       # 優先度: 中（ユーザー体験向上）
