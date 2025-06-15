@@ -19,7 +19,8 @@ Rails.application.routes.draw do
              skip: [ :registrations ],
              controllers: {
                sessions: "admin_controllers/sessions",
-               passwords: "admin_controllers/passwords"
+               passwords: "admin_controllers/passwords",
+               omniauth_callbacks: "admin_controllers/omniauth_callbacks"
              }
 
   # ============================================
