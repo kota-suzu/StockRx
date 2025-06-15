@@ -1,0 +1,265 @@
+<%# 🏪 店舗フォーム共通部品 - Phase 2: Multi-Store Management %>
+<%= form_with model: [:admin, store], local: true, class: "row g-3" do |form| %>
+  <%# エラーメッセージ表示 %>
+  <% if store.errors.any? %>
+    <div class="col-12">
+      <div class="alert alert-danger" role="alert">
+        <h5 class="alert-heading">
+          <i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>
+          入力内容にエラーがあります
+        </h5>
+        <ul class="mb-0">
+          <% store.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+  <% end %>
+
+  <%# 基本情報セクション %>
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-bold">
+          <i class="bi bi-info-circle me-2" aria-hidden="true"></i>
+          基本情報
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <%# 店舗名 %>
+          <div class="col-md-6">
+            <%= form.label :name, "店舗名", class: "form-label" %>
+            <span class="text-danger">*</span>
+            <%= form.text_field :name, 
+                               class: "form-control #{'is-invalid' if store.errors[:name].any?}",
+                               placeholder: "例: 中央薬局",
+                               required: true,
+                               maxlength: 100 %>
+            <% if store.errors[:name].any? %>
+              <div class="invalid-feedback">
+                <%= store.errors[:name].first %>
+              </div>
+            <% end %>
+          </div>
+
+          <%# 店舗コード %>
+          <div class="col-md-6">
+            <%= form.label :code, "店舗コード", class: "form-label" %>
+            <span class="text-danger">*</span>
+            <%= form.text_field :code, 
+                               class: "form-control #{'is-invalid' if store.errors[:code].any?}",
+                               placeholder: "例: ST001",
+                               required: true,
+                               maxlength: 20,
+                               pattern: "[A-Za-z0-9_-]+",
+                               title: "英数字、ハイフン、アンダースコアのみ使用可能" %>
+            <% if store.errors[:code].any? %>
+              <div class="invalid-feedback">
+                <%= store.errors[:code].first %>
+              </div>
+            <% else %>
+              <div class="form-text">英数字、ハイフン、アンダースコアのみ使用可能</div>
+            <% end %>
+          </div>
+
+          <%# 店舗種別 %>
+          <div class="col-md-6">
+            <%= form.label :store_type, "店舗種別", class: "form-label" %>
+            <span class="text-danger">*</span>
+            <%= form.select :store_type,
+                           options_for_select([
+                             ["薬局", "pharmacy"],
+                             ["倉庫", "warehouse"],
+                             ["本部", "headquarters"]
+                           ], store.store_type),
+                           { prompt: "店舗種別を選択してください" },
+                           { class: "form-select #{'is-invalid' if store.errors[:store_type].any?}",
+                             required: true } %>
+            <% if store.errors[:store_type].any? %>
+              <div class="invalid-feedback">
+                <%= store.errors[:store_type].first %>
+              </div>
+            <% end %>
+          </div>
+
+          <%# 地域 %>
+          <div class="col-md-6">
+            <%= form.label :region, "地域", class: "form-label" %>
+            <%= form.text_field :region, 
+                               class: "form-control",
+                               placeholder: "例: 東京都",
+                               maxlength: 50 %>
+            <div class="form-text">都道府県名を入力してください</div>
+          </div>
+
+          <%# ステータス %>
+          <div class="col-md-12">
+            <div class="form-check form-switch">
+              <%= form.check_box :active, 
+                                class: "form-check-input",
+                                id: "store_active" %>
+              <%= form.label :active, "この店舗を有効にする", class: "form-check-label", for: "store_active" %>
+            </div>
+            <div class="form-text">無効にすると、在庫移動や新規在庫追加ができなくなります</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# 連絡先情報セクション %>
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-bold">
+          <i class="bi bi-telephone me-2" aria-hidden="true"></i>
+          連絡先情報
+        </h6>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <%# 住所 %>
+          <div class="col-12">
+            <%= form.label :address, "住所", class: "form-label" %>
+            <%= form.text_area :address, 
+                              class: "form-control",
+                              placeholder: "例: 東京都港区赤坂1-1-1",
+                              rows: 3 %>
+          </div>
+
+          <%# 電話番号 %>
+          <div class="col-md-6">
+            <%= form.label :phone, "電話番号", class: "form-label" %>
+            <%= form.telephone_field :phone, 
+                                    class: "form-control #{'is-invalid' if store.errors[:phone].any?}",
+                                    placeholder: "例: 03-1234-5678",
+                                    maxlength: 20 %>
+            <% if store.errors[:phone].any? %>
+              <div class="invalid-feedback">
+                <%= store.errors[:phone].first %>
+              </div>
+            <% end %>
+          </div>
+
+          <%# メールアドレス %>
+          <div class="col-md-6">
+            <%= form.label :email, "メールアドレス", class: "form-label" %>
+            <%= form.email_field :email, 
+                                class: "form-control #{'is-invalid' if store.errors[:email].any?}",
+                                placeholder: "例: store@example.com",
+                                maxlength: 100 %>
+            <% if store.errors[:email].any? %>
+              <div class="invalid-feedback">
+                <%= store.errors[:email].first %>
+              </div>
+            <% end %>
+          </div>
+
+          <%# 店舗責任者名 %>
+          <div class="col-md-6">
+            <%= form.label :manager_name, "店舗責任者名", class: "form-label" %>
+            <%= form.text_field :manager_name, 
+                               class: "form-control",
+                               placeholder: "例: 田中太郎",
+                               maxlength: 50 %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# アクションボタン %>
+  <div class="col-12">
+    <div class="card border-0 shadow-sm">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <%= link_to "キャンセル", 
+                       store.persisted? ? admin_store_path(store) : admin_stores_path,
+                       class: "btn btn-outline-secondary" %>
+          </div>
+          <div>
+            <%= form.submit store.persisted? ? "更新する" : "作成する",
+                           class: "btn btn-admin-primary",
+                           data: { 
+                             confirm: store.persisted? ? "店舗情報を更新しますか？" : "新しい店舗を作成しますか？",
+                             disable_with: "処理中..."
+                           } %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<%# カスタムスタイル %>
+<style>
+  .btn-admin-primary {
+    background-color: var(--admin-primary);
+    border-color: var(--admin-primary);
+    color: white;
+  }
+  
+  .btn-admin-primary:hover {
+    background-color: var(--admin-primary-dark, #0056b3);
+    border-color: var(--admin-primary-dark, #0056b3);
+  }
+  
+  .form-check-input:checked {
+    background-color: var(--admin-primary);
+    border-color: var(--admin-primary);
+  }
+  
+  .is-invalid {
+    border-color: #dc3545;
+  }
+  
+  .invalid-feedback {
+    display: block;
+  }
+</style>
+
+<%# フォームバリデーション JavaScript %>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // リアルタイム店舗コード検証
+    const codeInput = document.querySelector('#store_code');
+    if (codeInput) {
+      codeInput.addEventListener('input', function() {
+        const value = this.value;
+        const isValid = /^[A-Za-z0-9_-]*$/.test(value);
+        
+        if (!isValid && value.length > 0) {
+          this.classList.add('is-invalid');
+        } else {
+          this.classList.remove('is-invalid');
+        }
+      });
+    }
+    
+    // フォーム送信前の最終検証
+    const form = document.querySelector('form');
+    if (form) {
+      form.addEventListener('submit', function(e) {
+        const requiredFields = form.querySelectorAll('[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+          if (!field.value.trim()) {
+            field.classList.add('is-invalid');
+            isValid = false;
+          } else {
+            field.classList.remove('is-invalid');
+          }
+        });
+        
+        if (!isValid) {
+          e.preventDefault();
+          alert('必須項目を入力してください。');
+        }
+      });
+    }
+  });
+</script>

@@ -11,14 +11,24 @@ class InventoriesController < ApplicationController
     @search_form = InventorySearchForm.new(search_params.except(:page))
 
     if @search_form.valid? && @search_form.has_search_conditions?
-      @inventories_raw = @search_form.search.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page])
+      # 🔍 パフォーマンス最適化: SearchQueryサービスで条件付きincludesを適用
+      # Counter Cacheがあるため、不要なincludesは除去（Bullet警告解消）
+      # 関連: app/decorators/inventory_decorator.rb でCounter Cache優先使用
+      @inventories_raw = @search_form.search.page(params[:page])
     elsif @search_form.has_search_conditions?
       # 検索条件があるがバリデーションエラーの場合
       flash.now[:alert] = @search_form.errors.full_messages.join(", ")
-      @inventories_raw = Inventory.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page])
+      # Counter Cacheで十分なため、includesは不要
+      @inventories_raw = Inventory.page(params[:page])
     else
-      @inventories_raw = Inventory.includes(:batches, :inventory_logs, :shipments, :receipts).page(params[:page])
+      # デフォルト表示: Counter Cacheで十分なため、includesは不要
+      @inventories_raw = Inventory.page(params[:page])
     end
+
+    # TODO: 🟢 Phase 4（推奨）- 大規模データ対応時の追加最適化
+    # 優先度: 低（現在の実装で十分）
+    # 実装内容: 10万件以上のデータでのページング最適化、メモリ効率改善
+    # 期待効果: 大規模データセットでの安定したパフォーマンス維持
 
     # デコレートはKaminariメソッドにアクセスした後に実行
     @inventories = @inventories_raw.decorate

@@ -53,6 +53,31 @@ Rails.application.routes.draw do
     # ジョブステータス確認用API
     resources :job_statuses, only: [ :show ]
 
+    # 🏪 Phase 2: Multi-Store Management
+    resources :stores do
+      member do
+        get :dashboard  # 店舗個別ダッシュボード
+      end
+
+      # 店舗間移動管理（ネストルーティング）
+      resources :inter_store_transfers, path: :transfers do
+        member do
+          patch :approve    # 承認
+          patch :reject     # 却下
+          patch :complete   # 完了
+          patch :cancel     # キャンセル
+        end
+      end
+    end
+
+    # 店舗間移動管理（独立ルーティング）
+    resources :inter_store_transfers, path: :transfers, only: [ :index, :show, :new, :create ] do
+      collection do
+        get :pending      # 承認待ち一覧
+        get :analytics    # 移動分析
+      end
+    end
+
     # 今後の機能として追加予定のリソース
     # resources :reports
     # resources :settings

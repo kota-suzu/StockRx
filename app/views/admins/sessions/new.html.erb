@@ -53,7 +53,7 @@
   </div>
   
   <div class="social-login-section">
-    <%= link_to admin_omniauth_authorize_path(:github), 
+    <%= link_to admin_github_omniauth_authorize_path, 
                 method: :post,
                 class: "github-login-btn",
                 data: { turbo: false } do %>

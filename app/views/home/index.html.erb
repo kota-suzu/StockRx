@@ -51,13 +51,29 @@
     </div>
     
     <div class="row g-4">
-      <%# 在庫管理機能 %>
+      <%# マルチストア管理機能 %>
       <div class="col-md-4">
         <div class="card h-100 shadow-sm border-0">
           <div class="card-body text-center p-4">
             <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
                  style="width: 80px; height: 80px;">
-              <i class="fas fa-boxes fa-2x text-primary"></i>
+              <i class="fas fa-shop fa-2x text-primary"></i>
+            </div>
+            <h4 class="card-title mb-3">マルチストア管理</h4>
+            <p class="card-text text-muted">
+              複数店舗の在庫を一元管理。店舗間移動の申請・承認ワークフローで効率的な運用を実現します。
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <%# 在庫管理機能 %>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body text-center p-4">
+            <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                 style="width: 80px; height: 80px;">
+              <i class="fas fa-boxes fa-2x text-success"></i>
             </div>
             <h4 class="card-title mb-3">在庫管理</h4>
             <p class="card-text text-muted">
@@ -71,29 +87,64 @@
       <div class="col-md-4">
         <div class="card h-100 shadow-sm border-0">
           <div class="card-body text-center p-4">
-            <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+            <div class="bg-info bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
                  style="width: 80px; height: 80px;">
-              <i class="fas fa-chart-bar fa-2x text-success"></i>
+              <i class="fas fa-chart-bar fa-2x text-info"></i>
             </div>
             <h4 class="card-title mb-3">データ分析</h4>
             <p class="card-text text-muted">
-              詳細なレポート機能と分析ツールで、データドリブンな意思決定をサポートします。
+              店舗別・期間別の詳細分析とレポート機能で、データドリブンな意思決定をサポートします。
             </p>
           </div>
         </div>
       </div>
-      
-      <%# セキュリティ機能 %>
+    </div>
+    
+    <%# 第2行の機能 %>
+    <div class="row g-4 mt-2">
+      <%# 店舗間移動機能 %>
       <div class="col-md-4">
         <div class="card h-100 shadow-sm border-0">
           <div class="card-body text-center p-4">
             <div class="bg-warning bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
                  style="width: 80px; height: 80px;">
-              <i class="fas fa-shield-alt fa-2x text-warning"></i>
+              <i class="fas fa-truck fa-2x text-warning"></i>
             </div>
-            <h4 class="card-title mb-3">セキュリティ</h4>
+            <h4 class="card-title mb-3">店舗間移動</h4>
             <p class="card-text text-muted">
-              企業レベルのセキュリティ機能で、重要な在庫データを安全に保護します。
+              承認ワークフロー付きの店舗間在庫移動システム。緊急時対応と効率的な在庫配分を実現します。
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <%# 権限管理機能 %>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body text-center p-4">
+            <div class="bg-danger bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                 style="width: 80px; height: 80px;">
+              <i class="fas fa-shield-alt fa-2x text-danger"></i>
+            </div>
+            <h4 class="card-title mb-3">権限管理</h4>
+            <p class="card-text text-muted">
+              4段階の権限レベルで安全な運用を保証。本部管理者から店舗スタッフまで適切な権限制御を実現します。
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      <%# リアルタイム監視機能 %>
+      <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+          <div class="card-body text-center p-4">
+            <div class="bg-secondary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3" 
+                 style="width: 80px; height: 80px;">
+              <i class="fas fa-eye fa-2x text-secondary"></i>
+            </div>
+            <h4 class="card-title mb-3">リアルタイム監視</h4>
+            <p class="card-text text-muted">
+              在庫状況のリアルタイム監視と自動アラート機能で、在庫切れや過剰在庫を事前に防止します。
             </p>
           </div>
         </div>
@@ -117,7 +168,17 @@
     <div class="row g-4 text-center">
       <div class="col-md-3">
         <div class="bg-white rounded-3 p-4 shadow-sm">
-          <i class="fas fa-boxes fa-3x text-primary mb-3"></i>
+          <i class="fas fa-shop fa-3x text-primary mb-3"></i>
+          <h3 class="h2 fw-bold text-dark mb-2">
+            <%= number_with_delimiter(Store.active.count) %>
+          </h3>
+          <p class="text-muted mb-0">運営店舗数</p>
+        </div>
+      </div>
+      
+      <div class="col-md-3">
+        <div class="bg-white rounded-3 p-4 shadow-sm">
+          <i class="fas fa-boxes fa-3x text-success mb-3"></i>
           <h3 class="h2 fw-bold text-dark mb-2">
             <%= number_with_delimiter(Inventory.count) %>
           </h3>
@@ -127,9 +188,9 @@
       
       <div class="col-md-3">
         <div class="bg-white rounded-3 p-4 shadow-sm">
-          <i class="fas fa-cubes fa-3x text-success mb-3"></i>
+          <i class="fas fa-cubes fa-3x text-info mb-3"></i>
           <h3 class="h2 fw-bold text-dark mb-2">
-            <%= number_with_delimiter(Inventory.sum(:quantity)) %>
+            <%= number_with_delimiter(StoreInventory.sum(:quantity)) %>
           </h3>
           <p class="text-muted mb-0">総在庫数</p>
         </div>
@@ -137,21 +198,11 @@
       
       <div class="col-md-3">
         <div class="bg-white rounded-3 p-4 shadow-sm">
-          <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+          <i class="fas fa-truck fa-3x text-warning mb-3"></i>
           <h3 class="h2 fw-bold text-dark mb-2">
-            <%= number_with_delimiter(Inventory.low_stock.count) %>
+            <%= number_with_delimiter(InterStoreTransfer.active.count) %>
           </h3>
-          <p class="text-muted mb-0">低在庫アラート</p>
-        </div>
-      </div>
-      
-      <div class="col-md-3">
-        <div class="bg-white rounded-3 p-4 shadow-sm">
-          <i class="fas fa-clock fa-3x text-info mb-3"></i>
-          <h3 class="h2 fw-bold text-dark mb-2">
-            <%= time_ago_in_words(Inventory.maximum(:updated_at) || Time.current) %>前
-          </h3>
-          <p class="text-muted mb-0">最終更新</p>
+          <p class="text-muted mb-0">移動処理中</p>
         </div>
       </div>
     </div>
@@ -179,6 +230,12 @@
           <%= link_to new_admin_session_path, class: "btn btn-outline-light btn-lg" do %>
             <i class="fas fa-user-shield me-2"></i>管理画面
           <% end %>
+        </div>
+        <div class="d-flex justify-content-center justify-content-lg-end mt-2">
+          <small class="text-white-50">
+            <i class="fas fa-info-circle me-1"></i>
+            マルチストア機能: 店舗管理・移動申請・分析ダッシュボード
+          </small>
         </div>
       </div>
     </div>

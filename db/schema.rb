@@ -10,8 +10,8 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_15_000257) do
-  create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
+  create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
     t.string "delivery_method", null: false, comment: "配信方法（email, actioncable等）"
@@ -37,7 +37,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_000257) do
     t.index ["priority"], name: "index_admin_notification_settings_on_priority"
   end
 
-  create_table "admins", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "admins", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
     t.string "reset_password_token"
@@ -55,14 +55,22 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_000257) do
     t.datetime "updated_at", null: false
     t.string "provider"
     t.string "uid"
+    t.bigint "store_id", comment: "所属店舗ID（本部管理者の場合はNULL）"
+    t.string "role", limit: 30, default: "store_user", null: false, comment: "管理者役割（headquarters_admin, store_manager, pharmacist, store_user）"
+    t.string "name", limit: 50, comment: "管理者名"
+    t.boolean "active", default: true, null: false, comment: "アカウント有効フラグ"
     t.index ["email"], name: "index_admins_on_email", unique: true
     t.index ["provider", "uid"], name: "index_admins_on_provider_and_uid", unique: true
     t.index ["provider"], name: "index_admins_on_provider"
     t.index ["reset_password_token"], name: "index_admins_on_reset_password_token", unique: true
+    t.index ["role", "active"], name: "index_admins_on_role_and_active", comment: "役割・有効状態複合検索"
+    t.index ["role"], name: "index_admins_on_role", comment: "役割別検索最適化"
+    t.index ["store_id", "role"], name: "index_admins_on_store_id_and_role", comment: "店舗・役割複合検索"
+    t.index ["store_id"], name: "index_admins_on_store_id"
     t.index ["unlock_token"], name: "index_admins_on_unlock_token", unique: true
   end
 
-  create_table "audit_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "audit_logs", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.string "auditable_type", null: false
     t.bigint "auditable_id", null: false
     t.bigint "user_id"
@@ -82,7 +90,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_000257) do
     t.index ["user_id"], name: "index_audit_logs_on_user_id"
   end
 
-  create_table "batches", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "batches", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.string "lot_code", null: false
     t.date "expires_on"
@@ -94,22 +102,35 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_000257) do
     t.index ["inventory_id"], name: "index_batches_on_inventory_id"
   end
 
-  create_table "identities", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
-    t.bigint "admin_id", null: false
-    t.string "provider", null: false
-    t.string "uid", null: false
-    t.string "name"
-    t.string "email"
-    t.string "image_url"
-    t.json "raw_info"
+  create_table "inter_store_transfers", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "source_store_id", null: false, comment: "移動元店舗ID"
+    t.bigint "destination_store_id", null: false, comment: "移動先店舗ID"
+    t.bigint "inventory_id", null: false, comment: "商品ID"
+    t.integer "quantity", null: false, comment: "移動数量"
+    t.integer "status", default: 0, null: false, comment: "移動ステータス（0:pending, 1:approved, 2:rejected, 3:in_transit, 4:completed, 5:cancelled）"
+    t.integer "priority", default: 0, null: false, comment: "優先度（0:normal, 1:urgent, 2:emergency）"
+    t.text "reason", comment: "移動理由・備考"
+    t.bigint "requested_by_id", null: false, comment: "申請者（Admin ID）"
+    t.bigint "approved_by_id", comment: "承認者（Admin ID）"
+    t.datetime "requested_at", null: false, comment: "申請日時"
+    t.datetime "approved_at", comment: "承認日時"
+    t.datetime "completed_at", comment: "完了日時"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["admin_id", "provider"], name: "index_identities_on_admin_id_and_provider", unique: true
-    t.index ["admin_id"], name: "index_identities_on_admin_id"
-    t.index ["provider", "uid"], name: "index_identities_on_provider_and_uid", unique: true
+    t.index ["approved_by_id"], name: "index_inter_store_transfers_on_approved_by_id", comment: "承認者別検索最適化"
+    t.index ["destination_store_id"], name: "index_inter_store_transfers_on_destination_store_id", comment: "移動先店舗検索最適化"
+    t.index ["inventory_id"], name: "index_inter_store_transfers_on_inventory_id"
+    t.index ["requested_at"], name: "index_inter_store_transfers_on_requested_at", comment: "申請日時検索最適化"
+    t.index ["requested_by_id"], name: "index_inter_store_transfers_on_requested_by_id", comment: "申請者別検索最適化"
+    t.index ["source_store_id", "status", "requested_at"], name: "idx_source_status_date", comment: "店舗別ステータス・日時複合検索"
+    t.index ["source_store_id"], name: "index_inter_store_transfers_on_source_store_id", comment: "移動元店舗検索最適化"
+    t.index ["status", "priority"], name: "index_inter_store_transfers_on_status_and_priority", comment: "ステータス・優先度複合検索"
+    t.index ["status"], name: "index_inter_store_transfers_on_status", comment: "ステータス別検索最適化"
+    t.check_constraint "`quantity` > 0", name: "chk_positive_quantity"
+    t.check_constraint "`source_store_id` <> `destination_store_id`", name: "chk_different_stores"
   end
 
-  create_table "inventories", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "inventories", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.string "name", null: false
     t.integer "quantity", default: 0, null: false
     t.decimal "price", precision: 10, scale: 2, default: "0.0", null: false
@@ -127,7 +148,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_000257) do
     t.index ["shipments_count"], name: "index_inventories_on_shipments_count"
   end
 
-  create_table "inventory_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "inventory_logs", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "delta", null: false
     t.string "operation_type", null: false
@@ -143,7 +164,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_000257) do
     t.index ["user_id"], name: "index_inventory_logs_on_user_id"
   end
 
-  create_table "receipts", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "receipts", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "quantity"
     t.string "source"
@@ -193,7 +214,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_000257) do
     t.index ["status", "expires_at"], name: "idx_report_files_cleanup"
   end
 
-  create_table "shipments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "shipments", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "quantity"
     t.string "destination"
@@ -210,12 +231,55 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_000257) do
     t.index ["inventory_id"], name: "index_shipments_on_inventory_id"
   end
 
+  create_table "store_inventories", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "store_id", null: false, comment: "店舗ID"
+    t.bigint "inventory_id", null: false, comment: "商品ID"
+    t.integer "quantity", default: 0, null: false, comment: "現在在庫数"
+    t.integer "reserved_quantity", default: 0, null: false, comment: "予約済み在庫数（移動申請中等）"
+    t.integer "safety_stock_level", default: 5, null: false, comment: "安全在庫レベル（アラート閾値）"
+    t.datetime "last_updated_at", comment: "最終在庫更新日時"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["inventory_id"], name: "index_store_inventories_on_inventory_id"
+    t.index ["last_updated_at"], name: "index_store_inventories_on_last_updated_at", comment: "最終更新日時検索最適化"
+    t.index ["quantity", "safety_stock_level"], name: "idx_stock_levels", comment: "在庫レベル検索最適化"
+    t.index ["store_id", "inventory_id"], name: "uniq_store_inventory", unique: true, comment: "店舗・商品組み合わせ一意制約"
+    t.index ["store_id", "quantity", "safety_stock_level"], name: "idx_low_stock_alert", comment: "低在庫アラート検索最適化"
+    t.index ["store_id"], name: "index_store_inventories_on_store_id"
+  end
+
+  create_table "stores", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.string "name", limit: 100, null: false, comment: "店舗名"
+    t.string "code", limit: 20, null: false, comment: "店舗コード（一意識別子）"
+    t.string "store_type", limit: 30, default: "pharmacy", null: false, comment: "店舗種別（pharmacy, warehouse, headquarters）"
+    t.string "region", limit: 50, comment: "地域・エリア"
+    t.text "address", comment: "住所"
+    t.string "phone", limit: 20, comment: "電話番号"
+    t.string "email", limit: 100, comment: "店舗メールアドレス"
+    t.string "manager_name", limit: 50, comment: "店舗責任者名"
+    t.boolean "active", default: true, null: false, comment: "店舗有効フラグ"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_stores_on_active", comment: "有効店舗フィルタ最適化"
+    t.index ["code"], name: "index_stores_on_code", unique: true, comment: "店舗コード一意制約"
+    t.index ["region"], name: "index_stores_on_region", comment: "地域別検索最適化"
+    t.index ["store_type", "active"], name: "index_stores_on_store_type_and_active", comment: "種別・有効状態複合検索"
+    t.index ["store_type"], name: "index_stores_on_store_type", comment: "店舗種別による検索最適化"
+  end
+
   add_foreign_key "admin_notification_settings", "admins"
+  add_foreign_key "admins", "stores"
   add_foreign_key "audit_logs", "admins", column: "user_id", on_delete: :nullify
   add_foreign_key "batches", "inventories", on_delete: :cascade
-  add_foreign_key "identities", "admins"
+  add_foreign_key "inter_store_transfers", "admins", column: "approved_by_id"
+  add_foreign_key "inter_store_transfers", "admins", column: "requested_by_id"
+  add_foreign_key "inter_store_transfers", "inventories", on_delete: :cascade
+  add_foreign_key "inter_store_transfers", "stores", column: "destination_store_id", on_delete: :cascade
+  add_foreign_key "inter_store_transfers", "stores", column: "source_store_id", on_delete: :cascade
   add_foreign_key "inventory_logs", "inventories"
   add_foreign_key "receipts", "inventories"
   add_foreign_key "report_files", "admins"
   add_foreign_key "shipments", "inventories"
+  add_foreign_key "store_inventories", "inventories", on_delete: :cascade
+  add_foreign_key "store_inventories", "stores", on_delete: :cascade
 end

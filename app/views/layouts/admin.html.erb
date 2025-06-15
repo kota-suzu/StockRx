@@ -12,50 +12,211 @@
 
   <body>
     <% if admin_signed_in? %>
-      <!-- Bootstrap Navbar -->
+      <!-- Enhanced Admin Navigation with Multi-Store Support -->
       <nav class="navbar navbar-expand-lg navbar-dark navbar-admin sticky-top">
         <div class="container-fluid">
-          <%= link_to admin_root_path, class: "navbar-brand" do %>
-            📦 StockRx 管理パネル
+          <%= link_to admin_root_path, class: "navbar-brand d-flex align-items-center" do %>
+            <i class="bi bi-boxes me-2"></i>
+            <span>StockRx</span>
+            <small class="badge bg-light text-dark ms-2">管理パネル</small>
           <% end %>
           
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                  aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
           </button>
           
           <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
+              <!-- ダッシュボード -->
               <li class="nav-item">
-                <%= link_to admin_root_path, class: "nav-link #{'active' if current_page?(admin_root_path)}" do %>
-                  🏠 ダッシュボード
+                <%= link_to admin_root_path, 
+                    class: "nav-link #{'active' if current_page?(admin_root_path)}", 
+                    title: "ダッシュボード" do %>
+                  <i class="bi bi-speedometer2 me-1"></i>
+                  <span class="d-none d-lg-inline">ダッシュボード</span>
+                  <span class="d-lg-none">ダッシュボード</span>
                 <% end %>
               </li>
-              <li class="nav-item">
-                <%= link_to admin_inventories_path, class: "nav-link #{'active' if current_page?(admin_inventories_path)}" do %>
-                  📦 在庫管理
-                <% end %>
+
+              <!-- マルチストア管理メニュー（権限による表示制御） -->
+              <% if current_admin.can_access_all_stores? || current_admin.store_manager? %>
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle <%= 'active' if request.path.include?('/admin/stores') %>" 
+                     href="#" id="storeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                     title="店舗管理">
+                    <i class="bi bi-shop me-1"></i>
+                    <span class="d-none d-lg-inline">店舗管理</span>
+                    <span class="d-lg-none">店舗</span>
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <%= link_to admin_stores_path, class: "dropdown-item" do %>
+                        <i class="bi bi-list me-2"></i>店舗一覧
+                      <% end %>
+                    </li>
+                    <% if current_admin.headquarters_admin? %>
+                      <li>
+                        <%= link_to new_admin_store_path, class: "dropdown-item" do %>
+                          <i class="bi bi-plus-circle me-2"></i>新規店舗
+                        <% end %>
+                      </li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li>
+                        <%= link_to admin_stores_path, class: "dropdown-item" do %>
+                          <i class="bi bi-graph-up me-2"></i>店舗分析
+                        <% end %>
+                      </li>
+                    <% end %>
+                  </ul>
+                </li>
+
+                <li class="nav-item dropdown">
+                  <a class="nav-link dropdown-toggle <%= 'active' if request.path.include?('/admin/transfers') %>" 
+                     href="#" id="transferDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                     title="店舗間移動">
+                    <i class="bi bi-truck me-1"></i>
+                    <span class="d-none d-lg-inline">移動管理</span>
+                    <span class="d-lg-none">移動</span>
+                  </a>
+                  <ul class="dropdown-menu">
+                    <li>
+                      <%= link_to admin_inter_store_transfers_path, class: "dropdown-item" do %>
+                        <i class="bi bi-list me-2"></i>移動一覧
+                      <% end %>
+                    </li>
+                    <li>
+                      <%= link_to new_admin_inter_store_transfer_path, class: "dropdown-item" do %>
+                        <i class="bi bi-plus-circle me-2"></i>新規申請
+                      <% end %>
+                    </li>
+                    <% if current_admin.can_approve_transfers? %>
+                      <li><hr class="dropdown-divider"></li>
+                      <li>
+                        <%= link_to pending_admin_inter_store_transfers_path, class: "dropdown-item position-relative" do %>
+                          <i class="bi bi-clock me-2"></i>承認待ち
+                          <% begin %>
+                            <% pending_count = current_admin&.accessible_store_ids&.any? ? InterStoreTransfer.accessible_to_admin(current_admin).pending.count : 0 %>
+                            <% if pending_count > 0 %>
+                              <span class="badge bg-warning text-dark position-absolute top-0 start-100 translate-middle">
+                                <%= pending_count %>
+                              </span>
+                            <% end %>
+                          <% rescue => e %>
+                            <%# エラーログ記録（本番環境での障害調査用） %>
+                            <% Rails.logger.error "承認待ち件数取得エラー: #{e.message}" if Rails.env.production? %>
+                            <%# 開発環境では警告表示、本番環境では静かに失敗 %>
+                            <% unless Rails.env.production? %>
+                              <span class="badge bg-danger">!</span>
+                            <% end %>
+                          <% end %>
+                        <% end %>
+                      </li>
+                    <% end %>
+                    <% if current_admin.headquarters_admin? %>
+                      <li>
+                        <%= link_to analytics_admin_inter_store_transfers_path, class: "dropdown-item" do %>
+                          <i class="bi bi-graph-up me-2"></i>分析ダッシュボード
+                        <% end %>
+                      </li>
+                    <% end %>
+                  </ul>
+                </li>
+              <% end %>
+
+              <!-- 在庫管理 -->
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle <%= 'active' if request.path.include?('/admin/inventories') %>" 
+                   href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                   title="在庫管理">
+                  <i class="bi bi-boxes me-1"></i>
+                  <span class="d-none d-lg-inline">在庫管理</span>
+                  <span class="d-lg-none">在庫</span>
+                </a>
+                <ul class="dropdown-menu">
+                  <li>
+                    <%= link_to admin_inventories_path, class: "dropdown-item" do %>
+                      <i class="bi bi-list me-2"></i>商品一覧
+                    <% end %>
+                  </li>
+                  <li>
+                    <%= link_to new_admin_inventory_path, class: "dropdown-item" do %>
+                      <i class="bi bi-plus-circle me-2"></i>新規登録
+                    <% end %>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <%= link_to admin_inventories_path(filter: "low_stock"), class: "dropdown-item" do %>
+                      <i class="bi bi-exclamation-triangle me-2"></i>低在庫アラート
+                    <% end %>
+                  </li>
+                  <li>
+                    <%= link_to import_form_admin_inventories_path, class: "dropdown-item" do %>
+                      <i class="bi bi-upload me-2"></i>CSVインポート
+                    <% end %>
+                  </li>
+                </ul>
               </li>
-              <li class="nav-item">
-                <%= link_to inventory_logs_path, class: "nav-link #{'active' if current_page?(inventory_logs_path)}" do %>
-                  📋 在庫履歴
-                <% end %>
-              </li>
-              <li class="nav-item">
-                <%= link_to "/admin/sidekiq", class: "nav-link", target: "_blank" do %>
-                  ⚙️ ジョブ監視
-                <% end %>
+
+              <!-- 履歴・監視 -->
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="monitorDropdown" role="button" 
+                   data-bs-toggle="dropdown" aria-expanded="false" title="監視・履歴">
+                  <i class="bi bi-activity me-1"></i>
+                  <span class="d-none d-lg-inline">監視</span>
+                  <span class="d-lg-none">監視</span>
+                </a>
+                <ul class="dropdown-menu">
+                  <li>
+                    <%= link_to inventory_logs_path, class: "dropdown-item" do %>
+                      <i class="bi bi-journal-text me-2"></i>在庫履歴
+                    <% end %>
+                  </li>
+                  <li>
+                    <%= link_to "/admin/sidekiq", class: "dropdown-item", target: "_blank", rel: "noopener" do %>
+                      <i class="bi bi-gear me-2"></i>ジョブ監視
+                    <% end %>
+                  </li>
+                </ul>
               </li>
             </ul>
             
+            <!-- 右側ナビゲーション -->
             <ul class="navbar-nav">
+              <!-- 通知（未実装） -->
+              <li class="nav-item">
+                <a class="nav-link position-relative" href="#" title="通知（実装予定）">
+                  <i class="bi bi-bell"></i>
+                  <!-- TODO: Phase 3 - 通知機能実装時に表示 -->
+                  <!-- <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">3</span> -->
+                </a>
+              </li>
+
+              <!-- ユーザーメニュー -->
               <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  👤 <%= current_admin.email %>
+                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" 
+                   role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  <i class="bi bi-person-circle me-2"></i>
+                  <div class="d-none d-md-block">
+                    <div class="small"><%= current_admin.display_name %></div>
+                    <div class="text-muted" style="font-size: 0.75rem;"><%= current_admin.role_text %></div>
+                  </div>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end">
+                  <li class="dropdown-header">
+                    <%= current_admin.email %>
+                    <br><small class="text-muted"><%= current_admin.role_text %></small>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <!-- TODO: Phase 4 - プロフィール機能 -->
+                  <!-- <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>プロフィール</a></li> -->
+                  <!-- <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>設定</a></li> -->
+                  <!-- <li><hr class="dropdown-divider"></li> -->
                   <li>
-                    <%= button_to destroy_admin_session_path, method: :delete, class: "dropdown-item", title: "ログアウト" do %>
-                      🚪 ログアウト
+                    <%= button_to destroy_admin_session_path, method: :delete, 
+                        class: "dropdown-item text-danger", title: "ログアウト",
+                        form: { data: { turbo: false } } do %>
+                      <i class="bi bi-box-arrow-right me-2"></i>ログアウト
                     <% end %>
                   </li>
                 </ul>

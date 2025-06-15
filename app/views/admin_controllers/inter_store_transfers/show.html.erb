@@ -1,0 +1,370 @@
+<%# frozen_string_literal: true %>
+<%# 店舗間移動詳細ページ %>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <%# ヘッダーセクション %>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h2 mb-2">
+            <i class="bi bi-truck me-2"></i>移動申請詳細
+          </h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><%= link_to "ダッシュボード", admin_root_path %></li>
+              <li class="breadcrumb-item"><%= link_to "移動管理", admin_inter_store_transfers_path %></li>
+              <li class="breadcrumb-item active" aria-current="page">詳細</li>
+            </ol>
+          </nav>
+        </div>
+        
+        <%# アクションボタン %>
+        <div>
+          <%= link_to admin_inter_store_transfers_path, class: "btn btn-outline-secondary" do %>
+            <i class="bi bi-arrow-left me-1"></i>一覧に戻る
+          <% end %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-8">
+          <%# 基本情報カード %>
+          <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">移動申請情報</h5>
+              <div>
+                <%# ステータスバッジ %>
+                <% case @transfer.status %>
+                <% when "pending" %>
+                  <span class="badge bg-warning text-dark fs-6">
+                    <i class="bi bi-clock me-1"></i><%= @transfer.status_text %>
+                  </span>
+                <% when "approved" %>
+                  <span class="badge bg-info text-dark fs-6">
+                    <i class="bi bi-check-circle me-1"></i><%= @transfer.status_text %>
+                  </span>
+                <% when "in_transit" %>
+                  <span class="badge bg-primary fs-6">
+                    <i class="bi bi-truck me-1"></i><%= @transfer.status_text %>
+                  </span>
+                <% when "completed" %>
+                  <span class="badge bg-success fs-6">
+                    <i class="bi bi-check-all me-1"></i><%= @transfer.status_text %>
+                  </span>
+                <% when "rejected" %>
+                  <span class="badge bg-danger fs-6">
+                    <i class="bi bi-x-circle me-1"></i><%= @transfer.status_text %>
+                  </span>
+                <% when "cancelled" %>
+                  <span class="badge bg-secondary fs-6">
+                    <i class="bi bi-dash-circle me-1"></i><%= @transfer.status_text %>
+                  </span>
+                <% end %>
+                
+                <%# 優先度バッジ %>
+                <% case @transfer.priority %>
+                <% when "emergency" %>
+                  <span class="badge bg-danger ms-2">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i><%= @transfer.priority_text %>
+                  </span>
+                <% when "urgent" %>
+                  <span class="badge bg-warning text-dark ms-2">
+                    <i class="bi bi-exclamation-circle-fill me-1"></i><%= @transfer.priority_text %>
+                  </span>
+                <% end %>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <h6 class="text-muted">移動元店舗</h6>
+                  <p class="mb-3">
+                    <i class="bi bi-shop me-2 text-primary"></i>
+                    <strong><%= @transfer.source_store.name %></strong>
+                    <small class="text-muted">(<%= @transfer.source_store.code %>)</small>
+                  </p>
+                  
+                  <h6 class="text-muted">商品</h6>
+                  <p class="mb-3">
+                    <i class="bi bi-box me-2 text-success"></i>
+                    <strong><%= @transfer.inventory.name %></strong>
+                    <% if @transfer.inventory.jan_code.present? %>
+                      <br><small class="text-muted">JAN: <%= @transfer.inventory.jan_code %></small>
+                    <% end %>
+                  </p>
+                  
+                  <h6 class="text-muted">申請日時</h6>
+                  <p class="mb-3">
+                    <i class="bi bi-calendar me-2 text-info"></i>
+                    <%= l(@transfer.requested_at, format: :long) %>
+                  </p>
+                </div>
+                
+                <div class="col-md-6">
+                  <h6 class="text-muted">移動先店舗</h6>
+                  <p class="mb-3">
+                    <i class="bi bi-shop me-2 text-primary"></i>
+                    <strong><%= @transfer.destination_store.name %></strong>
+                    <small class="text-muted">(<%= @transfer.destination_store.code %>)</small>
+                  </p>
+                  
+                  <h6 class="text-muted">移動数量</h6>
+                  <p class="mb-3">
+                    <i class="bi bi-123 me-2 text-warning"></i>
+                    <strong class="fs-4"><%= number_with_delimiter(@transfer.quantity) %></strong>
+                  </p>
+                  
+                  <h6 class="text-muted">申請者</h6>
+                  <p class="mb-3">
+                    <i class="bi bi-person me-2 text-secondary"></i>
+                    <%= @transfer.requested_by.display_name %>
+                    <small class="text-muted">(<%= @transfer.requested_by.role_text %>)</small>
+                  </p>
+                </div>
+              </div>
+              
+              <hr>
+              
+              <h6 class="text-muted">申請理由</h6>
+              <p class="mb-0"><%= simple_format(@transfer.reason) %></p>
+            </div>
+          </div>
+
+          <%# 承認・処理情報 %>
+          <% if @transfer.approved_by.present? %>
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">承認・処理情報</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <h6 class="text-muted">承認者</h6>
+                    <p class="mb-3">
+                      <i class="bi bi-person-check me-2 text-success"></i>
+                      <%= @transfer.approved_by.display_name %>
+                      <small class="text-muted">(<%= @transfer.approved_by.role_text %>)</small>
+                    </p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <h6 class="text-muted">承認日時</h6>
+                    <p class="mb-3">
+                      <i class="bi bi-calendar-check me-2 text-success"></i>
+                      <%= l(@transfer.approved_at, format: :long) if @transfer.approved_at %>
+                    </p>
+                  </div>
+                </div>
+                
+                <% if @transfer.completed_at.present? %>
+                  <hr>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <h6 class="text-muted">完了日時</h6>
+                      <p class="mb-0">
+                        <i class="bi bi-calendar-check-fill me-2 text-primary"></i>
+                        <%= l(@transfer.completed_at, format: :long) %>
+                      </p>
+                    </div>
+                    
+                    <div class="col-md-6">
+                      <h6 class="text-muted">処理時間</h6>
+                      <p class="mb-0">
+                        <i class="bi bi-stopwatch me-2 text-info"></i>
+                        <%= distance_of_time_in_words(@transfer.requested_at, @transfer.completed_at) %>
+                      </p>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <%# 関連移動 %>
+          <% if @related_transfers.any? %>
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">関連する移動申請</h5>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-sm">
+                    <thead>
+                      <tr>
+                        <th>申請日</th>
+                        <th>ステータス</th>
+                        <th>移動経路</th>
+                        <th>商品</th>
+                        <th class="text-end">数量</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% @related_transfers.each do |related| %>
+                        <tr>
+                          <td><%= l(related.requested_at, format: :short) %></td>
+                          <td><span class="badge bg-secondary"><%= related.status_text %></span></td>
+                          <td>
+                            <%= truncate(related.source_store.name, length: 15) %> →
+                            <%= truncate(related.destination_store.name, length: 15) %>
+                          </td>
+                          <td><%= truncate(related.inventory.name, length: 20) %></td>
+                          <td class="text-end"><%= number_with_delimiter(related.quantity) %></td>
+                        </tr>
+                      <% end %>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="col-lg-4">
+          <%# アクションパネル %>
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">操作</h5>
+            </div>
+            <div class="card-body">
+              <% if @transfer.pending? && current_admin.can_approve_transfers? %>
+                <%# 承認・却下ボタン %>
+                <div class="d-grid gap-2 mb-3">
+                  <%= form_with url: approve_admin_inter_store_transfer_path(@transfer), method: :patch, local: true do |f| %>
+                    <%= f.submit "承認", class: "btn btn-success", 
+                        confirm: "移動申請「#{@transfer.transfer_summary}」を承認しますか？" %>
+                  <% end %>
+                  
+                  <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#rejectModal">
+                    却下
+                  </button>
+                </div>
+              <% end %>
+              
+              <% if @transfer.completable? && current_admin.can_approve_transfers? %>
+                <%# 完了ボタン %>
+                <div class="d-grid gap-2 mb-3">
+                  <%= form_with url: complete_admin_inter_store_transfer_path(@transfer), method: :patch, local: true do |f| %>
+                    <%= f.submit "移動完了", class: "btn btn-primary", 
+                        confirm: "移動「#{@transfer.transfer_summary}」を完了しますか？在庫が実際に移動されます。" %>
+                  <% end %>
+                </div>
+              <% end %>
+              
+              <% if @transfer.can_be_cancelled? && 
+                    (current_admin.headquarters_admin? || 
+                     @transfer.requested_by == current_admin || 
+                     current_admin.can_manage_store?(@transfer.source_store)) %>
+                <%# キャンセルボタン %>
+                <div class="d-grid gap-2 mb-3">
+                  <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#cancelModal">
+                    キャンセル
+                  </button>
+                </div>
+              <% end %>
+              
+              <%# 編集・削除 %>
+              <% if @transfer.pending? && 
+                    (current_admin.headquarters_admin? || 
+                     @transfer.requested_by == current_admin) %>
+                <div class="d-grid gap-2">
+                  <%= link_to edit_admin_inter_store_transfer_path(@transfer), 
+                      class: "btn btn-outline-secondary" do %>
+                    <i class="bi bi-pencil me-1"></i>編集
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+
+          <%# 分析情報 %>
+          <% if @transfer_analytics.present? %>
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">分析情報</h5>
+              </div>
+              <div class="card-body">
+                <div class="row text-center">
+                  <div class="col-6 mb-3">
+                    <div class="border-end">
+                      <h6 class="text-muted small">処理効率</h6>
+                      <div class="h4 text-primary">
+                        <%= @transfer_analytics[:route_efficiency] %>%
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-6 mb-3">
+                    <h6 class="text-muted small">類似移動</h6>
+                    <div class="h4 text-info">
+                      <%= @transfer_analytics[:similar_transfers_count] %>件
+                    </div>
+                  </div>
+                </div>
+                
+                <% if @transfer_analytics[:average_similar_time] > 0 %>
+                  <hr class="my-2">
+                  <small class="text-muted">
+                    類似移動の平均処理時間: <%= @transfer_analytics[:average_similar_time] %>時間
+                  </small>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# 却下理由入力モーダル %>
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: reject_admin_inter_store_transfer_path(@transfer), method: :patch, local: true do |f| %>
+        <div class="modal-header">
+          <h5 class="modal-title" id="rejectModalLabel">移動申請の却下</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>移動申請「<strong><%= @transfer.transfer_summary %></strong>」を却下しますか？</p>
+          
+          <div class="mb-3">
+            <%= f.label :rejection_reason, "却下理由", class: "form-label" %>
+            <%= f.text_area :rejection_reason, class: "form-control", rows: 3, 
+                placeholder: "却下理由を入力してください（必須）", required: true %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+          <%= f.submit "却下", class: "btn btn-danger" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%# キャンセル理由入力モーダル %>
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <%= form_with url: cancel_admin_inter_store_transfer_path(@transfer), method: :patch, local: true do |f| %>
+        <div class="modal-header">
+          <h5 class="modal-title" id="cancelModalLabel">移動申請のキャンセル</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>移動申請「<strong><%= @transfer.transfer_summary %></strong>」をキャンセルしますか？</p>
+          
+          <div class="mb-3">
+            <%= f.label :cancellation_reason, "キャンセル理由", class: "form-label" %>
+            <%= f.text_area :cancellation_reason, class: "form-control", rows: 3, 
+                placeholder: "キャンセル理由を入力してください（任意）" %>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+          <%= f.submit "キャンセル", class: "btn btn-warning" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

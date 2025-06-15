@@ -1,0 +1,337 @@
+<%# 🏪 店舗管理一覧 - Phase 2: Multi-Store Management %>
+<div class="container-fluid py-4">
+  <%# ヘッダーセクション %>
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="dashboard-card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="row align-items-center">
+            <div class="col-lg-8">
+              <div class="d-flex align-items-center mb-2">
+                <div class="icon-lg me-3" style="background: linear-gradient(135deg, var(--admin-primary), var(--admin-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">🏪</div>
+                <div>
+                  <h1 class="h2 mb-1 fw-bold">店舗管理</h1>
+                  <p class="text-muted mb-0">チェーン店舗の管理・監視・分析</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+              <% if current_admin.headquarters_admin? %>
+                <%= link_to new_admin_store_path, 
+                           class: "btn btn-admin-primary" do %>
+                  <i class="bi bi-plus-circle me-1" aria-hidden="true"></i>
+                  新規店舗追加
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# 統計情報カード %>
+  <div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="icon-md mb-2 mx-auto bg-admin-primary-subtle text-admin-primary rounded-circle d-flex align-items-center justify-content-center">
+            <i class="bi bi-shop" aria-hidden="true"></i>
+          </div>
+          <h4 class="fw-bold text-admin-primary"><%= @stats[:total_stores] %></h4>
+          <p class="text-muted small mb-0">総店舗数</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="icon-md mb-2 mx-auto bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center">
+            <i class="bi bi-boxes" aria-hidden="true"></i>
+          </div>
+          <h4 class="fw-bold text-info"><%= number_with_delimiter(@stats[:total_inventories]) %></h4>
+          <p class="text-muted small mb-0">総在庫アイテム</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="icon-md mb-2 mx-auto bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center">
+            <i class="bi bi-currency-yen" aria-hidden="true"></i>
+          </div>
+          <h4 class="fw-bold text-success">¥<%= number_with_delimiter(@stats[:total_inventory_value]) %></h4>
+          <p class="text-muted small mb-0">総在庫価値</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <div class="icon-md mb-2 mx-auto bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center">
+            <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+          </div>
+          <h4 class="fw-bold text-warning"><%= @stats[:low_stock_stores] %></h4>
+          <p class="text-muted small mb-0">低在庫店舗</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# 検索・フィルタセクション %>
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-3">
+          <%= form_with url: admin_stores_path, method: :get, local: true, class: "row g-3 align-items-end" do |form| %>
+            <div class="col-md-4">
+              <%= form.label :search, "検索", class: "form-label small text-muted" %>
+              <%= form.text_field :search, 
+                                 value: params[:search], 
+                                 placeholder: "店舗名・コード・地域で検索...",
+                                 class: "form-control" %>
+            </div>
+            <div class="col-md-3">
+              <%= form.label :filter, "フィルタ", class: "form-label small text-muted" %>
+              <%= form.select :filter, 
+                             options_for_select([
+                               ["すべて", ""],
+                               ["薬局", "pharmacy"], 
+                               ["倉庫", "warehouse"],
+                               ["本部", "headquarters"],
+                               ["低在庫", "low_stock"]
+                             ], params[:filter]),
+                             {}, 
+                             { class: "form-select" } %>
+            </div>
+            <div class="col-md-2">
+              <%= form.submit "検索", class: "btn btn-outline-admin-primary w-100" %>
+            </div>
+            <div class="col-md-3 text-end">
+              <% if params[:search].present? || params[:filter].present? %>
+                <%= link_to admin_stores_path, class: "btn btn-outline-secondary" do %>
+                  <i class="bi bi-x-circle me-1" aria-hidden="true"></i>
+                  リセット
+                <% end %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# 店舗一覧テーブル %>
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+          <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-bold">店舗一覧</h5>
+            <small class="text-muted"><%= @stores.total_count %>件中 <%= @stores.offset_value + 1 %>-<%= [@stores.offset_value + @stores.limit_value, @stores.total_count].min %>件を表示</small>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <% if @stores.any? %>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col" class="ps-4">店舗情報</th>
+                    <th scope="col">種別</th>
+                    <th scope="col">地域</th>
+                    <th scope="col">在庫状況</th>
+                    <th scope="col">移動状況</th>
+                    <th scope="col">ステータス</th>
+                    <th scope="col" class="text-center pe-4">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @stores.each do |store| %>
+                    <tr>
+                      <td class="ps-4">
+                        <div class="d-flex align-items-center">
+                          <div class="store-icon me-3">
+                            <% if store.pharmacy? %>
+                              <i class="bi bi-hospital text-admin-primary"></i>
+                            <% elsif store.warehouse? %>
+                              <i class="bi bi-building text-info"></i>
+                            <% else %>
+                              <i class="bi bi-building-check text-success"></i>
+                            <% end %>
+                          </div>
+                          <div>
+                            <div class="fw-bold">
+                              <%= link_to store.name, admin_store_path(store), 
+                                         class: "text-decoration-none text-dark" %>
+                            </div>
+                            <small class="text-muted">
+                              <%= store.code %> 
+                              <% if store.manager_name.present? %>
+                                • <%= store.manager_name %>
+                              <% end %>
+                            </small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span class="badge <%= store.store_type == 'pharmacy' ? 'bg-admin-primary' : store.store_type == 'warehouse' ? 'bg-info' : 'bg-success' %>">
+                          <%= store.store_type.humanize %>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="text-muted"><%= store.region %></span>
+                      </td>
+                      <td>
+                        <div class="d-flex flex-column">
+                          <small class="text-muted">
+                            <i class="bi bi-boxes me-1" aria-hidden="true"></i>
+                            <%= store.store_inventories.count %>アイテム
+                          </small>
+                          <% low_stock_count = store.low_stock_items_count %>
+                          <% if low_stock_count > 0 %>
+                            <small class="text-warning">
+                              <i class="bi bi-exclamation-triangle me-1" aria-hidden="true"></i>
+                              <%= low_stock_count %>件低在庫
+                            </small>
+                          <% else %>
+                            <small class="text-success">
+                              <i class="bi bi-check-circle me-1" aria-hidden="true"></i>
+                              正常
+                            </small>
+                          <% end %>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="d-flex flex-column">
+                          <% pending_out = store.outgoing_transfers.pending.count %>
+                          <% pending_in = store.incoming_transfers.pending.count %>
+                          <% if pending_out > 0 || pending_in > 0 %>
+                            <small class="text-info">
+                              <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>
+                              <% if pending_out > 0 %>出: <%= pending_out %>件<% end %>
+                              <% if pending_in > 0 %>入: <%= pending_in %>件<% end %>
+                            </small>
+                          <% else %>
+                            <small class="text-muted">
+                              <i class="bi bi-check me-1" aria-hidden="true"></i>
+                              移動なし
+                            </small>
+                          <% end %>
+                        </div>
+                      </td>
+                      <td>
+                        <% if store.active? %>
+                          <span class="badge bg-success">稼働中</span>
+                        <% else %>
+                          <span class="badge bg-secondary">停止中</span>
+                        <% end %>
+                      </td>
+                      <td class="text-center pe-4">
+                        <div class="btn-group" role="group" aria-label="店舗操作">
+                          <%= link_to admin_store_path(store), 
+                                     class: "btn btn-sm btn-outline-primary",
+                                     title: "詳細表示" do %>
+                            <i class="bi bi-eye" aria-hidden="true"></i>
+                          <% end %>
+                          <%= link_to dashboard_admin_store_path(store),
+                                     class: "btn btn-sm btn-outline-info",
+                                     title: "ダッシュボード" do %>
+                            <i class="bi bi-graph-up" aria-hidden="true"></i>
+                          <% end %>
+                          <% if current_admin.can_manage_store?(store) %>
+                            <%= link_to edit_admin_store_path(store),
+                                       class: "btn btn-sm btn-outline-warning",
+                                       title: "編集" do %>
+                              <i class="bi bi-pencil" aria-hidden="true"></i>
+                            <% end %>
+                          <% end %>
+                        </div>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <div class="text-center py-5">
+              <div class="icon-xl mb-3 mx-auto text-muted">🏪</div>
+              <h5 class="text-muted mb-2">店舗が見つかりません</h5>
+              <p class="text-muted">
+                <% if params[:search].present? || params[:filter].present? %>
+                  検索条件を変更してお試しください。
+                <% else %>
+                  まだ店舗が登録されていません。
+                <% end %>
+              </p>
+              <% if current_admin.headquarters_admin? && !params[:search].present? %>
+                <%= link_to "新規店舗を追加", new_admin_store_path, class: "btn btn-admin-primary" %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+        
+        <%# ページネーション %>
+        <% if @stores.respond_to?(:total_pages) && @stores.total_pages > 1 %>
+          <div class="card-footer bg-white">
+            <div class="d-flex justify-content-center">
+              <%= paginate @stores, theme: 'bootstrap_5' %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# カスタムスタイル %>
+<style>
+  .icon-md {
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+  }
+  
+  .icon-lg {
+    font-size: 48px;
+  }
+  
+  .icon-xl {
+    font-size: 64px;
+  }
+  
+  .store-icon {
+    font-size: 20px;
+    width: 24px;
+  }
+  
+  .btn-admin-primary {
+    background-color: var(--admin-primary);
+    border-color: var(--admin-primary);
+    color: white;
+  }
+  
+  .btn-admin-primary:hover {
+    background-color: var(--admin-primary-dark, #0056b3);
+    border-color: var(--admin-primary-dark, #0056b3);
+  }
+  
+  .btn-outline-admin-primary {
+    color: var(--admin-primary);
+    border-color: var(--admin-primary);
+  }
+  
+  .btn-outline-admin-primary:hover {
+    background-color: var(--admin-primary);
+    border-color: var(--admin-primary);
+    color: white;
+  }
+  
+  .text-admin-primary {
+    color: var(--admin-primary) !important;
+  }
+  
+  .bg-admin-primary-subtle {
+    background-color: var(--admin-primary-subtle, rgba(13, 110, 253, 0.1)) !important;
+  }
+</style>

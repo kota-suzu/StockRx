@@ -94,18 +94,145 @@ body {
   flex-shrink: 0;
 }
 
-// ナビゲーション強化
+// ナビゲーション強化 - マルチストア対応
 .navbar-admin {
   background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-secondary) 100%);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  min-height: 64px;
+  
+  .navbar-brand {
+    font-weight: 600;
+    color: white !important;
+    font-size: 1.25rem;
+    
+    &:hover {
+      color: var(--admin-accent) !important;
+      transform: translateY(-1px);
+      transition: all 0.2s ease;
+    }
+    
+    .badge {
+      font-size: 0.65rem;
+      font-weight: 500;
+    }
+  }
+  
+  .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border-radius: 6px;
+    margin: 0 2px;
+    
+    &:hover {
+      color: white !important;
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-1px);
+    }
+    
+    &.active {
+      color: white !important;
+      background-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    i {
+      opacity: 0.9;
+    }
+  }
+  
+  .dropdown-menu {
+    border: none;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 0.5rem 0;
+    margin-top: 8px;
+    min-width: 200px;
+    
+    .dropdown-item {
+      padding: 0.5rem 1rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background-color: var(--admin-accent);
+        color: white;
+        transform: translateX(4px);
+      }
+      
+      i {
+        opacity: 0.7;
+        width: 16px;
+      }
+    }
+    
+    .dropdown-header {
+      font-weight: 600;
+      color: var(--admin-primary);
+      padding: 0.5rem 1rem 0.25rem;
+    }
+    
+    .dropdown-divider {
+      margin: 0.25rem 0;
+      opacity: 0.3;
+    }
+  }
+  
+  .navbar-nav .nav-item.dropdown {
+    .badge {
+      font-size: 0.65rem;
+      border-radius: 50%;
+      padding: 0.2em 0.4em;
+      margin-left: -8px;
+      margin-top: -8px;
+    }
+  }
 }
 
-.navbar-brand {
-  font-weight: bold;
-  color: white !important;
+// ユーザーメニュー特別スタイル
+.navbar-admin #userDropdown {
+  padding: 0.25rem 0.75rem;
+  border-radius: 25px;
+  background-color: rgba(255, 255, 255, 0.1);
   
   &:hover {
-    color: var(--admin-accent) !important;
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+// レスポンシブナビゲーション強化
+@media (max-width: 991.98px) {
+  .navbar-admin {
+    .navbar-nav {
+      padding: 1rem 0;
+      
+      .nav-link {
+        padding: 0.75rem 1rem;
+        margin: 2px 0;
+        border-radius: 8px;
+        
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.15);
+          transform: translateX(4px);
+        }
+      }
+      
+      .dropdown-menu {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin: 0.5rem 0 0 1rem;
+        
+        .dropdown-item {
+          color: rgba(255, 255, 255, 0.8);
+          
+          &:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+          }
+        }
+      }
+    }
   }
 }
 
@@ -191,6 +318,284 @@ body {
   
   .navbar-nav {
     text-align: center;
+  }
+}
+
+// ===============================================
+// Enhanced Dashboard Styles - 最近のアクティビティ・システム情報
+// ===============================================
+
+// Background gradients
+.bg-gradient-primary {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%) !important;
+}
+
+.bg-gradient-info {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+}
+
+// Enhanced button styles
+.btn-hover-lift {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.btn-hover-shadow {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+  }
+}
+
+.btn-hover-primary {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: #3498db !important;
+    border-color: #3498db !important;
+    color: white !important;
+  }
+}
+
+// Activity Timeline Styles
+.activity-timeline {
+  .hover-highlight {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background-color: rgba(52, 152, 219, 0.02);
+      border-left: 3px solid #3498db;
+      padding-left: calc(0.75rem - 3px);
+    }
+  }
+  
+  .activity-icon {
+    .rounded-circle {
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+    }
+  }
+}
+
+// System Information Styles
+.system-status {
+  .status-item {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.02) !important;
+      transform: translateX(2px);
+    }
+  }
+  
+  .status-indicator {
+    &.animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+  }
+}
+
+// Daily Summary Cards
+.daily-summary {
+  .summary-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .summary-icon {
+      transition: all 0.3s ease;
+    }
+    
+    &:hover .summary-icon i {
+      transform: scale(1.2);
+    }
+  }
+}
+
+// Quick Actions
+.quick-actions {
+  .action-buttons {
+    .btn {
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: translateX(4px);
+      }
+    }
+  }
+}
+
+// Empty State Styling
+.empty-state {
+  .d-inline-block {
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+}
+
+// Animation keyframes
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// AOS Animation support (if AOS library is used)
+[data-aos="fade-up"] {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.6s ease;
+  
+  &.aos-animate {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Mobile responsiveness improvements
+@media (max-width: 768px) {
+  .activity-timeline {
+    .activity-item {
+      padding: 1rem !important;
+      
+      .activity-icon {
+        margin-right: 1rem !important;
+        
+        .rounded-circle {
+          width: 35px !important;
+          height: 35px !important;
+        }
+      }
+      
+      .activity-content {
+        h6 {
+          font-size: 0.9rem;
+        }
+        
+        .badge {
+          font-size: 0.7rem;
+        }
+      }
+    }
+  }
+  
+  .daily-summary {
+    .summary-grid {
+      .col-6 {
+        margin-bottom: 0.5rem;
+      }
+      
+      .summary-card {
+        padding: 1rem !important;
+        
+        .summary-icon i {
+          font-size: 1.2rem !important;
+        }
+        
+        .summary-value {
+          font-size: 1.2rem;
+        }
+        
+        .summary-label {
+          font-size: 0.75rem;
+        }
+      }
+    }
+  }
+  
+  .quick-actions {
+    .action-buttons {
+      .btn {
+        padding: 0.6rem;
+        font-size: 0.85rem;
+        
+        i {
+          margin-right: 0.5rem !important;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .dashboard-card {
+    margin-bottom: 1rem;
+    
+    .card-header {
+      padding: 1rem;
+      
+      h3 {
+        font-size: 1.1rem;
+      }
+      
+      .btn-sm {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.75rem;
+      }
+    }
+  }
+  
+  .activity-timeline {
+    .activity-item {
+      flex-direction: column;
+      align-items: start !important;
+      
+      .activity-icon {
+        margin-bottom: 0.5rem;
+        margin-right: 0 !important;
+      }
+      
+      .activity-content {
+        width: 100%;
+        
+        .d-flex {
+          flex-direction: column;
+          align-items: start !important;
+          
+          .btn {
+            margin-top: 0.5rem;
+            margin-left: 0 !important;
+          }
+        }
+      }
+    }
+  }
+  
+  .system-status,
+  .daily-summary,
+  .quick-actions {
+    padding: 1rem !important;
   }
 }
 

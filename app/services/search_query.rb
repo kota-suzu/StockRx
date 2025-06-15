@@ -17,9 +17,9 @@ class SearchQuery
 
     # シンプルな検索（従来の実装）
     def simple_search(params)
-      # Counter Cacheカラムを使用するため、includesは不要
-      # サブクエリで取得したカウンターキャッシュは予備として保持
-      query = Inventory.select("inventories.*, (SELECT COUNT(*) FROM batches WHERE batches.inventory_id = inventories.id) as batches_count_cache")
+      # 🔍 パフォーマンス最適化: Counter Cacheカラム使用済みのため不要なサブクエリを削除
+      # batches_count カラムが存在するため、手動カウントクエリは不要
+      query = Inventory.all
 
       # キーワード検索
       if params[:q].present?

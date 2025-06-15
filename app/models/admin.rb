@@ -17,10 +17,32 @@ class Admin < ApplicationRecord
 
   # アソシエーション
   has_many :report_files, dependent: :destroy
+  belongs_to :store, optional: true
 
+  # 店舗間移動関連
+  has_many :requested_transfers, class_name: "InterStoreTransfer", foreign_key: "requested_by_id", dependent: :restrict_with_error
+  has_many :approved_transfers, class_name: "InterStoreTransfer", foreign_key: "approved_by_id", dependent: :restrict_with_error
+
+  # ============================================
+  # enum定義
+  # ============================================
+  enum :role, {
+    store_user: "store_user",           # 一般店舗ユーザー
+    pharmacist: "pharmacist",           # 薬剤師
+    store_manager: "store_manager",     # 店舗管理者
+    headquarters_admin: "headquarters_admin"  # 本部管理者
+  }
+
+  # ============================================
+  # バリデーション
+  # ============================================
   # Deviseのデフォルトバリデーション（:validatable）に加えて
   # 独自のパスワード強度チェックを追加（OAuthユーザーは除外）
   validates :password, password_strength: true, if: :password_required_for_validation?
+  validates :role, presence: true
+  validates :name, length: { maximum: 50 }, allow_blank: true
+  validate :store_required_for_non_headquarters_admin
+  validate :store_must_be_nil_for_headquarters_admin
 
   # GitHubソーシャルログイン用のクラスメソッド
   # OmniAuthプロバイダーから返される認証情報を処理
@@ -53,16 +75,79 @@ class Admin < ApplicationRecord
   # 工数見積: 1日（マイグレーション + 管理画面での名前入力UI追加）
   # 依存関係: 新規登録・編集画面の更新が必要
 
-  # 表示名を返すメソッド（nameフィールドが実装されるまでの暫定対応）
+  # ============================================
+  # スコープ
+  # ============================================
+  scope :active, -> { where(active: true) }
+  scope :inactive, -> { where(active: false) }
+  scope :by_role, ->(role) { where(role: role) }
+  scope :by_store, ->(store) { where(store: store) }
+  scope :headquarters, -> { where(role: "headquarters_admin") }
+  scope :store_staff, -> { where(role: [ "store_user", "pharmacist", "store_manager" ]) }
+
+  # ============================================
+  # インスタンスメソッド
+  # ============================================
+
+  # 表示名を返すメソッド（nameフィールド実装済み）
   def display_name
-    # GitHub認証の場合はGitHubユーザー名を使用する可能性があるが、
-    # 現在はemailから生成
+    return name if name.present?
+
+    # nameが未設定の場合はemailから生成（後方互換性）
     email.split("@").first
   end
 
-  # name メソッドをdisplay_nameにエイリアス
-  # ビューの互換性のため
-  alias_method :name, :display_name
+  # 役割の日本語表示
+  def role_text
+    case role
+    when "store_user" then "店舗ユーザー"
+    when "pharmacist" then "薬剤師"
+    when "store_manager" then "店舗管理者"
+    when "headquarters_admin" then "本部管理者"
+    end
+  end
+
+  # 権限チェック用メソッド
+  def can_access_all_stores?
+    headquarters_admin?
+  end
+
+  def can_manage_store?(target_store)
+    return true if headquarters_admin?
+    return false unless store_manager?
+
+    store == target_store
+  end
+
+  def can_approve_transfers?
+    store_manager? || headquarters_admin?
+  end
+
+  def can_view_store?(target_store)
+    return true if headquarters_admin?
+
+    store == target_store
+  end
+
+  # アクセス可能な店舗IDのリスト
+  def accessible_store_ids
+    if headquarters_admin?
+      Store.active.pluck(:id)
+    else
+      store_id ? [ store_id ] : []
+    end
+  end
+
+  # 管理可能な店舗のリスト
+  def manageable_stores
+    if headquarters_admin?
+      Store.active
+    elsif store_manager? && store
+      [ store ]
+    else
+      []
+    end
+  end
 
   private
 
@@ -127,5 +212,23 @@ class Admin < ApplicationRecord
   def password_required_for_validation?
     return false if provider.present? && uid.present?
     password_required?
+  end
+
+  # 本部管理者以外は店舗が必須
+  def store_required_for_non_headquarters_admin
+    return if headquarters_admin?
+
+    if store_id.blank?
+      errors.add(:store, "本部管理者以外は店舗の指定が必要です")
+    end
+  end
+
+  # 本部管理者は店舗を指定できない
+  def store_must_be_nil_for_headquarters_admin
+    return unless headquarters_admin?
+
+    if store_id.present?
+      errors.add(:store, "本部管理者は特定の店舗に所属できません")
+    end
   end
 end

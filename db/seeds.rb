@@ -15,7 +15,8 @@ if Admin.count.zero?
   admin = Admin.new(
     email: 'admin@example.com',
     password: 'Password1234!',  # 本番環境では変更すること
-    password_confirmation: 'Password1234!'
+    password_confirmation: 'Password1234!',
+    role: 'headquarters_admin'  # 本部管理者として作成
   )
 
   # 保存に失敗した場合はエラーメッセージを表示
@@ -36,11 +37,13 @@ puts 'Creating inventory items with various conditions...'
 admin2 = Admin.find_or_create_by!(email: 'admin2@example.com') do |a|
   a.password = 'Password1234!'
   a.password_confirmation = 'Password1234!'
+  a.role = 'headquarters_admin'  # 本部管理者として作成
 end
 
 admin3 = Admin.find_or_create_by!(email: 'admin3@example.com') do |a|
   a.password = 'Password1234!'
   a.password_confirmation = 'Password1234!'
+  a.role = 'headquarters_admin'  # 本部管理者として作成
 end
 
 # Current.userを設定（ログ記録のため）
@@ -319,6 +322,286 @@ puts "- Shipment destinations (various Japanese cities)"
 puts "- Receipt sources (multiple suppliers)"
 puts "- User activity logs (3 different admin users)"
 puts "- Date range searches (items created over last 90 days)"
+
+# ============================================
+# 🏪 Phase 2: Multi-Store Management Seeds
+# ============================================
+
+puts "\n=== Creating Multi-Store Management Data ==="
+
+# 店舗データの作成
+puts 'Creating stores...'
+
+stores_data = [
+  {
+    name: "中央薬局 本店",
+    code: "ST001",
+    store_type: "pharmacy",
+    region: "東京都",
+    address: "東京都千代田区丸の内1-1-1",
+    phone: "03-1234-5678",
+    email: "central@example.com",
+    manager_name: "田中太郎",
+    active: true
+  },
+  {
+    name: "西口薬局",
+    code: "ST002",
+    store_type: "pharmacy",
+    region: "東京都",
+    address: "東京都新宿区西新宿2-2-2",
+    phone: "03-2345-6789",
+    email: "west@example.com",
+    manager_name: "佐藤花子",
+    active: true
+  },
+  {
+    name: "南口薬局",
+    code: "ST003",
+    store_type: "pharmacy",
+    region: "東京都",
+    address: "東京都渋谷区南平台1-1-1",
+    phone: "03-3456-7890",
+    email: "south@example.com",
+    manager_name: "鈴木一郎",
+    active: true
+  },
+  {
+    name: "関西配送センター",
+    code: "WH001",
+    store_type: "warehouse",
+    region: "大阪府",
+    address: "大阪府大阪市北区梅田3-3-3",
+    phone: "06-1234-5678",
+    email: "kansai-warehouse@example.com",
+    manager_name: "山田次郎",
+    active: true
+  },
+  {
+    name: "東北配送センター",
+    code: "WH002",
+    store_type: "warehouse",
+    region: "宮城県",
+    address: "宮城県仙台市青葉区本町1-1-1",
+    phone: "022-123-4567",
+    email: "tohoku-warehouse@example.com",
+    manager_name: "高橋三郎",
+    active: true
+  },
+  {
+    name: "本部オフィス",
+    code: "HQ001",
+    store_type: "headquarters",
+    region: "東京都",
+    address: "東京都港区赤坂1-1-1",
+    phone: "03-9999-0000",
+    email: "headquarters@example.com",
+    manager_name: "本部管理責任者",
+    active: true
+  }
+]
+
+created_stores = []
+stores_data.each do |store_data|
+  store = Store.find_or_create_by!(code: store_data[:code]) do |s|
+    s.assign_attributes(store_data)
+  end
+  created_stores << store
+  puts "  Created store: #{store.name} (#{store.code})"
+end
+
+puts "Created #{created_stores.count} stores"
+
+# 管理者の店舗割り当て更新
+puts 'Assigning admins to stores...'
+
+# 既存の管理者を店舗管理者として割り当て
+if admin2.headquarters_admin?
+  admin2.update!(
+    role: 'store_manager',
+    store: created_stores.find { |s| s.code == 'ST001' }, # 中央薬局
+    name: '田中太郎'
+  )
+  puts "  Assigned admin2 to #{admin2.store.name} as store manager"
+end
+
+if admin3.headquarters_admin?
+  admin3.update!(
+    role: 'store_manager',
+    store: created_stores.find { |s| s.code == 'ST002' }, # 西口薬局
+    name: '佐藤花子'
+  )
+  puts "  Assigned admin3 to #{admin3.store.name} as store manager"
+end
+
+# 追加の店舗管理者を作成
+additional_admins = [
+  {
+    email: 'south-manager@example.com',
+    name: '鈴木一郎',
+    role: 'store_manager',
+    store_code: 'ST003'
+  },
+  {
+    email: 'warehouse-kansai@example.com',
+    name: '山田次郎',
+    role: 'store_manager',
+    store_code: 'WH001'
+  },
+  {
+    email: 'warehouse-tohoku@example.com',
+    name: '高橋三郎',
+    role: 'store_manager',
+    store_code: 'WH002'
+  }
+]
+
+additional_admins.each do |admin_data|
+  store = created_stores.find { |s| s.code == admin_data[:store_code] }
+  next unless store
+
+  admin = Admin.find_or_create_by!(email: admin_data[:email]) do |a|
+    a.password = 'Password1234!'
+    a.password_confirmation = 'Password1234!'
+    a.role = admin_data[:role]
+    a.store = store
+    a.name = admin_data[:name]
+  end
+  puts "  Created admin: #{admin.display_name} for #{store.name}"
+end
+
+# 店舗在庫データの作成
+puts 'Creating store inventories...'
+
+# 各店舗に在庫を分散配置
+created_stores.each do |store|
+  next if store.headquarters? # 本部には在庫を配置しない
+
+  # 各在庫アイテムの一部を各店舗に配置
+  sample_inventories = inventories.select { |inv| inv.status == 'active' }.sample(rand(10..15))
+
+  sample_inventories.each do |inventory|
+    # 倉庫には多めの在庫、薬局には少なめの在庫
+    base_quantity = store.warehouse? ? rand(100..500) : rand(5..50)
+    reserved_qty = rand(0..base_quantity/4)
+    safety_level = base_quantity * 0.2
+
+    store_inventory = StoreInventory.find_or_create_by!(
+      store: store,
+      inventory: inventory
+    ) do |si|
+      si.quantity = base_quantity
+      si.reserved_quantity = reserved_qty
+      si.safety_stock_level = safety_level.to_i
+      si.last_updated_at = rand(30).days.ago
+    end
+
+    # TODO: 🟡 Phase 3（中）- 店舗在庫の自動補充機能
+    # 優先度: 中（運用効率化）
+    # 実装内容: 安全在庫レベルを下回った際の自動補充申請
+    # 期待効果: 在庫切れリスク軽減、手動管理工数削減
+  end
+
+  puts "  Created #{store.store_inventories.count} inventory items for #{store.name}"
+end
+
+puts "Created store inventories for all stores"
+
+# 店舗間移動データの作成
+puts 'Creating inter-store transfers...'
+
+# 移動申請のサンプルデータ
+transfer_scenarios = [
+  {
+    reason: "低在庫補充のため",
+    priority: "urgent",
+    status: "pending"
+  },
+  {
+    reason: "緊急在庫要請",
+    priority: "emergency",
+    status: "approved"
+  },
+  {
+    reason: "定期在庫移動",
+    priority: "normal",
+    status: "completed"
+  },
+  {
+    reason: "期限切れ間近商品の移動",
+    priority: "urgent",
+    status: "in_transit"
+  },
+  {
+    reason: "過剰在庫の調整",
+    priority: "normal",
+    status: "rejected"
+  }
+]
+
+# ランダムな移動申請を作成
+15.times do
+  scenario = transfer_scenarios.sample
+
+  # 移動元・移動先をランダム選択（同じ店舗は除外）
+  source_store = created_stores.sample
+  destination_stores = created_stores.reject { |s| s == source_store || s.headquarters? }
+  destination_store = destination_stores.sample
+
+  next unless destination_store
+
+  # 移動元店舗に在庫がある商品をランダム選択
+  source_inventories = source_store.store_inventories.joins(:inventory).where(inventories: { status: 'active' })
+  source_inventory = source_inventories.sample
+
+  next unless source_inventory
+
+  quantity = rand(1..10)
+  available_qty = source_inventory.quantity - source_inventory.reserved_quantity
+  next if available_qty < quantity
+
+  requested_by = [ Admin.first, admin2, admin3 ].sample
+  approved_by = scenario[:status].in?([ 'approved', 'completed', 'in_transit' ]) ? Admin.first : nil
+
+  requested_at = rand(30).days.ago
+  completed_at = scenario[:status] == 'completed' ? requested_at + rand(1..7).days : nil
+
+  transfer = InterStoreTransfer.create!(
+    source_store: source_store,
+    destination_store: destination_store,
+    inventory: source_inventory.inventory,
+    quantity: quantity,
+    reason: scenario[:reason],
+    priority: scenario[:priority],
+    status: scenario[:status],
+    requested_by: requested_by,
+    approved_by: approved_by,
+    requested_at: requested_at,
+    completed_at: completed_at
+  )
+
+  puts "  Created transfer: #{transfer.transfer_summary} (#{transfer.status})"
+end
+
+puts "Created inter-store transfer records"
+
+# 統計情報の表示（更新版）
+puts "\n=== Multi-Store Management Summary ==="
+puts "Total Stores: #{Store.count}"
+puts "- Pharmacies: #{Store.pharmacy.count}"
+puts "- Warehouses: #{Store.warehouse.count}"
+puts "- Headquarters: #{Store.headquarters.count}"
+puts "\nTotal Store Inventories: #{StoreInventory.count}"
+puts "Total Inter-Store Transfers: #{InterStoreTransfer.count}"
+puts "- Pending: #{InterStoreTransfer.pending.count}"
+puts "- Approved: #{InterStoreTransfer.approved.count}"
+puts "- Completed: #{InterStoreTransfer.completed.count}"
+puts "\nAdmins by Role:"
+puts "- Headquarters Admins: #{Admin.headquarters.count}"
+puts "- Store Managers: #{Admin.where(role: 'store_manager').count}"
+puts "- Store Users: #{Admin.where(role: 'store_user').count}"
+puts "- Pharmacists: #{Admin.where(role: 'pharmacist').count}"
+puts "===================="
 
 # 最後にCurrent.userをクリア
 Current.user = nil

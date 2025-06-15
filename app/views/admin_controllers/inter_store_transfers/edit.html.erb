@@ -1,0 +1,289 @@
+<%# frozen_string_literal: true %>
+<%# 移動申請編集ページ %>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <%# ヘッダーセクション %>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h2 mb-2">
+            <i class="bi bi-pencil me-2"></i>移動申請編集
+          </h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><%= link_to "ダッシュボード", admin_root_path %></li>
+              <li class="breadcrumb-item"><%= link_to "移動管理", admin_inter_store_transfers_path %></li>
+              <li class="breadcrumb-item"><%= link_to "詳細", admin_inter_store_transfer_path(@transfer) %></li>
+              <li class="breadcrumb-item active" aria-current="page">編集</li>
+            </ol>
+          </nav>
+        </div>
+        
+        <%# アクションボタン %>
+        <div>
+          <%= link_to admin_inter_store_transfer_path(@transfer), class: "btn btn-outline-secondary" do %>
+            <i class="bi bi-arrow-left me-1"></i>詳細に戻る
+          <% end %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-8">
+          <%# 編集フォーム %>
+          <%= form_with model: [@transfer], url: admin_inter_store_transfer_path(@transfer), method: :patch, local: true, class: "needs-validation", novalidate: true do |f| %>
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">移動申請編集</h5>
+                <span class="badge bg-warning text-dark">
+                  <i class="bi bi-clock me-1"></i><%= @transfer.status_text %>
+                </span>
+              </div>
+              <div class="card-body">
+                <% if @transfer.errors.any? %>
+                  <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle-fill me-2"></i>入力エラーがあります</h6>
+                    <ul class="mb-0">
+                      <% @transfer.errors.full_messages.each do |message| %>
+                        <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+                <% end %>
+
+                <%# 変更不可項目の表示 %>
+                <div class="alert alert-info">
+                  <h6><i class="bi bi-info-circle me-2"></i>編集制限について</h6>
+                  <p class="mb-0">承認待ち状態の申請のみ編集可能です。移動元店舗と申請者は変更できません。</p>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <%= f.label :source_store_id, "移動元店舗", class: "form-label" %>
+                    <div class="form-control bg-light">
+                      <i class="bi bi-shop me-2 text-primary"></i>
+                      <%= @transfer.source_store.name %>
+                      <small class="text-muted">(<%= @transfer.source_store.code %>)</small>
+                    </div>
+                    <div class="form-text">移動元店舗は変更できません</div>
+                    <%= f.hidden_field :source_store_id %>
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <%= f.label :destination_store_id, "移動先店舗", class: "form-label required" %>
+                    <%= f.select :destination_store_id, 
+                        options_for_select(
+                          @stores.where.not(id: @transfer.source_store_id).map { |store| [store.name, store.id] }, 
+                          @transfer.destination_store_id
+                        ),
+                        { prompt: "移動先店舗を選択..." },
+                        { 
+                          class: "form-select", 
+                          required: true
+                        } %>
+                    <div class="invalid-feedback">移動先店舗を選択してください</div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-8 mb-3">
+                    <%= f.label :inventory_id, "商品", class: "form-label required" %>
+                    <%= f.select :inventory_id, 
+                        options_for_select(
+                          @inventories.map { |inv| [inv.name, inv.id] }, 
+                          @transfer.inventory_id
+                        ),
+                        { prompt: "商品を選択..." },
+                        { 
+                          class: "form-select", 
+                          required: true
+                        } %>
+                    <div class="invalid-feedback">商品を選択してください</div>
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <%= f.label :quantity, "移動数量", class: "form-label required" %>
+                    <div class="input-group">
+                      <%= f.number_field :quantity, 
+                          class: "form-control", 
+                          min: 1, 
+                          required: true %>
+                      <span class="input-group-text">個</span>
+                      <div class="invalid-feedback">1以上の数量を入力してください</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <%= f.label :priority, "優先度", class: "form-label" %>
+                    <%= f.select :priority, 
+                        options_for_select([
+                          ["通常", "normal"],
+                          ["緊急", "urgent"],
+                          ["非常時", "emergency"]
+                        ], @transfer.priority),
+                        {},
+                        { class: "form-select" } %>
+                    <div class="form-text">
+                      優先度変更は慎重に行ってください
+                    </div>
+                  </div>
+
+                  <div class="col-md-8 mb-3">
+                    <%= f.label :reason, "申請理由", class: "form-label required" %>
+                    <%= f.text_area :reason, 
+                        class: "form-control", 
+                        rows: 4, 
+                        required: true,
+                        maxlength: 1000 %>
+                    <div class="form-text">
+                      理由を変更する場合は、変更の経緯も含めて記載してください
+                    </div>
+                    <div class="invalid-feedback">申請理由を入力してください</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="card-footer">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <%= link_to admin_inter_store_transfer_path(@transfer), class: "btn btn-secondary" do %>
+                      <i class="bi bi-x-lg me-1"></i>キャンセル
+                    <% end %>
+                  </div>
+                  
+                  <div>
+                    <%# 削除ボタン（申請者・本部管理者のみ） %>
+                    <% if current_admin.headquarters_admin? || @transfer.requested_by == current_admin %>
+                      <%= link_to admin_inter_store_transfer_path(@transfer), 
+                          method: :delete,
+                          class: "btn btn-outline-danger me-2",
+                          confirm: "移動申請「#{@transfer.transfer_summary}」を削除しますか？この操作は取り消せません。" do %>
+                        <i class="bi bi-trash me-1"></i>削除
+                      <% end %>
+                    <% end %>
+                    
+                    <%= f.submit "変更を保存", class: "btn btn-primary" %>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="col-lg-4">
+          <%# 申請情報カード %>
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-info-circle me-2"></i>申請情報
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="mb-3">
+                <h6 class="text-muted">申請者</h6>
+                <p class="mb-0">
+                  <i class="bi bi-person me-2 text-secondary"></i>
+                  <%= @transfer.requested_by.display_name %>
+                  <small class="text-muted">(<%= @transfer.requested_by.role_text %>)</small>
+                </p>
+              </div>
+              
+              <div class="mb-3">
+                <h6 class="text-muted">申請日時</h6>
+                <p class="mb-0">
+                  <i class="bi bi-calendar me-2 text-info"></i>
+                  <%= l(@transfer.requested_at, format: :long) %>
+                </p>
+              </div>
+              
+              <div class="mb-0">
+                <h6 class="text-muted">現在のステータス</h6>
+                <p class="mb-0">
+                  <span class="badge bg-warning text-dark fs-6">
+                    <i class="bi bi-clock me-1"></i><%= @transfer.status_text %>
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <%# 編集履歴 %>
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-clock-history me-2"></i>編集履歴
+              </h5>
+            </div>
+            <div class="card-body">
+              <%# TODO: Phase 3（中）- 申請変更履歴追跡機能 %>
+              <%# 優先度: 中（監査・トレーサビリティ向上） %>
+              <%# 実装内容: 申請内容変更の詳細履歴（何を・いつ・誰が変更） %>
+              <%# 期待効果: 変更履歴の完全な可視化、監査証跡の強化 %>
+              <p class="text-muted small mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                編集履歴機能は実装予定です
+              </p>
+            </div>
+          </div>
+
+          <%# 注意事項 %>
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-exclamation-triangle me-2"></i>注意事項
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-warning small">
+                <ul class="mb-0">
+                  <li>承認待ち状態でのみ編集可能</li>
+                  <li>移動元店舗は変更不可</li>
+                  <li>申請者は変更不可</li>
+                  <li>承認後は編集不可</li>
+                </ul>
+              </div>
+              
+              <h6 class="mt-3">編集可能な項目</h6>
+              <ul class="small mb-0">
+                <li>移動先店舗</li>
+                <li>商品</li>
+                <li>移動数量</li>
+                <li>優先度</li>
+                <li>申請理由</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // フォームバリデーション
+  const forms = document.querySelectorAll('.needs-validation');
+  
+  Array.prototype.slice.call(forms).forEach(function(form) {
+    form.addEventListener('submit', function(event) {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    }, false);
+  });
+
+  // 削除確認の強化
+  const deleteLinks = document.querySelectorAll('[data-method="delete"]');
+  deleteLinks.forEach(function(link) {
+    link.addEventListener('click', function(event) {
+      const confirmed = confirm('本当に削除しますか？この操作は取り消せません。');
+      if (!confirmed) {
+        event.preventDefault();
+      }
+    });
+  });
+});
+</script>

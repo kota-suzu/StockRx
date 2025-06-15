@@ -215,12 +215,36 @@ module Auditable
     def audit_summary(options = {})
       trail = audit_trail(options)
 
+      # TODO: 🟡 Phase 3（中）- groupdate gem導入で監査ログ日別集計強化
+      # 優先度: 中（監査機能の詳細化）
+      # 実装内容: gem "groupdate" 追加後、daily_counts の日別詳細分析
+      # 期待効果: 監査ログの詳細な時系列分析、不正検知の精度向上
+      # 関連: 他のコントローラーでも同様の日別集計機能を使用
       {
         total_count: trail.count,
         action_counts: trail.group(:action).count,
         user_counts: trail.group(:user_id).count,
-        daily_counts: trail.group_by_day(:created_at).count,
+        recent_activity_trend: calculate_audit_trend(trail),
         latest: trail.limit(10)
+      }
+    end
+
+    # 監査ログのトレンド分析（groupdate gem無しでの代替実装）
+    def calculate_audit_trend(trail)
+      week_ago = 1.week.ago
+      two_weeks_ago = 2.weeks.ago
+
+      current_week_count = trail.where(created_at: week_ago..Time.current).count
+      previous_week_count = trail.where(created_at: two_weeks_ago..week_ago).count
+
+      trend_percentage = previous_week_count.zero? ? 0.0 :
+                        ((current_week_count - previous_week_count).to_f / previous_week_count * 100).round(1)
+
+      {
+        current_week_count: current_week_count,
+        previous_week_count: previous_week_count,
+        trend_percentage: trend_percentage,
+        is_increasing: current_week_count > previous_week_count
       }
     end
 

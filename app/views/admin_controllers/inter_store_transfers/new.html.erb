@@ -1,0 +1,300 @@
+<%# frozen_string_literal: true %>
+<%# 新規移動申請作成ページ %>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <%# ヘッダーセクション %>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h2 mb-2">
+            <i class="bi bi-plus-circle me-2"></i>新規移動申請
+          </h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><%= link_to "ダッシュボード", admin_root_path %></li>
+              <li class="breadcrumb-item"><%= link_to "移動管理", admin_inter_store_transfers_path %></li>
+              <li class="breadcrumb-item active" aria-current="page">新規申請</li>
+            </ol>
+          </nav>
+        </div>
+        
+        <%# アクションボタン %>
+        <div>
+          <%= link_to admin_inter_store_transfers_path, class: "btn btn-outline-secondary" do %>
+            <i class="bi bi-arrow-left me-1"></i>一覧に戻る
+          <% end %>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-lg-8">
+          <%# 申請フォーム %>
+          <%= form_with model: [@transfer], url: admin_inter_store_transfers_path, local: true, class: "needs-validation", novalidate: true do |f| %>
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0">移動申請詳細</h5>
+              </div>
+              <div class="card-body">
+                <% if @transfer.errors.any? %>
+                  <div class="alert alert-danger">
+                    <h6><i class="bi bi-exclamation-triangle-fill me-2"></i>入力エラーがあります</h6>
+                    <ul class="mb-0">
+                      <% @transfer.errors.full_messages.each do |message| %>
+                        <li><%= message %></li>
+                      <% end %>
+                    </ul>
+                  </div>
+                <% end %>
+
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <%= f.label :source_store_id, "移動元店舗", class: "form-label required" %>
+                    <%= f.select :source_store_id, 
+                        options_for_select(
+                          @stores.map { |store| [store.name, store.id] }, 
+                          @transfer.source_store_id
+                        ),
+                        { prompt: "移動元店舗を選択..." },
+                        { 
+                          class: "form-select", 
+                          required: true,
+                          "data-store-select" => "source"
+                        } %>
+                    <div class="invalid-feedback">移動元店舗を選択してください</div>
+                  </div>
+
+                  <div class="col-md-6 mb-3">
+                    <%= f.label :destination_store_id, "移動先店舗", class: "form-label required" %>
+                    <%= f.select :destination_store_id, 
+                        options_for_select(
+                          @stores.map { |store| [store.name, store.id] }, 
+                          @transfer.destination_store_id
+                        ),
+                        { prompt: "移動先店舗を選択..." },
+                        { 
+                          class: "form-select", 
+                          required: true,
+                          "data-store-select" => "destination"
+                        } %>
+                    <div class="invalid-feedback">移動先店舗を選択してください</div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-8 mb-3">
+                    <%= f.label :inventory_id, "商品", class: "form-label required" %>
+                    <%= f.select :inventory_id, 
+                        options_for_select(
+                          @inventories.map { |inv| [inv.name, inv.id] }, 
+                          @transfer.inventory_id
+                        ),
+                        { prompt: "商品を選択..." },
+                        { 
+                          class: "form-select", 
+                          required: true,
+                          "data-inventory-select" => true
+                        } %>
+                    <div class="invalid-feedback">商品を選択してください</div>
+                  </div>
+
+                  <div class="col-md-4 mb-3">
+                    <%= f.label :quantity, "移動数量", class: "form-label required" %>
+                    <div class="input-group">
+                      <%= f.number_field :quantity, 
+                          class: "form-control", 
+                          min: 1, 
+                          required: true,
+                          "data-quantity-input" => true %>
+                      <span class="input-group-text">個</span>
+                      <div class="invalid-feedback">1以上の数量を入力してください</div>
+                    </div>
+                    
+                    <%# 利用可能数量表示エリア %>
+                    <div id="availability-info" class="small text-muted mt-1" style="display: none;">
+                      利用可能数量: <span id="available-quantity">-</span>個
+                      <% if @suggested_quantity.present? && @suggested_quantity > 0 %>
+                        <br>推奨数量: <span class="text-success"><%= @suggested_quantity %></span>個
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <%= f.label :priority, "優先度", class: "form-label" %>
+                    <%= f.select :priority, 
+                        options_for_select([
+                          ["通常", "normal"],
+                          ["緊急", "urgent"],
+                          ["非常時", "emergency"]
+                        ], @transfer.priority),
+                        {},
+                        { class: "form-select" } %>
+                    <div class="form-text">
+                      緊急・非常時は迅速な承認処理が行われます
+                    </div>
+                  </div>
+
+                  <div class="col-md-8 mb-3">
+                    <%= f.label :reason, "申請理由", class: "form-label required" %>
+                    <%= f.text_area :reason, 
+                        class: "form-control", 
+                        rows: 3, 
+                        placeholder: "移動が必要な理由を詳しく記載してください...",
+                        required: true,
+                        maxlength: 1000 %>
+                    <div class="form-text">
+                      1000文字以内で記載してください
+                    </div>
+                    <div class="invalid-feedback">申請理由を入力してください</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="card-footer">
+                <div class="d-flex justify-content-between">
+                  <%= link_to admin_inter_store_transfers_path, class: "btn btn-secondary" do %>
+                    <i class="bi bi-x-lg me-1"></i>キャンセル
+                  <% end %>
+                  
+                  <%= f.submit "移動申請を作成", class: "btn btn-primary" do %>
+                    <i class="bi bi-check-lg me-1"></i>移動申請を作成
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="col-lg-4">
+          <%# ガイダンスカード %>
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-lightbulb me-2"></i>申請のガイド
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-info small">
+                <strong>移動申請の流れ</strong>
+                <ol class="mb-0 mt-2">
+                  <li>申請作成・提出</li>
+                  <li>移動先店舗・本部による承認</li>
+                  <li>在庫の予約・移動実行</li>
+                  <li>完了報告</li>
+                </ol>
+              </div>
+
+              <h6 class="mt-3">優先度について</h6>
+              <ul class="small mb-3">
+                <li><span class="badge bg-secondary">通常</span>: 通常の補充・調整</li>
+                <li><span class="badge bg-warning text-dark">緊急</span>: 在庫切れ対応</li>
+                <li><span class="badge bg-danger">非常時</span>: 緊急需要対応</li>
+              </ul>
+
+              <h6>承認者</h6>
+              <ul class="small mb-0">
+                <li>移動先店舗の管理者</li>
+                <li>本部管理者</li>
+              </ul>
+            </div>
+          </div>
+
+          <%# 最近の移動実績 %>
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-clock-history me-2"></i>最近の移動実績
+              </h5>
+            </div>
+            <div class="card-body">
+              <%# TODO: Phase 2（中）- 最近の移動実績表示機能 %>
+              <%# 優先度: 中（ユーザビリティ向上） %>
+              <%# 実装内容: 申請者関連・店舗関連の最近の移動履歴5件表示 %>
+              <%# 期待効果: 申請パターンの参考情報提供、重複申請防止 %>
+              <p class="text-muted small mb-0">
+                <i class="bi bi-info-circle me-1"></i>
+                最近の移動実績機能は実装予定です
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // フォームバリデーション
+  const forms = document.querySelectorAll('.needs-validation');
+  
+  Array.prototype.slice.call(forms).forEach(function(form) {
+    form.addEventListener('submit', function(event) {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    }, false);
+  });
+
+  // 店舗選択の制限（同じ店舗を選択できないように）
+  const sourceSelect = document.querySelector('[data-store-select="source"]');
+  const destinationSelect = document.querySelector('[data-store-select="destination"]');
+  
+  function updateStoreOptions() {
+    const sourceValue = sourceSelect.value;
+    const destinationValue = destinationSelect.value;
+    
+    // 移動元で選択された店舗を移動先から除外
+    Array.from(destinationSelect.options).forEach(option => {
+      option.disabled = option.value === sourceValue && option.value !== '';
+    });
+    
+    // 移動先で選択された店舗を移動元から除外
+    Array.from(sourceSelect.options).forEach(option => {
+      option.disabled = option.value === destinationValue && option.value !== '';
+    });
+  }
+  
+  if (sourceSelect && destinationSelect) {
+    sourceSelect.addEventListener('change', updateStoreOptions);
+    destinationSelect.addEventListener('change', updateStoreOptions);
+    updateStoreOptions(); // 初期状態で実行
+  }
+
+  // TODO: Phase 2（高）- 在庫可用性リアルタイム確認機能
+  // 優先度: 高（申請精度向上）
+  // 実装内容: 移動元店舗・商品選択時に利用可能在庫をAJAXで取得・表示
+  // 期待効果: 申請エラー削減、適切な数量入力支援
+  
+  // 商品・移動元店舗変更時の在庫確認（プレースホルダー）
+  const inventorySelect = document.querySelector('[data-inventory-select]');
+  const quantityInput = document.querySelector('[data-quantity-input]');
+  const availabilityInfo = document.getElementById('availability-info');
+  
+  function checkInventoryAvailability() {
+    const sourceStoreId = sourceSelect?.value;
+    const inventoryId = inventorySelect?.value;
+    
+    if (sourceStoreId && inventoryId) {
+      // TODO: AJAX call to check availability
+      // For now, show placeholder
+      if (availabilityInfo) {
+        availabilityInfo.style.display = 'block';
+        document.getElementById('available-quantity').textContent = '確認中...';
+      }
+    } else {
+      if (availabilityInfo) {
+        availabilityInfo.style.display = 'none';
+      }
+    }
+  }
+  
+  if (sourceSelect && inventorySelect) {
+    sourceSelect.addEventListener('change', checkInventoryAvailability);
+    inventorySelect.addEventListener('change', checkInventoryAvailability);
+  }
+});
+</script>

@@ -1,0 +1,145 @@
+<%# 🏪 新規店舗作成 - Phase 2: Multi-Store Management %>
+<div class="container-fluid py-4">
+  <%# パンくずナビゲーション %>
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item">
+        <%= link_to admin_stores_path, class: "text-decoration-none" do %>
+          <i class="bi bi-shop me-1" aria-hidden="true"></i>店舗管理
+        <% end %>
+      </li>
+      <li class="breadcrumb-item active" aria-current="page">新規店舗作成</li>
+    </ol>
+  </nav>
+
+  <%# ページヘッダー %>
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center">
+            <div class="icon-lg me-3" style="background: linear-gradient(135deg, var(--admin-primary), var(--admin-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">🏪</div>
+            <div>
+              <h1 class="h2 mb-1 fw-bold">新規店舗作成</h1>
+              <p class="text-muted mb-0">新しい店舗をチェーンに追加します</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# 作成ガイド %>
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alert alert-info border-0" role="alert">
+        <div class="d-flex">
+          <div class="flex-shrink-0">
+            <i class="bi bi-info-circle fs-4" aria-hidden="true"></i>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <h5 class="alert-heading">店舗作成ガイド</h5>
+            <p class="mb-2">新規店舗を作成する際は、以下の点にご注意ください：</p>
+            <ul class="mb-0">
+              <li><strong>店舗コード</strong>は一意である必要があります（例: ST001, WH-TOKYO等）</li>
+              <li><strong>店舗種別</strong>により利用できる機能が変わります</li>
+              <li>作成後、店舗管理者を割り当てることができます</li>
+              <li>在庫データは後から追加・移動できます</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# フォーム %>
+  <div class="row">
+    <div class="col-12">
+      <%= render 'form', store: @store %>
+    </div>
+  </div>
+
+  <%# 追加情報 %>
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-bold">
+            <i class="bi bi-question-circle me-2" aria-hidden="true"></i>
+            店舗種別について
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-hospital text-admin-primary me-2"></i>
+              <strong>薬局</strong>
+            </div>
+            <p class="text-muted small mb-0">患者向けサービスを提供する店舗。処方薬の調剤・販売を行います。</p>
+          </div>
+          
+          <div class="mb-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-building text-info me-2"></i>
+              <strong>倉庫</strong>
+            </div>
+            <p class="text-muted small mb-0">大量在庫の保管・配送拠点。他店舗への在庫供給を主目的とします。</p>
+          </div>
+          
+          <div>
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-building-check text-success me-2"></i>
+              <strong>本部</strong>
+            </div>
+            <p class="text-muted small mb-0">管理・統制機能を持つ拠点。全店舗の監視・分析を行います。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-6 mt-3 mt-md-0">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-bold">
+            <i class="bi bi-lightbulb me-2" aria-hidden="true"></i>
+            次のステップ
+          </h6>
+        </div>
+        <div class="card-body">
+          <p class="text-muted small mb-3">店舗作成後は以下の設定を行うことをお勧めします：</p>
+          
+          <div class="d-flex align-items-center mb-2">
+            <i class="bi bi-1-circle text-admin-primary me-2"></i>
+            <span class="small">店舗管理者の割り当て</span>
+          </div>
+          
+          <div class="d-flex align-items-center mb-2">
+            <i class="bi bi-2-circle text-admin-primary me-2"></i>
+            <span class="small">初期在庫データの登録</span>
+          </div>
+          
+          <div class="d-flex align-items-center mb-2">
+            <i class="bi bi-3-circle text-admin-primary me-2"></i>
+            <span class="small">安全在庫レベルの設定</span>
+          </div>
+          
+          <div class="d-flex align-items-center">
+            <i class="bi bi-4-circle text-admin-primary me-2"></i>
+            <span class="small">店舗間移動ルールの設定</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# カスタムスタイル %>
+<style>
+  .icon-lg {
+    font-size: 48px;
+  }
+  
+  .text-admin-primary {
+    color: var(--admin-primary) !important;
+  }
+</style>
