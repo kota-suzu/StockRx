@@ -19,7 +19,7 @@ class InventoryLogsController < ApplicationController
       Rails.logger.info("Invalid date format in inventory logs filter: #{e.message}")
     end
 
-    @logs = base_query.includes(:inventory).page(params[:page]).per(PER_PAGE)
+    @logs = base_query.includes(:inventory, :user).page(params[:page]).per(PER_PAGE)
 
     respond_to do |format|
       format.html

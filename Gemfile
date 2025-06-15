@@ -16,6 +16,10 @@ gem "importmap-rails"
 gem "turbo-rails"
 # Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
 gem "stimulus-rails"
+
+# Bootstrap 5 for modern responsive design
+gem "bootstrap", "~> 5.3"         # Bootstrap CSS & JS framework
+gem "sassc-rails", "~> 2.1"       # Sass compiler for Bootstrap
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
 # Use CSV library (included in Ruby 3.4+)

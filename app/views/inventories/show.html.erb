@@ -1,91 +1,245 @@
-<div class="container mx-auto px-4 py-8">
-  <div class="mb-6 flex items-center justify-between">
-    <div class="flex items-center gap-4">
-      <%= link_to inventories_path, class: "text-gray-500" do %>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
+<%# Bootstrap 5 モダン在庫詳細ページ - StockRx 公開インターフェース %>
+<% content_for :title, "#{@inventory.name} - 在庫詳細 | StockRx" %>
+
+<div class="container py-4">
+  <%# ページヘッダー %>
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+    <div class="d-flex align-items-center mb-3 mb-md-0">
+      <%= link_to inventories_path, class: "btn btn-outline-secondary btn-sm me-3", title: "在庫一覧に戻る" do %>
+        <i class="fas fa-arrow-left me-1"></i>戻る
       <% end %>
-      <h1 class="text-2xl font-bold"><%= @inventory.name %></h1>
+      <div>
+        <h1 class="h2 mb-1 text-dark">
+          <i class="fas fa-box me-2 text-primary"></i><%= @inventory.name %>
+        </h1>
+        <p class="text-muted mb-0">在庫詳細情報</p>
+      </div>
     </div>
     
-    <div class="flex gap-4">
-      <%= link_to "編集", edit_inventory_path(@inventory), class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" %>
-      <%= button_to "削除", inventory_path(@inventory), method: :delete, form: { data: { turbo_confirm: "本当に削除しますか？" } }, class: "bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded" %>
+    <div class="d-flex flex-column flex-sm-row gap-2">
+      <%= link_to edit_inventory_path(@inventory), class: "btn btn-primary" do %>
+        <i class="fas fa-edit me-2"></i>編集
+      <% end %>
+      <%= button_to inventory_path(@inventory), method: :delete, 
+          form: { data: { turbo_confirm: "本当に削除しますか？" } }, 
+          class: "btn btn-outline-danger" do %>
+        <i class="fas fa-trash me-2"></i>削除
+      <% end %>
     </div>
   </div>
   
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-    <div class="bg-white shadow-md rounded-lg p-6">
-      <h2 class="text-xl font-semibold mb-4">在庫情報</h2>
-      
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <p class="text-sm text-gray-500">商品名</p>
-          <p class="font-medium"><%= @inventory.name %></p>
+  <%# メインコンテンツグリッド %>
+  <div class="row g-4 mb-4">
+    <%# 在庫情報カード %>
+    <div class="col-lg-6">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-primary text-white">
+          <h2 class="h5 mb-0">
+            <i class="fas fa-info-circle me-2"></i>在庫情報
+          </h2>
         </div>
-        
-        <div>
-          <p class="text-sm text-gray-500">ステータス</p>
-          <p><%= @inventory.status_badge %></p>
-        </div>
-        
-        <div>
-          <p class="text-sm text-gray-500">総在庫数</p>
-          <p class="font-medium"><%= @inventory.quantity %></p>
-        </div>
-        
-        <div>
-          <p class="text-sm text-gray-500">単価</p>
-          <p class="font-medium"><%= @inventory.formatted_price %></p>
-        </div>
-        
-        <div>
-          <p class="text-sm text-gray-500">在庫状態</p>
-          <p><%= @inventory.alert_badge %></p>
-        </div>
-        
-        <div>
-          <p class="text-sm text-gray-500">最終更新</p>
-          <p class="font-medium"><%= @inventory.updated_at_formatted %></p>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <div class="border-bottom pb-2 mb-2">
+                <p class="small text-muted mb-1">商品名</p>
+                <p class="fw-medium mb-0"><%= @inventory.name %></p>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="border-bottom pb-2 mb-2">
+                <p class="small text-muted mb-1">ステータス</p>
+                <p class="mb-0"><%= @inventory.status_badge %></p>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="border-bottom pb-2 mb-2">
+                <p class="small text-muted mb-1">総在庫数</p>
+                <p class="fw-medium mb-0">
+                  <span class="badge <%= @inventory.quantity <= 0 ? 'bg-danger' : 'bg-secondary' %> fs-6">
+                    <%= number_with_delimiter(@inventory.quantity) %> 個
+                  </span>
+                </p>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="border-bottom pb-2 mb-2">
+                <p class="small text-muted mb-1">単価</p>
+                <p class="fw-medium mb-0 text-success">
+                  <i class="fas fa-yen-sign me-1"></i><%= @inventory.formatted_price %>
+                </p>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="border-bottom pb-2 mb-2">
+                <p class="small text-muted mb-1">在庫状態</p>
+                <p class="mb-0"><%= @inventory.alert_badge %></p>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="border-bottom pb-2 mb-2">
+                <p class="small text-muted mb-1">最終更新</p>
+                <p class="fw-medium mb-0">
+                  <i class="fas fa-clock me-1 text-muted"></i>
+                  <%= @inventory.updated_at_formatted %>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     
-    <div class="bg-white shadow-md rounded-lg p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold">ロット情報</h2>
-        <button class="bg-green-500 hover:bg-green-700 text-white font-bold py-1 px-3 rounded text-sm">
-          ロット追加
-        </button>
+    <%# ロット情報カード %>
+    <div class="col-lg-6">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h2 class="h5 mb-0">
+            <i class="fas fa-barcode me-2"></i>ロット情報
+          </h2>
+          <button class="btn btn-light btn-sm" type="button">
+            <i class="fas fa-plus me-1"></i>ロット追加
+          </button>
+        </div>
+        <div class="card-body p-0">
+          <% if @inventory.batches.empty? %>
+            <div class="text-center py-5 text-muted">
+              <i class="fas fa-inbox fa-3x mb-3 text-muted opacity-50"></i>
+              <p class="mb-0">登録されているロットがありません。</p>
+            </div>
+          <% else %>
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col" class="text-nowrap">
+                      <i class="fas fa-tag me-1"></i>ロットコード
+                    </th>
+                    <th scope="col" class="text-center">
+                      <i class="fas fa-cubes me-1"></i>数量
+                    </th>
+                    <th scope="col" class="text-center">
+                      <i class="fas fa-calendar me-1"></i>有効期限
+                    </th>
+                    <th scope="col" class="text-center">
+                      <i class="fas fa-info-circle me-1"></i>状態
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @inventory.batches.each do |batch| %>
+                    <tr class="<%= batch.expired? ? 'table-danger' : (batch.expiring_soon? ? 'table-warning' : '') %>">
+                      <td class="align-middle">
+                        <code class="text-dark"><%= batch.lot_code %></code>
+                      </td>
+                      <td class="text-center align-middle">
+                        <span class="badge bg-secondary"><%= number_with_delimiter(batch.quantity) %></span>
+                      </td>
+                      <td class="text-center align-middle">
+                        <% if batch.expires_on.present? %>
+                          <small><%= l(batch.expires_on) %></small>
+                        <% else %>
+                          <small class="text-muted">設定なし</small>
+                        <% end %>
+                      </td>
+                      <td class="text-center align-middle">
+                        <% if batch.expired? %>
+                          <span class="badge bg-danger">
+                            <i class="fas fa-times me-1"></i>期限切れ
+                          </span>
+                        <% elsif batch.expiring_soon? %>
+                          <span class="badge bg-warning text-dark">
+                            <i class="fas fa-exclamation-triangle me-1"></i>期限間近
+                          </span>
+                        <% else %>
+                          <span class="badge bg-success">
+                            <i class="fas fa-check me-1"></i>正常
+                          </span>
+                        <% end %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% end %>
+        </div>
       </div>
-      
-      <% if @inventory.batches.empty? %>
-        <p class="text-gray-500 text-center py-4">登録されているロットがありません。</p>
+    </div>
+  </div>
+  
+  <%# 在庫履歴カード %>
+  <div class="card shadow-sm border-0">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+      <h2 class="h5 mb-0">
+        <i class="fas fa-history me-2"></i>在庫履歴
+      </h2>
+      <%= link_to inventory_inventory_logs_path(@inventory), class: "btn btn-light btn-sm" do %>
+        <i class="fas fa-eye me-1"></i>全履歴を見る
+      <% end %>
+    </div>
+    <div class="card-body p-0">
+      <% if @inventory.inventory_logs.recent.limit(5).empty? %>
+        <div class="text-center py-5 text-muted">
+          <i class="fas fa-clipboard-list fa-3x mb-3 text-muted opacity-50"></i>
+          <p class="mb-1">履歴が記録されていません。</p>
+          <p class="small mb-0">在庫が変更されると、ここに履歴が表示されます。</p>
+        </div>
       <% else %>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
               <tr>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ロットコード</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">数量</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">有効期限</th>
-                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状態</th>
+                <th scope="col" class="text-nowrap">
+                  <i class="fas fa-clock me-1"></i>日時
+                </th>
+                <th scope="col" class="text-center">
+                  <i class="fas fa-cogs me-1"></i>操作
+                </th>
+                <th scope="col" class="text-center">
+                  <i class="fas fa-exchange-alt me-1"></i>変化量
+                </th>
+                <th scope="col" class="text-center">変更前</th>
+                <th scope="col" class="text-center">変更後</th>
+                <th scope="col">
+                  <i class="fas fa-comment me-1"></i>備考
+                </th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200">
-              <% @inventory.batches.each do |batch| %>
-                <tr class="<%= batch.expired? ? 'bg-red-50' : (batch.expiring_soon? ? 'bg-yellow-50' : '') %>">
-                  <td class="px-4 py-2 whitespace-nowrap text-sm"><%= batch.lot_code %></td>
-                  <td class="px-4 py-2 whitespace-nowrap text-sm"><%= batch.quantity %></td>
-                  <td class="px-4 py-2 whitespace-nowrap text-sm"><%= batch.expires_on.present? ? l(batch.expires_on) : '設定なし' %></td>
-                  <td class="px-4 py-2 whitespace-nowrap text-sm">
-                    <% if batch.expired? %>
-                      <span class="bg-red-200 text-red-800 px-2 py-1 rounded text-xs">期限切れ</span>
-                    <% elsif batch.expiring_soon? %>
-                      <span class="bg-yellow-200 text-yellow-800 px-2 py-1 rounded text-xs">期限間近</span>
+            <tbody>
+              <% @inventory.inventory_logs.recent.limit(5).each do |log| %>
+                <tr>
+                  <td class="align-middle">
+                    <small class="text-muted">
+                      <%= log.created_at.strftime('%Y/%m/%d %H:%M') %>
+                    </small>
+                  </td>
+                  <td class="text-center align-middle">
+                    <span class="<%= operation_badge_class(log.operation_type) %>">
+                      <%= operation_type_label(log.operation_type) %>
+                    </span>
+                  </td>
+                  <td class="text-center align-middle">
+                    <span class="fw-bold <%= log.delta >= 0 ? 'text-success' : 'text-danger' %>">
+                      <%= log.delta >= 0 ? "+#{log.delta}" : log.delta %>
+                    </span>
+                  </td>
+                  <td class="text-center align-middle">
+                    <span class="badge bg-secondary"><%= number_with_delimiter(log.previous_quantity) %></span>
+                  </td>
+                  <td class="text-center align-middle">
+                    <span class="badge bg-primary"><%= number_with_delimiter(log.current_quantity) %></span>
+                  </td>
+                  <td class="align-middle">
+                    <% if log.note.present? %>
+                      <small class="text-muted"><%= log.note %></small>
                     <% else %>
-                      <span class="bg-green-200 text-green-800 px-2 py-1 rounded text-xs">正常</span>
+                      <small class="text-muted fst-italic">-</small>
                     <% end %>
                   </td>
                 </tr>
@@ -96,55 +250,12 @@
       <% end %>
     </div>
   </div>
-  
-  <div class="bg-white shadow-md rounded-lg p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-xl font-semibold">在庫履歴</h2>
-      <%= link_to inventory_inventory_logs_path(@inventory), class: "bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm" do %>
-        全履歴を見る
-      <% end %>
-    </div>
-    
-    <% if @inventory.inventory_logs.recent.limit(5).empty? %>
-    <div class="text-center py-8 text-gray-500">
-        <p>履歴が記録されていません。</p>
-        <p class="text-sm mt-2">在庫が変更されると、ここに履歴が表示されます。</p>
-      </div>
-    <% else %>
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">日時</th>
-              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">変化量</th>
-              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">変更前</th>
-              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">変更後</th>
-              <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">備考</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <% @inventory.inventory_logs.recent.limit(5).each do |log| %>
-              <tr>
-                <td class="px-4 py-2 whitespace-nowrap text-sm"><%= log.created_at.strftime('%Y/%m/%d %H:%M') %></td>
-                <td class="px-4 py-2 whitespace-nowrap text-sm">
-                  <span class="<%= operation_badge_class(log.operation_type) %>">
-                    <%= operation_type_label(log.operation_type) %>
-                  </span>
-                </td>
-                <td class="px-4 py-2 whitespace-nowrap text-sm">
-                  <span class="<%= log.delta >= 0 ? 'text-green-600' : 'text-red-600' %>">
-                    <%= log.delta >= 0 ? "+#{log.delta}" : log.delta %>
-                  </span>
-                </td>
-                <td class="px-4 py-2 whitespace-nowrap text-sm"><%= log.previous_quantity %></td>
-                <td class="px-4 py-2 whitespace-nowrap text-sm"><%= log.current_quantity %></td>
-                <td class="px-4 py-2 whitespace-nowrap text-sm"><%= log.note %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-    </div>
-    <% end %>
-  </div>
+
+  <%# TODO: 🟡 Phase 2 - 在庫詳細ページ機能強化 %>
+  <%# 優先度: 中（ユーザビリティ向上） %>
+  <%# 実装内容: バッチ詳細編集、在庫移動、QRコード生成 %>
+  <%# 理由: 在庫管理業務の効率化 %>
+  <%# 期待効果: 作業時間短縮、ミス防止 %>
+  <%# 工数見積: 3日 %>
+  <%# 依存関係: バッチ管理機能、QRコードライブラリ %>
 </div> 

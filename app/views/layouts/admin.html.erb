@@ -10,54 +10,90 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="admin-layout">
-    <header class="admin-header">
-      <div class="brand">
-        <%= link_to admin_root_path, class: "brand-link" do %>
-          📦 StockRx 管理パネル
-        <% end %>
-      </div>
-      <% if admin_signed_in? %>
-        <nav class="admin-nav">
-          <%= link_to admin_root_path, class: "nav-link #{'active' if current_page?(admin_root_path)}" do %>
-            🏠 ダッシュボード
-          <% end %>
-          <%= link_to admin_inventories_path, class: "nav-link #{'active' if current_page?(admin_inventories_path)}" do %>
-            📦 在庫管理
-          <% end %>
-          <%= link_to inventory_logs_path, class: "nav-link #{'active' if current_page?(inventory_logs_path)}" do %>
-            📋 在庫履歴
-          <% end %>
-          <%= link_to "/admin/sidekiq", class: "nav-link", target: "_blank" do %>
-            ⚙️ ジョブ監視
+  <body>
+    <% if admin_signed_in? %>
+      <!-- Bootstrap Navbar -->
+      <nav class="navbar navbar-expand-lg navbar-dark navbar-admin sticky-top">
+        <div class="container-fluid">
+          <%= link_to admin_root_path, class: "navbar-brand" do %>
+            📦 StockRx 管理パネル
           <% end %>
           
-          <div class="nav-divider"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
           
-          <div class="user-menu">
-            <div class="user-info">
-              <span class="user-email"><%= current_admin.email %></span>
-            </div>
-            <%= button_to destroy_admin_session_path, method: :delete, class: "logout-btn", title: "ログアウト" do %>
-              🚪 ログアウト
-            <% end %>
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+              <li class="nav-item">
+                <%= link_to admin_root_path, class: "nav-link #{'active' if current_page?(admin_root_path)}" do %>
+                  🏠 ダッシュボード
+                <% end %>
+              </li>
+              <li class="nav-item">
+                <%= link_to admin_inventories_path, class: "nav-link #{'active' if current_page?(admin_inventories_path)}" do %>
+                  📦 在庫管理
+                <% end %>
+              </li>
+              <li class="nav-item">
+                <%= link_to inventory_logs_path, class: "nav-link #{'active' if current_page?(inventory_logs_path)}" do %>
+                  📋 在庫履歴
+                <% end %>
+              </li>
+              <li class="nav-item">
+                <%= link_to "/admin/sidekiq", class: "nav-link", target: "_blank" do %>
+                  ⚙️ ジョブ監視
+                <% end %>
+              </li>
+            </ul>
+            
+            <ul class="navbar-nav">
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  👤 <%= current_admin.email %>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  <li>
+                    <%= button_to destroy_admin_session_path, method: :delete, class: "dropdown-item", title: "ログアウト" do %>
+                      🚪 ログアウト
+                    <% end %>
+                  </li>
+                </ul>
+              </li>
+            </ul>
           </div>
-        </nav>
-      <% end %>
-    </header>
+        </div>
+      </nav>
+    <% end %>
 
-    <main class="admin-content">
+    <!-- Main Content -->
+    <main class="<%= admin_signed_in? ? 'container-fluid py-4' : 'container py-5' %>">
+      <!-- Flash Messages -->
       <% flash.each do |key, value| %>
-        <div class="alert alert-<%= key %>">
+        <div class="alert alert-<%= key == 'notice' ? 'success' : 'danger' %> alert-dismissible fade show" role="alert">
           <%= value %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
       <% end %>
 
       <%= yield %>
     </main>
 
-    <footer class="admin-footer">
-      <p>&copy; <%= Date.today.year %> StockRx - 管理者パネル V1.0</p>
-    </footer>
+    <!-- Footer -->
+    <% if admin_signed_in? %>
+      <footer class="bg-admin-primary text-white text-center py-3 mt-auto">
+        <div class="container-fluid">
+          <p class="mb-0">&copy; <%= Date.today.year %> StockRx - 管理者パネル V1.0</p>
+        </div>
+      </footer>
+    <% end %>
+    
+    <!-- Bootstrap JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- 管理者在庫一覧機能 -->
+    <% if request.path.include?('/admin/inventories') %>
+      <%= javascript_include_tag 'admin_inventories', defer: true %>
+    <% end %>
   </body>
 </html> 

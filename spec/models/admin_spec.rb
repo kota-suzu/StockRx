@@ -153,6 +153,47 @@ RSpec.describe Admin, type: :model do
     end
   end
 
+  describe '#display_name と #name メソッド' do
+    let(:admin) { build(:admin, email: 'john.doe@example.com') }
+
+    describe '#display_name' do
+      it 'emailのアットマーク前の部分を返すこと' do
+        expect(admin.display_name).to eq('john.doe')
+      end
+
+      context 'emailが複雑な形式の場合' do
+        let(:admin) { build(:admin, email: 'admin+test@sub.example.com') }
+
+        it '正しく表示名を抽出すること' do
+          expect(admin.display_name).to eq('admin+test')
+        end
+      end
+
+      context 'emailがシンプルな形式の場合' do
+        let(:admin) { build(:admin, email: 'admin@example.com') }
+
+        it '正しく表示名を抽出すること' do
+          expect(admin.display_name).to eq('admin')
+        end
+      end
+    end
+
+    describe '#name' do
+      it 'display_nameと同じ値を返すこと（エイリアス）' do
+        expect(admin.name).to eq(admin.display_name)
+        expect(admin.name).to eq('john.doe')
+      end
+    end
+
+    # TODO: 🟡 Phase 2 - nameフィールド実装後のテスト
+    # 優先度: 中（UX改善）
+    # テスト内容:
+    #   - nameカラムが存在する場合の動作確認
+    #   - nameが空の場合のフォールバック処理
+    #   - GitHub OAuth認証時のname自動設定
+    # 期待効果: 適切な表示名管理によるUX向上
+  end
+
   # TODO: 将来実装予定の機能テスト
   # 1. Userモデルとの連携（ユーザーの作成・管理権限）
   # 2. 2要素認証（devise-two-factor）

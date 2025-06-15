@@ -38,9 +38,9 @@ class ImportInventoriesJob < ApplicationJob
   IMPORT_BATCH_SIZE = 1000
   PROGRESS_REPORT_INTERVAL = 10 # 進捗報告の間隔（％）
 
-  # Redis TTL設定
-  PROGRESS_TTL = 1.hour
-  COMPLETED_TTL = 24.hours
+  # Redis TTL設定（秒単位）
+  PROGRESS_TTL = 1.hour.to_i
+  COMPLETED_TTL = 24.hours.to_i
 
   # ============================================
   # Sidekiq設定

@@ -39,15 +39,21 @@ class AdvancedSearchQuery
     "updated_at" => "inventories.updated_at"
   }.freeze
 
-  def initialize(scope = Inventory.all)
-    @base_scope = scope
+  def initialize(base_scope = Inventory.all)
+    @base_scope = base_scope
     @joins_applied = Set.new
     @distinct_applied = false
   end
 
-  # メソッドチェーンで検索条件を構築
-  def self.build(scope = Inventory.all)
-    new(scope)
+  # ファクトリーメソッド
+  def self.build(base_scope = Inventory.all)
+    new(base_scope)
+  end
+
+  # Eager loadingサポート（N+1クエリ対策）
+  def includes(*associations)
+    @base_scope = @base_scope.includes(*associations)
+    self
   end
 
   # AND条件での検索
@@ -172,15 +178,12 @@ class AdvancedSearchQuery
     self
   end
 
-  # Enumフィールドでの検索
+  # ステータスでの検索
   def with_status(status)
-    return self unless status.present?
+    return self unless status.present? && Inventory::STATUSES.include?(status)
 
-    if status.is_a?(Array)
-      where(status: status)
-    else
-      where(status: status)
-    end
+    @base_scope = @base_scope.where(status: status)
+    self
   end
 
   # バッチ（ロット）関連の検索

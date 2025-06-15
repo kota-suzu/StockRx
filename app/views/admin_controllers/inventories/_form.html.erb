@@ -1,58 +1,199 @@
-<%# 在庫フォーム %>
-<%= form_with(model: [:admin, inventory], class: "space-y-6") do |form| %>
+<%# 在庫フォーム - Bootstrap 5版 %>
+<%= form_with(model: [:admin, inventory], class: "needs-validation", novalidate: true) do |form| %>
+  <%# エラーメッセージ表示 %>
   <% if inventory.errors.any? %>
-    <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-      <div class="flex">
+    <div class="alert alert-danger" role="alert">
+      <div class="d-flex align-items-start">
         <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-          </svg>
+          <i class="fas fa-exclamation-triangle fa-lg me-3"></i>
         </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800">
+        <div>
+          <h4 class="alert-heading h6 mb-2">
             入力内容にエラーがあります（<%= inventory.errors.count %>件）
-          </h3>
-          <div class="mt-2 text-sm text-red-700">
-            <ul class="list-disc pl-5">
-              <% inventory.errors.full_messages.each do |message| %>
-                <li><%= message %></li>
-              <% end %>
-            </ul>
-          </div>
+          </h4>
+          <ul class="mb-0 small">
+            <% inventory.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
         </div>
       </div>
     </div>
   <% end %>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div>
-      <%= form.label :name, "商品名", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= form.text_field :name, class: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
-    </div>
-
-    <div>
-      <%= form.label :status, "ステータス", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= form.select :status, Inventory::STATUSES.map { |k, _| [t("inventories.status.#{k}"), k] }, {}, class: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
-    </div>
-
-    <div>
-      <%= form.label :price, "価格", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <div class="relative rounded-md shadow-sm">
-        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <span class="text-gray-500 sm:text-sm">￥</span>
-        </div>
-        <%= form.number_field :price, step: 1, min: 0, class: "pl-7 w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
+  <%# フォーム入力フィールド %>
+  <div class="row g-3">
+    <%# 商品名 %>
+    <div class="col-12">
+      <%= form.label :name, "商品名", class: "form-label" %>
+      <div class="input-group">
+        <span class="input-group-text">
+          <i class="fas fa-tag"></i>
+        </span>
+        <%= form.text_field :name, 
+                           class: "form-control #{'is-invalid' if inventory.errors[:name].any?}",
+                           placeholder: "商品名を入力してください",
+                           required: true,
+                           "aria-describedby": "nameHelp" %>
+        <% if inventory.errors[:name].any? %>
+          <div class="invalid-feedback">
+            <%= inventory.errors[:name].first %>
+          </div>
+        <% end %>
+      </div>
+      <div id="nameHelp" class="form-text">
+        商品を識別するための名前を入力してください（必須）
       </div>
     </div>
 
-    <div>
-      <%= form.label :quantity, "数量", class: "block text-sm font-medium text-gray-700 mb-1" %>
-      <%= form.number_field :quantity, step: 1, min: 0, class: "w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50" %>
+    <%# ステータス %>
+    <div class="col-md-6">
+      <%= form.label :status, "ステータス", class: "form-label" %>
+      <%= form.select :status, 
+                     Inventory::STATUSES.map { |k, _| [t("inventories.status.#{k}"), k] }, 
+                     { selected: inventory.status || "active" },
+                     class: "form-select #{'is-invalid' if inventory.errors[:status].any?}",
+                     "aria-describedby": "statusHelp" %>
+      <% if inventory.errors[:status].any? %>
+        <div class="invalid-feedback">
+          <%= inventory.errors[:status].first %>
+        </div>
+      <% end %>
+      <div id="statusHelp" class="form-text">
+        商品の現在の状態を選択してください
+      </div>
+    </div>
+
+    <%# 価格 %>
+    <div class="col-md-6">
+      <%= form.label :price, "価格", class: "form-label" %>
+      <div class="input-group">
+        <span class="input-group-text">
+          <i class="fas fa-yen-sign"></i>
+        </span>
+        <%= form.number_field :price, 
+                             step: 1, 
+                             min: 0,
+                             class: "form-control #{'is-invalid' if inventory.errors[:price].any?}",
+                             placeholder: "0",
+                             required: true,
+                             "aria-describedby": "priceHelp" %>
+        <span class="input-group-text">円</span>
+        <% if inventory.errors[:price].any? %>
+          <div class="invalid-feedback">
+            <%= inventory.errors[:price].first %>
+          </div>
+        <% end %>
+      </div>
+      <div id="priceHelp" class="form-text">
+        商品の販売価格を入力してください（0円以上）
+      </div>
+    </div>
+
+    <%# 数量 %>
+    <div class="col-md-6">
+      <%= form.label :quantity, "数量", class: "form-label" %>
+      <div class="input-group">
+        <span class="input-group-text">
+          <i class="fas fa-boxes"></i>
+        </span>
+        <%= form.number_field :quantity, 
+                             step: 1, 
+                             min: 0,
+                             class: "form-control #{'is-invalid' if inventory.errors[:quantity].any?}",
+                             placeholder: "0",
+                             required: true,
+                             "aria-describedby": "quantityHelp" %>
+        <span class="input-group-text">個</span>
+        <% if inventory.errors[:quantity].any? %>
+          <div class="invalid-feedback">
+            <%= inventory.errors[:quantity].first %>
+          </div>
+        <% end %>
+      </div>
+      <div id="quantityHelp" class="form-text">
+        現在の在庫数を入力してください（0個以上）
+      </div>
+    </div>
+
+    <%# 入力ガイド %>
+    <div class="col-12">
+      <div class="alert alert-info">
+        <h6 class="alert-heading">
+          <i class="fas fa-lightbulb me-2"></i>入力のヒント
+        </h6>
+        <ul class="mb-0 small">
+          <li><strong>商品名</strong>: 他の商品と区別できる分かりやすい名前を付けてください</li>
+          <li><strong>価格</strong>: 販売価格を円単位で入力してください（税込み価格推奨）</li>
+          <li><strong>数量</strong>: 現在の正確な在庫数を入力してください</li>
+          <li><strong>ステータス</strong>: 通常は「有効」を選択、販売停止の場合は「アーカイブ」を選択</li>
+        </ul>
+      </div>
     </div>
   </div>
 
-  <div class="flex justify-end space-x-3 pt-5">
-    <%= link_to "キャンセル", inventory.new_record? ? admin_inventories_path : admin_inventory_path(inventory), class: "py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
-    <%= form.submit inventory.new_record? ? "登録する" : "更新する", class: "py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
+  <%# アクションボタン %>
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-end gap-2">
+        <%= link_to inventory.new_record? ? admin_inventories_path : admin_inventory_path(inventory), 
+                   class: "btn btn-outline-secondary" do %>
+          <i class="fas fa-times me-2"></i>キャンセル
+        <% end %>
+        <%= form.submit inventory.new_record? ? "登録する" : "更新する", 
+                       class: "btn btn-success btn-lg",
+                       id: "submitBtn" do %>
+          <i class="fas fa-<%= inventory.new_record? ? 'plus' : 'save' %> me-2"></i><%= inventory.new_record? ? "登録する" : "更新する" %>
+        <% end %>
+      </div>
+    </div>
   </div>
-<% end %> 
+<% end %>
+
+<%# フォーム機能強化JavaScript %>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('.needs-validation');
+  const submitBtn = document.getElementById('submitBtn');
+  
+  // フォーム送信時のバリデーション
+  form.addEventListener('submit', function(event) {
+    if (!form.checkValidity()) {
+      event.preventDefault();
+      event.stopPropagation();
+    } else {
+      // 送信中のUI変更
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>処理中...';
+      submitBtn.disabled = true;
+    }
+    
+    form.classList.add('was-validated');
+  });
+
+  // リアルタイムバリデーション
+  const inputs = form.querySelectorAll('input[required], select[required]');
+  inputs.forEach(input => {
+    input.addEventListener('blur', function() {
+      if (this.checkValidity()) {
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+      } else {
+        this.classList.remove('is-valid');
+        this.classList.add('is-invalid');
+      }
+    });
+  });
+
+  // 価格フォーマット（3桁区切り表示）
+  const priceInput = document.querySelector('input[name="inventory[price]"]');
+  if (priceInput) {
+    priceInput.addEventListener('input', function() {
+      // 入力値を数値として取得
+      const value = this.value.replace(/,/g, '');
+      if (!isNaN(value) && value !== '') {
+        // 3桁区切りでフォーマット（ただし、focusout時のみ）
+      }
+    });
+  }
+});
+</script> 

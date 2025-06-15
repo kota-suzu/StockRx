@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
 module AdminControllers::InventoriesHelper
-  # 在庫状態に応じた行のスタイルクラスを返す
+  # 在庫状態に応じた行のスタイルクラスを返す（Bootstrap 5版）
   # @param inventory [Inventory] 在庫オブジェクト
-  # @return [String] CSSクラス（在庫切れ：bg-red-50、在庫不足：bg-yellow-50、正常：空文字）
+  # @return [String] CSSクラス（在庫切れ：table-danger、在庫不足：table-warning、正常：空文字）
   def inventory_row_class(inventory)
     if inventory.quantity <= 0
-      "bg-red-50"
+      "table-danger"
     elsif inventory.low_stock?
-      "bg-yellow-50"
+      "table-warning"
     else
       ""
     end
@@ -26,7 +26,7 @@ module AdminControllers::InventoriesHelper
     end
   end
 
-  # ソートアイコンを表示
+  # ソートアイコンを表示（Bootstrap 5版）
   # 現在のソート状態に応じたアイコンを表示
   # @param column [String] 列名
   # @return [ActiveSupport::SafeBuffer] HTMLアイコン
@@ -34,26 +34,44 @@ module AdminControllers::InventoriesHelper
     return "".html_safe unless params[:sort] == column
 
     if params[:direction] == "asc"
-      tag.i(class: "fas fa-sort-up ml-1")
+      tag.i(class: "fas fa-sort-up ms-1")
     else
-      tag.i(class: "fas fa-sort-down ml-1")
+      tag.i(class: "fas fa-sort-down ms-1")
     end
   end
 
   # CSVインポート用のサンプルフォーマットを返す
   # @return [String] CSVサンプル
   def csv_sample_format
-    "name,quantity,price,status\n商品A,100,1000,active\n商品B,50,500,active"
+    "name,quantity,price,status\nノートパソコン ThinkPad X1,15,128000,active\nワイヤレスマウス Logitech MX,50,7800,active\nモニター 27インチ 4K,25,45000,active"
   end
 
-  # バッチ状態に応じた行のスタイルクラスを返す
+  # 拡張CSVサンプル（より多くの例を含む）
+  # @return [String] 拡張CSVサンプル
+  def csv_extended_sample_format
+    <<~CSV
+      name,quantity,price,status
+      ノートパソコン ThinkPad X1,15,128000,active
+      デスクトップPC Dell OptiPlex,8,89000,active
+      モニター 27インチ 4K,25,45000,active
+      ワイヤレスマウス Logitech MX,50,7800,active
+      メカニカルキーボード,30,12000,active
+      在庫切れ商品例,0,5000,active
+      アーカイブ商品例,10,3000,archived
+      高額商品例,2,250000,active
+      小数点価格例,100,1499.99,active
+      特殊文字商品「テスト」,75,2500,active
+    CSV
+  end
+
+  # バッチ状態に応じた行のスタイルクラスを返す（Bootstrap 5版）
   # @param batch [Batch] バッチオブジェクト
-  # @return [String] CSSクラス（期限切れ：bg-red-50、期限間近：bg-yellow-50、正常：空文字）
+  # @return [String] CSSクラス（期限切れ：table-danger、期限間近：table-warning、正常：空文字）
   def batch_row_class(batch)
     if batch.expired?
-      "bg-red-50"
+      "table-danger"
     elsif batch.expiring_soon?
-      "bg-yellow-50"
+      "table-warning"
     else
       ""
     end

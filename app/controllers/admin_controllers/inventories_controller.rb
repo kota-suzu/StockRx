@@ -14,11 +14,30 @@ module AdminControllers
 
     # GET /admin/inventories
     def index
-      @inventories = SearchQuery.call(params).includes(:batches, :inventory_logs, :shipments, :receipts).decorate
+      # Kaminariページネーション実装（50/100/200件切り替え可能）
+      per_page = validate_per_page_param(params[:per_page])
+
+      # Kaminariのページネーション情報を保持
+      @inventories_raw = SearchQuery.call(params)
+                                   .page(params[:page])
+                                   .per(per_page)
+
+      # デコレートはKaminariメソッドにアクセスした後に実行
+      @inventories = @inventories_raw.decorate
 
       respond_to do |format|
         format.html # Turbo Frame 対応
-        format.json { render json: @inventories.map(&:as_json_with_decorated) }
+        format.json {
+          render json: {
+            inventories: @inventories.map(&:as_json_with_decorated),
+            pagination: {
+              current_page: @inventories_raw.current_page,
+              total_pages: @inventories_raw.total_pages,
+              total_count: @inventories_raw.total_count,
+              per_page: @inventories_raw.limit_value
+            }
+          }
+        }
         format.turbo_stream # 必要に応じて実装
       end
     end
@@ -126,12 +145,25 @@ module AdminControllers
 
     # Use callbacks to share common setup or constraints between actions.
     def set_inventory
-      @inventory = Inventory.includes(:batches, :inventory_logs, :shipments, :receipts).find(params[:id]).decorate
+      # 詳細ページで使用する関連データのみをinclude（:batchesのみ使用）
+      @inventory = Inventory.includes(:batches).find(params[:id]).decorate
     end
 
     # Only allow a list of trusted parameters through.
     def inventory_params
       params.require(:inventory).permit(:name, :quantity, :price, :status)
+    end
+
+    # Per page パラメータの検証（50/100/200のみ許可）
+    def validate_per_page_param(per_page_param)
+      allowed_per_page = [ 50, 100, 200 ]
+      per_page = per_page_param&.to_i || 50  # デフォルト50件
+
+      if allowed_per_page.include?(per_page)
+        per_page
+      else
+        50  # 不正な値の場合はデフォルトに戻す
+      end
     end
   end
 end

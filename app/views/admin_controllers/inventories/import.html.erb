@@ -1,111 +1,285 @@
-<%# CSVインポート - 管理画面 %>
-<div class="container mx-auto px-4 py-8">
-  <div class="flex items-center mb-6">
-    <%= link_to admin_inventories_path, class: "text-blue-500 hover:text-blue-700 mr-2" do %>
-      <i class="fas fa-arrow-left"></i> 一覧に戻る
+<%# CSVインポート - Bootstrap 5版 %>
+<div class="container-fluid py-4">
+  <%# ページヘッダー %>
+  <div class="d-flex align-items-center mb-4">
+    <%= link_to admin_inventories_path, class: "btn btn-outline-secondary me-3" do %>
+      <i class="fas fa-arrow-left me-2"></i>一覧に戻る
     <% end %>
-    <h1 class="text-2xl font-bold">CSVインポート</h1>
+    <div>
+      <h1 class="h2 mb-1">
+        <i class="fas fa-file-upload me-2 text-success"></i>CSVインポート
+      </h1>
+      <p class="text-muted mb-0">在庫データの一括登録・更新</p>
+    </div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <div class="md:col-span-2">
-      <div class="bg-white rounded-lg shadow overflow-hidden p-6">
-        <%= form_with url: import_admin_inventories_path, method: :post, multipart: true, class: "space-y-6" do |form| %>
-          <div>
-            <h2 class="text-lg font-medium text-gray-900 mb-4">ファイルアップロード</h2>
-            <div class="border-2 border-dashed border-gray-300 rounded-md p-6">
-              <div class="space-y-4">
-                <div class="text-center">
-                  <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-                  </svg>
-                  <h3 class="mt-2 text-sm font-medium text-gray-900">CSVファイルを選択</h3>
-                  <p class="mt-1 text-sm text-gray-500">
-                    CSVファイルをアップロードしてください（最大サイズ: 10MB）
-                  </p>
+  <div class="row g-4">
+    <%# メインアップロードフォーム %>
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+          <h2 class="card-title mb-0">
+            <i class="fas fa-cloud-upload-alt me-2"></i>ファイルアップロード
+          </h2>
+        </div>
+        <div class="card-body">
+          <%= form_with url: import_admin_inventories_path, method: :post, multipart: true, class: "needs-validation", novalidate: true do |form| %>
+            <%# ドロップゾーン %>
+            <div class="upload-zone border border-2 border-dashed border-success rounded-3 p-5 text-center mb-4">
+              <div class="upload-icon mb-3">
+                <i class="fas fa-file-csv fa-4x text-success"></i>
+              </div>
+              <h3 class="h5 text-success mb-2">CSVファイルを選択またはドロップ</h3>
+              <p class="text-muted mb-3">
+                CSVファイルをここにドラッグ&ドロップするか、ボタンをクリックしてファイルを選択してください
+              </p>
+              <div class="mb-3">
+                <%= form.file_field :file, 
+                                   accept: ".csv", 
+                                   required: true, 
+                                   class: "form-control form-control-lg",
+                                   id: "csvFile",
+                                   "aria-describedby": "fileHelp" %>
+                <div id="fileHelp" class="form-text">
+                  <i class="fas fa-info-circle me-1"></i>
+                  対応形式: CSV (.csv) | 最大サイズ: 10MB | 文字コード: UTF-8
                 </div>
-                <div class="flex justify-center">
-                  <%= form.file_field :file, accept: ".csv", required: true, class: "text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none" %>
+              </div>
+              
+              <%# ファイル情報表示（JavaScript で動的更新） %>
+              <div id="fileInfo" class="alert alert-info d-none">
+                <i class="fas fa-file-alt me-2"></i>
+                <span id="fileName"></span> 
+                (<span id="fileSize"></span>)
+              </div>
+            </div>
+            
+            <%# インポートオプション %>
+            <div class="card bg-light border-warning mb-4">
+              <div class="card-header">
+                <h3 class="card-title mb-0">
+                  <i class="fas fa-cog me-2"></i>インポートオプション
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="form-check">
+                  <%= form.check_box :replace_all, 
+                                     class: "form-check-input",
+                                     id: "replaceAll",
+                                     "aria-describedby": "replaceAllHelp" %>
+                  <%= form.label :replace_all, class: "form-check-label fw-bold text-warning" do %>
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    既存データを全て置き換える
+                  <% end %>
+                  <div id="replaceAllHelp" class="form-text text-danger">
+                    <strong>危険:</strong> この操作により、全ての既存在庫データが削除されます。元に戻すことはできません。
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          <div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">オプション</h3>
-            <div class="bg-gray-50 p-4 rounded-md">
-              <div class="flex items-center">
-                <%= form.check_box :replace_all, class: "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" %>
-                <%= form.label :replace_all, "既存データを全て置き換える（注意: 全ての既存データが削除されます）", class: "ml-2 text-sm text-gray-700" %>
-              </div>
-            </div>
-          </div>
 
-          <div class="flex justify-end space-x-3 pt-5">
-            <%= link_to "キャンセル", admin_inventories_path, class: "py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" %>
-            <%= form.submit "インポート開始", class: "py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500", data: { turbo: false } %>
-          </div>
-        <% end %>
+            <%# アクションボタン %>
+            <div class="d-flex justify-content-end gap-2">
+              <%= link_to admin_inventories_path, class: "btn btn-outline-secondary" do %>
+                <i class="fas fa-times me-2"></i>キャンセル
+              <% end %>
+              <%= form.submit class: "btn btn-success btn-lg", 
+                             data: { turbo: false },
+                             id: "submitBtn" do %>
+                <i class="fas fa-upload me-2"></i>インポート開始
+              <% end %>
+            </div>
+          <% end %>
+        </div>
       </div>
     </div>
 
-    <div>
-      <div class="bg-white rounded-lg shadow overflow-hidden p-6">
-        <h2 class="text-lg font-medium text-gray-900 mb-4">CSVフォーマット</h2>
-        <div class="space-y-4">
-          <p class="text-sm text-gray-600">
+    <%# CSVフォーマット説明 %>
+    <div class="col-lg-4">
+      <%# フォーマット仕様 %>
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-info text-white">
+          <h2 class="card-title mb-0">
+            <i class="fas fa-file-alt me-2"></i>CSVフォーマット仕様
+          </h2>
+        </div>
+        <div class="card-body">
+          <p class="text-muted mb-3">
             以下の形式でCSVファイルを作成してください。1行目はヘッダー行として処理されます。
           </p>
           
-          <div class="overflow-hidden border border-gray-200 rounded-md">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
+          <div class="table-responsive">
+            <table class="table table-striped table-sm">
+              <thead class="table-dark">
                 <tr>
-                  <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">列名</th>
-                  <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">説明</th>
-                  <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">必須</th>
+                  <th scope="col">列名</th>
+                  <th scope="col">説明</th>
+                  <th scope="col">必須</th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
+              <tbody>
                 <tr>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">name</td>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">商品名</td>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">必須</td>
+                  <td><code class="text-primary">name</code></td>
+                  <td>商品名</td>
+                  <td><span class="badge bg-danger">必須</span></td>
                 </tr>
                 <tr>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">quantity</td>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">数量（整数）</td>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">必須</td>
+                  <td><code class="text-primary">quantity</code></td>
+                  <td>数量（整数）</td>
+                  <td><span class="badge bg-danger">必須</span></td>
                 </tr>
                 <tr>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">price</td>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">価格（整数/小数）</td>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">必須</td>
+                  <td><code class="text-primary">price</code></td>
+                  <td>価格（整数/小数）</td>
+                  <td><span class="badge bg-danger">必須</span></td>
                 </tr>
                 <tr>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">status</td>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">ステータス（active/archived）</td>
-                  <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">任意</td>
+                  <td><code class="text-primary">status</code></td>
+                  <td>ステータス（active/archived）</td>
+                  <td><span class="badge bg-secondary">任意</span></td>
                 </tr>
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
 
-          <h3 class="text-sm font-medium text-gray-900">サンプル</h3>
-          <div class="bg-gray-50 p-3 rounded-md">
-            <pre class="text-xs text-gray-600 overflow-x-auto"><%= csv_sample_format %></pre>
+      <%# サンプルCSV %>
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+          <h3 class="card-title mb-0">
+            <i class="fas fa-download me-2"></i>サンプルCSV
+          </h3>
+          <button type="button" class="btn btn-outline-light btn-sm" id="downloadSampleBtn">
+            <i class="fas fa-download me-1"></i>ダウンロード
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="bg-light p-3 rounded">
+            <pre class="mb-0 small text-dark"><%= csv_sample_format %></pre>
           </div>
+        </div>
+      </div>
 
-          <div class="bg-yellow-50 p-3 rounded-md border border-yellow-100">
-            <h3 class="text-sm font-medium text-yellow-800">注意事項</h3>
-            <ul class="mt-2 text-sm text-yellow-700 list-disc pl-5 space-y-1">
-              <li>文字コードはUTF-8を使用してください</li>
-              <li>大量データ（1万行以上）の場合、処理に時間がかかります</li>
-              <li>CSV内でバリデーションエラーがある行はスキップされます</li>
-            </ul>
-          </div>
+      <%# 注意事項 %>
+      <div class="card shadow-sm border-warning">
+        <div class="card-header bg-warning text-dark">
+          <h3 class="card-title mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>注意事項
+          </h3>
+        </div>
+        <div class="card-body">
+          <ul class="list-unstyled mb-0">
+            <li class="mb-2">
+              <i class="fas fa-check-circle text-success me-2"></i>
+              文字コードは<strong>UTF-8</strong>を使用してください
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-clock text-warning me-2"></i>
+              大量データ（1万行以上）の場合、処理に時間がかかります
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-skip-forward text-info me-2"></i>
+              バリデーションエラーがある行はスキップされます
+            </li>
+            <li class="mb-0">
+              <i class="fas fa-shield-alt text-primary me-2"></i>
+              インポート中は他の操作を行わないでください
+            </li>
+          </ul>
         </div>
       </div>
     </div>
   </div>
-</div> 
+</div>
+
+<%# Enhanced JavaScript for file upload UX %>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fileInput = document.getElementById('csvFile');
+  const fileInfo = document.getElementById('fileInfo');
+  const fileName = document.getElementById('fileName');
+  const fileSize = document.getElementById('fileSize');
+  const submitBtn = document.getElementById('submitBtn');
+  const uploadZone = document.querySelector('.upload-zone');
+  const downloadSampleBtn = document.getElementById('downloadSampleBtn');
+
+  // ファイル選択時の情報表示
+  fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      fileName.textContent = file.name;
+      fileSize.textContent = formatFileSize(file.size);
+      fileInfo.classList.remove('d-none');
+      
+      // ファイルサイズチェック（10MB）
+      if (file.size > 10 * 1024 * 1024) {
+        fileInfo.className = 'alert alert-danger';
+        fileInfo.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>
+          ファイルサイズが大きすぎます（最大: 10MB）`;
+        submitBtn.disabled = true;
+      } else {
+        fileInfo.className = 'alert alert-success';
+        submitBtn.disabled = false;
+      }
+    }
+  });
+
+  // ドラッグ&ドロップ対応
+  uploadZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    uploadZone.classList.add('border-primary', 'bg-light');
+  });
+
+  uploadZone.addEventListener('dragleave', function(e) {
+    e.preventDefault();
+    uploadZone.classList.remove('border-primary', 'bg-light');
+  });
+
+  uploadZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    uploadZone.classList.remove('border-primary', 'bg-light');
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      fileInput.files = files;
+      fileInput.dispatchEvent(new Event('change'));
+    }
+  });
+
+  // サンプルCSVダウンロード
+  downloadSampleBtn.addEventListener('click', function() {
+    const csvContent = '<%= csv_sample_format.gsub(/\n/, "\\n") %>';
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'inventory_sample.csv';
+    link.click();
+  });
+
+  // ファイルサイズフォーマット
+  function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  // フォーム送信時の確認
+  document.querySelector('form').addEventListener('submit', function(e) {
+    const replaceAll = document.getElementById('replaceAll').checked;
+    
+    if (replaceAll) {
+      if (!confirm('既存の全データが削除されます。本当に実行しますか？')) {
+        e.preventDefault();
+        return false;
+      }
+    }
+    
+    // 送信中のUI変更
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>処理中...';
+    submitBtn.disabled = true;
+  });
+});
+</script> 

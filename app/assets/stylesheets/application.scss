@@ -1,0 +1,203 @@
+// Bootstrap 5カスタマイズ設定
+
+// カスタム変数（Bootstrap変数をインポート前にオーバーライド）
+$primary: #3498db;
+$secondary: #6c757d;
+$success: #28a745;
+$danger: #dc3545;
+$warning: #ffc107;
+$info: #17a2b8;
+$light: #f8f9fa;
+$dark: #343a40;
+
+// カスタムカラー
+$admin-primary: #2c3e50;
+$admin-secondary: #34495e;
+$admin-accent: #3498db;
+$admin-background: #f5f7fa;
+
+// Bootstrap設定をインポート
+@import "bootstrap";
+
+// CSS変数として追加定義
+:root {
+  --admin-primary: #{$admin-primary};
+  --admin-secondary: #{$admin-secondary};
+  --admin-accent: #{$admin-accent};
+  --admin-background: #{$admin-background};
+}
+
+// ベーススタイル
+body {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--admin-background);
+  color: #333;
+}
+
+// カスタムBootstrapクラス拡張
+.bg-admin-primary {
+  background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-secondary) 100%) !important;
+}
+
+.btn-admin {
+  background-color: var(--admin-accent);
+  border-color: var(--admin-accent);
+  color: white;
+  
+  &:hover {
+    background-color: #2980b9;
+    border-color: #2980b9;
+    color: white;
+  }
+}
+
+.btn-github {
+  background-color: #24292e;
+  border-color: #24292e;
+  color: white;
+  
+  &:hover {
+    background-color: #1a1e23;
+    border-color: #1a1e23;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(36, 41, 46, 0.3);
+  }
+}
+
+// カード要素のスタイル強化
+.card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// GitHub認証ボタン専用スタイル
+.github-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.github-icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+// ナビゲーション強化
+.navbar-admin {
+  background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-secondary) 100%);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.navbar-brand {
+  font-weight: bold;
+  color: white !important;
+  
+  &:hover {
+    color: var(--admin-accent) !important;
+  }
+}
+
+// フォーム要素の強化
+.form-control {
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  transition: all 0.3s ease;
+  
+  &:focus {
+    border-color: var(--admin-accent);
+    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+  }
+}
+
+// アラート・フラッシュメッセージ
+.alert {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+// ダッシュボードカード
+.dashboard-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  transition: all 0.3s ease;
+  border: 1px solid #e9ecef;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// アイコンスタイル
+.icon-lg {
+  font-size: 2.5rem;
+  opacity: 0.8;
+}
+
+// HR テキスト区切り線
+.hr-text {
+  position: relative;
+  border: none;
+  height: 1px;
+  background: #dee2e6;
+  margin: 1rem 0;
+  
+  &::before {
+    content: attr(data-content);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 0 1rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+  }
+}
+
+// GitHub icon helper (SVGアイコン用)
+.github-icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+// レスポンシブ調整
+@media (max-width: 768px) {
+  .github-login-btn {
+    font-size: 0.9rem;
+    padding: 0.65rem 1rem;
+  }
+  
+  .github-icon {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .navbar-nav {
+    text-align: center;
+  }
+}
+
+// TODO: 🟢 Phase 4（推奨）- 他ソーシャルログインボタン用スタイル
+// 優先度: 低（GitHub認証が安定してから）
+// 実装内容: Google、Twitter、Microsoft等のブランドカラー対応
+// 理由: 統一されたソーシャルログインUI、ブランド識別性向上
+// 期待効果: ユーザー認識の向上、選択しやすいUI
+// 工数見積: 各プロバイダー30分
+// 依存関係: 各ソーシャルログインプロバイダー実装後

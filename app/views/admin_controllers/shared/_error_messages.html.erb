@@ -1,15 +1,44 @@
+<%# Bootstrap 5 エラーメッセージコンポーネント - StockRx 管理者認証 %>
 <% if resource.errors.any? %>
-  <div id="error_explanation" class="admin-error-messages">
-    <h2>
-      <%= I18n.t("errors.messages.not_saved",
-                 count: resource.errors.count,
-                 resource: resource.class.model_name.human.downcase)
-       %>
-    </h2>
-    <ul>
-      <% resource.errors.full_messages.each do |message| %>
-        <li><%= message %></li>
-      <% end %>
-    </ul>
+  <div id="error_explanation" class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+    <div class="d-flex align-items-start">
+      <div class="me-3">
+        <i class="fas fa-exclamation-triangle fa-lg"></i>
+      </div>
+      <div class="flex-grow-1">
+        <h6 class="alert-heading mb-2 fw-bold">
+          <% if resource.errors.count == 1 %>
+            入力内容にエラーがあります
+          <% else %>
+            入力内容に <%= resource.errors.count %> 件のエラーがあります
+          <% end %>
+        </h6>
+        
+        <% if resource.errors.count == 1 %>
+          <%# 単一エラーの場合はシンプル表示 %>
+          <p class="mb-0">
+            <%= resource.errors.full_messages.first %>
+          </p>
+        <% else %>
+          <%# 複数エラーの場合はリスト表示 %>
+          <ul class="mb-0 ps-3">
+            <% resource.errors.full_messages.each do |message| %>
+              <li class="mb-1"><%= message %></li>
+            <% end %>
+          </ul>
+        <% end %>
+      </div>
+    </div>
+    
+    <%# 閉じるボタン %>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="エラーメッセージを閉じる"></button>
   </div>
+
+  <%# TODO: 🟡 Phase 2 - 具体的なエラー解決ガイド %>
+  <%# 優先度: 中（ユーザビリティ向上） %>
+  <%# 実装内容: エラータイプ別の解決方法ヒント表示 %>
+  <%# 理由: ユーザーの自己解決能力向上 %>
+  <%# 期待効果: サポート問い合わせ削減、ユーザー満足度向上 %>
+  <%# 工数見積: 2日 %>
+  <%# 依存関係: 国際化ファイルの拡充 %>
 <% end %> 
