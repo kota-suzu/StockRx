@@ -1,120 +1,173 @@
-<div class="admin-dashboard">
-  <div class="dashboard-header">
-    <h1>管理者ダッシュボード</h1>
-    <div class="dashboard-welcome">
-      <p class="welcome-text">ようこそ、<strong><%= current_admin.email %></strong> さん</p>
-      <p class="last-login">最終ログイン: <%= l(current_admin.last_sign_in_at, format: :long) if current_admin.last_sign_in_at.present? %></p>
-    </div>
-  </div>
-
-  <!-- クイックアクション -->
-  <div class="quick-actions">
-    <h2>クイックアクション</h2>
-    <div class="action-grid">
-      <%= link_to admin_inventories_path, class: "action-card" do %>
-        <div class="action-icon">📦</div>
-        <h3>在庫管理</h3>
-        <p>商品の登録・編集・削除</p>
-      <% end %>
-
-      <%= link_to admin_inventories_path(tab: "import"), class: "action-card" do %>
-        <div class="action-icon">📊</div>
-        <h3>CSVインポート</h3>
-        <p>一括で在庫データを登録</p>
-      <% end %>
-
-      <%= link_to inventory_logs_path, class: "action-card" do %>
-        <div class="action-icon">📋</div>
-        <h3>在庫履歴</h3>
-        <p>入出庫履歴の確認</p>
-      <% end %>
-
-      <%= link_to "/admin/sidekiq", class: "action-card", target: "_blank" do %>
-        <div class="action-icon">⚙️</div>
-        <h3>ジョブ監視</h3>
-        <p>バックグラウンド処理の状況</p>
-      <% end %>
-    </div>
-  </div>
-
-  <!-- 統計情報 -->
-  <div class="dashboard-stats">
-    <h2>システム統計</h2>
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">📦</div>
-        <div class="stat-content">
-          <p class="big-number"><%= Inventory.count %></p>
-          <p class="description">総商品数</p>
-        </div>
+<!-- Dashboard Header -->
+<div class="dashboard-card mb-4">
+  <div class="card-body">
+    <div class="row align-items-center">
+      <div class="col-md-8">
+        <h1 class="h2 mb-1">管理者ダッシュボード</h1>
+        <p class="text-muted mb-0">ようこそ、<strong><%= current_admin.email %></strong> さん</p>
       </div>
-
-      <div class="stat-card">
-        <div class="stat-icon">⚠️</div>
-        <div class="stat-content">
-          <p class="big-number"><%= Inventory.low_stock.count %></p>
-          <p class="description">在庫アラート</p>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon">📈</div>
-        <div class="stat-content">
-          <p class="big-number"><%= InventoryLog.where(created_at: Date.current.beginning_of_day..Date.current.end_of_day).count %></p>
-          <p class="description">本日の操作</p>
-        </div>
-      </div>
-
-      <div class="stat-card">
-        <div class="stat-icon">💰</div>
-        <div class="stat-content">
-          <p class="big-number">¥<%= number_with_delimiter(Inventory.sum('quantity * price')) %></p>
-          <p class="description">総在庫金額</p>
-        </div>
+      <div class="col-md-4 text-md-end">
+        <small class="text-muted">
+          最終ログイン: <%= l(current_admin.last_sign_in_at, format: :long) if current_admin.last_sign_in_at.present? %>
+        </small>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- 最近のアクティビティ -->
-  <div class="dashboard-activity">
-    <h2>最近のアクティビティ</h2>
-    <div class="activity-content">
-      <% recent_logs = InventoryLog.includes(:inventory).order(created_at: :desc).limit(5) %>
-      <% if recent_logs.any? %>
-        <div class="activity-list">
-          <% recent_logs.each do |log| %>
-            <div class="activity-item">
-              <div class="activity-icon">
-                <%= case log.operation_type
-                    when 'create' then '➕'
-                    when 'update' then '✏️'
-                    when 'delete' then '🗑️'
-                    when 'import' then '📥'
-                    else '📝'
-                    end %>
-              </div>
-              <div class="activity-details">
-                <p class="activity-text">
-                  <strong><%= log.inventory&.name || '削除済み商品' %></strong>
-                  - <%= log.operation_type == 'create' ? '新規登録' : 
-                         log.operation_type == 'update' ? '更新' :
-                         log.operation_type == 'delete' ? '削除' :
-                         log.operation_type == 'import' ? 'インポート' : log.operation_type %>
-                </p>
-                <p class="activity-time"><%= time_ago_in_words(log.created_at) %>前</p>
-              </div>
-            </div>
-          <% end %>
+<!-- クイックアクション -->
+<div class="row mb-4">
+  <div class="col-12">
+    <h3 class="mb-3">クイックアクション</h3>
+  </div>
+  <div class="col-md-6 col-lg-3 mb-3">
+    <%= link_to admin_inventories_path, class: "dashboard-card text-decoration-none h-100" do %>
+      <div class="card-body text-center">
+        <div class="icon-lg mb-3">📦</div>
+        <h5 class="card-title">在庫管理</h5>
+        <p class="card-text text-muted">商品の登録・編集・削除</p>
+      </div>
+    <% end %>
+  </div>
+  
+  <div class="col-md-6 col-lg-3 mb-3">
+    <%= link_to admin_inventories_path(tab: "import"), class: "dashboard-card text-decoration-none h-100" do %>
+      <div class="card-body text-center">
+        <div class="icon-lg mb-3">📊</div>
+        <h5 class="card-title">CSVインポート</h5>
+        <p class="card-text text-muted">一括で在庫データを登録</p>
+      </div>
+    <% end %>
+  </div>
+  
+  <div class="col-md-6 col-lg-3 mb-3">
+    <%= link_to inventory_logs_path, class: "dashboard-card text-decoration-none h-100" do %>
+      <div class="card-body text-center">
+        <div class="icon-lg mb-3">📋</div>
+        <h5 class="card-title">在庫履歴</h5>
+        <p class="card-text text-muted">入出庫履歴の確認</p>
+      </div>
+    <% end %>
+  </div>
+  
+  <div class="col-md-6 col-lg-3 mb-3">
+    <%= link_to "/admin/sidekiq", class: "dashboard-card text-decoration-none h-100", target: "_blank" do %>
+      <div class="card-body text-center">
+        <div class="icon-lg mb-3">⚙️</div>
+        <h5 class="card-title">ジョブ監視</h5>
+        <p class="card-text text-muted">バックグラウンド処理の状況</p>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<!-- 統計情報 -->
+<div class="row mb-4">
+  <div class="col-12">
+    <h3 class="mb-3">システム統計</h3>
+  </div>
+  <div class="col-md-6 col-lg-3 mb-3">
+    <div class="dashboard-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="icon-lg me-3">📦</div>
+          <div>
+            <h3 class="text-primary mb-0"><%= Inventory.count %></h3>
+            <p class="text-muted mb-0">総商品数</p>
+          </div>
         </div>
-        <div class="activity-footer">
-          <%= link_to "すべての履歴を見る", inventory_logs_path, class: "btn btn-outline" %>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6 col-lg-3 mb-3">
+    <div class="dashboard-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="icon-lg me-3">⚠️</div>
+          <div>
+            <h3 class="text-warning mb-0"><%= Inventory.low_stock.count %></h3>
+            <p class="text-muted mb-0">在庫アラート</p>
+          </div>
         </div>
-      <% else %>
-        <div class="no-activity">
-          <p>まだアクティビティがありません。</p>
-          <p>在庫管理を開始して、システムを活用しましょう。</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6 col-lg-3 mb-3">
+    <div class="dashboard-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="icon-lg me-3">📈</div>
+          <div>
+            <h3 class="text-success mb-0"><%= InventoryLog.where(created_at: Date.current.beginning_of_day..Date.current.end_of_day).count %></h3>
+            <p class="text-muted mb-0">本日の操作</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-6 col-lg-3 mb-3">
+    <div class="dashboard-card">
+      <div class="card-body">
+        <div class="d-flex align-items-center">
+          <div class="icon-lg me-3">💰</div>
+          <div>
+            <h3 class="text-info mb-0">¥<%= number_with_delimiter(Inventory.sum('quantity * price')) %></h3>
+            <p class="text-muted mb-0">総在庫金額</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 最近のアクティビティ -->
+<div class="dashboard-card">
+  <div class="card-header">
+    <h3 class="mb-0">最近のアクティビティ</h3>
+  </div>
+  <div class="card-body">
+    <% recent_logs = InventoryLog.includes(:inventory).order(created_at: :desc).limit(5) %>
+    <% if recent_logs.any? %>
+      <% recent_logs.each_with_index do |log, index| %>
+        <div class="d-flex align-items-center <%= 'border-bottom pb-3 mb-3' if index < recent_logs.length - 1 %>">
+          <div class="me-3">
+            <span class="badge rounded-pill fs-6">
+              <%= case log.operation_type
+                  when 'create' then '➕'
+                  when 'update' then '✏️'
+                  when 'delete' then '🗑️'
+                  when 'import' then '📥'
+                  else '📝'
+                  end %>
+            </span>
+          </div>
+          <div class="flex-grow-1">
+            <h6 class="mb-1">
+              <strong><%= log.inventory&.name || '削除済み商品' %></strong>
+              - <%= log.operation_type == 'create' ? '新規登録' : 
+                     log.operation_type == 'update' ? '更新' :
+                     log.operation_type == 'delete' ? '削除' :
+                     log.operation_type == 'import' ? 'インポート' : log.operation_type %>
+            </h6>
+            <small class="text-muted"><%= time_ago_in_words(log.created_at) %>前</small>
+          </div>
         </div>
       <% end %>
-    </div>
+      <div class="text-center mt-3">
+        <%= link_to "すべての履歴を見る", inventory_logs_path, class: "btn btn-outline-primary" %>
+      </div>
+    <% else %>
+      <div class="text-center py-5">
+        <div class="mb-3">
+          <span style="font-size: 3rem;">📝</span>
+        </div>
+        <h5 class="text-muted">まだアクティビティがありません</h5>
+        <p class="text-muted">在庫管理を開始して、システムを活用しましょう。</p>
+        <%= link_to "在庫管理を開始", admin_inventories_path, class: "btn btn-admin" %>
+      </div>
+    <% end %>
   </div>
 </div> 

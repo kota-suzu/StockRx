@@ -1,32 +1,55 @@
-<div class="admin-login-container">
-  <h2>管理者ログイン</h2>
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-4">
+    <div class="card shadow-lg border-0 rounded-4">
+      <div class="card-body p-5">
+        <div class="text-center mb-4">
+          <h2 class="card-title mb-1">管理者ログイン</h2>
+          <p class="text-muted">StockRx管理パネルにアクセス</p>
+        </div>
 
-  <%= form_for(resource, as: resource_name, url: session_path(resource_name), data: { turbo: false }) do |f| %>
-    <div class="field">
-      <%= f.label :email, "メールアドレス" %><br />
-      <%= f.email_field :email, autofocus: true, autocomplete: "email" %>
-    </div>
+        <%= form_for(resource, as: resource_name, url: session_path(resource_name), data: { turbo: false }) do |f| %>
+          <div class="mb-3">
+            <%= f.label :email, "メールアドレス", class: "form-label" %>
+            <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "form-control form-control-lg", placeholder: "admin@example.com" %>
+          </div>
 
-    <div class="field">
-      <%= f.label :password, "パスワード" %><br />
-      <%= f.password_field :password, autocomplete: "current-password" %>
-    </div>
+          <div class="mb-3">
+            <%= f.label :password, "パスワード", class: "form-label" %>
+            <%= f.password_field :password, autocomplete: "current-password", class: "form-control form-control-lg", placeholder: "パスワードを入力" %>
+          </div>
 
-    <% if devise_mapping.rememberable? %>
-      <div class="field remember-me">
-        <%= f.check_box :remember_me %>
-        <%= f.label :remember_me, "ログイン状態を保持する" %>
+          <% if devise_mapping.rememberable? %>
+            <div class="mb-3 form-check">
+              <%= f.check_box :remember_me, class: "form-check-input" %>
+              <%= f.label :remember_me, "ログイン状態を保持する", class: "form-check-label" %>
+            </div>
+          <% end %>
+
+          <div class="d-grid mb-3">
+            <%= f.submit "ログイン", class: "btn btn-admin btn-lg" %>
+          </div>
+        <% end %>
+
+        <!-- GitHub ソーシャルログイン -->
+        <div class="text-center my-3">
+          <hr class="hr-text" data-content="または">
+        </div>
+        
+        <div class="d-grid">
+          <%= link_to admin_github_omniauth_authorize_path, 
+                      method: :post,
+                      class: "btn btn-github btn-lg github-login-btn",
+                      data: { turbo: false } do %>
+            <%= github_icon %>
+            GitHubでログイン
+          <% end %>
+        </div>
+
+        <div class="text-center mt-4">
+          <%= render "admins/shared/links" %>
+        </div>
       </div>
-    <% end %>
-
-    <div class="actions">
-      <%= f.submit "ログイン" %>
     </div>
-  <% end %>
-
-  <!-- GitHub ソーシャルログイン -->
-  <div class="social-login-divider">
-    <span>または</span>
   </div>
   
   <div class="social-login-section">

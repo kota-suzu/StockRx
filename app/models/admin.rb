@@ -63,7 +63,7 @@ class Admin < ApplicationRecord
   # 新規管理者をOAuthデータから作成
   def self.create_new_admin_from_oauth(auth)
     generated_password = Devise.friendly_token[0, 20]
-    
+
     admin = new(
       provider: auth.provider,
       uid: auth.uid,
