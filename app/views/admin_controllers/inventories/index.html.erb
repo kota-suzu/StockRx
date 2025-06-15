@@ -320,9 +320,15 @@
       <% end %>
     </div>
 
-    <%# ページネーション（必要に応じて） %>
-    <% if @inventories.respond_to?(:total_pages) %>
-      <div class="d-flex justify-content-center">
+    <%# ページネーション %>
+    <% if @inventories.respond_to?(:current_page) && @inventories.total_pages > 1 %>
+      <div class="d-flex justify-content-center align-items-center mt-4">
+        <div class="me-3">
+          <small class="text-muted">
+            <%= @inventories.total_count %>件中 
+            <%= @inventories.offset_value + 1 %>-<%= [@inventories.offset_value + @inventories.limit_value, @inventories.total_count].min %>件を表示
+          </small>
+        </div>
         <%= paginate @inventories %>
       </div>
     <% end %>
