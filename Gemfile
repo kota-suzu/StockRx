@@ -93,6 +93,11 @@ gem "devise", "~> 4.9"            # Rails 7.1 / Hotwire 対応版
 gem "devise-security", "~> 0.18"  # パスワード期限、強度検証機能など
 gem "devise-i18n", "~> 1.12"      # 日本語対応
 
+# OAuth認証（ソーシャルログイン）
+gem "omniauth", "~> 2.1"          # OAuth認証フレームワーク
+gem "omniauth-github", "~> 2.0"   # GitHub OAuth戦略
+gem "omniauth-rails_csrf_protection", "~> 1.0"  # CSRF保護
+
 # TODO: システム拡張時に必要に応じて有効化
 # gem "devise-two-factor", "~> 5.1"  # 2要素認証（TOTP）
 # gem "pagy", "~> 6.2"               # ページネーション

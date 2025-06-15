@@ -566,4 +566,98 @@
     padding: 1rem;
     flex-direction: column;
   }
-} 
+}
+
+/* GitHub ソーシャルログイン */
+.social-login-divider {
+  text-align: center;
+  margin: 2rem 0 1.5rem 0;
+  position: relative;
+}
+
+.social-login-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: #ddd;
+  z-index: 1;
+}
+
+.social-login-divider span {
+  background-color: white;
+  padding: 0 1rem;
+  color: #6c757d;
+  font-size: 0.9rem;
+  position: relative;
+  z-index: 2;
+}
+
+.social-login-section {
+  margin-bottom: 1.5rem;
+}
+
+.github-login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #24292e;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: 2px solid #24292e;
+  gap: 0.75rem;
+}
+
+.github-login-btn:hover {
+  background-color: #1a1e23;
+  border-color: #1a1e23;
+  color: white;
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(36, 41, 46, 0.3);
+}
+
+.github-login-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(36, 41, 46, 0.3);
+}
+
+.github-icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  flex-shrink: 0;
+}
+
+/* TODO: 🟢 Phase 4（推奨）- 他ソーシャルログインボタン用スタイル */
+/* 優先度: 低（GitHub認証が安定してから）
+   実装内容: Google、Twitter、Microsoft等のブランドカラー対応
+   理由: 統一されたソーシャルログインUI、ブランド識別性向上
+   期待効果: ユーザー認識の向上、選択しやすいUI
+   工数見積: 各プロバイダー30分
+   依存関係: 各ソーシャルログインプロバイダー実装後 */
+
+/* レスポンシブ対応 */
+@media (max-width: 480px) {
+  .github-login-btn {
+    font-size: 0.9rem;
+    padding: 0.65rem;
+  }
+  
+  .github-icon {
+    width: 18px;
+    height: 18px;
+  }
+  
+  .social-login-divider {
+    margin: 1.5rem 0 1rem 0;
+  }
+}

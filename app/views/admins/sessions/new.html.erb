@@ -24,5 +24,20 @@
     </div>
   <% end %>
 
+  <!-- GitHub ソーシャルログイン -->
+  <div class="social-login-divider">
+    <span>または</span>
+  </div>
+  
+  <div class="social-login-section">
+    <%= link_to admin_github_omniauth_authorize_path, 
+                method: :post,
+                class: "github-login-btn",
+                data: { turbo: false } do %>
+      <%= github_icon %>
+      GitHubでログイン
+    <% end %>
+  </div>
+
   <%= render "admins/shared/links" %>
 </div> 

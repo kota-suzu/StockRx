@@ -93,6 +93,24 @@ Devise.setup do |config|
   # config.router_name = :my_engine
   # config.omniauth_path_prefix = '/my_engine/users/auth'
 
+  # ==> OmniAuth Configuration
+  # GitHubソーシャルログイン設定
+  config.omniauth :github,
+                  Rails.application.credentials.dig(:github, :client_id),
+                  Rails.application.credentials.dig(:github, :client_secret),
+                  scope: "user:email"
+
+  # TODO: 🟢 Phase 4（推奨）- 他のソーシャルログインプロバイダー追加
+  # 優先度: 低（GitHub認証が安定してから）
+  # 実装内容: Google、Twitter、Microsoft等の認証プロバイダー追加
+  # 理由: ユーザーの利便性向上、認証選択肢の拡充
+  # 期待効果: 多様な認証手段による利用率向上
+  # 工数見積: 各プロバイダー1-2日
+  # 依存関係: GitHubソーシャルログイン機能完成後
+  # config.omniauth :google_oauth2,
+  #                 Rails.application.credentials.dig(:google, :client_id),
+  #                 Rails.application.credentials.dig(:google, :client_secret)
+
   # ==> Security Extension
   # パスワード強度検証を有効化
   config.password_complexity = { digit: 1, lower: 1, upper: 1, symbol: 1 }
