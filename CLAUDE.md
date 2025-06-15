@@ -407,6 +407,102 @@ IMPORTANT: パフォーマンスへの影響を考慮
 IMPORTANT: 後方互換性を維持
 IMPORTANT: セキュリティベストプラクティスに従う
 
+## GitHub OAuth App設定手順
+
+### 1. GitHub OAuth App作成
+
+1. **GitHubにログイン**し、Settings → Developer settings → OAuth Apps に移動
+2. **New OAuth App** をクリック
+3. **Application information** を入力：
+   ```
+   Application name: StockRx Admin Panel
+   Homepage URL: http://localhost:3000  (開発環境)
+                 https://your-domain.com  (本番環境)
+   Application description: StockRx inventory management system admin authentication
+   Authorization callback URL: http://localhost:3000/admin/auth/github/callback  (開発環境)
+                               https://your-domain.com/admin/auth/github/callback  (本番環境)
+   ```
+
+### 2. クライアント情報の取得
+
+1. **Client ID** と **Client Secret** をコピー
+2. **Client Secret** は一度しか表示されないため、安全な場所に保存
+
+### 3. Rails Credentials設定
+
+```bash
+# credentials.ymlを編集
+EDITOR=nano rails credentials:edit
+```
+
+以下の設定を追加：
+```yaml
+github:
+  client_id: "YOUR_GITHUB_CLIENT_ID"
+  client_secret: "YOUR_GITHUB_CLIENT_SECRET"
+```
+
+### 4. 環境変数設定（代替方法）
+
+credentials.ymlの代わりに環境変数を使用する場合：
+
+```bash
+# .env ファイル（開発環境のみ、Gitには含めない）
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+```
+
+config/initializers/devise.rb の設定を変更：
+```ruby
+config.omniauth :github,
+                ENV['GITHUB_CLIENT_ID'],
+                ENV['GITHUB_CLIENT_SECRET'],
+                scope: "user:email"
+```
+
+### 5. 本番環境設定
+
+**本番環境での追加設定**：
+1. HTTPS必須（OAuth仕様上の要件）
+2. 適切なCallback URLの設定
+3. セキュリティヘッダーの設定（CSP、HSTS等）
+
+### 6. セキュリティ考慮事項
+
+- **Client Secret** は絶対にGitリポジトリにコミットしない
+- 開発環境と本番環境で異なるOAuth Appを使用する
+- 定期的にClient Secretをローテーションする
+- OAuth スコープは必要最小限に設定（user:email のみ）
+
+### 7. トラブルシューティング
+
+#### 一般的な問題と解決方法：
+
+1. **Callback URL mismatch**
+   - GitHub OAuth App設定のCallback URLとRailsの設定が一致していることを確認
+   - localhost vs 127.0.0.1 の違いに注意
+
+2. **Client ID/Secret設定エラー**
+   ```bash
+   # credentials.ymlの内容確認
+   rails credentials:show
+   
+   # Rails console で設定確認
+   rails console
+   > Rails.application.credentials.dig(:github, :client_id)
+   ```
+
+3. **CSRF エラー**
+   - omniauth-rails_csrf_protection gem が正しくインストールされていることを確認
+   - ログインボタンで data: { turbo: false } が設定されていることを確認
+
+### 8. テスト手順
+
+1. **開発サーバー起動**: `make up` または `docker-compose up`
+2. **ログインページアクセス**: http://localhost:3000/admin/sign_in
+3. **GitHub認証テスト**: 「GitHubでログイン」ボタンをクリック
+4. **認証フロー確認**: GitHub認証後、管理者ダッシュボードにリダイレクトされることを確認
+
 # StockRx 開発ログ
 
 ## 最新の修正作業（メタ認知的アプローチ）
