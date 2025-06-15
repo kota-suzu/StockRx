@@ -44,8 +44,8 @@ module AdminControllers
     def failure
       redirect_to new_admin_session_path, alert: "GitHub認証に失敗しました。再度お試しください。"
 
-      # セキュリティログ記録
-      Rails.logger.warn "OAuth authentication failed: #{failure_message}"
+      # セキュリティログ記録（機密情報を含む詳細は除外）
+      Rails.logger.warn "OAuth authentication failed - Error type: #{failure_error_type}"
 
       # TODO: 🟡 Phase 3（中）- OAuth失敗理由の詳細分析・ユーザー案内
       # 優先度: 中（ユーザー体験向上）
@@ -73,6 +73,21 @@ module AdminControllers
     # OAuth失敗理由を取得
     def failure_message
       request.env["omniauth.error"] || "Unknown error"
+    end
+
+    # セキュリティログ用の安全なエラータイプ識別子を取得
+    def failure_error_type
+      error = request.env["omniauth.error"]
+      case error&.class&.name
+      when "OmniAuth::Strategies::OAuth2::CallbackError"
+        "callback_error"
+      when "OAuth2::Error"
+        "oauth2_error" 
+      when "Timeout::Error"
+        "timeout_error"
+      else
+        "unknown_error"
+      end
     end
   end
 end

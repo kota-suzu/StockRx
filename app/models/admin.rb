@@ -25,47 +25,13 @@ class Admin < ApplicationRecord
   # GitHubソーシャルログイン用のクラスメソッド
   # OmniAuthプロバイダーから返される認証情報を処理
   def self.from_omniauth(auth)
-    # 既存の管理者を provider + uid で検索
     admin = find_by(provider: auth.provider, uid: auth.uid)
 
     if admin
-      # 既存管理者の場合、GitHubの最新情報で更新
-      admin.update(
-        email: auth.info.email,
-        sign_in_count: admin.sign_in_count + 1,
-        last_sign_in_at: Time.current,
-        current_sign_in_at: Time.current,
-        last_sign_in_ip: admin.current_sign_in_ip,
-        current_sign_in_ip: auth.extra.raw_info.ip || "127.0.0.1"
-      )
+      update_existing_admin(admin, auth)
     else
-      # 新規管理者の場合、GitHubアカウント情報から作成
-      admin = new(
-        provider: auth.provider,
-        uid: auth.uid,
-        email: auth.info.email,
-        # OAuthユーザーはパスワード認証不要のため、ランダムパスワード設定
-        password: Devise.friendly_token[0, 20],
-        password_confirmation: Devise.friendly_token[0, 20],
-        # トラッキング情報の初期設定
-        sign_in_count: 1,
-        current_sign_in_at: Time.current,
-        last_sign_in_at: Time.current,
-        current_sign_in_ip: auth.extra&.raw_info&.ip || "127.0.0.1"
-      )
-
-      # TODO: 🟡 Phase 3（中）- GitHub管理者の自動承認・権限設定
-      # 優先度: 中（セキュリティ要件による）
-      # 実装内容: 新規GitHub管理者の自動承認可否、デフォルト権限設定
-      # 理由: セキュリティと利便性のバランス、組織のポリシー対応
-      # 期待効果: 適切な権限管理による安全な管理者追加
-      # 工数見積: 1日
-      # 依存関係: 管理者権限レベル機能の設計
-
-      admin.save
+      create_new_admin_from_oauth(auth)
     end
-
-    admin
   end
 
   # TODO: 認証・認可関連機能
@@ -80,6 +46,54 @@ class Admin < ApplicationRecord
   #    - QRコード生成とTOTPワンタイムパスワード
 
   private
+
+  # 既存管理者の情報をOAuthデータで更新
+  def self.update_existing_admin(admin, auth)
+    admin.update(
+      email: auth.info.email,
+      sign_in_count: admin.sign_in_count + 1,
+      last_sign_in_at: Time.current,
+      current_sign_in_at: Time.current,
+      last_sign_in_ip: admin.current_sign_in_ip,
+      current_sign_in_ip: extract_ip_address(auth)
+    )
+    admin
+  end
+
+  # 新規管理者をOAuthデータから作成
+  def self.create_new_admin_from_oauth(auth)
+    generated_password = Devise.friendly_token[0, 20]
+    
+    admin = new(
+      provider: auth.provider,
+      uid: auth.uid,
+      email: auth.info.email,
+      # OAuthユーザーはパスワード認証不要のため、ランダムパスワード設定
+      password: generated_password,
+      password_confirmation: generated_password,
+      # トラッキング情報の初期設定
+      sign_in_count: 1,
+      current_sign_in_at: Time.current,
+      last_sign_in_at: Time.current,
+      current_sign_in_ip: extract_ip_address(auth)
+    )
+
+    # TODO: 🟡 Phase 3（中）- GitHub管理者の自動承認・権限設定
+    # 優先度: 中（セキュリティ要件による）
+    # 実装内容: 新規GitHub管理者の自動承認可否、デフォルト権限設定
+    # 理由: セキュリティと利便性のバランス、組織のポリシー対応
+    # 期待効果: 適切な権限管理による安全な管理者追加
+    # 工数見積: 1日
+    # 依存関係: 管理者権限レベル機能の設計
+
+    admin.save
+    admin
+  end
+
+  # OAuthデータから安全にIPアドレスを取得
+  def self.extract_ip_address(auth)
+    auth.extra&.raw_info&.ip || "127.0.0.1"
+  end
 
   # パスワードが必要なケースかどうかを判定
   # Devise内部の同名メソッドをオーバーライド
