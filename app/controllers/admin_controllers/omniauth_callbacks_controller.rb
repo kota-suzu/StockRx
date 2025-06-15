@@ -7,16 +7,16 @@ module AdminControllers
 
     # CSRF保護: omniauth-rails_csrf_protection gemにより自動対応
     # skip_before_action :verify_authenticity_token は不要
-    
+
     # GitHubからのOAuth callback処理
     def github
       @admin = Admin.from_omniauth(request.env["omniauth.auth"])
-      
+
       if @admin.persisted?
         # GitHub認証成功: ログイン処理とリダイレクト
         sign_in_and_redirect @admin, event: :authentication
         set_flash_message(:notice, :success, kind: "GitHub") if is_navigational_format?
-        
+
         # TODO: 🟢 Phase 4（推奨）- ログイン通知機能
         # 優先度: 低（セキュリティ強化時）
         # 実装内容: 新規GitHubログイン時のメール・Slack通知
@@ -24,12 +24,12 @@ module AdminControllers
         # 期待効果: セキュリティインシデントの予防・早期対応
         # 工数見積: 1-2日
         # 依存関係: メール送信機能、Slack API統合
-        
+
       else
         # GitHub認証失敗: エラーメッセージと再ログイン画面
         session["devise.github_data"] = request.env["omniauth.auth"].except(:extra)
         redirect_to new_admin_session_path, alert: @admin.errors.full_messages.join("\n")
-        
+
         # TODO: 🟡 Phase 3（中）- OAuth認証失敗のログ記録・監視
         # 優先度: 中（セキュリティ監視強化）
         # 実装内容: 認証失敗ログの構造化記録、異常パターン検知
@@ -43,10 +43,10 @@ module AdminControllers
     # OAuth認証エラー時の処理（GitHub側でキャンセル等）
     def failure
       redirect_to new_admin_session_path, alert: "GitHub認証に失敗しました。再度お試しください。"
-      
+
       # セキュリティログ記録
       Rails.logger.warn "OAuth authentication failed: #{failure_message}"
-      
+
       # TODO: 🟡 Phase 3（中）- OAuth失敗理由の詳細分析・ユーザー案内
       # 優先度: 中（ユーザー体験向上）
       # 実装内容: 失敗理由別のユーザー案内メッセージ、復旧手順提示
@@ -74,7 +74,6 @@ module AdminControllers
     def failure_message
       request.env["omniauth.error"] || "Unknown error"
     end
-<<<<<<< HEAD
 
     # セキュリティログ用の安全なエラータイプ識別子を取得
     def failure_error_type
@@ -92,7 +91,3 @@ module AdminControllers
     end
   end
 end
-=======
-  end
-end
->>>>>>> c50b7c6 (🟡 Phase 3: OAuth認証フロー完成 - コントローラー・ビュー実装)
