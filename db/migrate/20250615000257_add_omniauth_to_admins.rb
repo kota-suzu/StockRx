@@ -2,15 +2,15 @@ class AddOmniauthToAdmins < ActiveRecord::Migration[8.0]
   def change
     add_column :admins, :provider, :string
     add_column :admins, :uid, :string
-    
+
     # セキュリティとパフォーマンス向上のためのインデックス追加
     # provider + uid の組み合わせはユニークである必要がある
-    add_index :admins, [:provider, :uid], unique: true, 
+    add_index :admins, [ :provider, :uid ], unique: true,
               name: 'index_admins_on_provider_and_uid'
-    
+
     # provider単体でも検索するためのインデックス
     add_index :admins, :provider, name: 'index_admins_on_provider'
-    
+
     # TODO: 🟡 Phase 3（中）- OAuth専用管理者とパスワード認証管理者の共存バリデーション
     # 優先度: 中（OAuth認証フロー実装後）
     # 実装内容: provider/uid必須バリデーションとemail/password任意化の両立

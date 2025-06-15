@@ -13,7 +13,7 @@ class Admin < ApplicationRecord
   # :omniauthable = OAuthソーシャルログイン（GitHub等）
   devise :database_authenticatable, :recoverable, :rememberable,
          :validatable, :lockable, :timeoutable, :trackable,
-         :omniauthable, omniauth_providers: [:github]
+         :omniauthable, omniauth_providers: [ :github ]
 
   # アソシエーション
   has_many :report_files, dependent: :destroy
@@ -27,7 +27,7 @@ class Admin < ApplicationRecord
   def self.from_omniauth(auth)
     # 既存の管理者を provider + uid で検索
     admin = find_by(provider: auth.provider, uid: auth.uid)
-    
+
     if admin
       # 既存管理者の場合、GitHubの最新情報で更新
       admin.update(
@@ -53,7 +53,7 @@ class Admin < ApplicationRecord
         last_sign_in_at: Time.current,
         current_sign_in_ip: auth.extra&.raw_info&.ip || "127.0.0.1"
       )
-      
+
       # TODO: 🟡 Phase 3（中）- GitHub管理者の自動承認・権限設定
       # 優先度: 中（セキュリティ要件による）
       # 実装内容: 新規GitHub管理者の自動承認可否、デフォルト権限設定
@@ -61,10 +61,10 @@ class Admin < ApplicationRecord
       # 期待効果: 適切な権限管理による安全な管理者追加
       # 工数見積: 1日
       # 依存関係: 管理者権限レベル機能の設計
-      
+
       admin.save
     end
-    
+
     admin
   end
 
@@ -88,7 +88,7 @@ class Admin < ApplicationRecord
     return false if provider.present? && uid.present?
     !persisted? || !password.nil? || !password_confirmation.nil?
   end
-  
+
   # パスワード強度バリデーション用の判定メソッド
   # OAuthユーザーはパスワード強度チェック不要
   def password_required_for_validation?
