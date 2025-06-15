@@ -1,36 +1,77 @@
+<%# Bootstrap 5 モダンエラーレイアウト - StockRx %>
 <!DOCTYPE html>
-<html>
+<html lang="ja">
   <head>
     <title><%= @status %> - <%= @message %> | StockRx</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="utf-8">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
+    
+    <%# Font Awesome for icons %>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   </head>
 
-  <body class="error-page">
-    <div class="container mx-auto px-4 py-8">
-      <div class="text-center mb-8">
-        <a href="/" class="inline-block">
-          <h1 class="text-2xl font-bold">StockRx</h1>
-        </a>
-      </div>
-
-      <div class="bg-white rounded-lg shadow-lg p-8 max-w-lg mx-auto">
-        <%= yield %>
-        
-        <div class="mt-8 text-center">
-          <a href="/" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">
-            トップページに戻る
+  <body class="error-page bg-light">
+    <%# Bootstrap 5 エラーページレイアウト %>
+    <div class="container-fluid">
+      <%# ナビゲーションヘッダー %> 
+      <nav class="navbar navbar-light bg-white shadow-sm mb-0">
+        <div class="container">
+          <a class="navbar-brand d-flex align-items-center" href="/">
+            <i class="fas fa-boxes-stacked me-2 text-primary"></i>
+            <span class="fw-bold text-dark">StockRx</span>
+            <small class="text-muted ms-2">在庫管理システム</small>
           </a>
+          <div class="navbar-text">
+            <small class="text-muted">
+              <i class="fas fa-exclamation-triangle me-1"></i>エラーページ
+            </small>
+          </div>
         </div>
-      </div>
+      </nav>
+
+      <%# メインコンテンツエリア %>
+      <main class="min-vh-100">
+        <%= yield %>
+      </main>
       
-      <div class="mt-8 text-center text-gray-500 text-sm">
-        &copy; <%= Date.current.year %> StockRx - 在庫管理システム
-      </div>
+      <%# フッター %>
+      <footer class="bg-white border-top py-4 mt-auto">
+        <div class="container">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <div class="d-flex align-items-center">
+                <i class="fas fa-copyright me-2 text-muted"></i>
+                <small class="text-muted">
+                  <%= Date.current.year %> StockRx - 在庫管理システム
+                </small>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="d-flex justify-content-md-end align-items-center">
+                <small class="text-muted me-3">
+                  <i class="fas fa-shield-alt me-1"></i>SSL保護
+                </small>
+                <a href="/" class="btn btn-outline-primary btn-sm">
+                  <i class="fas fa-home me-1"></i>ホームに戻る
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
+
+    <%# TODO: 🟡 Phase 2 - エラーレイアウト機能強化 %>
+    <%# 優先度: 中（ユーザー体験向上） %>
+    <%# 実装内容: ブレッドクラム、サイトマップ、エラー履歴 %>
+    <%# 理由: エラー発生時のナビゲーション改善 %>
+    <%# 期待効果: ユーザーの迷いを減らし、適切なページへ誘導 %>
+    <%# 工数見積: 1日 %>
+    <%# 依存関係: サイトマップ生成機能 %>
   </body>
 </html> 

@@ -11,7 +11,7 @@
 :timeout: <%= ENV.fetch("SIDEKIQ_TIMEOUT", 300).to_i %>
 
 # ログレベル設定
-:verbose: <%= Rails.env.development? %>
+:verbose: <%= ENV.fetch("RAILS_ENV", "development") == "development" %>
 
 # キュー設定（優先度順）
 :queues:
@@ -28,8 +28,8 @@
 :dead_jobs_limit: 100
 :dead_jobs_timeout: 7776000  # 90 days
 
-# プロダクション環境向け設定
-:environment: <%= Rails.env %>
+# プロダクション環境向け設定（ENV変数ベース）
+:environment: <%= ENV.fetch("RAILS_ENV", "development") %>
 
 # TODO: 本番環境での追加設定
 # :max_retries: 3
@@ -43,7 +43,7 @@
 # 在庫管理システムの定期バックグラウンド処理
 # NOTE: テスト環境では定期ジョブを無効化
 
-<%- unless Rails.env.test? -%>
+<%- unless ENV.fetch("RAILS_ENV", "development") == "test" -%>
 :scheduler:
   # 在庫アラート監視（毎日朝6時）
   stock_alert_daily:
@@ -147,7 +147,7 @@
 # 2. メトリクス・ログ設定
 # :log_formatter: Sidekiq::Logging::Json::Logger
 # :logfile: ./log/sidekiq.log
-# :log_level: <%= Rails.env.production? ? :info : :debug %>
+# :log_level: <%= ENV.fetch("RAILS_ENV", "development") == "production" ? :info : :debug %>
 #
 # 3. プロセス監視設定
 # :pidfile: ./tmp/pids/sidekiq.pid

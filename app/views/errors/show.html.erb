@@ -1,31 +1,210 @@
-<div class="error-container text-center">
-  <div class="error-code text-9xl font-bold text-red-600 mb-4"><%= @status %></div>
-  
-  <h1 class="error-title text-2xl font-bold mb-4">
-    <%= @message %>
-  </h1>
-  
-  <div class="error-description text-gray-600 mb-8">
-    <% case @status %>
-    <% when 404 %>
-      指定されたページは見つかりませんでした。URLを確認するか、移動または削除された可能性があります。
-    <% when 403 %>
-      このページへのアクセス権限がありません。権限が必要な場合は管理者に連絡してください。
-    <% when 400 %>
-      リクエストに問題があります。入力内容を確認して再度お試しください。
-    <% when 429 %>
-      リクエスト頻度が高すぎます。しばらく待ってから再度お試しください。
-    <% when 422 %>
-      入力内容の処理ができませんでした。内容を確認して再度お試しください。
-    <% else %>
-      申し訳ありませんが、システムエラーが発生しました。問題が解決しない場合はサポートまでご連絡ください。
-    <% end %>
-  </div>
-  
-  <% if @status >= 500 %>
-    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-      <p><strong>エラーID:</strong> <%= request.request_id %></p>
-      <p class="text-sm">このIDをサポートにお伝えいただくと、問題解決が迅速に行えます。</p>
+<%# Bootstrap 5 モダンエラーページ - StockRx %>
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-8 col-lg-6">
+        
+        <%# エラーカード %>
+        <div class="card shadow-lg border-0">
+          <%# エラータイプ別のヘッダー %>
+          <div class="card-header text-white text-center py-4 <%= case @status
+                                                                   when 404
+                                                                     'bg-warning'
+                                                                   when 403
+                                                                     'bg-danger'  
+                                                                   when 400, 422
+                                                                     'bg-info'
+                                                                   when 429
+                                                                     'bg-secondary'
+                                                                   else
+                                                                     'bg-danger'
+                                                                   end %>">
+            <div class="mb-3">
+              <%# エラータイプ別アイコン %>
+              <% case @status %>
+              <% when 404 %>
+                <i class="fas fa-search fa-3x"></i>
+              <% when 403 %>
+                <i class="fas fa-lock fa-3x"></i>
+              <% when 400, 422 %>
+                <i class="fas fa-exclamation-triangle fa-3x"></i>
+              <% when 429 %>
+                <i class="fas fa-clock fa-3x"></i>
+              <% else %>
+                <i class="fas fa-times-circle fa-3x"></i>
+              <% end %>
+            </div>
+            <h1 class="display-2 fw-bold mb-2"><%= @status %></h1>
+            <h2 class="h4 mb-0"><%= @message %></h2>
+          </div>
+          
+          <div class="card-body p-5 text-center">
+            <%# エラータイプ別の説明 %>
+            <div class="mb-4">
+              <% case @status %>
+              <% when 404 %>
+                <h3 class="h5 mb-3 text-warning">
+                  <i class="fas fa-map-marked-alt me-2"></i>ページが見つかりません
+                </h3>
+                <p class="text-muted">
+                  指定されたページは見つかりませんでした。<br>
+                  URLを確認するか、ページが移動または削除された可能性があります。
+                </p>
+              <% when 403 %>
+                <h3 class="h5 mb-3 text-danger">
+                  <i class="fas fa-shield-alt me-2"></i>アクセス権限がありません
+                </h3>
+                <p class="text-muted">
+                  このページへのアクセス権限がありません。<br>
+                  権限が必要な場合は管理者にお問い合わせください。
+                </p>
+              <% when 400 %>
+                <h3 class="h5 mb-3 text-info">
+                  <i class="fas fa-question-circle me-2"></i>リクエストに問題があります
+                </h3>
+                <p class="text-muted">
+                  送信された情報に問題があります。<br>
+                  入力内容を確認して再度お試しください。
+                </p>
+              <% when 422 %>
+                <h3 class="h5 mb-3 text-info">
+                  <i class="fas fa-edit me-2"></i>入力内容を処理できません
+                </h3>
+                <p class="text-muted">
+                  入力された情報の処理ができませんでした。<br>
+                  内容を確認して再度お試しください。
+                </p>
+              <% when 429 %>
+                <h3 class="h5 mb-3 text-secondary">
+                  <i class="fas fa-tachometer-alt me-2"></i>リクエスト制限に達しました
+                </h3>
+                <p class="text-muted">
+                  リクエスト頻度が高すぎます。<br>
+                  しばらく待ってから再度お試しください。
+                </p>
+              <% else %>
+                <h3 class="h5 mb-3 text-danger">
+                  <i class="fas fa-wrench me-2"></i>システムエラーが発生しました
+                </h3>
+                <p class="text-muted">
+                  申し訳ありませんが、一時的なシステムエラーが発生しました。<br>
+                  問題が解決しない場合はサポートまでご連絡ください。
+                </p>
+              <% end %>
+            </div>
+
+            <%# サーバーエラーの場合のエラーID表示 %>
+            <% if @status >= 500 %>
+              <div class="alert alert-danger mb-4">
+                <div class="d-flex align-items-start">
+                  <i class="fas fa-id-card me-3"></i>
+                  <div>
+                    <h6 class="alert-heading">エラー詳細情報</h6>
+                    <p class="mb-2">
+                      <strong>エラーID:</strong> 
+                      <code class="text-danger"><%= request.request_id %></code>
+                    </p>
+                    <small class="text-muted">
+                      このIDをサポートにお伝えいただくと、問題解決が迅速に行えます。
+                    </small>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <%# アクションボタン %>
+            <div class="d-flex flex-column flex-md-row gap-3 justify-content-center">
+              <% case @status %>
+              <% when 404 %>
+                <%= link_to root_path, class: "btn btn-warning" do %>
+                  <i class="fas fa-home me-2"></i>ホームページに戻る
+                <% end %>
+                <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
+                  <i class="fas fa-arrow-left me-2"></i>前のページに戻る
+                </button>
+              <% when 403 %>
+                <%= link_to root_path, class: "btn btn-danger" do %>
+                  <i class="fas fa-home me-2"></i>ホームページに戻る
+                <% end %>
+                <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
+                  <i class="fas fa-arrow-left me-2"></i>前のページに戻る
+                </button>
+              <% when 400, 422 %>
+                <button type="button" class="btn btn-info" onclick="history.back()">
+                  <i class="fas fa-arrow-left me-2"></i>前のページに戻る
+                </button>
+                <%= link_to root_path, class: "btn btn-outline-secondary" do %>
+                  <i class="fas fa-home me-2"></i>ホームページに戻る
+                <% end %>
+              <% when 429 %>
+                <button type="button" class="btn btn-secondary" onclick="setTimeout(() => location.reload(), 5000)">
+                  <i class="fas fa-clock me-2"></i>5秒後に再読み込み
+                </button>
+                <%= link_to root_path, class: "btn btn-outline-secondary" do %>
+                  <i class="fas fa-home me-2"></i>ホームページに戻る
+                <% end %>
+              <% else %>
+                <button type="button" class="btn btn-danger" onclick="location.reload()">
+                  <i class="fas fa-redo me-2"></i>ページを再読み込み
+                </button>
+                <%= link_to root_path, class: "btn btn-outline-secondary" do %>
+                  <i class="fas fa-home me-2"></i>ホームページに戻る
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+          
+          <%# フッター %>
+          <div class="card-footer bg-light text-center text-muted">
+            <small>
+              <i class="fas fa-info-circle me-1"></i>
+              問題が続く場合は、ブラウザのキャッシュをクリアしてお試しください
+            </small>
+          </div>
+        </div>
+
+        <%# ヘルプ情報 %>
+        <div class="text-center mt-4">
+          <small class="text-muted">
+            <i class="fas fa-question-circle me-1"></i>
+            サポートが必要な場合は 
+            <a href="mailto:support@stockrx.com" class="text-decoration-none">support@stockrx.com</a> 
+            までご連絡ください
+          </small>
+        </div>
+        
+        <%# TODO: 🟡 Phase 2 - エラーページ機能強化 %>
+        <%# 優先度: 中（ユーザーサポート向上） %>
+        <%# 実装内容: エラー報告機能、検索機能、関連ページ提案 %>
+        <%# 理由: エラー時のユーザー体験向上とサポート効率化 %>
+        <%# 期待効果: ユーザー満足度向上、サポート負荷軽減 %>
+        <%# 工数見積: 2日 %>
+        <%# 依存関係: フィードバック機能の実装 %>
+
+      </div>
     </div>
+  </div>
+</div>
+
+<%# JavaScript機能 %>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // 自動再読み込み機能（429エラーの場合）
+  <% if @status == 429 %>
+    let countdown = 5;
+    const button = document.querySelector('button[onclick*="setTimeout"]');
+    if (button) {
+      const updateButton = () => {
+        button.innerHTML = `<i class="fas fa-clock me-2"></i>${countdown}秒後に再読み込み`;
+        countdown--;
+        if (countdown < 0) {
+          location.reload();
+        }
+      };
+      
+      const interval = setInterval(updateButton, 1000);
+      updateButton();
+    }
   <% end %>
-</div> 
+});
+</script> 

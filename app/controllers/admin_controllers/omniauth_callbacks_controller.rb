@@ -82,7 +82,7 @@ module AdminControllers
       when "OmniAuth::Strategies::OAuth2::CallbackError"
         "callback_error"
       when "OAuth2::Error"
-        "oauth2_error" 
+        "oauth2_error"
       when "Timeout::Error"
         "timeout_error"
       else

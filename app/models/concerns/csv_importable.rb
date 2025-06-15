@@ -53,6 +53,8 @@ module CsvImportable
       valid_records = []
       invalid_records = []
       update_records = []
+      total_valid_count = 0
+      total_update_count = 0
 
       Rails.logger.info("CSVインポート開始: #{file_path}")
 
@@ -60,22 +62,34 @@ module CsvImportable
       file_path = file_path.respond_to?(:path) ? file_path.path : file_path
 
       ActiveRecord::Base.transaction do
-        process_csv_rows(file_path, options, valid_records, invalid_records, update_records)
+        total_valid_count, total_update_count = process_csv_rows(
+          file_path, options, valid_records, invalid_records, update_records
+        )
 
         # 残りのレコードを処理
-        bulk_insert(valid_records) if valid_records.present?
-        bulk_update(update_records) if update_records.present?
+        if valid_records.present?
+          bulk_insert(valid_records)
+          total_valid_count += valid_records.size
+        end
+
+        if update_records.present?
+          bulk_update(update_records)
+          total_update_count += update_records.size
+        end
       end
 
       {
-        valid_count: valid_records.size,
-        update_count: update_records.size,
+        valid_count: total_valid_count,
+        update_count: total_update_count,
         invalid_records: invalid_records
       }
     end
 
     # CSVの各行を処理
     def process_csv_rows(file_path, options, valid_records, invalid_records, update_records)
+      total_valid_count = 0
+      total_update_count = 0
+
       CSV.foreach(file_path, headers: options[:headers], encoding: "UTF-8") do |row|
         attributes = row_to_attributes(row, options[:column_mapping])
 
@@ -90,14 +104,18 @@ module CsvImportable
         # バッチサイズに達したらバルクインサート/更新
         if valid_records.size >= options[:batch_size]
           bulk_insert(valid_records)
+          total_valid_count += valid_records.size
           valid_records.clear
         end
 
         if update_records.size >= options[:batch_size]
           bulk_update(update_records)
+          total_update_count += update_records.size
           update_records.clear
         end
       end
+
+      [ total_valid_count, total_update_count ]
     end
 
     # 行データから属性ハッシュへの変換

@@ -75,6 +75,35 @@ services:
       - app
     # TODO: 本番環境向けRedis設定ファイル追加
 
+  sidekiq:
+    build: 
+      context: .
+      args:
+        RUBY_VERSION: 3.3.8
+    command: ["./wait-for", "db:3306", "--timeout=30", "--debug", "--", "bundle", "exec", "sidekiq"]
+    volumes:
+      - .:/rails
+      - bundle_cache:/usr/local/bundle
+    environment:
+      - RAILS_MAX_THREADS=5
+      - MYSQL_ROOT_PASSWORD=password
+      - RAILS_ENV=development
+      - DATABASE_HOST=db
+      - DATABASE_USERNAME=root
+      - DATABASE_PASSWORD=password
+      - REDIS_URL=redis://redis:6379/0
+      - CABLE_REDIS_URL=redis://redis:6379/1
+      # Disable Bootsnap in development for easier debugging
+      - DISABLE_BOOTSNAP=true
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - app
+    # TODO: 本番環境ではヘルスチェック追加
+
   backup:
     image: mysql:8.4
     volumes:

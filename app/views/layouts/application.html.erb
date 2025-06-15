@@ -1,22 +1,125 @@
+<%# Bootstrap 5 モダン公開レイアウト - StockRx %>
 <!DOCTYPE html>
-<html>
+<html lang="ja">
   <head>
-    <title><%= content_for(:title) || "App" %></title>
+    <title><%= content_for(:title) || "StockRx - 在庫管理システム" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="utf-8">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="description" content="StockRx - モダンな在庫管理システム">
+    <meta name="author" content="StockRx Team">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
     <%= yield :head %>
 
+    <%# PWA対応 %>
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
+    
+    <%# Font Awesome for icons %>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
   </head>
 
-  <body>
-    <%= yield %>
+  <body class="d-flex flex-column min-vh-100">
+    <%# Bootstrap 5 ナビゲーションヘッダー %>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
+      <div class="container">
+        <%= link_to root_path, class: "navbar-brand d-flex align-items-center" do %>
+          <i class="fas fa-boxes-stacked me-2"></i>
+          <span class="fw-bold">StockRx</span>
+          <small class="ms-2 text-light opacity-75">在庫管理</small>
+        <% end %>
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+              <%= link_to root_path, class: "nav-link #{'active' if current_page?(root_path)}" do %>
+                <i class="fas fa-home me-1"></i>ホーム
+              <% end %>
+            </li>
+            <li class="nav-item">
+              <%= link_to inventories_path, class: "nav-link #{'active' if current_page?(inventories_path)}" do %>
+                <i class="fas fa-boxes me-1"></i>在庫一覧
+              <% end %>
+            </li>
+          </ul>
+          
+          <ul class="navbar-nav">
+            <li class="nav-item">
+              <%= link_to new_admin_session_path, class: "nav-link" do %>
+                <i class="fas fa-sign-in-alt me-1"></i>管理者ログイン
+              <% end %>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <%# フラッシュメッセージ（Bootstrap 5 Alerts） %>
+    <% if flash.any? %>
+      <div class="container mt-3">
+        <% flash.each do |type, message| %>
+          <div class="alert <%= type == 'alert' ? 'alert-danger' : 'alert-success' %> alert-dismissible fade show" role="alert">
+            <div class="d-flex align-items-center">
+              <i class="fas <%= type == 'alert' ? 'fa-exclamation-triangle' : 'fa-check-circle' %> me-2"></i>
+              <div><%= message %></div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%# メインコンテンツ %>
+    <main class="flex-grow-1">
+      <%= yield %>
+    </main>
+
+    <%# フッター %>
+    <footer class="bg-dark text-light py-4 mt-auto">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-boxes-stacked me-2 text-primary"></i>
+              <h5 class="mb-0">StockRx</h5>
+            </div>
+            <p class="text-muted mb-0">モダンな在庫管理システム</p>
+          </div>
+          <div class="col-md-6">
+            <div class="d-flex flex-column align-items-md-end">
+              <div class="mb-2">
+                <small class="text-muted">
+                  <i class="fas fa-shield-alt me-1"></i>SSL保護済み
+                </small>
+              </div>
+              <small class="text-muted">
+                <i class="fas fa-copyright me-1"></i>
+                <%= Date.current.year %> StockRx. All rights reserved.
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <%# TODO: 🟡 Phase 2 - 公開レイアウト機能強化 %>
+    <%# 優先度: 中（ユーザー体験向上） %>
+    <%# 実装内容: ユーザー認証、ブレッドクラム、サイト内検索 %>
+    <%# 理由: 公開機能の充実とナビゲーション改善 %>
+    <%# 期待効果: ユーザー満足度向上、サイト利用率向上 %>
+    <%# 工数見積: 2日 %>
+    <%# 依存関係: ユーザー認証システムの実装 %>
   </body>
 </html>
