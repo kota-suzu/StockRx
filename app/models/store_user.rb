@@ -22,7 +22,8 @@ class StoreUser < ApplicationRecord
   # Devise設定
   # ============================================
   devise :database_authenticatable, :recoverable, :rememberable,
-         :validatable, :lockable, :timeoutable, :trackable
+         :lockable, :timeoutable, :trackable
+  # NOTE: :validatable を除外してカスタムバリデーションを使用
 
   # ============================================
   # アソシエーション
@@ -42,6 +43,7 @@ class StoreUser < ApplicationRecord
                                         case_sensitive: false }
 
   # パスワードポリシー（CLAUDE.md セキュリティ要件準拠）
+  validates :password, presence: true, confirmation: true, if: :password_required?
   validates :password, password_strength: true, if: :password_required?
   validate :password_not_recently_used, if: :password_required?
 

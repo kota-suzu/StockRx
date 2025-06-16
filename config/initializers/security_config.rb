@@ -56,19 +56,22 @@ end
 # 3. ホスト検証
 # ============================================
 # DNSリバインディング攻撃を防ぐ
-Rails.application.config.hosts.clear
-Rails.application.config.hosts << "localhost"
-Rails.application.config.hosts << "127.0.0.1"
-Rails.application.config.hosts << "::1"
+# NOTE: テスト環境ではホスト検証が無効化されている場合があるため安全にチェック
+if Rails.application.config.respond_to?(:hosts) && Rails.application.config.hosts
+  Rails.application.config.hosts.clear
+  Rails.application.config.hosts << "localhost"
+  Rails.application.config.hosts << "127.0.0.1"
+  Rails.application.config.hosts << "::1"
 
-if Rails.env.production?
-  # 本番環境のドメインを追加
-  Rails.application.config.hosts << ENV.fetch('APPLICATION_HOST', 'stockrx.example.com')
-  Rails.application.config.hosts << /\A[a-z0-9-]+\.stockrx\.example\.com\z/  # サブドメイン許可
+  if Rails.env.production?
+    # 本番環境のドメインを追加
+    Rails.application.config.hosts << ENV.fetch('APPLICATION_HOST', 'stockrx.example.com')
+    Rails.application.config.hosts << /\A[a-z0-9-]+\.stockrx\.example\.com\z/  # サブドメイン許可
+  end
+
+  # 開発環境では制限を緩和
+  Rails.application.config.hosts << /.*/ if Rails.env.development?
 end
-
-# 開発環境では制限を緩和
-Rails.application.config.hosts << /.*/ if Rails.env.development?
 
 # ============================================
 # 4. Active Recordセキュリティ設定
@@ -146,7 +149,7 @@ ActiveSupport::SecurityUtils.secure_compare('a', 'a')  # ウォームアップ
 Rails.application.config.action_dispatch.use_cookies_with_metadata = true
 
 # JSONパーサーのセキュリティ設定
-ActiveSupport::JSON.decode_backend = :json_gem
+# NOTE: Rails 7.0+ では JSON gem がデフォルトで使用される
 
 # ============================================
 # セキュリティ関連の定数定義
