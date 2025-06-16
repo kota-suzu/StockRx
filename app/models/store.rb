@@ -5,6 +5,7 @@ class Store < ApplicationRecord
   has_many :store_inventories, dependent: :destroy, counter_cache: true
   has_many :inventories, through: :store_inventories
   has_many :admins, dependent: :restrict_with_error
+  has_many :store_users, dependent: :destroy
 
   # 店舗間移動関連
   has_many :outgoing_transfers, class_name: "InterStoreTransfer", foreign_key: "source_store_id", dependent: :destroy
@@ -21,6 +22,8 @@ class Store < ApplicationRecord
   validates :store_type, presence: true, inclusion: { in: %w[pharmacy warehouse headquarters] }
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :phone, format: { with: /\A[0-9\-\+\(\)\s]*\z/ }, allow_blank: true
+  validates :slug, presence: true, uniqueness: true, 
+                  format: { with: /\A[a-z0-9\-]+\z/, message: "は小文字英数字とハイフンのみ使用できます" }
 
   # ============================================
   # enum定義
@@ -34,6 +37,11 @@ class Store < ApplicationRecord
   scope :inactive, -> { where(active: false) }
   scope :by_region, ->(region) { where(region: region) if region.present? }
   scope :by_type, ->(type) { where(store_type: type) if type.present? }
+
+  # ============================================
+  # コールバック
+  # ============================================
+  before_validation :generate_slug, if: :new_record?
 
   # ============================================
   # インスタンスメソッド
@@ -191,5 +199,30 @@ class Store < ApplicationRecord
   # 平均在庫価値計算（将来的に時系列データで改善）
   def average_inventory_value
     @average_inventory_value ||= total_inventory_value
+  end
+
+  # スラッグ生成（URL-friendly店舗識別子）
+  # ============================================
+  # Phase 1: 店舗別ログインシステムのURL生成基盤
+  # ベストプラクティス: 
+  # - 小文字英数字とハイフンのみ使用
+  # - 重複時は自動的に番号付与
+  # - 日本語対応（transliterateは使用しない）
+  # ============================================
+  def generate_slug
+    return if slug.present?
+    
+    base_slug = code.downcase.gsub(/[^a-z0-9]/, '-').squeeze('-').gsub(/^-|-$/, '')
+    
+    # 重複チェックと番号付与
+    candidate_slug = base_slug
+    counter = 1
+    
+    while Store.exists?(slug: candidate_slug)
+      candidate_slug = "#{base_slug}-#{counter}"
+      counter += 1
+    end
+    
+    self.slug = candidate_slug
   end
 end

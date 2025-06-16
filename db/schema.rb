@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_16_155723) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_16_210626) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -263,6 +263,39 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_16_155723) do
     t.index ["store_id"], name: "index_store_inventories_on_store_id"
   end
 
+  create_table "store_users", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "store_id", null: false
+    t.string "email", null: false
+    t.string "encrypted_password", null: false
+    t.string "role", default: "staff", null: false
+    t.boolean "active", default: true, null: false
+    t.datetime "last_sign_in_at"
+    t.datetime "current_sign_in_at"
+    t.string "last_sign_in_ip"
+    t.string "current_sign_in_ip"
+    t.integer "sign_in_count", default: 0, null: false
+    t.integer "failed_attempts", default: 0, null: false
+    t.datetime "locked_at"
+    t.string "unlock_token"
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
+    t.datetime "remember_created_at"
+    t.string "name", null: false
+    t.string "employee_code"
+    t.datetime "password_changed_at"
+    t.boolean "must_change_password", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_store_users_on_active"
+    t.index ["email"], name: "index_store_users_on_email"
+    t.index ["reset_password_token"], name: "index_store_users_on_reset_password_token", unique: true
+    t.index ["role"], name: "index_store_users_on_role"
+    t.index ["store_id", "email"], name: "index_store_users_on_store_id_and_email", unique: true
+    t.index ["store_id", "employee_code"], name: "index_store_users_on_store_id_and_employee_code", unique: true
+    t.index ["store_id"], name: "index_store_users_on_store_id"
+    t.index ["unlock_token"], name: "index_store_users_on_unlock_token", unique: true
+  end
+
   create_table "stores", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", limit: 100, null: false, comment: "店舗名"
     t.string "code", limit: 20, null: false, comment: "店舗コード（一意識別子）"
@@ -279,10 +312,12 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_16_155723) do
     t.integer "pending_outgoing_transfers_count", default: 0, null: false
     t.integer "pending_incoming_transfers_count", default: 0, null: false
     t.integer "low_stock_items_count", default: 0, null: false
+    t.string "slug", null: false
     t.index ["active"], name: "index_stores_on_active", comment: "有効店舗フィルタ最適化"
     t.index ["code"], name: "index_stores_on_code", unique: true, comment: "店舗コード一意制約"
     t.index ["low_stock_items_count"], name: "index_stores_on_low_stock_items_count"
     t.index ["region"], name: "index_stores_on_region", comment: "地域別検索最適化"
+    t.index ["slug"], name: "index_stores_on_slug", unique: true
     t.index ["store_inventories_count"], name: "index_stores_on_store_inventories_count"
     t.index ["store_type", "active"], name: "index_stores_on_store_type_and_active", comment: "種別・有効状態複合検索"
     t.index ["store_type"], name: "index_stores_on_store_type", comment: "店舗種別による検索最適化"
@@ -304,4 +339,5 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_16_155723) do
   add_foreign_key "shipments", "inventories"
   add_foreign_key "store_inventories", "inventories", on_delete: :cascade
   add_foreign_key "store_inventories", "stores", on_delete: :cascade
+  add_foreign_key "store_users", "stores"
 end
