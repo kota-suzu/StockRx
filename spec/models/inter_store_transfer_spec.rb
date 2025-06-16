@@ -38,8 +38,8 @@ RSpec.describe InterStoreTransfer, type: :model do
           destination_store = create(:store)
           inventory = create(:inventory)
           create(:store_inventory, store: source_store, inventory: inventory, quantity: 100)
-          transfer = build(:inter_store_transfer, 
-                           source_store: source_store, 
+          transfer = build(:inter_store_transfer,
+                           source_store: source_store,
                            destination_store: destination_store,
                            inventory: inventory,
                            quantity: 10,
@@ -585,8 +585,8 @@ RSpec.describe InterStoreTransfer, type: :model do
 
       it 'returns analytical data for transfers in period' do
         # Get the IDs of our specific test transfers
-        our_transfer_ids = [completed_transfer1.id, completed_transfer2.id, pending_transfer.id]
-        
+        our_transfer_ids = [ completed_transfer1.id, completed_transfer2.id, pending_transfer.id ]
+
         # Add the rejected transfer created in before block
         rejected_transfer = InterStoreTransfer.where(
           source_store: store2,
@@ -595,11 +595,11 @@ RSpec.describe InterStoreTransfer, type: :model do
         ).first
         our_transfer_ids << rejected_transfer.id if rejected_transfer
 
-        # Use specific time period that only includes our test data  
+        # Use specific time period that only includes our test data
         analytics = InterStoreTransfer.transfer_analytics(6.days.ago..Time.current)
-        
+
         # Count only transfers in our time period with our store IDs
-        our_stores = [store1.id, store2.id, store3.id]
+        our_stores = [ store1.id, store2.id, store3.id ]
         actual_transfers = InterStoreTransfer.where(
           requested_at: 6.days.ago..Time.current,
           source_store_id: our_stores

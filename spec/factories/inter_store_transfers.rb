@@ -19,7 +19,7 @@ FactoryBot.define do
         store: transfer.source_store,
         inventory: transfer.inventory
       )
-      
+
       # 新規作成の場合のみデフォルト値を設定
       if store_inventory.new_record?
         store_inventory.assign_attributes(
@@ -33,7 +33,7 @@ FactoryBot.define do
           store_inventory.quantity = transfer.quantity + 20
         end
       end
-      
+
       store_inventory.save!
     end
 
