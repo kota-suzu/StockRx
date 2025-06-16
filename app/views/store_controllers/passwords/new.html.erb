@@ -1,0 +1,75 @@
+<% content_for :title, "パスワードリセット" %>
+
+<h2 class="h4 mb-4 text-center">
+  <i class="fas fa-key me-2"></i>
+  パスワードをリセット
+</h2>
+
+<p class="text-muted text-center mb-4">
+  登録されているメールアドレスを入力してください。<br>
+  パスワードリセット用のリンクをお送りします。
+</p>
+
+<%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :post }) do |f| %>
+  <%# 店舗情報を隠しフィールドで送信 %>
+  <%= hidden_field_tag :store_slug, @store.slug if @store %>
+  
+  <%# エラー表示 %>
+  <%= render "devise/shared/error_messages", resource: resource %>
+
+  <%# メールアドレス %>
+  <div class="mb-4">
+    <%= f.label :email, class: "form-label" do %>
+      <i class="fas fa-envelope me-1"></i>
+      メールアドレス
+    <% end %>
+    <%= f.email_field :email, 
+                      autofocus: true, 
+                      autocomplete: "email",
+                      class: "form-control form-control-lg",
+                      placeholder: "email@example.com",
+                      required: true %>
+    <% if @store %>
+      <div class="form-text">
+        <%= @store.name %>で登録されているメールアドレスを入力してください
+      </div>
+    <% end %>
+  </div>
+
+  <%# 送信ボタン %>
+  <div class="d-grid mb-3">
+    <%= f.submit "リセットリンクを送信", 
+                 class: "btn btn-primary btn-lg",
+                 data: { turbo: false } %>
+  </div>
+
+  <%# ログインページへのリンク %>
+  <div class="text-center">
+    <% if @store %>
+      <%= link_to new_store_user_session_path(store_slug: @store.slug), 
+                  class: "text-decoration-none" do %>
+        <i class="fas fa-arrow-left me-1"></i>
+        ログイン画面に戻る
+      <% end %>
+    <% else %>
+      <%= link_to store_selection_path, 
+                  class: "text-decoration-none" do %>
+        <i class="fas fa-arrow-left me-1"></i>
+        店舗選択に戻る
+      <% end %>
+    <% end %>
+  </div>
+<% end %>
+
+<%# 注意事項 %>
+<div class="mt-4 p-3 bg-light rounded">
+  <h6 class="text-muted mb-2">
+    <i class="fas fa-info-circle me-1"></i>
+    ご注意
+  </h6>
+  <ul class="small text-muted mb-0">
+    <li>リセットリンクの有効期限は6時間です</li>
+    <li>メールが届かない場合は、迷惑メールフォルダをご確認ください</li>
+    <li>登録されていないメールアドレスではリセットできません</li>
+  </ul>
+</div>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <title>店舗選択 - StockRx</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="utf-8">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>
+    
+    <%# Font Awesome for icons %>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  </head>
+
+  <body>
+    <%# ヘッダー %>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container">
+        <%= link_to root_path, class: "navbar-brand" do %>
+          <i class="fas fa-boxes-stacked me-2"></i>
+          StockRx
+        <% end %>
+        <span class="navbar-text text-white">
+          店舗選択
+        </span>
+      </div>
+    </nav>
+
+    <%# メインコンテンツ %>
+    <main class="py-5">
+      <div class="container">
+        <%# フラッシュメッセージ %>
+        <% if flash.any? %>
+          <% flash.each do |type, message| %>
+            <div class="alert alert-<%= flash_class(type) %> alert-dismissible fade show" role="alert">
+              <%= message %>
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          <% end %>
+        <% end %>
+
+        <%= yield %>
+      </div>
+    </main>
+
+    <%# フッター %>
+    <footer class="bg-light py-4 mt-auto">
+      <div class="container">
+        <div class="row">
+          <div class="col-md-6">
+            <p class="text-muted mb-0">
+              <i class="fas fa-shield-alt me-1"></i>
+              セキュアな店舗管理システム
+            </p>
+          </div>
+          <div class="col-md-6 text-md-end">
+            <p class="text-muted mb-0">
+              <%= link_to "管理者の方はこちら", new_admin_session_path, class: "text-decoration-none" %>
+            </p>
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

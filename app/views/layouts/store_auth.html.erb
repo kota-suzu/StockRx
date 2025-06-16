@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <title><%= content_for?(:title) ? yield(:title) : "StockRx 店舗ログイン" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="utf-8">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", defer: true %>
+    
+    <%# Font Awesome for icons %>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  </head>
+
+  <body class="bg-light">
+    <div class="min-vh-100 d-flex align-items-center justify-content-center">
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-md-6 col-lg-5">
+            <%# ロゴ・ヘッダー %>
+            <div class="text-center mb-4">
+              <i class="fas fa-store fa-3x text-primary mb-3"></i>
+              <h2 class="h3 mb-1">StockRx 店舗システム</h2>
+              <% if @store %>
+                <p class="text-muted mb-0">
+                  <i class="fas fa-building me-1"></i>
+                  <%= @store.name %>
+                </p>
+              <% end %>
+            </div>
+
+            <%# フラッシュメッセージ %>
+            <% if flash.any? %>
+              <% flash.each do |type, message| %>
+                <div class="alert alert-<%= flash_class(type) %> alert-dismissible fade show" role="alert">
+                  <%= message %>
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              <% end %>
+            <% end %>
+
+            <%# メインコンテンツ %>
+            <div class="card shadow-sm">
+              <div class="card-body p-4">
+                <%= yield %>
+              </div>
+            </div>
+
+            <%# フッターリンク %>
+            <div class="text-center mt-4">
+              <small class="text-muted">
+                <% if @store %>
+                  <%= link_to "別の店舗を選択", store_selection_path, class: "text-decoration-none" %>
+                  <span class="mx-2">•</span>
+                <% end %>
+                <%= link_to "ホームへ戻る", root_path, class: "text-decoration-none" %>
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // フラッシュメッセージの自動非表示
+      document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+          const alerts = document.querySelectorAll('.alert');
+          alerts.forEach(function(alert) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+          });
+        }, 5000);
+      });
+    </script>
+  </body>
+</html>

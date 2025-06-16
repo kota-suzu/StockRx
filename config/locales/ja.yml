@@ -1,4 +1,11 @@
 ja:
+  activerecord:
+    attributes:
+      store:
+        store_types:
+          pharmacy: "薬局"
+          warehouse: "倉庫"
+          headquarters: "本部"
   date:
     formats:
       default: "%Y/%m/%d"

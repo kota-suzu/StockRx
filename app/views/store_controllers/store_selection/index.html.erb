@@ -1,0 +1,126 @@
+<div class="row">
+  <div class="col-12">
+    <h1 class="h2 mb-4">
+      <i class="fas fa-store me-2"></i>
+      店舗を選択してください
+    </h1>
+  </div>
+</div>
+
+<%# 最近アクセスした店舗 %>
+<% if @recent_stores.any? %>
+  <div class="row mb-5">
+    <div class="col-12">
+      <h2 class="h5 mb-3 text-muted">
+        <i class="fas fa-history me-1"></i>
+        最近アクセスした店舗
+      </h2>
+      <div class="row">
+        <% @recent_store_slugs.each do |slug| %>
+          <% store = @recent_stores[slug] %>
+          <% if store %>
+            <div class="col-md-4 mb-3">
+              <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                  <h5 class="card-title">
+                    <i class="<%= store_type_icon_class(store.store_type) %> me-1"></i>
+                    <%= store.name %>
+                  </h5>
+                  <p class="card-text text-muted small">
+                    <%= store.code %> • <%= store_type_display_name(store.store_type) %>
+                  </p>
+                  <% badge = store_status_badge(store) %>
+                  <p class="mb-3">
+                    <span class="<%= badge[:class] %>"><%= badge[:text] %></span>
+                  </p>
+                  <%= link_to store_login_page_path(slug: store.slug), class: "btn btn-primary" do %>
+                    <i class="fas fa-sign-in-alt me-1"></i>
+                    ログイン
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<%# 全店舗一覧 %>
+<div class="row">
+  <div class="col-12">
+    <h2 class="h5 mb-3 text-muted">
+      <i class="fas fa-list me-1"></i>
+      すべての店舗
+    </h2>
+  </div>
+</div>
+
+<% @stores_by_type.each do |store_type, stores| %>
+  <div class="row mb-4">
+    <div class="col-12">
+      <h3 class="h6 text-primary mb-3">
+        <i class="<%= store_type_icon_class(store_type) %> me-1"></i>
+        <%= store_type_display_name(store_type) %>
+      </h3>
+      <div class="row">
+        <% stores.each do |store| %>
+          <div class="col-md-4 col-lg-3 mb-3">
+            <div class="card h-100 shadow-sm">
+              <div class="card-body">
+                <h5 class="card-title">
+                  <%= store.name %>
+                </h5>
+                <p class="card-text text-muted small">
+                  <i class="fas fa-barcode me-1"></i>
+                  <%= store.code %>
+                </p>
+                
+                <%# 店舗情報 %>
+                <div class="small mb-3">
+                  <% if store.region.present? %>
+                    <div class="text-muted">
+                      <i class="fas fa-map-marker-alt me-1"></i>
+                      <%= store.region %>
+                    </div>
+                  <% end %>
+                  <div class="text-muted">
+                    <i class="fas fa-box me-1"></i>
+                    在庫: <%= number_with_delimiter(store.store_inventories_count) %>品目
+                  </div>
+                </div>
+                
+                <%# ステータス %>
+                <% badge = store_status_badge(store) %>
+                <p class="mb-3">
+                  <span class="<%= badge[:class] %>"><%= badge[:text] %></span>
+                </p>
+                
+                <%= link_to store_login_page_path(slug: store.slug), 
+                            class: "btn btn-outline-primary btn-sm w-100" do %>
+                  <i class="fas fa-sign-in-alt me-1"></i>
+                  ログイン
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<% if @stores.empty? %>
+  <div class="row">
+    <div class="col-12">
+      <div class="alert alert-info text-center py-5">
+        <i class="fas fa-info-circle fa-3x mb-3"></i>
+        <h4>利用可能な店舗がありません</h4>
+        <p class="mb-0">
+          システム管理者にお問い合わせください。
+        </p>
+      </div>
+    </div>
+  </div>
+<% end %>

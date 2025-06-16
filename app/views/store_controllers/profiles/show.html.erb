@@ -1,0 +1,187 @@
+<% content_for :title, "プロフィール" %>
+<% content_for :breadcrumbs do %>
+  <li class="breadcrumb-item active">プロフィール</li>
+<% end %>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-user me-2"></i>
+          基本情報
+        </h5>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-3">氏名</dt>
+          <dd class="col-sm-9"><%= @user.name %></dd>
+          
+          <dt class="col-sm-3">メールアドレス</dt>
+          <dd class="col-sm-9"><%= @user.email %></dd>
+          
+          <dt class="col-sm-3">従業員コード</dt>
+          <dd class="col-sm-9"><%= @user.employee_code || "-" %></dd>
+          
+          <dt class="col-sm-3">所属店舗</dt>
+          <dd class="col-sm-9">
+            <%= current_store.display_name %>
+            <span class="badge bg-secondary ms-1"><%= current_store.store_type_text %></span>
+          </dd>
+          
+          <dt class="col-sm-3">権限</dt>
+          <dd class="col-sm-9">
+            <% if @user.manager? %>
+              <span class="badge bg-primary">店舗管理者</span>
+            <% else %>
+              <span class="badge bg-secondary">スタッフ</span>
+            <% end %>
+          </dd>
+          
+          <dt class="col-sm-3">アカウント状態</dt>
+          <dd class="col-sm-9">
+            <% if @user.active? %>
+              <span class="badge bg-success">有効</span>
+            <% else %>
+              <span class="badge bg-danger">無効</span>
+            <% end %>
+          </dd>
+        </dl>
+        
+        <div class="mt-3">
+          <%= link_to edit_store_profile_path, class: "btn btn-primary" do %>
+            <i class="fas fa-edit me-1"></i>
+            編集
+          <% end %>
+        </div>
+      </div>
+    </div>
+    
+    <%# ログイン履歴 %>
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-history me-2"></i>
+          ログイン履歴
+        </h5>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-4">現在のログイン</dt>
+          <dd class="col-sm-8">
+            <% if @login_history[:current_sign_in_at] %>
+              <%= @login_history[:current_sign_in_at].strftime("%Y/%m/%d %H:%M") %>
+              <small class="text-muted">
+                (IP: <%= format_ip_address(@login_history[:current_sign_in_ip]) %>)
+              </small>
+            <% else %>
+              -
+            <% end %>
+          </dd>
+          
+          <dt class="col-sm-4">前回のログイン</dt>
+          <dd class="col-sm-8">
+            <% if @login_history[:last_sign_in_at] %>
+              <%= @login_history[:last_sign_in_at].strftime("%Y/%m/%d %H:%M") %>
+              <small class="text-muted">
+                (IP: <%= format_ip_address(@login_history[:last_sign_in_ip]) %>)
+              </small>
+            <% else %>
+              -
+            <% end %>
+          </dd>
+          
+          <dt class="col-sm-4">ログイン回数</dt>
+          <dd class="col-sm-8"><%= @login_history[:sign_in_count] %>回</dd>
+          
+          <dt class="col-sm-4">失敗回数</dt>
+          <dd class="col-sm-8">
+            <%= @login_history[:failed_attempts] %>回
+            <% if @login_history[:failed_attempts] >= 3 %>
+              <span class="badge bg-warning ms-1">注意</span>
+            <% end %>
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <%# セキュリティ設定 %>
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-shield-alt me-2"></i>
+          セキュリティ設定
+        </h5>
+      </div>
+      <div class="card-body">
+        <%# パスワード %>
+        <div class="mb-3">
+          <h6 class="text-muted mb-2">パスワード</h6>
+          <% if @security_settings[:password_changed_at] %>
+            <p class="mb-1">
+              最終変更: <%= @security_settings[:password_changed_at].strftime("%Y/%m/%d") %>
+            </p>
+            <% if @password_expires_in %>
+              <p class="mb-2 <%= password_strength_class(@password_expires_in) %>">
+                有効期限: あと<%= @password_expires_in %>日
+              </p>
+            <% end %>
+          <% else %>
+            <p class="text-muted mb-2">未設定</p>
+          <% end %>
+          
+          <% if @user.must_change_password? %>
+            <%= link_to store_change_password_profile_path, 
+                        class: "btn btn-warning btn-sm w-100" do %>
+              <i class="fas fa-key me-1"></i>
+              パスワード変更（必須）
+            <% end %>
+          <% else %>
+            <%= link_to store_change_password_profile_path, 
+                        class: "btn btn-outline-primary btn-sm w-100" do %>
+              <i class="fas fa-key me-1"></i>
+              パスワード変更
+            <% end %>
+          <% end %>
+        </div>
+        
+        <%# アカウントロック %>
+        <div class="mb-3">
+          <h6 class="text-muted mb-2">アカウントロック</h6>
+          <% if @security_settings[:locked_at] %>
+            <p class="text-danger mb-0">
+              <i class="fas fa-lock me-1"></i>
+              ロック中
+            </p>
+          <% else %>
+            <p class="text-success mb-0">
+              <i class="fas fa-unlock me-1"></i>
+              正常
+            </p>
+          <% end %>
+        </div>
+        
+        <%# 二要素認証 %>
+        <div>
+          <h6 class="text-muted mb-2">二要素認証</h6>
+          <% if @security_settings[:two_factor_enabled] %>
+            <p class="text-success mb-0">
+              <i class="fas fa-check-circle me-1"></i>
+              有効
+            </p>
+          <% else %>
+            <p class="text-muted mb-0">
+              <i class="fas fa-times-circle me-1"></i>
+              無効
+              <small class="d-block mt-1">
+                ※Phase 5で実装予定
+              </small>
+            </p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

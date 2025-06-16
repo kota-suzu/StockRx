@@ -1,0 +1,82 @@
+<% content_for :title, "ログイン" %>
+
+<h2 class="h4 mb-4 text-center">
+  <i class="fas fa-user-lock me-2"></i>
+  店舗スタッフログイン
+</h2>
+
+<%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+  <%# 店舗情報を隠しフィールドで送信 %>
+  <%= hidden_field_tag :store_slug, @store.slug if @store %>
+  
+  <%# メールアドレス %>
+  <div class="mb-3">
+    <%= f.label :email, class: "form-label" do %>
+      <i class="fas fa-envelope me-1"></i>
+      メールアドレス
+    <% end %>
+    <%= f.email_field :email, 
+                      autofocus: true, 
+                      autocomplete: "email",
+                      class: "form-control form-control-lg",
+                      placeholder: "email@example.com",
+                      required: true %>
+  </div>
+
+  <%# パスワード %>
+  <div class="mb-3">
+    <%= f.label :password, class: "form-label" do %>
+      <i class="fas fa-key me-1"></i>
+      パスワード
+    <% end %>
+    <%= f.password_field :password, 
+                        autocomplete: "current-password",
+                        class: "form-control form-control-lg",
+                        placeholder: "••••••••",
+                        required: true %>
+  </div>
+
+  <%# ログイン状態を記憶 %>
+  <% if devise_mapping.rememberable? %>
+    <div class="mb-3">
+      <div class="form-check">
+        <%= f.check_box :remember_me, class: "form-check-input" %>
+        <%= f.label :remember_me, class: "form-check-label" do %>
+          ログイン状態を記憶する
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# ログインボタン %>
+  <div class="d-grid mb-3">
+    <%= f.submit "ログイン", 
+                 class: "btn btn-primary btn-lg",
+                 data: { turbo: false } %>
+  </div>
+
+  <%# パスワードリセットリンク %>
+  <div class="text-center">
+    <% if @store %>
+      <%= link_to new_store_user_password_path(store_slug: @store.slug), 
+                  class: "text-decoration-none" do %>
+        <i class="fas fa-question-circle me-1"></i>
+        パスワードを忘れた方はこちら
+      <% end %>
+    <% end %>
+  </div>
+<% end %>
+
+<%# セキュリティ情報 %>
+<div class="mt-4 p-3 bg-light rounded">
+  <h6 class="text-muted mb-2">
+    <i class="fas fa-shield-alt me-1"></i>
+    セキュリティ情報
+  </h6>
+  <ul class="small text-muted mb-0">
+    <li>パスワードは12文字以上で設定してください</li>
+    <li>大文字・小文字・数字・記号を含めてください</li>
+    <li>5回連続で失敗すると30分間ロックされます</li>
+    <li>パスワードは90日ごとに変更が必要です</li>
+  </ul>
+</div>

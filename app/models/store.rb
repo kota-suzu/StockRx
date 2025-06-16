@@ -51,6 +51,11 @@ class Store < ApplicationRecord
   def display_name
     "#{code} - #{name}"
   end
+  
+  # 店舗タイプの日本語表示
+  def store_type_text
+    I18n.t("activerecord.attributes.store.store_types.#{store_type}", default: store_type.humanize)
+  end
 
   # 店舗の総在庫価値
   def total_inventory_value
