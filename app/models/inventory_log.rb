@@ -142,37 +142,37 @@ class InventoryLog < ApplicationRecord
   # ============================================
   # 監査ログの完全性保護（読み取り専用）
   # ============================================
-  
+
   # 更新を禁止（監査ログは変更不可）
   def update(*)
     raise ActiveRecord::ReadOnlyRecord, "InventoryLog records are immutable for audit integrity"
   end
-  
+
   def update!(*)
-    raise ActiveRecord::ReadOnlyRecord, "InventoryLog records are immutable for audit integrity"  
+    raise ActiveRecord::ReadOnlyRecord, "InventoryLog records are immutable for audit integrity"
   end
-  
+
   def update_attribute(*)
     raise ActiveRecord::ReadOnlyRecord, "InventoryLog records are immutable for audit integrity"
   end
-  
+
   def update_attributes(*)
     raise ActiveRecord::ReadOnlyRecord, "InventoryLog records are immutable for audit integrity"
   end
-  
+
   def update_columns(*)
     raise ActiveRecord::ReadOnlyRecord, "InventoryLog records are immutable for audit integrity"
   end
-  
+
   # 削除を禁止（監査ログは永続保存）
   def destroy
     raise ActiveRecord::ReadOnlyRecord, "InventoryLog records cannot be deleted for audit integrity"
   end
-  
+
   def destroy!
     raise ActiveRecord::ReadOnlyRecord, "InventoryLog records cannot be deleted for audit integrity"
   end
-  
+
   def delete
     raise ActiveRecord::ReadOnlyRecord, "InventoryLog records cannot be deleted for audit integrity"
   end
