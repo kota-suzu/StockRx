@@ -2,7 +2,7 @@
 
 class StoreInventory < ApplicationRecord
   # アソシエーション
-  belongs_to :store
+  belongs_to :store, counter_cache: true
   belongs_to :inventory
 
   # 在庫移動ログ関連（Phase 2で実装予定）

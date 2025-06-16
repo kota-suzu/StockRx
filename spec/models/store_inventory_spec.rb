@@ -17,7 +17,7 @@ RSpec.describe StoreInventory, type: :model do
     it { should validate_numericality_of(:reserved_quantity).is_greater_than_or_equal_to(0) }
     it { should validate_presence_of(:safety_stock_level) }
     it { should validate_numericality_of(:safety_stock_level).is_greater_than_or_equal_to(0) }
-    it { should validate_uniqueness_of(:store_id).scoped_to(:inventory_id) }
+    it { should validate_uniqueness_of(:store_id).scoped_to(:inventory_id).with_message("この店舗には既に同じ商品の在庫が登録されています") }
 
     describe 'custom validations' do
       describe 'reserved_quantity_not_exceed_quantity' do
@@ -83,7 +83,7 @@ RSpec.describe StoreInventory, type: :model do
     let!(:inventory1) { create(:inventory) }
     let!(:inventory2) { create(:inventory) }
 
-    let!(:available_item) { create(:store_inventory, store: store1, inventory: inventory1, quantity: 10, reserved_quantity: 5) }
+    let!(:available_item) { create(:store_inventory, store: store1, inventory: inventory1, quantity: 10, reserved_quantity: 5, safety_stock_level: 5) }
     let!(:fully_reserved_item) { create(:store_inventory, store: store1, inventory: inventory2, quantity: 10, reserved_quantity: 10) }
     let!(:low_stock_item) { create(:store_inventory, store: store2, inventory: inventory1, quantity: 3, safety_stock_level: 5) }
     let!(:critical_stock_item) { create(:store_inventory, store: store2, inventory: inventory2, quantity: 1, safety_stock_level: 5) }
@@ -276,7 +276,7 @@ RSpec.describe StoreInventory, type: :model do
     let!(:store) { create(:store) }
     let!(:inventory1) { create(:inventory, price: 100) }
     let!(:inventory2) { create(:inventory, price: 200) }
-    let!(:store_inv1) { create(:store_inventory, store: store, inventory: inventory1, quantity: 10, reserved_quantity: 2) }
+    let!(:store_inv1) { create(:store_inventory, store: store, inventory: inventory1, quantity: 10, reserved_quantity: 2, safety_stock_level: 8) }
     let!(:store_inv2) { create(:store_inventory, store: store, inventory: inventory2, quantity: 5, reserved_quantity: 1, safety_stock_level: 3) }
 
     describe '.store_summary' do
@@ -285,9 +285,9 @@ RSpec.describe StoreInventory, type: :model do
 
         expect(summary[:total_items]).to eq(2)
         expect(summary[:total_value]).to eq(2000) # (10*100) + (5*200)
-        expect(summary[:available_value]).to eq(1800) # (8*100) + (4*200)
+        expect(summary[:available_value]).to eq(1600) # (8*100) + (4*200)
         expect(summary[:reserved_value]).to eq(400) # (2*100) + (1*200)
-        expect(summary[:low_stock_count]).to eq(1) # store_inv2 (5 <= 3 is false, but we need items where quantity <= safety_stock_level)
+        expect(summary[:low_stock_count]).to eq(0) # store_inv2 has quantity: 5 > safety_stock_level: 3
       end
     end
 
@@ -298,7 +298,7 @@ RSpec.describe StoreInventory, type: :model do
       it 'returns inventory status across all stores' do
         result = StoreInventory.inventory_across_stores(inventory1)
 
-        expect(result).to have(2).items
+        expect(result.size).to eq(2)
 
         store1_data = result.find { |r| r[:store] == store }
         expect(store1_data[:quantity]).to eq(10)
