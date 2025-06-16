@@ -20,7 +20,8 @@ RSpec.describe Admin, type: :model do
 
   describe 'ファクトリー' do
     it '有効なファクトリーが作成できること' do
-      admin = build(:admin)
+      store = create(:store)
+      admin = build(:admin, store: store)
       expect(admin).to be_valid
     end
   end
@@ -37,7 +38,8 @@ RSpec.describe Admin, type: :model do
       end
 
       it '強いパスワードは有効であること' do
-        admin = build(:admin, password: 'Password123!', password_confirmation: 'Password123!')
+        store = create(:store)
+        admin = build(:admin, store: store, password: 'Password123!', password_confirmation: 'Password123!')
         expect(admin).to be_valid
       end
     end
@@ -123,7 +125,7 @@ RSpec.describe Admin, type: :model do
 
   describe 'OAuthユーザーのパスワードバリデーション' do
     context 'providerとuidが存在する場合' do
-      let(:oauth_admin) { build(:admin, provider: 'github', uid: '123', password: nil, password_confirmation: nil) }
+      let(:oauth_admin) { build(:admin, provider: 'github', uid: '123', password: nil, password_confirmation: nil, role: 'headquarters_admin') }
 
       it 'パスワードバリデーションがスキップされること' do
         expect(oauth_admin).to be_valid
@@ -158,7 +160,23 @@ RSpec.describe Admin, type: :model do
   # ============================================
 
   describe 'multi-store associations' do
-    it { should belong_to(:store).optional }
+    # storeの関連付けは条件付き必須（headquarters_admin以外は必須）
+    it 'has conditional store association' do
+      # 本部管理者の場合はstore不要
+      headquarters_admin = build(:admin, role: 'headquarters_admin', store: nil)
+      expect(headquarters_admin).to be_valid
+
+      # 店舗ユーザーの場合はstore必須
+      store_user = build(:admin, role: 'store_user', store: nil)
+      expect(store_user).not_to be_valid
+      expect(store_user.errors[:store]).to include('本部管理者以外は店舗の指定が必要です')
+
+      # 店舗ユーザーでstore指定があれば有効
+      store = create(:store)
+      store_user_with_store = build(:admin, role: 'store_user', store: store)
+      expect(store_user_with_store).to be_valid
+    end
+
     it { should have_many(:requested_transfers).class_name('InterStoreTransfer').with_foreign_key('requested_by_id') }
     it { should have_many(:approved_transfers).class_name('InterStoreTransfer').with_foreign_key('approved_by_id') }
   end
@@ -203,7 +221,7 @@ RSpec.describe Admin, type: :model do
   end
 
   describe 'enums' do
-    it { should define_enum_for(:role).with_values(
+    it { should define_enum_for(:role).backed_by_column_of_type(:string).with_values(
       store_user: 'store_user',
       pharmacist: 'pharmacist',
       store_manager: 'store_manager',

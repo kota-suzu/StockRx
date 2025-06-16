@@ -21,7 +21,7 @@ RSpec.describe "Inventory Search", type: :request do
   # - 全てのパスをadmin_inventories_pathに修正
   # - SearchQueryが期待するパラメータ名に合わせて修正（name → q）
   # - JSON形式のレスポンス構造に合わせてテストを修正
-  # 
+  #
   # 横展開確認結果:
   # - adminコントローラーはSearchQueryを直接使用するため、パラメータ名の変換が必要
   # - 非adminコントローラーはInventorySearchFormを使用してパラメータを変換
@@ -216,11 +216,11 @@ RSpec.describe "Inventory Search", type: :request do
       expect(response.content_type).to match(/application\/json/)
 
       json_response = JSON.parse(response.body)
-      
+
       # adminコントローラーはinventoriesとpaginationを含むオブジェクトを返す
       expect(json_response).to have_key('inventories')
       expect(json_response).to have_key('pagination')
-      
+
       inventories = json_response['inventories']
       expect(inventories.size).to eq(2)  # SEARCH_TEST_商品A, SEARCH_TEST_商品B
 

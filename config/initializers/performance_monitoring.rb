@@ -74,15 +74,15 @@ end
 #   def call(env)
 #     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 #     start_memory = GetProcessMem.new.mb
-#     
+#
 #     status, headers, response = @app.call(env)
-#     
+#
 #     elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 #     memory_delta = GetProcessMem.new.mb - start_memory
-#     
+#
 #     # メトリクスの記録
 #     record_metrics(env, elapsed_time, memory_delta)
-#     
+#
 #     [status, headers, response]
 #   end
 #

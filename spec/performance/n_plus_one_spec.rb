@@ -28,7 +28,7 @@ RSpec.describe "N+1 Query Detection", type: :request do
       counter = ->(name, started, finished, unique_id, payload) {
         count += 1 unless payload[:sql]&.match?(/\A(?:BEGIN|COMMIT|ROLLBACK|SAVEPOINT|RELEASE)/i)
       }
-      
+
       ActiveSupport::Notifications.subscribed(counter, "sql.active_record", &block)
       count
     end
@@ -41,16 +41,16 @@ RSpec.describe "N+1 Query Detection", type: :request do
 
     before do
       sign_in admin
-      
+
       # 各店舗に在庫を設定
       stores.each do |store|
         inventories.each do |inventory|
           create(:store_inventory, store: store, inventory: inventory)
         end
-        
+
         # 店舗間移動申請を作成
-        create_list(:inter_store_transfer, 2, 
-                   source_store: store, 
+        create_list(:inter_store_transfer, 2,
+                   source_store: store,
                    destination_store: stores.sample,
                    inventory: inventories.sample,
                    requested_by: admin,
@@ -61,7 +61,7 @@ RSpec.describe "N+1 Query Detection", type: :request do
     it "店舗一覧でN+1クエリが発生しないこと" do
       # ウォームアップ（キャッシュを考慮）
       get admin_stores_path
-      
+
       # Counter Cacheを使用しているため、店舗数が増えてもクエリ数は一定
       expect {
         get admin_stores_path
@@ -70,7 +70,7 @@ RSpec.describe "N+1 Query Detection", type: :request do
 
     it "店舗詳細でN+1クエリが発生しないこと" do
       store = stores.first
-      
+
       expect {
         get admin_store_path(store)
       }.to not_exceed_query_count(15)
@@ -85,7 +85,7 @@ RSpec.describe "N+1 Query Detection", type: :request do
 
     before do
       sign_in admin
-      
+
       # 移動申請を作成
       10.times do
         transfers << create(:inter_store_transfer,
@@ -93,7 +93,7 @@ RSpec.describe "N+1 Query Detection", type: :request do
                            destination_store: stores.sample,
                            inventory: inventories.sample,
                            requested_by: admin,
-                           status: [:pending, :approved, :completed].sample)
+                           status: [ :pending, :approved, :completed ].sample)
       end
     end
 
@@ -117,7 +117,7 @@ RSpec.describe "N+1 Query Detection", type: :request do
 
     before do
       sign_in admin
-      
+
       # 各在庫にバッチを追加
       inventories.each do |inventory|
         create_list(:batch, 3, inventory: inventory)

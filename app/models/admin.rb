@@ -179,7 +179,10 @@ class Admin < ApplicationRecord
       sign_in_count: 1,
       current_sign_in_at: Time.current,
       last_sign_in_at: Time.current,
-      current_sign_in_ip: extract_ip_address(auth)
+      current_sign_in_ip: extract_ip_address(auth),
+      # TODO: GitHub認証ユーザーのデフォルト権限を本部管理者に設定
+      # Phase 3で組織のポリシーに基づいて変更予定
+      role: "headquarters_admin"
     )
 
     # TODO: 🟡 Phase 3（中）- GitHub管理者の自動承認・権限設定

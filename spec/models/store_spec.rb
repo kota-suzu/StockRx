@@ -20,7 +20,7 @@ RSpec.describe Store, type: :model do
     it { should validate_length_of(:code).is_at_most(20) }
     it { should validate_uniqueness_of(:code).case_insensitive }
     it { should validate_presence_of(:store_type) }
-    it { should validate_inclusion_of(:store_type).in_array(%w[pharmacy warehouse headquarters]) }
+    # enum定義により自動的にvalidationが適用される
 
     describe 'code format validation' do
       it 'allows alphanumeric characters, hyphens, and underscores' do
@@ -58,7 +58,7 @@ RSpec.describe Store, type: :model do
   end
 
   describe 'enums' do
-    it { should define_enum_for(:store_type).with_values(pharmacy: 'pharmacy', warehouse: 'warehouse', headquarters: 'headquarters') }
+    it { should define_enum_for(:store_type).backed_by_column_of_type(:string).with_values(pharmacy: 'pharmacy', warehouse: 'warehouse', headquarters: 'headquarters') }
   end
 
   describe 'scopes' do

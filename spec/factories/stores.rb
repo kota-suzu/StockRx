@@ -43,9 +43,10 @@ FactoryBot.define do
       end
 
       after(:create) do |store, evaluator|
-        create_list(:store_inventory, evaluator.inventories_count,
-                   store: store,
-                   inventory: create(:inventory))
+        inventories = create_list(:inventory, evaluator.inventories_count)
+        inventories.each do |inventory|
+          create(:store_inventory, store: store, inventory: inventory)
+        end
       end
     end
 
