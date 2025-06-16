@@ -38,7 +38,7 @@ Rails.application.config.filter_parameters += [
 if Rails.env.production?
   # HTTPSへの自動リダイレクト
   Rails.application.config.force_ssl = true
-  
+
   # HSTSの有効期限（1年）
   Rails.application.config.ssl_options = {
     hsts: {
@@ -47,7 +47,7 @@ if Rails.env.production?
       preload: true
     },
     redirect: {
-      exclude: -> request { request.path =~ /health|up/ }  # ヘルスチェックは除外
+      exclude: ->(request) { request.path =~ /health|up/ }  # ヘルスチェックは除外
     }
   }
 end
@@ -65,7 +65,7 @@ if Rails.application.config.respond_to?(:hosts) && Rails.application.config.host
 
   if Rails.env.production?
     # 本番環境のドメインを追加
-    Rails.application.config.hosts << ENV.fetch('APPLICATION_HOST', 'stockrx.example.com')
+    Rails.application.config.hosts << ENV.fetch("APPLICATION_HOST", "stockrx.example.com")
     Rails.application.config.hosts << /\A[a-z0-9-]+\.stockrx\.example\.com\z/  # サブドメイン許可
   end
 
@@ -89,7 +89,7 @@ Rails.application.config.active_record.dump_schema_after_migration = false if Ra
 if Rails.env.production?
   Rails.application.config.action_mailer.raise_delivery_errors = false
   Rails.application.config.action_mailer.perform_caching = false
-  
+
   # メールヘッダーインジェクション対策
   ActionMailer::Base.default from: proc { "noreply@#{Rails.application.config.hosts.first}" }
 end
@@ -100,10 +100,10 @@ end
 # ダイレクトアップロードのセキュリティ
 Rails.application.config.active_storage.variant_processor = :mini_magick
 Rails.application.config.active_storage.content_types_to_serve_as_binary = [
-  'application/octet-stream',
-  'application/x-executable',
-  'application/x-sharedlib',
-  'application/x-object'
+  "application/octet-stream",
+  "application/x-executable",
+  "application/x-sharedlib",
+  "application/x-object"
 ]
 
 # ============================================
@@ -133,7 +133,7 @@ if Rails.env.production?
       pid: Process.pid
     }.to_json + "\n"
   end
-  
+
   # ログレベル設定
   Rails.application.config.log_level = :info
 end
@@ -143,7 +143,7 @@ end
 # ============================================
 
 # タイミング攻撃対策
-ActiveSupport::SecurityUtils.secure_compare('a', 'a')  # ウォームアップ
+ActiveSupport::SecurityUtils.secure_compare("a", "a")  # ウォームアップ
 
 # セッション固定攻撃対策
 Rails.application.config.action_dispatch.use_cookies_with_metadata = true
@@ -162,18 +162,18 @@ module SecurityConfig
   PASSWORD_REQUIRE_LOWERCASE = true
   PASSWORD_REQUIRE_DIGIT = true
   PASSWORD_REQUIRE_SPECIAL = true
-  
+
   # セッション設定
   SESSION_TIMEOUT = 8.hours
   SESSION_TIMEOUT_WARNING = 15.minutes
   REMEMBER_ME_DURATION = 2.weeks
-  
+
   # レート制限
   LOGIN_ATTEMPTS_LIMIT = 5
   LOGIN_LOCKOUT_DURATION = 30.minutes
   API_RATE_LIMIT = 100
   API_RATE_WINDOW = 1.hour
-  
+
   # ファイルアップロード
   MAX_FILE_SIZE = 10.megabytes
   ALLOWED_CONTENT_TYPES = %w[
@@ -186,18 +186,18 @@ module SecurityConfig
     application/vnd.ms-excel
     application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
   ].freeze
-  
+
   # IPホワイトリスト（本番環境用）
-  WHITELISTED_IPS = ENV.fetch('WHITELISTED_IPS', '').split(',').map(&:strip).freeze
-  
+  WHITELISTED_IPS = ENV.fetch("WHITELISTED_IPS", "").split(",").map(&:strip).freeze
+
   # セキュリティヘッダー
   SECURITY_HEADERS = {
-    'X-Frame-Options' => 'DENY',
-    'X-Content-Type-Options' => 'nosniff',
-    'X-XSS-Protection' => '1; mode=block',
-    'Referrer-Policy' => 'strict-origin-when-cross-origin',
-    'X-Permitted-Cross-Domain-Policies' => 'none',
-    'X-Download-Options' => 'noopen'
+    "X-Frame-Options" => "DENY",
+    "X-Content-Type-Options" => "nosniff",
+    "X-XSS-Protection" => "1; mode=block",
+    "Referrer-Policy" => "strict-origin-when-cross-origin",
+    "X-Permitted-Cross-Domain-Policies" => "none",
+    "X-Download-Options" => "noopen"
   }.freeze
 end
 
