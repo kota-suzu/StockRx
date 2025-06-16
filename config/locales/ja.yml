@@ -49,6 +49,10 @@ ja:
   # Rails標準のエラーメッセージ
   errors:
     messages:
+      access_denied: "アクセスが拒否されました"
+      insufficient_permissions: "この操作を実行する権限がありません"
+      store_inactive: "この店舗は現在利用できません"
+      record_not_found: "指定されたデータが見つかりません"
       blank: "を入力してください"
       too_long: "は%{count}文字以内で入力してください"
       too_short: "%{count}文字以上で入力してください"

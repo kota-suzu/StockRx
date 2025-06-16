@@ -11,6 +11,57 @@ Rails.application.routes.draw do
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
 
+  # ============================================
+  # Phase 2: 店舗別ログインシステム
+  # ============================================
+  
+  # 店舗選択画面（ログイン前）
+  get "store", to: "store_controllers/store_selection#index", as: :store_selection
+  get "store/:slug", to: "store_controllers/store_selection#show", as: :store_login_page
+  
+  # StoreUserモデル用のDeviseルート
+  # /store/:store_slug/sign_in などのパスになるよう設定
+  devise_for :store_users,
+             path: "store",
+             skip: [ :registrations, :omniauth_callbacks ],
+             controllers: {
+               sessions: "store_controllers/sessions",
+               passwords: "store_controllers/passwords"
+             }
+  
+  # 店舗ユーザー用の認証済みルート
+  authenticated :store_user do
+    namespace :store, module: :store_controllers do
+      root "dashboard#index"
+      
+      # 在庫管理（店舗スコープ）
+      resources :inventories, only: [ :index, :show ] do
+        member do
+          post :request_transfer  # 移動申請
+        end
+      end
+      
+      # 店舗間移動（店舗視点）
+      resources :transfers, only: [ :index, :show, :new, :create ] do
+        member do
+          patch :cancel  # 申請取消（申請者のみ）
+        end
+      end
+      
+      # プロフィール管理
+      resource :profile, only: [ :show, :edit, :update ] do
+        member do
+          get :change_password
+          patch :update_password
+        end
+      end
+    end
+  end
+  
+  # ============================================
+  # 管理者認証（既存）
+  # ============================================
+  
   # Adminモデル用のDeviseルート
   # /admin/sign_in などのパスになるよう設定
   devise_for :admins,
