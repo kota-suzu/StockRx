@@ -25,6 +25,7 @@ class StoreInventory < ApplicationRecord
   # ============================================
   before_update :update_last_updated_at, if: :quantity_changed?
   after_commit :check_stock_alerts, on: [ :create, :update ]
+  after_commit :update_store_low_stock_count, on: [ :create, :update, :destroy ]
 
   # ============================================
   # スコープ
@@ -205,5 +206,13 @@ class StoreInventory < ApplicationRecord
     # TODO: Phase 3で実際の売上・消費データと連携
     # 現在は安全在庫レベルの10%をデフォルトとする
     [ safety_stock_level * 0.1, 1.0 ].max
+  end
+
+  # 店舗の低在庫アイテムカウントを更新
+  def update_store_low_stock_count
+    # 在庫数量か安全在庫レベルが変更された場合のみ更新
+    return unless saved_change_to_quantity? || saved_change_to_safety_stock_level? || destroyed?
+    
+    store.update_low_stock_items_count! if store
   end
 end

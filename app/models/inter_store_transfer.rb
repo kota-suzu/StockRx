@@ -43,6 +43,7 @@ class InterStoreTransfer < ApplicationRecord
   after_create :reserve_source_stock
   after_update :handle_status_change
   before_destroy :release_reserved_stock, if: :can_be_cancelled?
+  after_commit :update_store_pending_counts
 
   # ============================================
   # スコープ
@@ -375,5 +376,23 @@ class InterStoreTransfer < ApplicationRecord
             .order(Arel.sql("COUNT(*) DESC"))
             .limit(limit)
             .count
+  end
+
+  # 店舗のpending状態のカウンタを更新
+  def update_store_pending_counts
+    # ステータスの変更またはレコードの作成・削除時に更新
+    if saved_change_to_status? || destroyed? || (previous_changes.key?(:id) && persisted?)
+      # 移動元の店舗のカウンタを更新
+      if source_store
+        source_store.update_column(:pending_outgoing_transfers_count,
+                                   source_store.outgoing_transfers.pending.count)
+      end
+
+      # 移動先の店舗のカウンタを更新
+      if destination_store
+        destination_store.update_column(:pending_incoming_transfers_count,
+                                        destination_store.incoming_transfers.pending.count)
+      end
+    end
   end
 end
