@@ -64,11 +64,28 @@ class Store < ApplicationRecord
     estimated_annual_cogs / average_inventory_value
   end
 
-  # 低在庫商品数
+  # 低在庫商品数（Counter Cacheを使用）
   def low_stock_items_count
+    # Counter Cacheカラムが存在する場合はそれを使用、なければ計算
+    if has_attribute?(:low_stock_items_count)
+      read_attribute(:low_stock_items_count)
+    else
+      calculate_low_stock_items_count
+    end
+  end
+
+  # 低在庫商品数を計算
+  def calculate_low_stock_items_count
     store_inventories.joins(:inventory)
                     .where("store_inventories.quantity <= store_inventories.safety_stock_level")
                     .count
+  end
+
+  # 低在庫商品数カウンタを更新
+  def update_low_stock_items_count!
+    count = calculate_low_stock_items_count
+    update_column(:low_stock_items_count, count) if has_attribute?(:low_stock_items_count)
+    count
   end
 
   # 在庫切れ商品数
@@ -91,6 +108,25 @@ class Store < ApplicationRecord
       all
     else
       where(id: admin.accessible_store_ids)
+    end
+  end
+
+  # Counter Cacheの安全なリセット
+  def self.reset_counters_safely
+    find_each do |store|
+      # store_inventories_countのリセット
+      Store.reset_counters(store.id, :store_inventories)
+
+      # pending_outgoing_transfers_countのリセット
+      store.update_column(:pending_outgoing_transfers_count,
+                         store.outgoing_transfers.pending.count)
+
+      # pending_incoming_transfers_countのリセット
+      store.update_column(:pending_incoming_transfers_count,
+                         store.incoming_transfers.pending.count)
+
+      # low_stock_items_countのリセット
+      store.update_low_stock_items_count!
     end
   end
 
@@ -135,6 +171,20 @@ class Store < ApplicationRecord
   #    - 営業時間設定
   #    - 在庫アラート閾値のカスタマイズ
   #    - 移動申請承認フローの設定
+  #
+  # TODO: 🔴 Phase 1（緊急）- Counter Cache最適化の拡張
+  # 優先度: 高（パフォーマンス向上）
+  # 実装内容:
+  #   - ActiveJob経由での非同期カウンタ更新
+  #   - カウンタ更新のバッチ処理最適化
+  #   - カウンタ整合性チェックの定期実行
+  #
+  # TODO: 🟡 Phase 2（重要）- 統計情報のキャッシュ戦略
+  # 優先度: 中（スケーラビリティ向上）
+  # 実装内容:
+  #   - 店舗統計情報のRedisキャッシュ
+  #   - 時系列データの効率的な保存
+  #   - リアルタイムダッシュボード用のデータ準備
 
   private
 

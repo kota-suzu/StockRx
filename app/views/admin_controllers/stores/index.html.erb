@@ -186,7 +186,7 @@
                         <div class="d-flex flex-column">
                           <small class="text-muted">
                             <i class="bi bi-boxes me-1" aria-hidden="true"></i>
-                            <%= store.store_inventories.count %>アイテム
+                            <%= store.store_inventories_count %>アイテム
                           </small>
                           <% low_stock_count = store.low_stock_items_count %>
                           <% if low_stock_count > 0 %>
@@ -204,8 +204,8 @@
                       </td>
                       <td>
                         <div class="d-flex flex-column">
-                          <% pending_out = store.outgoing_transfers.pending.count %>
-                          <% pending_in = store.incoming_transfers.pending.count %>
+                          <% pending_out = store.pending_outgoing_transfers_count %>
+                          <% pending_in = store.pending_incoming_transfers_count %>
                           <% if pending_out > 0 || pending_in > 0 %>
                             <small class="text-info">
                               <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>

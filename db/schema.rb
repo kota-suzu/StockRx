@@ -10,8 +10,8 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
-  create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+ActiveRecord::Schema[8.0].define(version: 2025_06_16_155723) do
+  create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
     t.string "delivery_method", null: false, comment: "配信方法（email, actioncable等）"
@@ -37,7 +37,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
     t.index ["priority"], name: "index_admin_notification_settings_on_priority"
   end
 
-  create_table "admins", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+  create_table "admins", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "email", default: "", null: false
     t.string "encrypted_password", default: "", null: false
     t.string "reset_password_token"
@@ -70,7 +70,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
     t.index ["unlock_token"], name: "index_admins_on_unlock_token", unique: true
   end
 
-  create_table "audit_logs", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+  create_table "audit_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "auditable_type", null: false
     t.bigint "auditable_id", null: false
     t.bigint "user_id"
@@ -90,7 +90,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
     t.index ["user_id"], name: "index_audit_logs_on_user_id"
   end
 
-  create_table "batches", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+  create_table "batches", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.string "lot_code", null: false
     t.date "expires_on"
@@ -100,6 +100,21 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
     t.index ["expires_on"], name: "index_batches_on_expires_on"
     t.index ["inventory_id", "lot_code"], name: "uniq_inventory_lot", unique: true
     t.index ["inventory_id"], name: "index_batches_on_inventory_id"
+  end
+
+  create_table "identities", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+    t.bigint "admin_id", null: false
+    t.string "provider", null: false
+    t.string "uid", null: false
+    t.string "name"
+    t.string "email"
+    t.string "image_url"
+    t.json "raw_info"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["admin_id", "provider"], name: "index_identities_on_admin_id_and_provider", unique: true
+    t.index ["admin_id"], name: "index_identities_on_admin_id"
+    t.index ["provider", "uid"], name: "index_identities_on_provider_and_uid", unique: true
   end
 
   create_table "inter_store_transfers", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -130,7 +145,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
     t.check_constraint "`source_store_id` <> `destination_store_id`", name: "chk_different_stores"
   end
 
-  create_table "inventories", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+  create_table "inventories", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "name", null: false
     t.integer "quantity", default: 0, null: false
     t.decimal "price", precision: 10, scale: 2, default: "0.0", null: false
@@ -148,7 +163,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
     t.index ["shipments_count"], name: "index_inventories_on_shipments_count"
   end
 
-  create_table "inventory_logs", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+  create_table "inventory_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "delta", null: false
     t.string "operation_type", null: false
@@ -164,7 +179,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
     t.index ["user_id"], name: "index_inventory_logs_on_user_id"
   end
 
-  create_table "receipts", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+  create_table "receipts", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "quantity"
     t.string "source"
@@ -214,7 +229,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
     t.index ["status", "expires_at"], name: "idx_report_files_cleanup"
   end
 
-  create_table "shipments", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+  create_table "shipments", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "inventory_id", null: false
     t.integer "quantity"
     t.string "destination"
@@ -260,9 +275,15 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
     t.boolean "active", default: true, null: false, comment: "店舗有効フラグ"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "store_inventories_count", default: 0, null: false
+    t.integer "pending_outgoing_transfers_count", default: 0, null: false
+    t.integer "pending_incoming_transfers_count", default: 0, null: false
+    t.integer "low_stock_items_count", default: 0, null: false
     t.index ["active"], name: "index_stores_on_active", comment: "有効店舗フィルタ最適化"
     t.index ["code"], name: "index_stores_on_code", unique: true, comment: "店舗コード一意制約"
+    t.index ["low_stock_items_count"], name: "index_stores_on_low_stock_items_count"
     t.index ["region"], name: "index_stores_on_region", comment: "地域別検索最適化"
+    t.index ["store_inventories_count"], name: "index_stores_on_store_inventories_count"
     t.index ["store_type", "active"], name: "index_stores_on_store_type_and_active", comment: "種別・有効状態複合検索"
     t.index ["store_type"], name: "index_stores_on_store_type", comment: "店舗種別による検索最適化"
   end
@@ -271,6 +292,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_15_141413) do
   add_foreign_key "admins", "stores"
   add_foreign_key "audit_logs", "admins", column: "user_id", on_delete: :nullify
   add_foreign_key "batches", "inventories", on_delete: :cascade
+  add_foreign_key "identities", "admins"
   add_foreign_key "inter_store_transfers", "admins", column: "approved_by_id"
   add_foreign_key "inter_store_transfers", "admins", column: "requested_by_id"
   add_foreign_key "inter_store_transfers", "inventories", on_delete: :cascade

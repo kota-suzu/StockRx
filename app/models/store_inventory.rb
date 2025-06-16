@@ -212,7 +212,7 @@ class StoreInventory < ApplicationRecord
   def update_store_low_stock_count
     # 在庫数量か安全在庫レベルが変更された場合のみ更新
     return unless saved_change_to_quantity? || saved_change_to_safety_stock_level? || destroyed?
-    
+
     store.update_low_stock_items_count! if store
   end
 end
