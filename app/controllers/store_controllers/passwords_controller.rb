@@ -4,9 +4,12 @@ module StoreControllers
   # 店舗ユーザー用パスワードコントローラー
   # ============================================
   # Phase 3: 店舗別ログインシステム
+  # Phase 5-1: レート制限追加
   # パスワードリセット機能を提供
   # ============================================
   class PasswordsController < Devise::PasswordsController
+    include RateLimitable
+    
     # レイアウト設定
     layout 'store_auth'
     
@@ -35,10 +38,12 @@ module StoreControllers
       
       if resource.nil?
         # セキュリティのため、ユーザーが存在しない場合も成功したように見せる
+        track_rate_limit_action! # レート制限カウント
         set_flash_message(:notice, :send_paranoid_instructions)
         redirect_to new_store_user_session_path(store_slug: @store&.slug)
       else
         # パスワードリセットトークンを生成して送信
+        track_rate_limit_action! # レート制限カウント（成功時もカウント）
         resource.send_reset_password_instructions
         
         if successfully_sent?(resource)
@@ -166,6 +171,23 @@ module StoreControllers
       #   redirect_to store_selection_path,
       #               alert: I18n.t("errors.messages.too_many_requests")
       # end
+    end
+    
+    # ============================================
+    # レート制限設定（Phase 5-1）
+    # ============================================
+    
+    def rate_limited_actions
+      [:create]  # パスワードリセット要求のみ制限
+    end
+    
+    def rate_limit_key_type
+      :password_reset
+    end
+    
+    def rate_limit_identifier
+      # IPアドレスで識別（メールアドレスが分からない場合もあるため）
+      request.remote_ip
     end
   end
 end

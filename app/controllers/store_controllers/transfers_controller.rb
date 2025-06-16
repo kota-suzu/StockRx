@@ -4,9 +4,12 @@ module StoreControllers
   # 店舗間移動管理コントローラー
   # ============================================
   # Phase 3: 店舗別ログインシステム
+  # Phase 5-1: レート制限追加
   # 店舗視点での移動申請・管理
   # ============================================
   class TransfersController < BaseController
+    include RateLimitable
+    
     before_action :set_transfer, only: [:show, :cancel]
     before_action :ensure_can_cancel, only: [:cancel]
     
@@ -293,6 +296,23 @@ module StoreControllers
       when 'low'
         { text: '低', class: 'badge bg-light text-dark' }
       end
+    end
+    
+    # ============================================
+    # レート制限設定（Phase 5-1）
+    # ============================================
+    
+    def rate_limited_actions
+      [:create]  # 移動申請作成のみ制限
+    end
+    
+    def rate_limit_key_type
+      :transfer_request
+    end
+    
+    def rate_limit_identifier
+      # 店舗ユーザーIDで識別
+      "store_user:#{current_store_user.id}"
     end
   end
 end

@@ -4,9 +4,12 @@ module StoreControllers
   # 店舗ユーザー用セッションコントローラー
   # ============================================
   # Phase 3: 店舗別ログインシステム
+  # Phase 5-1: レート制限追加
   # Devise::SessionsControllerをカスタマイズ
   # ============================================
   class SessionsController < Devise::SessionsController
+    include RateLimitable
+    
     # CSRFトークン検証をスキップ（APIモード対応）
     skip_before_action :verify_authenticity_token, only: [:create], if: :json_request?
     
@@ -50,6 +53,7 @@ module StoreControllers
         # 認証成功
       else
         # 認証失敗
+        track_rate_limit_action! # レート制限カウント
         flash[:alert] = I18n.t("devise.failure.invalid")
         redirect_to new_store_user_session_path(store_slug: @store.slug) and return
       end
@@ -192,6 +196,23 @@ module StoreControllers
       end
       
       super
+    end
+    
+    # ============================================
+    # レート制限設定（Phase 5-1）
+    # ============================================
+    
+    def rate_limited_actions
+      [:create]  # ログインアクションのみ制限
+    end
+    
+    def rate_limit_key_type
+      :login
+    end
+    
+    def rate_limit_identifier
+      # 店舗とIPアドレスの組み合わせで識別
+      "#{@store&.id}:#{request.remote_ip}"
     end
   end
 end
