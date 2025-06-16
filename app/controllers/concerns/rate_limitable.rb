@@ -30,7 +30,7 @@ module RateLimitable
       end
       format.json do
         render json: {
-          error: 'Rate limit exceeded',
+          error: "Rate limit exceeded",
           message: rate_limit_message(limiter),
           retry_after: limiter.time_until_unblock
         }, status: :too_many_requests
@@ -75,7 +75,7 @@ module RateLimitable
   # レート制限メッセージ
   def rate_limit_message(limiter)
     minutes = (limiter.time_until_unblock / 60).ceil
-    
+
     case rate_limit_key_type
     when :login
       "ログイン試行回数が上限に達しました。#{minutes}分後に再度お試しください。"
@@ -111,12 +111,12 @@ module RateLimitable
   # レート制限情報をレスポンスヘッダーに追加
   def set_rate_limit_headers
     limiter = build_rate_limiter
-    
-    response.headers['X-RateLimit-Limit'] = limiter.instance_variable_get(:@config)[:limit].to_s
-    response.headers['X-RateLimit-Remaining'] = limiter.remaining_attempts.to_s
-    
+
+    response.headers["X-RateLimit-Limit"] = limiter.instance_variable_get(:@config)[:limit].to_s
+    response.headers["X-RateLimit-Remaining"] = limiter.remaining_attempts.to_s
+
     if limiter.blocked?
-      response.headers['X-RateLimit-Reset'] = (Time.current + limiter.time_until_unblock).to_i.to_s
+      response.headers["X-RateLimit-Reset"] = (Time.current + limiter.time_until_unblock).to_i.to_s
     end
   end
 end
@@ -126,17 +126,17 @@ end
 # ============================================
 # class StoreControllers::SessionsController < Devise::SessionsController
 #   include RateLimitable
-#   
+#
 #   private
-#   
+#
 #   def rate_limited_actions
 #     [:create]  # ログインアクションのみ制限
 #   end
-#   
+#
 #   def rate_limit_key_type
 #     :login
 #   end
-#   
+#
 #   def create
 #     super do |resource|
 #       if resource.nil? || !resource.persisted?

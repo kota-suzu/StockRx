@@ -7,8 +7,8 @@ module StoreControllers
   # 店舗スコープでの在庫閲覧・管理
   # ============================================
   class InventoriesController < BaseController
-    before_action :set_inventory, only: [:show, :request_transfer]
-    
+    before_action :set_inventory, only: [ :show, :request_transfer ]
+
     # ============================================
     # アクション
     # ============================================
@@ -19,15 +19,15 @@ module StoreControllers
                        .joins(:inventory)
                        .includes(:inventory, :batches)
                        .ransack(params[:q])
-      
+
       @store_inventories = @q.result
                             .order(sort_column => sort_direction)
                             .page(params[:page])
                             .per(per_page)
-      
+
       # フィルタリング用のデータ
       load_filter_data
-      
+
       # 統計情報
       load_statistics
     end
@@ -37,19 +37,19 @@ module StoreControllers
       @store_inventory = current_store.store_inventories
                                      .includes(:inventory, :batches)
                                      .find_by!(inventory: @inventory)
-      
+
       # バッチ情報
       @batches = @store_inventory.batches
                                 .order(expiration_date: :asc)
                                 .page(params[:batch_page])
-      
+
       # 在庫履歴
       @inventory_logs = @inventory.inventory_logs
                                  .where(store_id: current_store.id)
                                  .includes(:admin)
                                  .order(created_at: :desc)
                                  .limit(20)
-      
+
       # 移動履歴
       @transfer_history = load_transfer_history
     end
@@ -61,7 +61,7 @@ module StoreControllers
         inventory: @inventory,
         requested_by: current_store_user
       )
-      
+
       # 他店舗の在庫状況
       @other_stores_inventory = StoreInventory.where(inventory: @inventory)
                                              .where.not(store: current_store)
@@ -90,18 +90,18 @@ module StoreControllers
                                 .pluck(:category)
                                 .compact
                                 .sort
-      
+
       @manufacturers = current_store.inventories
                                    .distinct
                                    .pluck(:manufacturer)
                                    .compact
                                    .sort
-      
+
       @stock_levels = [
-        ['在庫切れ', 'out_of_stock'],
-        ['低在庫', 'low_stock'],
-        ['適正在庫', 'normal_stock'],
-        ['過剰在庫', 'excess_stock']
+        [ "在庫切れ", "out_of_stock" ],
+        [ "低在庫", "low_stock" ],
+        [ "適正在庫", "normal_stock" ],
+        [ "過剰在庫", "excess_stock" ]
       ]
     end
 
@@ -125,7 +125,7 @@ module StoreControllers
     def calculate_low_stock_percentage
       total = @q.result.count
       return 0 if total.zero?
-      
+
       low_stock = @q.result.where("quantity <= safety_stock_level").count
       ((low_stock.to_f / total) * 100).round(1)
     end
@@ -146,11 +146,11 @@ module StoreControllers
     # ============================================
 
     def sort_column
-      %w[inventories.name inventories.sku quantity safety_stock_level].include?(params[:sort]) ? params[:sort] : 'inventories.name'
+      %w[inventories.name inventories.sku quantity safety_stock_level].include?(params[:sort]) ? params[:sort] : "inventories.name"
     end
 
     def sort_direction
-      %w[asc desc].include?(params[:direction]) ? params[:direction] : 'asc'
+      %w[asc desc].include?(params[:direction]) ? params[:direction] : "asc"
     end
 
     # ============================================
@@ -161,13 +161,13 @@ module StoreControllers
     helper_method :stock_level_badge
     def stock_level_badge(store_inventory)
       if store_inventory.quantity == 0
-        { text: '在庫切れ', class: 'badge bg-danger' }
+        { text: "在庫切れ", class: "badge bg-danger" }
       elsif store_inventory.quantity <= store_inventory.safety_stock_level
-        { text: '低在庫', class: 'badge bg-warning text-dark' }
+        { text: "低在庫", class: "badge bg-warning text-dark" }
       elsif store_inventory.quantity > store_inventory.safety_stock_level * 2
-        { text: '過剰在庫', class: 'badge bg-info' }
+        { text: "過剰在庫", class: "badge bg-info" }
       else
-        { text: '適正', class: 'badge bg-success' }
+        { text: "適正", class: "badge bg-success" }
       end
     end
 
@@ -176,8 +176,8 @@ module StoreControllers
     def turnover_days(store_inventory)
       # TODO: Phase 4 - 実際の販売データから計算
       # 仮実装
-      return '---' if store_inventory.quantity.zero?
-      
+      return "---" if store_inventory.quantity.zero?
+
       daily_usage = 5 # 仮の日次使用量
       (store_inventory.quantity / daily_usage.to_f).round
     end
@@ -186,15 +186,15 @@ module StoreControllers
     helper_method :batch_status_badge
     def batch_status_badge(batch)
       days_until_expiry = (batch.expiration_date - Date.current).to_i
-      
+
       if days_until_expiry < 0
-        { text: '期限切れ', class: 'badge bg-danger' }
+        { text: "期限切れ", class: "badge bg-danger" }
       elsif days_until_expiry <= 30
-        { text: "#{days_until_expiry}日", class: 'badge bg-warning text-dark' }
+        { text: "#{days_until_expiry}日", class: "badge bg-warning text-dark" }
       elsif days_until_expiry <= 90
-        { text: "#{days_until_expiry}日", class: 'badge bg-info' }
+        { text: "#{days_until_expiry}日", class: "badge bg-info" }
       else
-        { text: '良好', class: 'badge bg-success' }
+        { text: "良好", class: "badge bg-success" }
       end
     end
   end

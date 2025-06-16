@@ -9,7 +9,7 @@ module StoreControllers
   class ProfilesController < BaseController
     # 更新アクションのみ強いパラメータチェック
     before_action :set_user
-    
+
     # ============================================
     # アクション
     # ============================================
@@ -18,7 +18,7 @@ module StoreControllers
     def show
       # ログイン履歴
       @login_history = build_login_history
-      
+
       # セキュリティ設定
       @security_settings = build_security_settings
     end
@@ -31,7 +31,7 @@ module StoreControllers
     # プロフィール更新
     def update
       if @user.update(profile_params)
-        redirect_to store_profile_path, 
+        redirect_to store_profile_path,
                     notice: I18n.t("messages.profile_updated")
       else
         render :edit, status: :unprocessable_entity
@@ -53,7 +53,7 @@ module StoreControllers
         render :change_password, status: :unprocessable_entity
         return
       end
-      
+
       # 新しいパスワードの設定
       if @user.update(password_update_params.except(:current_password))
         # パスワード変更日時の更新
@@ -61,10 +61,10 @@ module StoreControllers
           password_changed_at: Time.current,
           must_change_password: false
         )
-        
+
         # 再ログインは不要（セッション維持）
         bypass_sign_in(@user)
-        
+
         redirect_to store_profile_path,
                     notice: I18n.t("devise.passwords.updated")
       else
@@ -118,7 +118,7 @@ module StoreControllers
     def build_security_settings
       {
         password_changed_at: @user.password_changed_at,
-        password_expires_at: @user.password_changed_at&.+ 90.days,
+        password_expires_at: @user.password_changed_at&.+(90.days),
         locked_at: @user.locked_at,
         unlock_token_sent_at: @user.unlock_token.present? ? @user.updated_at : nil,
         two_factor_enabled: false # TODO: Phase 5 - 2FA実装
@@ -128,11 +128,11 @@ module StoreControllers
     # パスワード有効期限までの日数
     def password_expiration_days
       return nil unless @user.password_changed_at
-      
+
       expires_at = @user.password_changed_at + 90.days
       days_remaining = (expires_at.to_date - Date.current).to_i
-      
-      [days_remaining, 0].max
+
+      [ days_remaining, 0 ].max
     end
 
     # ============================================
@@ -142,24 +142,24 @@ module StoreControllers
     # パスワード強度インジケーター
     helper_method :password_strength_class
     def password_strength_class(days_remaining)
-      return 'text-danger' if days_remaining.nil? || days_remaining <= 7
-      return 'text-warning' if days_remaining <= 30
-      'text-success'
+      return "text-danger" if days_remaining.nil? || days_remaining <= 7
+      return "text-warning" if days_remaining <= 30
+      "text-success"
     end
 
     # IPアドレスの表示形式
     helper_method :format_ip_address
     def format_ip_address(ip)
       return I18n.t("messages.unknown") if ip.blank?
-      
+
       # プライバシー保護のため一部マスク
-      if ip.include?('.')
+      if ip.include?(".")
         # IPv4
-        parts = ip.split('.')
+        parts = ip.split(".")
         "#{parts[0]}.#{parts[1]}.***.***"
       else
         # IPv6
-        parts = ip.split(':')
+        parts = ip.split(":")
         "#{parts[0]}:#{parts[1]}:****:****"
       end
     end

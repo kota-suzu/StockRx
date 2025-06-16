@@ -9,12 +9,12 @@ module StoreControllers
   # ============================================
   class PasswordsController < Devise::PasswordsController
     include RateLimitable
-    
+
     # レイアウト設定
-    layout 'store_auth'
-    
+    layout "store_auth"
+
     # 店舗情報の設定
-    before_action :set_store_from_params, only: [:new, :create, :edit, :update]
+    before_action :set_store_from_params, only: [ :new, :create, :edit, :update ]
 
     # ============================================
     # アクション
@@ -24,7 +24,7 @@ module StoreControllers
     def new
       # 店舗が指定されていない場合は店舗選択画面へ
       redirect_to store_selection_path and return unless @store
-      
+
       super
     end
 
@@ -35,7 +35,7 @@ module StoreControllers
         email: resource_params[:email]&.downcase,
         store_id: @store&.id
       )
-      
+
       if resource.nil?
         # セキュリティのため、ユーザーが存在しない場合も成功したように見せる
         track_rate_limit_action! # レート制限カウント
@@ -45,7 +45,7 @@ module StoreControllers
         # パスワードリセットトークンを生成して送信
         track_rate_limit_action! # レート制限カウント（成功時もカウント）
         resource.send_reset_password_instructions
-        
+
         if successfully_sent?(resource)
           respond_with({}, location: after_sending_reset_password_instructions_path_for(resource_name))
         else
@@ -75,10 +75,10 @@ module StoreControllers
             password_changed_at: Time.current,
             must_change_password: false
           )
-          
+
           # ログイン状態にする
           sign_in(resource_name, resource)
-          
+
           # 成功メッセージを表示してダッシュボードへ
           set_flash_message(:notice, :updated_not_active) if is_flashing_format?
           redirect_to store_root_path and return
@@ -121,10 +121,10 @@ module StoreControllers
 
     # パラメータから店舗を設定
     def set_store_from_params
-      store_slug = params[:store_slug] || 
+      store_slug = params[:store_slug] ||
                    params[:store_user]&.dig(:store_slug) ||
                    extract_store_slug_from_referrer
-      
+
       if store_slug.present?
         @store = Store.active.find_by(slug: store_slug)
       end
@@ -133,7 +133,7 @@ module StoreControllers
     # リファラーから店舗スラッグを抽出
     def extract_store_slug_from_referrer
       return nil unless request.referrer.present?
-      
+
       # /store/pharmacy-tokyo/... のようなパスから抽出
       if request.referrer =~ %r{/store/([^/]+)}
         Regexp.last_match(1)
@@ -166,25 +166,25 @@ module StoreControllers
       #   limit: 5,
       #   period: 1.hour
       # )
-      # 
+      #
       # unless rate_limiter.allowed?
       #   redirect_to store_selection_path,
       #               alert: I18n.t("errors.messages.too_many_requests")
       # end
     end
-    
+
     # ============================================
     # レート制限設定（Phase 5-1）
     # ============================================
-    
+
     def rate_limited_actions
-      [:create]  # パスワードリセット要求のみ制限
+      [ :create ]  # パスワードリセット要求のみ制限
     end
-    
+
     def rate_limit_key_type
       :password_reset
     end
-    
+
     def rate_limit_identifier
       # IPアドレスで識別（メールアドレスが分からない場合もあるため）
       request.remote_ip

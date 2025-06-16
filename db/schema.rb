@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_16_210626) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_17_070153) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -83,10 +83,17 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_16_210626) do
     t.string "operation_type"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "severity", comment: "イベントの重要度 (info, warning, critical)"
+    t.boolean "security_event", default: false, comment: "セキュリティイベントフラグ"
+    t.string "session_id", comment: "セッションID"
+    t.index ["action", "created_at"], name: "index_audit_logs_on_action_and_created_at"
     t.index ["action"], name: "index_audit_logs_on_action"
     t.index ["auditable_type", "auditable_id"], name: "index_audit_logs_on_auditable"
     t.index ["auditable_type", "auditable_id"], name: "index_audit_logs_on_auditable_type_and_auditable_id"
     t.index ["created_at"], name: "index_audit_logs_on_created_at"
+    t.index ["security_event"], name: "index_audit_logs_on_security_event"
+    t.index ["severity"], name: "index_audit_logs_on_severity"
+    t.index ["user_id", "created_at"], name: "index_audit_logs_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_audit_logs_on_user_id"
   end
 

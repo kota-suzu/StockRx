@@ -34,4 +34,3 @@ class AddSecurityFieldsToAuditLogs < ActiveRecord::Migration[8.0]
     end
   end
 end
-EOF < /dev/null

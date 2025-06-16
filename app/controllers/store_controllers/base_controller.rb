@@ -13,9 +13,9 @@ module StoreControllers
     before_action :authenticate_store_user!
     before_action :ensure_store_active
     before_action :set_current_context
-    
+
     # レイアウト設定
-    layout 'store'
+    layout "store"
 
     # ============================================
     # 共通機能
@@ -39,23 +39,24 @@ module StoreControllers
     # ============================================
 
     # 権限エラー
-    rescue_from CanCan::AccessDenied do |exception|
-      respond_to do |format|
-        format.html do
-          redirect_to store_root_path, 
-                      alert: I18n.t("errors.messages.access_denied")
-        end
-        format.json do
-          render json: { error: exception.message }, status: :forbidden
-        end
-      end
-    end
+    # TODO: Phase 4 - CanCanCan gem導入後に有効化
+    # rescue_from CanCan::AccessDenied do |exception|
+    #   respond_to do |format|
+    #     format.html do
+    #       redirect_to store_root_path,
+    #                   alert: I18n.t("errors.messages.access_denied")
+    #     end
+    #     format.json do
+    #       render json: { error: exception.message }, status: :forbidden
+    #     end
+    #   end
+    # end
 
     # レコードが見つからない
     rescue_from ActiveRecord::RecordNotFound do |exception|
       respond_to do |format|
         format.html do
-          redirect_to store_root_path, 
+          redirect_to store_root_path,
                       alert: I18n.t("errors.messages.record_not_found")
         end
         format.json do

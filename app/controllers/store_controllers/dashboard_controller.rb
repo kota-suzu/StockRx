@@ -17,16 +17,16 @@ module StoreControllers
     def index
       # 店舗の基本統計情報
       load_store_statistics
-      
+
       # 在庫アラート情報
       load_inventory_alerts
-      
+
       # 店舗間移動情報
       load_transfer_summary
-      
+
       # 最近のアクティビティ
       load_recent_activities
-      
+
       # グラフ用データ
       load_chart_data
     end
@@ -59,14 +59,14 @@ module StoreControllers
                                      .includes(:inventory)
                                      .order("(store_inventories.quantity::float / NULLIF(store_inventories.safety_stock_level, 0)) ASC")
                                      .limit(10)
-      
+
       @out_of_stock_items = current_store.store_inventories
                                          .joins(:inventory)
                                          .where(quantity: 0)
                                          .includes(:inventory)
                                          .order(updated_at: :desc)
                                          .limit(10)
-      
+
       @expiring_items = current_store.store_inventories
                                      .joins(:inventory, :batches)
                                      .where("batches.expiration_date <= ?", 30.days.from_now)
@@ -84,13 +84,13 @@ module StoreControllers
                                       .includes(:source_store, :inventory)
                                       .order(requested_at: :desc)
                                       .limit(5)
-      
+
       @pending_outgoing = current_store.outgoing_transfers
                                       .pending
                                       .includes(:destination_store, :inventory)
                                       .order(requested_at: :desc)
                                       .limit(5)
-      
+
       @recent_completed = InterStoreTransfer.where(
         "(source_store_id = :store_id OR destination_store_id = :store_id) AND status = 'completed'",
         store_id: current_store.id
@@ -103,7 +103,7 @@ module StoreControllers
     def load_recent_activities
       # TODO: Phase 4 - アクティビティログの実装
       @recent_activities = []
-      
+
       # 仮実装：最近の在庫変動
       @recent_inventory_changes = InventoryLog.joins(inventory: :store_inventories)
                                              .where(store_inventories: { store_id: current_store.id })
@@ -116,10 +116,10 @@ module StoreControllers
     def load_chart_data
       # 過去7日間の在庫推移
       @inventory_trend_data = prepare_inventory_trend_data
-      
+
       # カテゴリ別在庫構成
       @category_distribution = prepare_category_distribution
-      
+
       # 店舗間移動トレンド
       @transfer_trend_data = prepare_transfer_trend_data
     end
@@ -131,17 +131,17 @@ module StoreControllers
     # 在庫推移データの準備
     def prepare_inventory_trend_data
       dates = (6.days.ago.to_date..Date.current).to_a
-      
+
       trend_data = dates.map do |date|
         # その日の終わりの在庫数を計算
         quantity = calculate_inventory_on_date(date)
-        
+
         {
           date: date.strftime("%m/%d"),
           quantity: quantity
         }
       end
-      
+
       trend_data.to_json
     end
 
@@ -159,7 +159,7 @@ module StoreControllers
                                .joins(:store_inventories)
                                .where(store_inventories: { store_id: current_store.id })
                                .sum("store_inventories.quantity")
-      
+
       categories.map do |category, quantity|
         {
           name: category || "未分類",
@@ -171,23 +171,23 @@ module StoreControllers
     # 店舗間移動トレンドの準備
     def prepare_transfer_trend_data
       dates = (6.days.ago.to_date..Date.current).to_a
-      
+
       trend_data = dates.map do |date|
         incoming = current_store.incoming_transfers
                                .where(requested_at: date.beginning_of_day..date.end_of_day)
                                .count
-        
+
         outgoing = current_store.outgoing_transfers
                                .where(requested_at: date.beginning_of_day..date.end_of_day)
                                .count
-        
+
         {
           date: date.strftime("%m/%d"),
           incoming: incoming,
           outgoing: outgoing
         }
       end
-      
+
       trend_data.to_json
     end
 
@@ -199,15 +199,15 @@ module StoreControllers
     helper_method :inventory_level_class
     def inventory_level_class(store_inventory)
       ratio = store_inventory.quantity.to_f / store_inventory.safety_stock_level.to_f
-      
+
       if store_inventory.quantity == 0
-        'text-danger'
+        "text-danger"
       elsif ratio <= 0.5
-        'text-warning'
+        "text-warning"
       elsif ratio <= 1.0
-        'text-info'
+        "text-info"
       else
-        'text-success'
+        "text-success"
       end
     end
 
@@ -215,13 +215,13 @@ module StoreControllers
     helper_method :expiration_class
     def expiration_class(expiration_date)
       days_until = (expiration_date - Date.current).to_i
-      
+
       if days_until <= 7
-        'text-danger'
+        "text-danger"
       elsif days_until <= 14
-        'text-warning'
+        "text-warning"
       else
-        'text-info'
+        "text-info"
       end
     end
   end

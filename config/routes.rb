@@ -163,6 +163,9 @@ Rails.application.routes.draw do
     end
   end
 
+  # Phase 5-3: CSP違反レポート収集
+  post "/csp-reports", to: "csp_reports#create", as: :csp_reports
+  
   # アプリケーションのルートページ
   # 将来的にはユーザー向けページになる予定
   root "home#index"

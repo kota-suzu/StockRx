@@ -9,10 +9,10 @@ module StoreControllers
   # ============================================
   class TransfersController < BaseController
     include RateLimitable
-    
-    before_action :set_transfer, only: [:show, :cancel]
-    before_action :ensure_can_cancel, only: [:cancel]
-    
+
+    before_action :set_transfer, only: [ :show, :cancel ]
+    before_action :ensure_can_cancel, only: [ :cancel ]
+
     # ============================================
     # アクション
     # ============================================
@@ -23,14 +23,14 @@ module StoreControllers
         "source_store_id = :store_id OR destination_store_id = :store_id",
         store_id: current_store.id
       ).ransack(params[:q])
-      
+
       @transfers = @q.result
-                    .includes(:source_store, :destination_store, :inventory, 
+                    .includes(:source_store, :destination_store, :inventory,
                              :requested_by, :approved_by)
                     .order(created_at: :desc)
                     .page(params[:page])
                     .per(per_page)
-      
+
       # タブ用のカウント
       load_transfer_counts
     end
@@ -39,7 +39,7 @@ module StoreControllers
     def show
       # タイムライン形式の履歴
       @timeline_events = build_timeline_events
-      
+
       # 関連する在庫情報
       load_inventory_info
     end
@@ -49,13 +49,13 @@ module StoreControllers
       @transfer = current_store.outgoing_transfers.build(
         requested_by: current_store_user
       )
-      
+
       # 在庫選択用のデータ
       @available_inventories = current_store.store_inventories
                                           .where("quantity > reserved_quantity")
                                           .includes(:inventory)
                                           .order("inventories.name")
-      
+
       # 送付先店舗の選択肢
       @destination_stores = Store.active
                                 .where.not(id: current_store.id)
@@ -66,16 +66,16 @@ module StoreControllers
     def create
       @transfer = current_store.outgoing_transfers.build(transfer_params)
       @transfer.requested_by = current_store_user
-      @transfer.status = 'pending'
+      @transfer.status = "pending"
       @transfer.requested_at = Time.current
-      
+
       if @transfer.save
         # 在庫予約
         reserve_inventory(@transfer)
-        
+
         # 通知送信
         notify_transfer_request(@transfer)
-        
+
         redirect_to store_transfer_path(@transfer),
                     notice: I18n.t("messages.transfer_requested")
       else
@@ -89,7 +89,7 @@ module StoreControllers
       if @transfer.cancel_by!(current_store_user)
         # 在庫予約解除
         release_inventory_reservation(@transfer)
-        
+
         redirect_to store_transfers_path,
                     notice: I18n.t("messages.transfer_cancelled")
       else
@@ -142,7 +142,7 @@ module StoreControllers
         "source_store_id = :store_id OR destination_store_id = :store_id",
         store_id: current_store.id
       )
-      
+
       @transfer_counts = {
         all: base_query.count,
         outgoing: current_store.outgoing_transfers.count,
@@ -159,7 +159,7 @@ module StoreControllers
                                           .where("quantity > reserved_quantity")
                                           .includes(:inventory)
                                           .order("inventories.name")
-      
+
       @destination_stores = Store.active
                                 .where.not(id: current_store.id)
                                 .order(:store_type, :name)
@@ -170,7 +170,7 @@ module StoreControllers
       @source_inventory = @transfer.source_store
                                   .store_inventories
                                   .find_by(inventory: @transfer.inventory)
-      
+
       @destination_inventory = @transfer.destination_store
                                        .store_inventories
                                        .find_by(inventory: @transfer.inventory)
@@ -185,18 +185,18 @@ module StoreControllers
       store_inventory = transfer.source_store
                                .store_inventories
                                .find_by!(inventory: transfer.inventory)
-      
+
       store_inventory.increment!(:reserved_quantity, transfer.quantity)
     end
 
     # 在庫予約解除
     def release_inventory_reservation(transfer)
       return unless transfer.pending? || transfer.approved?
-      
+
       store_inventory = transfer.source_store
                                .store_inventories
                                .find_by(inventory: transfer.inventory)
-      
+
       store_inventory&.decrement!(:reserved_quantity, transfer.quantity)
     end
 
@@ -212,60 +212,60 @@ module StoreControllers
 
     def build_timeline_events
       events = []
-      
+
       # 申請
       events << {
         timestamp: @transfer.requested_at,
-        event: 'requested',
+        event: "requested",
         user: @transfer.requested_by,
-        icon: 'fas fa-plus-circle',
-        color: 'primary'
+        icon: "fas fa-plus-circle",
+        color: "primary"
       }
-      
+
       # 承認/却下
       if @transfer.approved_at.present?
         events << {
           timestamp: @transfer.approved_at,
-          event: @transfer.approved? ? 'approved' : 'rejected',
+          event: @transfer.approved? ? "approved" : "rejected",
           user: @transfer.approved_by,
-          icon: @transfer.approved? ? 'fas fa-check-circle' : 'fas fa-times-circle',
-          color: @transfer.approved? ? 'success' : 'danger'
+          icon: @transfer.approved? ? "fas fa-check-circle" : "fas fa-times-circle",
+          color: @transfer.approved? ? "success" : "danger"
         }
       end
-      
+
       # 出荷
       if @transfer.shipped_at.present?
         events << {
           timestamp: @transfer.shipped_at,
-          event: 'shipped',
+          event: "shipped",
           user: @transfer.shipped_by,
-          icon: 'fas fa-truck',
-          color: 'info'
+          icon: "fas fa-truck",
+          color: "info"
         }
       end
-      
+
       # 完了
       if @transfer.completed_at.present?
         events << {
           timestamp: @transfer.completed_at,
-          event: 'completed',
+          event: "completed",
           user: @transfer.completed_by,
-          icon: 'fas fa-check-double',
-          color: 'success'
+          icon: "fas fa-check-double",
+          color: "success"
         }
       end
-      
+
       # キャンセル
       if @transfer.cancelled?
         events << {
           timestamp: @transfer.updated_at,
-          event: 'cancelled',
+          event: "cancelled",
           user: @transfer.cancelled_by,
-          icon: 'fas fa-ban',
-          color: 'secondary'
+          icon: "fas fa-ban",
+          color: "secondary"
         }
       end
-      
+
       events.sort_by { |e| e[:timestamp] }
     end
 
@@ -277,9 +277,9 @@ module StoreControllers
     helper_method :transfer_direction_icon
     def transfer_direction_icon(transfer)
       if transfer.source_store_id == current_store.id
-        { icon_class: 'fas fa-arrow-right text-danger', title: '出庫' }
+        { icon_class: "fas fa-arrow-right text-danger", title: "出庫" }
       else
-        { icon_class: 'fas fa-arrow-left text-success', title: '入庫' }
+        { icon_class: "fas fa-arrow-left text-success", title: "入庫" }
       end
     end
 
@@ -287,29 +287,29 @@ module StoreControllers
     helper_method :priority_badge
     def priority_badge(priority)
       case priority
-      when 'urgent'
-        { text: '緊急', class: 'badge bg-danger' }
-      when 'high'
-        { text: '高', class: 'badge bg-warning text-dark' }
-      when 'normal'
-        { text: '通常', class: 'badge bg-secondary' }
-      when 'low'
-        { text: '低', class: 'badge bg-light text-dark' }
+      when "urgent"
+        { text: "緊急", class: "badge bg-danger" }
+      when "high"
+        { text: "高", class: "badge bg-warning text-dark" }
+      when "normal"
+        { text: "通常", class: "badge bg-secondary" }
+      when "low"
+        { text: "低", class: "badge bg-light text-dark" }
       end
     end
-    
+
     # ============================================
     # レート制限設定（Phase 5-1）
     # ============================================
-    
+
     def rate_limited_actions
-      [:create]  # 移動申請作成のみ制限
+      [ :create ]  # 移動申請作成のみ制限
     end
-    
+
     def rate_limit_key_type
       :transfer_request
     end
-    
+
     def rate_limit_identifier
       # 店舗ユーザーIDで識別
       "store_user:#{current_store_user.id}"

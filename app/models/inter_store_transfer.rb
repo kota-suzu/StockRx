@@ -113,11 +113,11 @@ class InterStoreTransfer < ApplicationRecord
   def can_be_cancelled?
     pending? || approved?
   end
-  
+
   # 特定のユーザーがキャンセル可能か
   def can_be_cancelled_by?(user)
     return false unless can_be_cancelled?
-    
+
     # 申請者本人または管理者権限を持つユーザーのみキャンセル可能
     if user.is_a?(StoreUser)
       # 店舗ユーザーの場合、申請者の店舗と同じ場合のみ
@@ -127,17 +127,17 @@ class InterStoreTransfer < ApplicationRecord
       requested_by_id == user.id || user.headquarters_admin?
     end
   end
-  
+
   # キャンセル処理
   def cancel_by!(user)
     return false unless can_be_cancelled_by?(user)
-    
+
     transaction do
       update!(
         status: :cancelled,
         cancelled_by: user.is_a?(StoreUser) ? nil : user
       )
-      
+
       release_reserved_stock
       true
     end
@@ -256,7 +256,7 @@ class InterStoreTransfer < ApplicationRecord
       )
     end
   end
-  
+
   # 店舗がアクセス可能な移動申請のみを取得
   def self.accessible_by_store(store)
     where("source_store_id = ? OR destination_store_id = ?", store.id, store.id)

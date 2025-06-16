@@ -4,6 +4,7 @@ FactoryBot.define do
   factory :store do
     sequence(:name) { |n| "薬局#{n}" }
     sequence(:code) { |n| "ST#{(Time.current.to_i + n).to_s[-6, 6]}" }
+    sequence(:slug) { |n| "st#{(Time.current.to_i + n).to_s[-6, 6]}".downcase }
     store_type { 'pharmacy' }
     region { '東京都' }
     address { '東京都港区赤坂1-1-1' }

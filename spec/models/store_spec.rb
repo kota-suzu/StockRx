@@ -7,6 +7,7 @@ RSpec.describe Store, type: :model do
     it { should have_many(:store_inventories).dependent(:destroy) }
     it { should have_many(:inventories).through(:store_inventories) }
     it { should have_many(:admins).dependent(:restrict_with_error) }
+    it { should have_many(:store_users).dependent(:destroy) }
     it { should have_many(:outgoing_transfers).class_name('InterStoreTransfer').with_foreign_key('source_store_id') }
     it { should have_many(:incoming_transfers).class_name('InterStoreTransfer').with_foreign_key('destination_store_id') }
   end
@@ -20,6 +21,16 @@ RSpec.describe Store, type: :model do
     it { should validate_length_of(:code).is_at_most(20) }
     it { should validate_uniqueness_of(:code).case_insensitive }
     it { should validate_presence_of(:store_type) }
+    # slugは自動生成されるため、presence validationは不要
+    # slugのuniqueness validationは小文字のみ許可するため、独自テストで検証
+    describe 'slug uniqueness validation' do
+      it 'validates uniqueness of slug' do
+        create(:store, slug: 'test-store')
+        duplicate = build(:store, slug: 'test-store')
+        expect(duplicate).not_to be_valid
+        expect(duplicate.errors[:slug]).to include('has already been taken')
+      end
+    end
     # enum定義により自動的にvalidationが適用される
 
     describe 'code format validation' do
@@ -53,6 +64,25 @@ RSpec.describe Store, type: :model do
       it 'rejects invalid email formats' do
         store = build(:store, email: 'invalid-email')
         expect(store).not_to be_valid
+      end
+    end
+
+    describe 'slug format validation' do
+      it 'allows lowercase alphanumeric characters and hyphens' do
+        valid_slugs = [ 'st001', 'store-01', 'abc123', 'pharmacy-tokyo' ]
+        valid_slugs.each do |slug|
+          store = build(:store, slug: slug)
+          expect(store).to be_valid
+        end
+      end
+
+      it 'rejects slugs with invalid characters' do
+        invalid_slugs = [ 'ST001', 'store_01', 'store.01', 'store#01', 'store 01' ]
+        invalid_slugs.each do |slug|
+          store = build(:store, slug: slug)
+          expect(store).not_to be_valid
+          expect(store.errors[:slug]).to include('は小文字英数字とハイフンのみ使用できます')
+        end
       end
     end
   end
@@ -207,6 +237,35 @@ RSpec.describe Store, type: :model do
         expect(stats[:total_stores]).to eq(2)
         expect(stats[:total_inventory_value]).to be > 0
         expect(stats[:average_inventory_per_store]).to be_present
+      end
+    end
+  end
+
+  describe 'callbacks' do
+    describe '#generate_slug' do
+      it 'generates slug from code on creation' do
+        store = build(:store, code: 'ST-001', slug: nil)
+        store.save
+        expect(store.slug).to eq('st-001')
+      end
+
+      it 'does not override existing slug' do
+        store = build(:store, code: 'ST-001', slug: 'custom-slug')
+        store.save
+        expect(store.slug).to eq('custom-slug')
+      end
+
+      it 'handles slug collisions by adding numbers' do
+        create(:store, code: 'ST-001', slug: 'st-001')
+        store = build(:store, code: 'ST-001', slug: nil)
+        store.save
+        expect(store.slug).to eq('st-001-1')
+      end
+
+      it 'removes special characters from slug' do
+        store = build(:store, code: 'ST_001!@#', slug: nil)
+        store.save
+        expect(store.slug).to eq('st-001')
       end
     end
   end

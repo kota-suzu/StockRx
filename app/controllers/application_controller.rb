@@ -3,6 +3,9 @@
 class ApplicationController < ActionController::Base
   # エラーハンドリングの追加
   include ErrorHandlers
+  
+  # セキュリティヘッダーの追加 (Phase 5-3)
+  include SecurityHeaders
 
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
