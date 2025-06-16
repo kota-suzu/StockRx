@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe CsvImportable, type: :model do
+RSpec.describe CsvImportable, type: :model, skip: "CSV import functionality has been disabled" do
   # Test with Inventory model that includes CsvImportable
   let(:test_model) { Inventory }
 
