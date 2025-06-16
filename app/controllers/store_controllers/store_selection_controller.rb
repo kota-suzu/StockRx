@@ -8,7 +8,8 @@ module StoreControllers
   # ============================================
   class StoreSelectionController < ApplicationController
     # 認証不要（ログイン前のアクセス）
-    skip_before_action :authenticate_admin!, if: -> { defined?(super) }
+    # ApplicationControllerには authenticate_admin! が定義されていないため、
+    # このスキップは不要
     
     # レイアウト設定
     layout 'store_selection'

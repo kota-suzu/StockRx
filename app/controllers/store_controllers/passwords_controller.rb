@@ -28,7 +28,7 @@ module StoreControllers
     # パスワードリセットメール送信
     def create
       # メールアドレスと店舗IDで検索
-      self.resource = resource_class.find_by(
+      self.resource = StoreUser.find_by(
         email: resource_params[:email]&.downcase,
         store_id: @store&.id
       )

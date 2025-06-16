@@ -778,9 +778,10 @@ example_id                                                                      
 ./spec/models/store_spec.rb[1:5:5:1]                                                | passed  | 0.10944 seconds        |
 ./spec/models/store_spec.rb[1:6:1:1]                                                | passed  | 0.06561 seconds        |
 ./spec/models/store_spec.rb[1:6:1:2]                                                | passed  | 0.05601 seconds        |
-./spec/models/store_spec.rb[1:6:2:1]                                                | passed  | 0.34867 seconds        |
+./spec/models/store_spec.rb[1:6:2:1]                                                | failed  | 0.39113 seconds        |
 ./spec/models/store_spec.rb[1:7:1]                                                  | passed  | 0.00583 seconds        |
 ./spec/models/store_spec.rb[1:7:2]                                                  | passed  | 0.01331 seconds        |
+./spec/models/store_user_spec.rb[1:1]                                               | pending | 0.00001 seconds        |
 ./spec/performance/counter_cache_performance_spec.rb[1:1:1]                         | passed  | 0.06598 seconds        |
 ./spec/performance/counter_cache_performance_spec.rb[1:1:2]                         | passed  | 0.04003 seconds        |
 ./spec/performance/counter_cache_performance_spec.rb[1:2:1]                         | passed  | 0.16085 seconds        |

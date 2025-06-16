@@ -39,7 +39,20 @@ module StoreControllers
       end
       
       # カスタム認証処理
-      self.resource = warden.authenticate!(auth_options_with_store)
+      # 店舗IDを含めたパラメータで認証
+      auth_params = params.require(:store_user).permit(:email, :password)
+      
+      # 店舗ユーザーを検索
+      self.resource = StoreUser.find_by(email: auth_params[:email], store_id: @store.id)
+      
+      # パスワード検証
+      if resource && resource.valid_password?(auth_params[:password])
+        # 認証成功
+      else
+        # 認証失敗
+        flash[:alert] = I18n.t("devise.failure.invalid")
+        redirect_to new_store_user_session_path(store_slug: @store.slug) and return
+      end
       
       # ログイン成功時の処理
       set_flash_message!(:notice, :signed_in)

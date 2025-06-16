@@ -603,5 +603,69 @@ puts "- Store Users: #{Admin.where(role: 'store_user').count}"
 puts "- Pharmacists: #{Admin.where(role: 'pharmacist').count}"
 puts "===================="
 
+# ============================================
+# Phase 4: 店舗ユーザーデータの作成
+# ============================================
+puts "\n=== Creating Store Users ==="
+
+store_users_data = [
+  # 中央薬局 本店
+  {
+    store_code: "ST001",
+    users: [
+      { name: "山田花子", email: "yamada@central.example.com", role: "manager", employee_code: "EMP001" },
+      { name: "鈴木一郎", email: "suzuki@central.example.com", role: "staff", employee_code: "EMP002" }
+    ]
+  },
+  # 西口薬局
+  {
+    store_code: "ST002",
+    users: [
+      { name: "佐藤次郎", email: "sato@west.example.com", role: "manager", employee_code: "EMP003" },
+      { name: "伊藤美咲", email: "ito@west.example.com", role: "staff", employee_code: "EMP004" }
+    ]
+  },
+  # 東京倉庫
+  {
+    store_code: "WH001",
+    users: [
+      { name: "中村健一", email: "nakamura@warehouse.example.com", role: "manager", employee_code: "EMP005" }
+    ]
+  }
+]
+
+store_users_data.each do |store_data|
+  store = Store.find_by(code: store_data[:store_code])
+  next unless store
+
+  store_data[:users].each do |user_data|
+    store_user = StoreUser.find_or_create_by!(
+      email: user_data[:email],
+      store: store
+    ) do |su|
+      su.name = user_data[:name]
+      su.password = 'StoreUser123!'
+      su.password_confirmation = 'StoreUser123!'
+      su.role = user_data[:role]
+      su.employee_code = user_data[:employee_code]
+      su.active = true
+      su.password_changed_at = Time.current
+    end
+    puts "  Created store user: #{store_user.name} (#{store_user.role}) for #{store.name}"
+  end
+end
+
+puts "\n=== Store Users Summary ==="
+puts "Total Store Users: #{StoreUser.count}"
+puts "- Managers: #{StoreUser.managers.count}"
+puts "- Staff: #{StoreUser.staff.count}"
+puts "===================="
+
+puts "\n📌 Test Credentials:"
+puts "Admin: admin@example.com / Password1234!"
+puts "Store User: yamada@central.example.com / StoreUser123!"
+puts "Store Selection: http://localhost:3000/store"
+puts "Admin Login: http://localhost:3000/admin/sign_in"
+
 # 最後にCurrent.userをクリア
 Current.user = nil
