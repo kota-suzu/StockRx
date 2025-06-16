@@ -1,6 +1,15 @@
 # frozen_string_literal: true
 
 class Store < ApplicationRecord
+  # Concerns
+  include Auditable
+
+  # 監査ログ設定
+  auditable except: [ :created_at, :updated_at, :low_stock_items_count,
+                     :pending_outgoing_transfers_count, :pending_incoming_transfers_count,
+                     :store_inventories_count ],
+            sensitive: [ :api_key, :secret_token ]
+
   # アソシエーション
   has_many :store_inventories, dependent: :destroy, counter_cache: true
   has_many :inventories, through: :store_inventories
@@ -22,7 +31,7 @@ class Store < ApplicationRecord
   validates :store_type, presence: true, inclusion: { in: %w[pharmacy warehouse headquarters] }
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :phone, format: { with: /\A[0-9\-\+\(\)\s]*\z/ }, allow_blank: true
-  validates :slug, presence: true, uniqueness: true, 
+  validates :slug, presence: true, uniqueness: true,
                   format: { with: /\A[a-z0-9\-]+\z/, message: "は小文字英数字とハイフンのみ使用できます" }
 
   # ============================================
@@ -51,7 +60,7 @@ class Store < ApplicationRecord
   def display_name
     "#{code} - #{name}"
   end
-  
+
   # 店舗タイプの日本語表示
   def store_type_text
     I18n.t("activerecord.attributes.store.store_types.#{store_type}", default: store_type.humanize)
@@ -209,25 +218,26 @@ class Store < ApplicationRecord
   # スラッグ生成（URL-friendly店舗識別子）
   # ============================================
   # Phase 1: 店舗別ログインシステムのURL生成基盤
-  # ベストプラクティス: 
+  # ベストプラクティス:
   # - 小文字英数字とハイフンのみ使用
   # - 重複時は自動的に番号付与
   # - 日本語対応（transliterateは使用しない）
   # ============================================
   def generate_slug
     return if slug.present?
-    
-    base_slug = code.downcase.gsub(/[^a-z0-9]/, '-').squeeze('-').gsub(/^-|-$/, '')
-    
+    return unless code.present?
+
+    base_slug = code.downcase.gsub(/[^a-z0-9]/, "-").squeeze("-").gsub(/^-|-$/, "")
+
     # 重複チェックと番号付与
     candidate_slug = base_slug
     counter = 1
-    
+
     while Store.exists?(slug: candidate_slug)
       candidate_slug = "#{base_slug}-#{counter}"
       counter += 1
     end
-    
+
     self.slug = candidate_slug
   end
 end

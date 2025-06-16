@@ -14,11 +14,11 @@ Rails.application.routes.draw do
   # ============================================
   # Phase 2: 店舗別ログインシステム
   # ============================================
-  
+
   # 店舗選択画面（ログイン前）
   get "store", to: "store_controllers/store_selection#index", as: :store_selection
   get "store/:slug", to: "store_controllers/store_selection#show", as: :store_login_page
-  
+
   # StoreUserモデル用のDeviseルート
   # /store/:store_slug/sign_in などのパスになるよう設定
   devise_for :store_users,
@@ -28,26 +28,26 @@ Rails.application.routes.draw do
                sessions: "store_controllers/sessions",
                passwords: "store_controllers/passwords"
              }
-  
+
   # 店舗ユーザー用の認証済みルート
   authenticated :store_user do
     namespace :store, module: :store_controllers do
       root "dashboard#index"
-      
+
       # 在庫管理（店舗スコープ）
       resources :inventories, only: [ :index, :show ] do
         member do
           post :request_transfer  # 移動申請
         end
       end
-      
+
       # 店舗間移動（店舗視点）
       resources :transfers, only: [ :index, :show, :new, :create ] do
         member do
           patch :cancel  # 申請取消（申請者のみ）
         end
       end
-      
+
       # プロフィール管理
       resource :profile, only: [ :show, :edit, :update ] do
         member do
@@ -57,11 +57,11 @@ Rails.application.routes.draw do
       end
     end
   end
-  
+
   # ============================================
   # 管理者認証（既存）
   # ============================================
-  
+
   # Adminモデル用のDeviseルート
   # /admin/sign_in などのパスになるよう設定
   devise_for :admins,
@@ -126,6 +126,15 @@ Rails.application.routes.draw do
       collection do
         get :pending      # 承認待ち一覧
         get :analytics    # 移動分析
+      end
+    end
+
+    # Phase 5-2: 監査ログ管理
+    resources :audit_logs, only: [ :index, :show ] do
+      collection do
+        get :security_events    # セキュリティイベント一覧
+        get :user_activity      # ユーザー別活動履歴
+        get :compliance_report  # コンプライアンスレポート
       end
     end
 

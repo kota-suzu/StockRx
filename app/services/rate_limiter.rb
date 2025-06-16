@@ -49,16 +49,16 @@ class RateLimiter
   # レート制限チェック
   def allowed?
     return false if blocked?
-    
+
     current_count < @config[:limit]
   end
 
   # アクションを記録
   def track!
     return false if blocked?
-    
+
     increment_counter!
-    
+
     # 制限に達した場合はブロック
     if current_count >= @config[:limit]
       block!
@@ -75,7 +75,7 @@ class RateLimiter
 
   # 残り試行回数
   def remaining_attempts
-    [@config[:limit] - current_count, 0].max
+    [ @config[:limit] - current_count, 0 ].max
   end
 
   # ブロックされているか
@@ -86,7 +86,7 @@ class RateLimiter
   # ブロック解除までの時間（秒）
   def time_until_unblock
     return 0 unless blocked?
-    
+
     ttl = redis.ttl(block_key)
     ttl > 0 ? ttl : 0
   end
@@ -100,7 +100,7 @@ class RateLimiter
   private
 
   def redis
-    @redis ||= Redis.new(url: ENV.fetch('REDIS_URL', 'redis://localhost:6379/1'))
+    @redis ||= Redis.new(url: ENV.fetch("REDIS_URL", "redis://localhost:6379/1"))
   end
 
   def counter_key
@@ -119,24 +119,35 @@ class RateLimiter
   end
 
   def block!
-    redis.setex(block_key, @config[:block_duration].to_i, '1')
-    
+    redis.setex(block_key, @config[:block_duration].to_i, "1")
+
     # ブロックイベントをログに記録
     Rails.logger.warn({
-      event: 'rate_limit_exceeded',
+      event: "rate_limit_exceeded",
       key_type: @key_type,
       identifier: @identifier,
       timestamp: Time.current.iso8601
     }.to_json)
-    
-    # TODO: Phase 5-2 - 監査ログへの記録
-    # AuditLog.create!(
-    #   action: 'rate_limit_exceeded',
-    #   details: {
-    #     key_type: @key_type,
-    #     identifier: @identifier
-    #   }
-    # )
+
+    # Phase 5-2 - 監査ログへの記録
+    begin
+      AuditLog.log_action(
+        nil,  # auditable は nil（システムイベント）
+        "security_event",
+        "レート制限超過: #{@key_type}",
+        {
+          event_type: "rate_limit_exceeded",
+          key_type: @key_type,
+          identifier: @identifier,
+          limit: @config[:limit],
+          period: @config[:period],
+          block_duration: @config[:block_duration],
+          severity: "warning"
+        }
+      )
+    rescue => e
+      Rails.logger.error "監査ログ記録失敗: #{e.message}"
+    end
   end
 end
 
@@ -146,9 +157,9 @@ end
 # # ログイン試行のレート制限
 # limiter = RateLimiter.new(:login, request.remote_ip)
 # unless limiter.allowed?
-#   render json: { 
-#     error: 'Too many login attempts', 
-#     retry_after: limiter.time_until_unblock 
+#   render json: {
+#     error: 'Too many login attempts',
+#     retry_after: limiter.time_until_unblock
 #   }, status: :too_many_requests
 #   return
 # end

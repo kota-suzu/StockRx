@@ -14,6 +14,9 @@ class AuditLog < ApplicationRecord
   scope :by_action, ->(action) { where(action: action) }
   scope :by_user, ->(user_id) { where(user_id: user_id) }
   scope :by_date_range, ->(start_date, end_date) { where(created_at: start_date..end_date) }
+  scope :security_events, -> { where(action: %w[security_event failed_login permission_change password_change]) }
+  scope :authentication_events, -> { where(action: %w[login logout failed_login]) }
+  scope :data_access_events, -> { where(action: %w[view export]) }
 
   # 列挙型：操作タイプ（Rails 8 対応：位置引数使用）
   enum :action, {
@@ -24,7 +27,11 @@ class AuditLog < ApplicationRecord
     export: "export",
     import: "import",
     login: "login",
-    logout: "logout"
+    logout: "logout",
+    security_event: "security_event",
+    permission_change: "permission_change",
+    password_change: "password_change",
+    failed_login: "failed_login"
   }, suffix: :action
 
   # インスタンスメソッド
