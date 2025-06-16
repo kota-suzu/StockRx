@@ -2,7 +2,7 @@
 
 class Store < ApplicationRecord
   # アソシエーション
-  has_many :store_inventories, dependent: :destroy
+  has_many :store_inventories, dependent: :destroy, counter_cache: true
   has_many :inventories, through: :store_inventories
   has_many :admins, dependent: :restrict_with_error
 

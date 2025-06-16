@@ -179,6 +179,7 @@ class StoreInventory < ApplicationRecord
   # 在庫数が予約に対して十分であることを検証
   def quantity_sufficient_for_reservation
     return unless quantity_changed? && reserved_quantity.present?
+    return unless quantity.present?  # nilチェックを追加
 
     if quantity < reserved_quantity
       errors.add(:quantity, "は予約済み数量（#{reserved_quantity}）以上である必要があります")
