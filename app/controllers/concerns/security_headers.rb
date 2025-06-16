@@ -12,7 +12,7 @@ module SecurityHeaders
   included do
     # 全アクションでセキュリティヘッダーを設定
     before_action :set_security_headers
-    
+
     # NonceをビューやJavaScriptで使用可能にする
     helper_method :content_security_policy_nonce if respond_to?(:helper_method)
   end
@@ -27,19 +27,19 @@ module SecurityHeaders
 
     # X-Frame-Options
     # クリックジャッキング攻撃を防ぐ
-    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers["X-Frame-Options"] = "DENY"
 
     # X-Content-Type-Options
     # MIMEタイプスニッフィングを防ぐ
-    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers["X-Content-Type-Options"] = "nosniff"
 
     # X-XSS-Protection (レガシーブラウザ対応)
     # モダンブラウザではCSPが推奨されるが、互換性のため設定
-    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers["X-XSS-Protection"] = "1; mode=block"
 
     # Referrer-Policy
     # リファラー情報の漏洩を制御
-    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
 
     # Permissions-Policy (旧Feature-Policy)
     # ブラウザ機能へのアクセスを制限
@@ -49,13 +49,13 @@ module SecurityHeaders
     if Rails.env.production?
       # Strict-Transport-Security (HSTS)
       # HTTPSの使用を強制
-      response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+      response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
     end
 
     # カスタムヘッダー
     # アプリケーション固有のセキュリティ情報
-    response.headers['X-Application-Name'] = 'StockRx'
-    response.headers['X-Security-Version'] = '5.3'
+    response.headers["X-Application-Name"] = "StockRx"
+    response.headers["X-Security-Version"] = "5.3"
   end
 
   # Content Security Policy の設定
@@ -121,7 +121,7 @@ module SecurityHeaders
       csp_directives << "report-to csp-endpoint"
     end
 
-    response.headers['Content-Security-Policy'] = csp_directives.join('; ')
+    response.headers["Content-Security-Policy"] = csp_directives.join("; ")
   end
 
   # Permissions Policy の設定
@@ -158,13 +158,13 @@ module SecurityHeaders
     # 自動再生
     permissions << "autoplay=()"
 
-    response.headers['Permissions-Policy'] = permissions.join(', ')
+    response.headers["Permissions-Policy"] = permissions.join(", ")
   end
 
   # WebSocket URLs の取得
   def websocket_urls
     urls = []
-    
+
     if Rails.env.development?
       urls << "ws://localhost:*"
       urls << "wss://localhost:*"
@@ -174,13 +174,15 @@ module SecurityHeaders
       urls << ActionCable.server.config.url
     end
 
-    urls.join(' ')
+    urls.join(" ")
   end
 
   # CSP レポート URI
   def csp_report_uri
-    # TODO: Phase 5-4 - CSP違反レポート収集エンドポイントの実装
-    # Rails.application.routes.url_helpers.csp_reports_url
+    # Phase 5-3 - CSP違反レポート収集エンドポイント
+    Rails.application.routes.url_helpers.csp_reports_path
+  rescue => e
+    Rails.logger.error "CSP report URI generation failed: #{e.message}"
     nil
   end
 

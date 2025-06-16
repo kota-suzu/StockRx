@@ -3,7 +3,7 @@
 class ApplicationController < ActionController::Base
   # エラーハンドリングの追加
   include ErrorHandlers
-  
+
   # セキュリティヘッダーの追加 (Phase 5-3)
   include SecurityHeaders
 
