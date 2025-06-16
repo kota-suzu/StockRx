@@ -7,6 +7,9 @@ class InterStoreTransfer < ApplicationRecord
   belongs_to :inventory
   belongs_to :requested_by, class_name: "Admin"
   belongs_to :approved_by, class_name: "Admin", optional: true
+  belongs_to :shipped_by, class_name: "Admin", optional: true
+  belongs_to :completed_by, class_name: "Admin", optional: true
+  belongs_to :cancelled_by, class_name: "Admin", optional: true
 
   # ============================================
   # enum定義
@@ -109,6 +112,37 @@ class InterStoreTransfer < ApplicationRecord
   # キャンセル可能かどうか
   def can_be_cancelled?
     pending? || approved?
+  end
+  
+  # 特定のユーザーがキャンセル可能か
+  def can_be_cancelled_by?(user)
+    return false unless can_be_cancelled?
+    
+    # 申請者本人または管理者権限を持つユーザーのみキャンセル可能
+    if user.is_a?(StoreUser)
+      # 店舗ユーザーの場合、申請者の店舗と同じ場合のみ
+      user.store_id == source_store_id && pending?
+    else
+      # 管理者の場合
+      requested_by_id == user.id || user.headquarters_admin?
+    end
+  end
+  
+  # キャンセル処理
+  def cancel_by!(user)
+    return false unless can_be_cancelled_by?(user)
+    
+    transaction do
+      update!(
+        status: :cancelled,
+        cancelled_by: user.is_a?(StoreUser) ? nil : user
+      )
+      
+      release_reserved_stock
+      true
+    end
+  rescue ActiveRecord::RecordInvalid
+    false
   end
 
   # 完了処理可能かどうか
@@ -221,6 +255,11 @@ class InterStoreTransfer < ApplicationRecord
         accessible_store_ids, accessible_store_ids
       )
     end
+  end
+  
+  # 店舗がアクセス可能な移動申請のみを取得
+  def self.accessible_by_store(store)
+    where("source_store_id = ? OR destination_store_id = ?", store.id, store.id)
   end
 
   # 店舗の移動統計
