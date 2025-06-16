@@ -3,7 +3,8 @@
 require "rails_helper"
 
 RSpec.describe "Inventory Search", type: :request do
-  let(:admin) { create(:admin) }
+  # 本部管理者として作成（全てのインベントリにアクセス可能）
+  let(:admin) { create(:admin, :headquarters_admin) }
 
   before do
     sign_in admin
@@ -94,7 +95,8 @@ RSpec.describe "Inventory Search", type: :request do
       end
 
       it "shows advanced search form when advanced parameters are present" do
-        get inventories_path, params: { min_price: 100 }
+        # lot_codeは高度な検索条件として扱われる
+        get admin_inventories_path, params: { lot_code: 'BATCH001' }
 
         expect(response).to have_http_status(:ok)
         # 高度な検索パラメータがある場合は、レスポンスに関連要素が含まれることを確認
