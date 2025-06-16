@@ -15,12 +15,9 @@ Rails.application.routes.draw do
   # Phase 2: 店舗別ログインシステム
   # ============================================
 
-  # 店舗選択画面（ログイン前）
-  get "store", to: "store_controllers/store_selection#index", as: :store_selection
-  get "store/:slug", to: "store_controllers/store_selection#show", as: :store_login_page
-
   # StoreUserモデル用のDeviseルート
   # /store/:store_slug/sign_in などのパスになるよう設定
+  # NOTE: Deviseルートを先に定義して、store/:slugより優先されるようにする
   devise_for :store_users,
              path: "store",
              skip: [ :registrations, :omniauth_callbacks ],
@@ -28,6 +25,10 @@ Rails.application.routes.draw do
                sessions: "store_controllers/sessions",
                passwords: "store_controllers/passwords"
              }
+
+  # 店舗選択画面（ログイン前）
+  get "store", to: "store_controllers/store_selection#index", as: :store_selection
+  get "store/:slug", to: "store_controllers/store_selection#show", as: :store_login_page
 
   # 店舗ユーザー用の認証済みルート
   authenticated :store_user do
