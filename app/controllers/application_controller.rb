@@ -17,6 +17,14 @@ class ApplicationController < ActionController::Base
   before_action :monitor_request_security
   after_action :track_response_metrics
 
+  # TODO: 🔴 Phase 1（緊急）- パフォーマンス監視機能
+  # 優先度: 高（CLAUDE.md準拠）
+  # 実装内容:
+  #   - SQLクエリ数監視（Bullet gem統合拡張）
+  #   - メモリ使用量監視システム
+  #   - レスポンス時間ベンチマーク
+  # around_action :monitor_performance, if: -> { Rails.env.development? }
+
   # 管理画面用ヘルパーはすべて「app/helpers」直下に配置し
   # Railsの規約に従ってモジュール名と一致させる
   # これによりZeitwerkのロード問題を解決
@@ -36,6 +44,15 @@ class ApplicationController < ActionController::Base
   def monitor_request_security
     # テスト環境では無効化
     return if Rails.env.test?
+
+    # TODO: 🔴 Phase 1 - テスト環境でのセキュリティチェック完全無効化（優先度：最高）
+    # 問題: Rails.env.test?の判定が効かず、テストで403エラーが発生
+    # 原因: 環境変数やRailsの設定でテスト環境が正しく判定されていない可能性
+    # 影響: request specが全体的に失敗
+    # 解決策:
+    # 1. config/environments/test.rb でセキュリティ機能を無効化
+    # 2. SecurityMonitorクラスにテストモードを追加
+    # 3. before(:each) でSecurityMonitorを明示的に無効化
 
     # IP ブロックチェック
     if SecurityMonitor.is_blocked?(request.remote_ip)
