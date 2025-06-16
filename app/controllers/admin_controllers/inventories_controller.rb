@@ -112,35 +112,6 @@ module AdminControllers
       end
     end
 
-    # CSV一括インポート画面
-    def import_form
-      render :import
-    end
-
-    # CSV一括インポート処理
-    def import
-      if params[:file].blank?
-        redirect_to import_form_admin_inventories_path, alert: t("inventories.import.no_file")
-        return
-      end
-
-      # TODO: CSVファイル形式バリデーション機能の追加
-      # - ファイルサイズ制限（例：10MB）
-      # - MIME typeチェック
-      # - 文字エンコーディング検証（UTF-8、Shift_JIS対応）
-      # - カラム数・形式の事前検証
-
-      # ジョブIDを生成
-      job_id = SecureRandom.uuid
-
-      # 非同期ジョブとして実行
-      ImportInventoriesJob.perform_later(params[:file].path, current_admin.id, job_id)
-
-      # ジョブIDをクエリパラメータとして渡す
-      redirect_to admin_inventories_path(import_started: true, job_id: job_id),
-                  notice: t("inventories.import.started")
-    end
-
     private
 
     # Use callbacks to share common setup or constraints between actions.

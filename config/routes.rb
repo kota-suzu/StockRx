@@ -95,12 +95,7 @@ Rails.application.routes.draw do
     root "dashboard#index"
 
     # 在庫管理
-    resources :inventories do
-      collection do
-        get :import_form
-        post :import
-      end
-    end
+    resources :inventories
 
     # ジョブステータス確認用API
     resources :job_statuses, only: [ :show ]

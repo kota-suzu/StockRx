@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
 # ============================================
-# 在庫CSVインポートジョブ
+# 在庫CSVインポートジョブ（無効化済み）
 # ============================================
+# 注意: このジョブは全在庫変更履歴のインポート機能削除に伴い無効化されています
+# 
 # 機能:
 #   - 大量の在庫データをCSVファイルから非同期でインポート
 #   - Sidekiqによる3回自動リトライ機能
@@ -12,7 +14,8 @@
 # 使用例:
 #   ImportInventoriesJob.perform_later(file_path, admin.id)
 #
-class ImportInventoriesJob < ApplicationJob
+# TODO: インポート機能が不要のため削除予定
+# class ImportInventoriesJob < ApplicationJob
   # ============================================
   # セキュリティ設定
   # ============================================
