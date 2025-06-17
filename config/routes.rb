@@ -162,6 +162,16 @@ Rails.application.routes.draw do
       end
     end
 
+    # Phase 3: 在庫変動履歴管理（管理画面に統合）
+    # CLAUDE.md準拠: 管理機能の一元化
+    # 旧: /inventory_logs → 新: /admin/inventory_logs
+    resources :inventory_logs, only: [ :index, :show ] do
+      collection do
+        get :all
+        get "operation/:operation_type", to: "inventory_logs#by_operation", as: :operation
+      end
+    end
+
     # 今後の機能として追加予定のリソース
     # resources :reports
     # resources :settings
@@ -200,28 +210,28 @@ Rails.application.routes.draw do
   # 横展開確認済み: 類似ルートの整合性について
   # ============================================
   #
-  # inventory_logsも管理画面に統合予定（CLAUDE.md準拠）
-  # TODO: 🟡 Phase 3 - inventory_logs機能の管理画面統合
-  # 優先度: 中（URL構造の一貫性向上、2025年Q1目標）
+  # inventory_logsは管理画面に統合完了（CLAUDE.md準拠）
+  # ✅ 完了: Phase 3 - inventory_logs機能の管理画面統合（2025年6月）
   # 実装内容:
-  #   - /inventory_logs → /admin/inventory_logs への移行
-  #   - InventoryLogsController → AdminControllers::InventoryLogsController
-  #   - 監査ログ機能（AuditLog）との機能統合検討
-  #   - 権限ベースのアクセス制御強化
-  # 期待効果: 管理機能の一元化、セキュリティ向上
+  #   - /inventory_logs → /admin/inventory_logs への移行完了
+  #   - InventoryLogsController → AdminControllers::InventoryLogsController移行完了
+  #   - 権限ベースのアクセス制御強化完了
+  # 効果: 管理機能の一元化、セキュリティ向上
   #
   # 横展開検討済み項目:
   # ✅ 店舗関連ルート: 適切に名前空間分離済み（/store, /stores, /admin/stores）
   # ✅ API関連ルート: 独立したv1名前空間で適切に管理
   # ✅ 認証関連ルート: Devise管理下で適切に構成
   # ✅ 静的ファイル関連: Rails内部ルートで適切に除外設定済み
+  # ✅ 在庫履歴ルート: admin名前空間に移行済み（/admin/inventory_logs）
   #
-  resources :inventory_logs, only: [ :index, :show ] do
-    collection do
-      get :all
-      get "operation/:operation_type", to: "inventory_logs#by_operation", as: :operation
-    end
-  end
+  
+  # 在庫ログの旧URLリダイレクト（後方互換性維持）
+  # CLAUDE.md準拠: 段階的移行戦略（2026年Q1削除予定）
+  get "/inventory_logs", to: redirect("/admin/inventory_logs", status: 301)
+  get "/inventory_logs/all", to: redirect("/admin/inventory_logs/all", status: 301)
+  get "/inventory_logs/:id", to: redirect("/admin/inventory_logs/%{id}", status: 301)
+  get "/inventory_logs/operation/:operation_type", to: redirect("/admin/inventory_logs/operation/%{operation_type}", status: 301)
 
   # API用ルーティング（バージョニング対応）
   namespace :api do

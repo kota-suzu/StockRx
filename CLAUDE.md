@@ -645,6 +645,14 @@ config.omniauth :github,
   - `app/helpers/application_helper.rb`
 - 将来計画: categoryカラム追加マイグレーション (Phase 4緊急タスク)
 
+### ✅ **GitHubログイン重複表示UI修正完了（6月17日）**
+- 問題: GitHubログインボタンと「パスワードを忘れましたか？」が二重表示
+- 原因: `admins/sessions/new.html.erb`でGitHubログインボタンとshared/linksが重複定義
+- 修正内容: 重複したUI要素を削除（55-65行目の冗長なコード除去）
+- 横展開確認: 他認証UIでの重複なし、admin_controllersとadminsの役割分担明確化
+- ベストプラクティス適用: UI一貫性確保、アクセシビリティ改善、メンテナンス性向上
+- 将来計画: admins名前空間の整理とadmin_controllers統合検討
+
 ## 直近の重要な改善（2025年6月）
 
 ### ✅ **完了済み主要タスク**

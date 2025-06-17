@@ -1,0 +1,194 @@
+<%# 在庫変更履歴一覧 - Bootstrap 5モダンデザイン %>
+<div class="container-fluid py-4">
+  <%# ページヘッダー %>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h1 class="h2 mb-1">
+        <i class="fas fa-history me-2 text-primary"></i>
+        <% if @inventory %>
+          <%= @inventory.name %> の在庫変更履歴
+        <% elsif @operation_type %>
+          <%= @operation_type.humanize %> 操作の在庫変更履歴
+        <% else %>
+          全在庫変更履歴
+        <% end %>
+      </h1>
+      <p class="text-muted mb-0">在庫変更の詳細履歴と操作追跡</p>
+    </div>
+    <div class="d-flex gap-2">
+      <%= link_to url_for(format: :csv), class: "btn btn-success" do %>
+        <i class="fas fa-download me-2"></i>CSVダウンロード
+      <% end %>
+      <% if @inventory %>
+        <%= link_to admin_inventory_path(@inventory), class: "btn btn-outline-secondary" do %>
+          <i class="fas fa-arrow-left me-2"></i>在庫詳細に戻る
+        <% end %>
+      <% else %>
+        <%= link_to admin_inventories_path, class: "btn btn-outline-secondary" do %>
+          <i class="fas fa-arrow-left me-2"></i>在庫一覧に戻る
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+  
+  <%# 操作タイプフィルター %>
+  <%= inventory_log_filter_links(@operation_type) %>
+  
+  <%# 日付範囲検索フォーム %>
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-search me-2"></i>期間検索
+      </h5>
+    </div>
+    <div class="card-body">
+      <%= form_with url: request.path, method: :get, class: "row g-3 align-items-end" do |f| %>
+        <div class="col-md-4">
+          <%= f.label :start_date, "開始日", class: "form-label" %>
+          <%= f.date_field :start_date, value: params[:start_date], class: "form-control" %>
+        </div>
+        
+        <div class="col-md-4">
+          <%= f.label :end_date, "終了日", class: "form-label" %>
+          <%= f.date_field :end_date, value: params[:end_date], class: "form-control" %>
+        </div>
+        
+        <div class="col-md-4">
+          <div class="d-flex gap-2">
+            <%= f.submit "検索", class: "btn btn-primary" %>
+            <% if params[:start_date].present? || params[:end_date].present? %>
+              <%= link_to "リセット", request.path, class: "btn btn-outline-secondary" %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+  
+  <%# 在庫変更履歴テーブル %>
+  <div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+      <h5 class="card-title mb-0">
+        <i class="fas fa-table me-2"></i>変更履歴一覧
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th scope="col" class="text-nowrap">
+                <i class="fas fa-clock me-2"></i>日時
+              </th>
+              <th scope="col">
+                <i class="fas fa-box me-2"></i>在庫名
+              </th>
+              <th scope="col" class="text-center">
+                <i class="fas fa-cog me-2"></i>操作
+              </th>
+              <th scope="col" class="text-center">
+                <i class="fas fa-exchange-alt me-2"></i>変化量
+              </th>
+              <th scope="col" class="text-center">変更前</th>
+              <th scope="col" class="text-center">変更後</th>
+              <th scope="col" class="text-center">
+                <i class="fas fa-sticky-note me-2"></i>備考
+              </th>
+              <th scope="col" class="text-center">
+                <i class="fas fa-user me-2"></i>操作者
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @logs.each do |log| %>
+              <tr class="align-middle">
+                <td class="text-nowrap">
+                  <small class="text-muted">
+                    <%= log.created_at.strftime('%Y/%m/%d') %><br>
+                    <%= log.created_at.strftime('%H:%M') %>
+                  </small>
+                </td>
+                <td>
+                  <%= link_to log.inventory.name, admin_inventory_path(log.inventory), 
+                              class: "text-decoration-none fw-medium" %>
+                </td>
+                <td class="text-center">
+                  <span class="<%= operation_badge_class(log.operation_type) %>">
+                    <%= operation_type_label(log.operation_type) %>
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span class="fw-bold <%= log.delta >= 0 ? 'text-success' : 'text-danger' %>">
+                    <%= log.delta >= 0 ? "+#{log.delta}" : log.delta %>
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-light text-dark">
+                    <%= number_with_delimiter(log.previous_quantity) %>
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-light text-dark">
+                    <%= number_with_delimiter(log.current_quantity) %>
+                  </span>
+                </td>
+                <td class="text-center">
+                  <% if log.note.present? %>
+                    <span class="text-muted" data-bs-toggle="tooltip" data-bs-placement="top" title="<%= log.note %>">
+                      <i class="fas fa-comment"></i>
+                    </span>
+                  <% else %>
+                    <span class="text-muted">-</span>
+                  <% end %>
+                </td>
+                <td class="text-center">
+                  <small class="text-muted">
+                    <%= log.user ? log.user.name : '自動' %>
+                  </small>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <%# 空状態メッセージ %>
+  <% if @logs.empty? %>
+    <div class="card shadow-sm mt-4">
+      <div class="card-body text-center py-5">
+        <i class="fas fa-inbox text-muted fa-3x mb-3"></i>
+        <h5 class="text-muted">記録が見つかりません</h5>
+        <p class="text-muted mb-0">
+          指定された条件に該当する在庫変更履歴がありません。<br>
+          検索条件を変更してお試しください。
+        </p>
+      </div>
+    </div>
+  <% end %>
+  
+  <%# ページネーション %>
+  <% if @logs.respond_to?(:current_page) && @logs.total_pages > 1 %>
+    <div class="d-flex justify-content-center align-items-center mt-4">
+      <div class="me-3">
+        <small class="text-muted">
+          <%= @logs.total_count %>件中 
+          <%= @logs.offset_value + 1 %>-<%= [@logs.offset_value + @logs.limit_value, @logs.total_count].min %>件を表示
+        </small>
+      </div>
+      <%= paginate @logs %>
+    </div>
+  <% end %>
+</div>
+
+<%# Bootstrap 5 Tooltip初期化 %>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Tooltipを初期化
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
+  });
+});
+</script> 
