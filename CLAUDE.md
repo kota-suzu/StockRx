@@ -507,6 +507,12 @@ config.omniauth :github,
 
 ## 直近の重要な改善（2025年6月）
 
+### ✅ **URL名前空間整理完了（6月17日）**
+- `/inventories` → `/admin/inventories` への移行完了
+- 301リダイレクト設定による後方互換性確保
+- 全テストファイルの整合性確保（425 examples, 0 failures）
+- 横展開確認による他ルートとの一貫性検証完了
+
 ### ✅ **店舗別在庫一覧機能（6月17日）**
 - 公開用在庫一覧 (`/stores/:id/inventories`)
 - 管理者用詳細在庫一覧 (`/admin/stores/:id/inventories`)
@@ -563,6 +569,12 @@ config.omniauth :github,
 - PDF内容詳細検証（PDF-reader gem活用）
 - PDFメタデータ検証機能
 - レイアウト・フォント品質確認
+
+#### URL名前空間整理の完了
+- `inventory_logs` → `/admin/inventory_logs` への移行
+- InventoryLogsController → AdminControllers::InventoryLogsController
+- 監査ログ機能（AuditLog）との統合検討
+- 権限ベースのアクセス制御強化
 
 #### Helper機能完全実装
 - InventoryLogsHelper基本メソッド群
