@@ -631,6 +631,20 @@ config.omniauth :github,
 - セキュリティヘッダー統合
 - レート制限実装
 
+### ✅ **CategoryカラムMySQLエラー完全解決（6月17日）**
+- エラー: "Unknown column 'category' in 'field list'"
+- 影響範囲: 5コントローラー + 1ビューファイル
+- 解決策: 商品名パターンマッチングによるカテゴリ推定システム実装
+- 横展開: ApplicationHelperで統一的なcategorize_by_name機能提供
+- 修正ファイル: 
+  - `app/controllers/store_controllers/dashboard_controller.rb`
+  - `app/controllers/store_controllers/inventories_controller.rb`
+  - `app/controllers/admin_controllers/store_inventories_controller.rb`
+  - `app/controllers/store_inventories_controller.rb`
+  - `app/views/store_inventories/index.html.erb`
+  - `app/helpers/application_helper.rb`
+- 将来計画: categoryカラム追加マイグレーション (Phase 4緊急タスク)
+
 ## 直近の重要な改善（2025年6月）
 
 ### ✅ **完了済み主要タスク**

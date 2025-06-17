@@ -17,11 +17,11 @@
       <div class="row align-items-center">
         <div class="col-md-8">
           <h1 class="h3 mb-2">
-            <i class="<%= store_type_icon(@store.store_type) %> me-2"></i>
+            <i class="<%= store_type_icon_class(@store.store_type) %> me-2"></i>
             <%= @store.name %>
           </h1>
           <p class="text-muted mb-0">
-            <i class="fas fa-map-marker-alt me-1"></i>
+            <i class="bi bi-geo-alt me-1"></i>
             <%= @store.address || "住所未登録" %>
           </p>
         </div>
@@ -88,7 +88,7 @@
       <%= form_with url: store_inventories_path(@store), method: :get, local: true, class: "row g-3" do |f| %>
         <div class="col-md-8">
           <div class="input-group">
-            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
             <%= text_field_tag :q, params[:q], 
                 class: "form-control", 
                 placeholder: "商品名・SKUで検索...",
@@ -115,7 +115,8 @@
               <tr>
                 <th><%= sort_link("商品名", "inventories.name") %></th>
                 <th><%= sort_link("SKU", "inventories.sku") %></th>
-                <th><%= sort_link("カテゴリ", "inventories.category") %></th>
+                <th>カテゴリ</th>
+                <%# TODO: 🔴 Phase 4（緊急）- categoryカラム追加後、ソート機能を復活 %>
                 <th>メーカー</th>
                 <th>単位</th>
                 <th class="text-center">在庫状態</th>
@@ -128,9 +129,12 @@
                   <td class="fw-semibold"><%= store_inventory.inventory.name %></td>
                   <td><code><%= store_inventory.inventory.sku %></code></td>
                   <td>
-                    <% if store_inventory.inventory.category.present? %>
+                    <%# CLAUDE.md準拠: スキーマ不一致問題の解決（category不存在） %>
+                    <%# 横展開: ApplicationHelperのcategorize_by_nameメソッドを活用 %>
+                    <% category = categorize_by_name(store_inventory.inventory.name) %>
+                    <% if category.present? && category != "その他" %>
                       <span class="badge bg-secondary">
-                        <%= store_inventory.inventory.category %>
+                        <%= category %>
                       </span>
                     <% else %>
                       <span class="text-muted">-</span>
@@ -158,7 +162,7 @@
         </div>
       <% else %>
         <div class="p-5 text-center">
-          <i class="fas fa-boxes fa-4x text-muted mb-3"></i>
+          <i class="bi bi-boxes fa-4x text-muted mb-3"></i>
           <p class="text-muted">在庫データがありません</p>
         </div>
       <% end %>
@@ -167,7 +171,7 @@
 
   <%# 注意事項 %>
   <div class="alert alert-info mt-4" role="alert">
-    <i class="fas fa-info-circle me-2"></i>
+    <i class="bi bi-info-circle me-2"></i>
     <strong>ご注意：</strong>
     表示されている在庫状態は参考情報です。正確な在庫数や価格については、店舗にお問い合わせください。
   </div>

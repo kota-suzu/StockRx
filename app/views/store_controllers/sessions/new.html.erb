@@ -1,7 +1,7 @@
 <% content_for :title, "ログイン" %>
 
 <h2 class="h4 mb-4 text-center">
-  <i class="fas fa-user-lock me-2"></i>
+  <i class="bi bi-person-lock me-2"></i>
   店舗スタッフログイン
 </h2>
 
@@ -12,7 +12,7 @@
   <%# メールアドレス %>
   <div class="mb-3">
     <%= f.label :email, class: "form-label" do %>
-      <i class="fas fa-envelope me-1"></i>
+      <i class="bi bi-envelope me-1"></i>
       メールアドレス
     <% end %>
     <%= f.email_field :email, 
@@ -26,7 +26,7 @@
   <%# パスワード %>
   <div class="mb-3">
     <%= f.label :password, class: "form-label" do %>
-      <i class="fas fa-key me-1"></i>
+      <i class="bi bi-key me-1"></i>
       パスワード
     <% end %>
     <%= f.password_field :password, 
@@ -60,7 +60,7 @@
     <% if @store %>
       <%= link_to new_store_user_password_path(store_slug: @store.slug), 
                   class: "text-decoration-none" do %>
-        <i class="fas fa-question-circle me-1"></i>
+        <i class="bi bi-question-circle me-1"></i>
         パスワードを忘れた方はこちら
       <% end %>
     <% end %>
@@ -70,7 +70,7 @@
 <%# セキュリティ情報 %>
 <div class="mt-4 p-3 bg-light rounded">
   <h6 class="text-muted mb-2">
-    <i class="fas fa-shield-alt me-1"></i>
+    <i class="bi bi-shield-check me-1"></i>
     セキュリティ情報
   </h6>
   <ul class="small text-muted mb-0">

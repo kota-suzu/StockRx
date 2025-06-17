@@ -129,6 +129,8 @@ class StoreInventoriesController < ApplicationController
   # 公開可能なカラムのみ選択（セキュリティ対策）
   def public_inventory_columns
     # 機密情報（原価、仕入先等）は除外
+    # TODO: 🔴 Phase 4（緊急）- categoryカラム追加後、inventories.categoryを復活
+    # 現在はスキーマに存在しないため除外
     %w[
       store_inventories.id
       store_inventories.quantity
@@ -136,7 +138,6 @@ class StoreInventoriesController < ApplicationController
       inventories.id as inventory_id
       inventories.name
       inventories.sku
-      inventories.category
       inventories.unit
       inventories.manufacturer
     ].join(", ")
@@ -144,9 +145,22 @@ class StoreInventoriesController < ApplicationController
 
   # 公開用統計情報
   def calculate_public_statistics
+    # TODO: 🔴 Phase 4（緊急）- categoryカラム追加の検討
+    # 優先度: 高（機能完成度向上）
+    # 実装内容: マイグレーションでcategoryカラム追加後、正確なカテゴリ分析が可能
+
+    # 暫定実装: パターンベースカテゴリ数カウント
+    # CLAUDE.md準拠: スキーマ不一致問題の解決（category不存在）
+    # 横展開: 他コントローラーと同様のパターンマッチング手法活用
+    inventories = @store.inventories.where(status: :active).select(:id, :name)
+    category_count = inventories.map { |inv| categorize_by_name(inv.name) }
+                                .uniq
+                                .compact
+                                .count
+
     {
       total_items: @store_inventories.count,
-      categories: @store.inventories.where(status: :active).distinct.count(:category),
+      categories: category_count,
       last_updated: @store.store_inventories.maximum(:updated_at),
       store_info: {
         name: @store.name,
@@ -162,7 +176,7 @@ class StoreInventoriesController < ApplicationController
       id: store_inventory.inventory_id,
       name: store_inventory.inventory.name,
       sku: store_inventory.inventory.sku,
-      category: store_inventory.inventory.category,
+      category: categorize_by_name(store_inventory.inventory.name),
       manufacturer: store_inventory.inventory.manufacturer,
       unit: store_inventory.inventory.unit,
       stock_status: stock_status(store_inventory.quantity),
@@ -205,7 +219,9 @@ class StoreInventoriesController < ApplicationController
 
   def sort_column
     # 公開情報のみソート可能
-    %w[inventories.name inventories.sku inventories.category].include?(params[:sort]) ?
+    # TODO: 🔴 Phase 4（緊急）- categoryカラム追加後、inventories.categoryソート機能復旧
+    # 現在はスキーマに存在しないため除外
+    %w[inventories.name inventories.sku].include?(params[:sort]) ?
       params[:sort] : "inventories.name"
   end
 
@@ -237,6 +253,38 @@ class StoreInventoriesController < ApplicationController
   #   - 外部リソースのホワイトリスト化
   def sanitize_output(text)
     CGI.escapeHTML(text.to_s)
+  end
+
+  # 商品名からカテゴリを推定するヘルパーメソッド
+  # CLAUDE.md準拠: ベストプラクティス - 推定ロジックの明示化
+  # 横展開: dashboard_controller.rb、inventories_controller.rb、admin store_inventories_controller.rbと同一ロジック
+  def categorize_by_name(product_name)
+    # 医薬品キーワード
+    medicine_keywords = %w[錠 カプセル 軟膏 点眼 坐剤 注射 シロップ 細粒 顆粒 液 mg IU
+                         アスピリン パラセタモール オメプラゾール アムロジピン インスリン
+                         抗生 消毒 ビタミン プレドニゾロン エキス]
+
+    # 医療機器キーワード
+    device_keywords = %w[血圧計 体温計 パルスオキシメーター 聴診器 測定器]
+
+    # 消耗品キーワード
+    supply_keywords = %w[マスク 手袋 アルコール ガーゼ 注射針]
+
+    # サプリメントキーワード
+    supplement_keywords = %w[ビタミン サプリ オメガ プロバイオティクス フィッシュオイル]
+
+    case product_name
+    when /#{device_keywords.join('|')}/i
+      "医療機器"
+    when /#{supply_keywords.join('|')}/i
+      "消耗品"
+    when /#{supplement_keywords.join('|')}/i
+      "サプリメント"
+    when /#{medicine_keywords.join('|')}/i
+      "医薬品"
+    else
+      "その他"
+    end
   end
 end
 

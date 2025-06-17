@@ -59,6 +59,45 @@ module ApplicationHelper
     end
   end
 
+  # ============================================
+  # 🔴 Phase 4: カテゴリ推定機能（緊急対応）
+  # ============================================
+
+  # 商品名からカテゴリを推定するヘルパーメソッド
+  # CLAUDE.md準拠: ベストプラクティス - 推定ロジックの明示化と横展開
+  # 横展開: 全コントローラー・ビューで統一的なカテゴリ推定を実現
+  # TODO: 🔴 Phase 4（緊急）- categoryカラム追加後、このメソッドは不要となり削除予定
+  def categorize_by_name(product_name)
+    return "その他" if product_name.blank?
+
+    # 医薬品キーワード
+    medicine_keywords = %w[錠 カプセル 軟膏 点眼 坐剤 注射 シロップ 細粒 顆粒 液 mg IU
+                         アスピリン パラセタモール オメプラゾール アムロジピン インスリン
+                         抗生 消毒 ビタミン プレドニゾロン エキス]
+
+    # 医療機器キーワード
+    device_keywords = %w[血圧計 体温計 パルスオキシメーター 聴診器 測定器]
+
+    # 消耗品キーワード
+    supply_keywords = %w[マスク 手袋 アルコール ガーゼ 注射針]
+
+    # サプリメントキーワード
+    supplement_keywords = %w[ビタミン サプリ オメガ プロバイオティクス フィッシュオイル]
+
+    case product_name
+    when /#{device_keywords.join('|')}/i
+      "医療機器"
+    when /#{supply_keywords.join('|')}/i
+      "消耗品"
+    when /#{supplement_keywords.join('|')}/i
+      "サプリメント"
+    when /#{medicine_keywords.join('|')}/i
+      "医薬品"
+    else
+      "その他"
+    end
+  end
+
   # TODO: 🟡 Phase 6（重要）- 高度なヘルパー機能
   # 優先度: 中（UI/UX向上）
   # 実装内容:

@@ -173,7 +173,13 @@ RSpec.describe "Security Scanner", type: :request do
 
     CRITICAL_PATHS.each do |path|
       context "#{path}のセキュリティヘッダー" do
-        before { get path }
+        before do
+          # 管理者ルートには認証が必要
+          if path.start_with?('/admin') && path != '/admin/sign_in'
+            sign_in admin
+          end
+          get path
+        end
 
         it "必須セキュリティヘッダーが設定されていること" do
           # OWASP推奨ヘッダー
@@ -323,7 +329,7 @@ RSpec.describe "Security Scanner", type: :request do
   # ============================================
   describe "暗号化強度チェック" do
     it "パスワードが強力なアルゴリズムで暗号化されること" do
-      user = create(:admin, password: "TestPassword123!")
+      user = create(:admin, password: "TestPassword123!", password_confirmation: "TestPassword123!")
 
       # bcryptで暗号化されていること
       expect(user.encrypted_password).to match(/^\$2[ayb]\$/)
@@ -346,8 +352,8 @@ RSpec.describe "Security Scanner", type: :request do
         expect(response.headers["Set-Cookie"]).to include("secure")
       end
 
-      # HttpOnlyフラグの確認
-      expect(response.headers["Set-Cookie"]).to include("HttpOnly")
+      # HttpOnlyフラグの確認 (Rails uses lowercase)
+      expect(response.headers["Set-Cookie"]).to include("httponly")
     end
   end
 end

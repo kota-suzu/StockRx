@@ -19,6 +19,9 @@ $admin-background: #f5f7fa;
 // Bootstrap設定をインポート
 @import "bootstrap";
 
+// コンポーネント別スタイル
+@import "store_selection";
+
 // =========================================
 // CSS変数として追加定義
 // CLAUDE.md準拠: SCSS/CSS変数互換性確保

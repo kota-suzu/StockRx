@@ -17,7 +17,7 @@ module StoreControllers
     def index
       @q = current_store.store_inventories
                        .joins(:inventory)
-                       .includes(:inventory, :batches)
+                       .includes(inventory: :batches)
                        .ransack(params[:q])
 
       @store_inventories = @q.result
@@ -35,13 +35,13 @@ module StoreControllers
     # 在庫詳細
     def show
       @store_inventory = current_store.store_inventories
-                                     .includes(:inventory, :batches)
+                                     .includes(inventory: :batches)
                                      .find_by!(inventory: @inventory)
 
-      # バッチ情報
-      @batches = @store_inventory.batches
-                                .order(expiration_date: :asc)
-                                .page(params[:batch_page])
+      # バッチ情報（正しいアソシエーション経由でアクセス）
+      @batches = @inventory.batches
+                          .order(expires_on: :asc)
+                          .page(params[:batch_page])
 
       # 在庫履歴
       @inventory_logs = @inventory.inventory_logs
@@ -85,11 +85,22 @@ module StoreControllers
 
     # フィルタリング用データ
     def load_filter_data
-      @categories = current_store.inventories
-                                .distinct
-                                .pluck(:category)
-                                .compact
-                                .sort
+      # TODO: 🔴 Phase 4（緊急）- categoryカラム追加の検討
+      # 優先度: 高（機能完成度向上）
+      # 実装内容:
+      #   - マイグレーション: add_column :inventories, :category, :string
+      #   - seeds.rb更新: カテゴリ情報の実際の保存
+      #   - バックフィル: 既存データへのカテゴリ自動割り当て
+      # 期待効果: 正確なカテゴリ分析、将来的な商品管理機能拡張
+
+      # 暫定実装: 商品名パターンによるカテゴリ推定
+      # CLAUDE.md準拠: スキーマ不一致問題の解決（category不存在）
+      # 横展開: dashboard_controller.rbと同様のパターンマッチング手法活用
+      inventories = current_store.inventories.select(:id, :name)
+      @categories = inventories.map { |inv| categorize_by_name(inv.name) }
+                               .uniq
+                               .compact
+                               .sort
 
       @manufacturers = current_store.inventories
                                    .distinct
@@ -195,6 +206,38 @@ module StoreControllers
         { text: "#{days_until_expiry}日", class: "badge bg-info" }
       else
         { text: "良好", class: "badge bg-success" }
+      end
+    end
+
+    # 商品名からカテゴリを推定するヘルパーメソッド
+    # CLAUDE.md準拠: ベストプラクティス - 推定ロジックの明示化
+    # 横展開: dashboard_controller.rbと同一ロジック
+    def categorize_by_name(product_name)
+      # 医薬品キーワード
+      medicine_keywords = %w[錠 カプセル 軟膏 点眼 坐剤 注射 シロップ 細粒 顆粒 液 mg IU
+                           アスピリン パラセタモール オメプラゾール アムロジピン インスリン
+                           抗生 消毒 ビタミン プレドニゾロン エキス]
+
+      # 医療機器キーワード
+      device_keywords = %w[血圧計 体温計 パルスオキシメーター 聴診器 測定器]
+
+      # 消耗品キーワード
+      supply_keywords = %w[マスク 手袋 アルコール ガーゼ 注射針]
+
+      # サプリメントキーワード
+      supplement_keywords = %w[ビタミン サプリ オメガ プロバイオティクス フィッシュオイル]
+
+      case product_name
+      when /#{device_keywords.join('|')}/i
+        "医療機器"
+      when /#{supply_keywords.join('|')}/i
+        "消耗品"
+      when /#{supplement_keywords.join('|')}/i
+        "サプリメント"
+      when /#{medicine_keywords.join('|')}/i
+        "医薬品"
+      else
+        "その他"
       end
     end
   end

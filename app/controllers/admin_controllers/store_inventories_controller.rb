@@ -21,7 +21,7 @@ module AdminControllers
       # N+1クエリ対策（CLAUDE.md: パフォーマンス最適化）
       @q = @store.store_inventories
                  .joins(:inventory)
-                 .includes(:inventory, :batches)
+                 .includes(inventory: :batches)
                  .ransack(params[:q])
 
       @store_inventories = @q.result
@@ -50,7 +50,7 @@ module AdminControllers
                                  .limit(50)
 
       @transfer_history = load_transfer_history
-      @batch_details = @store_inventory.batches.includes(:receipts)
+      @batch_details = @inventory.batches.includes(:receipts)
 
       respond_to do |format|
         format.html
@@ -88,13 +88,25 @@ module AdminControllers
     # ============================================
 
     def calculate_detailed_statistics
+      # TODO: 🔴 Phase 4（緊急）- categoryカラム追加の検訍
+      # 優先度: 高（機能完成度向上）
+      # 実装内容: マイグレーションでcategoryカラム追加後、正確なカテゴリ分析が可能
+
+      # 暫定実装: パターンベースカテゴリ数カウント
+      # CLAUDE.md準拠: スキーマ不一致問題の解決
+      inventories = @store.inventories.select(:id, :name)
+      category_count = inventories.map { |inv| categorize_by_name(inv.name) }
+                                  .uniq
+                                  .compact
+                                  .count
+
       {
         total_items: @store.store_inventories.count,
         total_quantity: @store.store_inventories.sum(:quantity),
         total_value: @store.total_inventory_value,
         low_stock_items: @store.low_stock_items_count,
         out_of_stock_items: @store.out_of_stock_items_count,
-        categories: @store.inventories.distinct.count(:category),
+        categories: category_count,
         last_updated: @store.store_inventories.maximum(:updated_at),
         inventory_turnover: @store.inventory_turnover_rate,
         average_stock_value: @store.total_inventory_value / @store.store_inventories.count.to_f
@@ -145,7 +157,7 @@ module AdminControllers
           id: store_inventory.inventory.id,
           name: store_inventory.inventory.name,
           sku: store_inventory.inventory.sku,
-          category: store_inventory.inventory.category,
+          category: categorize_by_name(store_inventory.inventory.name),
           manufacturer: store_inventory.inventory.manufacturer,
           unit: store_inventory.inventory.unit,
           price: store_inventory.inventory.price,
@@ -198,7 +210,7 @@ module AdminControllers
         inv.id,
         inv.sku,
         inv.name,
-        inv.category,
+        categorize_by_name(inv.name),
         inv.manufacturer,
         inv.unit,
         store_inventory.quantity,
@@ -256,13 +268,47 @@ module AdminControllers
       I18n.t("inventory.stock_status.#{stock_status(store_inventory)}")
     end
 
+    # 商品名からカテゴリを推定するヘルパーメソッド
+    # CLAUDE.md準拠: ベストプラクティス - 推定ロジックの明示化
+    # 横展開: dashboard_controller.rb、inventories_controller.rbと同一ロジック
+    def categorize_by_name(product_name)
+      # 医薬品キーワード
+      medicine_keywords = %w[錠 カプセル 軟膏 点眼 坐剤 注射 シロップ 細粒 顆粒 液 mg IU
+                           アスピリン パラセタモール オメプラゾール アムロジピン インスリン
+                           抗生 消毒 ビタミン プレドニゾロン エキス]
+
+      # 医療機器キーワード
+      device_keywords = %w[血圧計 体温計 パルスオキシメーター 聴診器 測定器]
+
+      # 消耗品キーワード
+      supply_keywords = %w[マスク 手袋 アルコール ガーゼ 注射針]
+
+      # サプリメントキーワード
+      supplement_keywords = %w[ビタミン サプリ オメガ プロバイオティクス フィッシュオイル]
+
+      case product_name
+      when /#{device_keywords.join('|')}/i
+        "医療機器"
+      when /#{supply_keywords.join('|')}/i
+        "消耗品"
+      when /#{supplement_keywords.join('|')}/i
+        "サプリメント"
+      when /#{medicine_keywords.join('|')}/i
+        "医薬品"
+      else
+        "その他"
+      end
+    end
+
     # ============================================
     # ソート設定
     # ============================================
 
     def sort_column
+      # TODO: 🔴 Phase 4（緊急）- categoryカラム追加後、inventories.categoryソート機能復旧
+      # 現在はスキーマに存在しないため除外
       allowed_columns = %w[
-        inventories.name inventories.sku inventories.category
+        inventories.name inventories.sku
         store_inventories.quantity store_inventories.updated_at
       ]
       allowed_columns.include?(params[:sort]) ? params[:sort] : "inventories.name"

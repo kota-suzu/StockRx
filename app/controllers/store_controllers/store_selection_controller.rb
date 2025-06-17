@@ -175,18 +175,19 @@ module StoreControllers
       I18n.t("activerecord.attributes.store.store_types.#{type}", default: type.humanize)
     end
 
-    # 店舗タイプのアイコンクラス
+    # 店舗タイプのアイコンクラス（Bootstrap Icons統一）
+    # CLAUDE.md準拠: 管理画面との一貫性確保
     helper_method :store_type_icon_class
     def store_type_icon_class(type)
       case type
       when "pharmacy"
-        "fas fa-prescription-bottle-alt"
+        "bi bi-capsule"
       when "warehouse"
-        "fas fa-warehouse"
+        "bi bi-building"
       when "headquarters"
-        "fas fa-building"
+        "bi bi-building-gear"
       else
-        "fas fa-store"
+        "bi bi-shop"
       end
     end
 

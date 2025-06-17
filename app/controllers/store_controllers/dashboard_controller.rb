@@ -86,21 +86,26 @@ module StoreControllers
                                          .limit(10)
 
       # 🛡️ セキュリティ対策: SELECT句とORDER句の安全化
+      # CLAUDE.md準拠: 正しいアソシエーション経由でのデータアクセス
+      # メタ認知: StoreInventory → Inventory → Batches の関連を適切に使用
       # TODO: 🟡 Phase 4（重要）- Batchesリレーションの最適化
       #   - has_many through関係の見直し
       #   - 期限切れ間近商品のインデックス最適化
       #   - N+1クエリ完全解消（includes最適化）
+      # TODO: 🔴 Phase 3（緊急）- パフォーマンス向上
+      #   - バッチテーブルにインデックス追加: INDEX(inventory_id, expires_on)
+      #   - 期限切れクエリの高速化
       expiration_select = Arel.sql(
-        "store_inventories.*, batches.expiration_date, batches.lot_number"
+        "store_inventories.*, batches.expires_on, batches.lot_code"
       )
-      expiration_order = Arel.sql("batches.expiration_date ASC")
+      expiration_order = Arel.sql("batches.expires_on ASC")
 
       @expiring_items = current_store.store_inventories
-                                     .joins(:inventory, :batches)
-                                     .where("batches.expiration_date <= ?", 30.days.from_now)
-                                     .where("batches.expiration_date >= ?", Date.current)
+                                     .joins(inventory: :batches)
+                                     .where("batches.expires_on <= ?", 30.days.from_now)
+                                     .where("batches.expires_on >= ?", Date.current)
                                      .select(expiration_select)
-                                     .includes(:inventory)
+                                     .includes(inventory: :batches)
                                      .order(expiration_order)
                                      .limit(10)
     end
@@ -186,7 +191,7 @@ module StoreControllers
     def prepare_category_distribution
       # メタ認知: categoryカラムが存在しないため、商品名パターンベースの分類を実装
       # 横展開: 他のカテゴリ分析でも同様のパターンマッチング手法を活用可能
-      
+
       # TODO: 🔴 Phase 4（緊急）- categoryカラム追加の検討
       # 優先度: 高（機能完成度向上）
       # 実装内容:
@@ -194,15 +199,15 @@ module StoreControllers
       #   - seeds.rb更新: カテゴリ情報の実際の保存
       #   - バックフィル: 既存データへのカテゴリ自動割り当て
       # 期待効果: 正確なカテゴリ分析、将来的な商品管理機能拡張
-      
+
       # 暫定実装: 商品名パターンによるカテゴリ推定
       store_inventories = current_store.store_inventories
                                       .joins(:inventory)
                                       .where("store_inventories.quantity > 0")
                                       .select("inventories.name, store_inventories.quantity")
-      
+
       categories = {}
-      
+
       store_inventories.each do |store_inventory|
         category = categorize_by_name(store_inventory.name)
         categories[category] = (categories[category] || 0) + store_inventory.quantity
@@ -225,16 +230,16 @@ module StoreControllers
     # CLAUDE.md準拠: ベストプラクティス - 推定ロジックの明示化
     def categorize_by_name(product_name)
       # 医薬品キーワード
-      medicine_keywords = %w[錠 カプセル 軟膏 点眼 坐剤 注射 シロップ 細粒 顆粒 液 mg IU 
+      medicine_keywords = %w[錠 カプセル 軟膏 点眼 坐剤 注射 シロップ 細粒 顆粒 液 mg IU
                            アスピリン パラセタモール オメプラゾール アムロジピン インスリン
                            抗生 消毒 ビタミン プレドニゾロン エキス]
-      
-      # 医療機器キーワード  
+
+      # 医療機器キーワード
       device_keywords = %w[血圧計 体温計 パルスオキシメーター 聴診器 測定器]
-      
+
       # 消耗品キーワード
       supply_keywords = %w[マスク 手袋 アルコール ガーゼ 注射針]
-      
+
       # サプリメントキーワード
       supplement_keywords = %w[ビタミン サプリ オメガ プロバイオティクス フィッシュオイル]
 
@@ -242,7 +247,7 @@ module StoreControllers
       when /#{device_keywords.join('|')}/i
         "医療機器"
       when /#{supply_keywords.join('|')}/i
-        "消耗品"  
+        "消耗品"
       when /#{supplement_keywords.join('|')}/i
         "サプリメント"
       when /#{medicine_keywords.join('|')}/i

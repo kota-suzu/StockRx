@@ -1,0 +1,615 @@
+// ============================================
+// StockRx Store Selection - Modern Design System
+// ============================================
+// Phase 2: モダンデザインシステム構築
+// CLAUDE.md準拠: ベストプラクティス・将来拡張性確保
+
+// ============================================
+// 1. Design Tokens & Variables
+// ============================================
+
+// カラーシステム（2024年モダンパレット）
+:root {
+  // プライマリカラー（ブランド）
+  --primary-50: #f0f3ff;
+  --primary-100: #e0e7ff;
+  --primary-200: #c7d2fe;
+  --primary-300: #a5b4fc;
+  --primary-400: #818cf8;
+  --primary-500: #6366f1;
+  --primary-600: #4f46e5;
+  --primary-700: #4338ca;
+  --primary-800: #3730a3;
+  --primary-900: #312e81;
+
+  // セマンティックカラー
+  --success-400: #4ade80;
+  --success-500: #22c55e;
+  --warning-400: #fbbf24;
+  --warning-500: #f59e0b;
+  --danger-400: #f87171;
+  --danger-500: #ef4444;
+
+  // ニュートラルカラー
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+
+  // グラデーション
+  --gradient-primary: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-700) 100%);
+  --gradient-success: linear-gradient(135deg, var(--success-400) 0%, var(--success-500) 100%);
+  --gradient-warning: linear-gradient(135deg, var(--warning-400) 0%, var(--warning-500) 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.1) 100%);
+  
+  // シャドウシステム
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-primary: 0 10px 30px -12px rgba(99, 102, 241, 0.4);
+  
+  // スペーシング
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  
+  // ボーダーラディウス
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 50%;
+  
+  // アニメーション
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+// ============================================
+// 2. Base Layout & Container
+// ============================================
+
+.store-selection-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  min-height: 100vh;
+  position: relative;
+  
+  // グラスモーフィズム背景パターン
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+      radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
+      radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+  }
+}
+
+.store-selection-content {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-8) var(--space-4);
+  
+  @media (min-width: 768px) {
+    padding: var(--space-12) var(--space-6);
+  }
+}
+
+// ============================================
+// 3. Typography System
+// ============================================
+
+.display-heading {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f3ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: var(--space-4);
+  text-align: center;
+}
+
+.section-heading {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: var(--space-6);
+  
+  &--light {
+    color: rgba(255, 255, 255, 0.95);
+  }
+}
+
+.section-subtitle {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--gray-600);
+  margin-bottom: var(--space-4);
+  
+  &--light {
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+// ============================================
+// 4. Modern Card Components
+// ============================================
+
+.store-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+}
+
+.store-card {
+  background: var(--gradient-glass);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-6);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-base);
+  cursor: pointer;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  
+  // ホバーエフェクト
+  &:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: var(--shadow-2xl);
+    border-color: rgba(255, 255, 255, 0.4);
+    
+    .store-card__shimmer {
+      transform: translateX(100%);
+    }
+    
+    .store-card__icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+  }
+  
+  // フォーカス状態
+  &:focus-within {
+    outline: 2px solid var(--primary-400);
+    outline-offset: 2px;
+  }
+  
+  // シマーエフェクト
+  &__shimmer {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: transform 0.6s var(--ease-spring);
+    pointer-events: none;
+  }
+  
+  // カードヘッダー
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+  }
+  
+  &__icon {
+    width: 3rem;
+    height: 3rem;
+    background: var(--gradient-primary);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.25rem;
+    transition: transform var(--transition-base);
+    flex-shrink: 0;
+  }
+  
+  &__title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin: 0;
+    line-height: 1.3;
+  }
+  
+  &__code {
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+    background: rgba(0, 0, 0, 0.05);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    margin-top: var(--space-1);
+  }
+  
+  // カードボディ
+  &__body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: 0.875rem;
+    color: var(--gray-600);
+    
+    .icon {
+      opacity: 0.7;
+    }
+  }
+  
+  &__status {
+    margin: var(--space-3) 0;
+  }
+  
+  // カードフッター
+  &__footer {
+    margin-top: auto;
+    padding-top: var(--space-4);
+  }
+  
+  // Recent Store Variant
+  &--recent {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.2) 100%);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: var(--space-3);
+      right: var(--space-3);
+      width: 8px;
+      height: 8px;
+      background: var(--success-500);
+      border-radius: var(--radius-full);
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+    }
+  }
+}
+
+// ============================================
+// 5. Status Badges
+// ============================================
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  
+  &--success {
+    background: var(--gradient-success);
+    color: white;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  }
+  
+  &--warning {
+    background: var(--gradient-warning);
+    color: white;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  }
+  
+  &--info {
+    background: linear-gradient(135deg, var(--gray-500) 0%, var(--gray-600) 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+  }
+}
+
+// ============================================
+// 6. Interactive Buttons
+// ============================================
+
+.btn-modern {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-xl);
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-decoration: none;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-primary);
+  
+  // ホバーエフェクト
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.5);
+    color: white;
+    text-decoration: none;
+  }
+  
+  // アクティブ状態
+  &:active {
+    transform: translateY(0);
+  }
+  
+  // フォーカス状態
+  &:focus {
+    outline: 2px solid var(--primary-400);
+    outline-offset: 2px;
+  }
+  
+  // シマーエフェクト
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: transform 0.6s;
+  }
+  
+  &:hover::before {
+    transform: translateX(100%);
+  }
+  
+  // バリアント
+  &--outline {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-md);
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+  }
+  
+  &--small {
+    padding: var(--space-2) var(--space-4);
+    font-size: 0.75rem;
+  }
+  
+  &--large {
+    padding: var(--space-4) var(--space-8);
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
+  &--full {
+    width: 100%;
+  }
+}
+
+// ============================================
+// 7. Section Layouts
+// ============================================
+
+.recent-stores-section {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-8);
+  margin-bottom: var(--space-10);
+  
+  .section-heading {
+    color: rgba(255, 255, 255, 0.95);
+    text-align: center;
+    margin-bottom: var(--space-6);
+  }
+}
+
+.all-stores-section {
+  .section-heading {
+    color: rgba(255, 255, 255, 0.95);
+    text-align: center;
+    margin-bottom: var(--space-8);
+  }
+}
+
+.store-type-group {
+  margin-bottom: var(--space-10);
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+  
+  .store-type-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: var(--space-6);
+    padding: var(--space-3) var(--space-4);
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-xl);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    
+    .icon {
+      width: 2rem;
+      height: 2rem;
+      background: var(--gradient-primary);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+  }
+}
+
+// ============================================
+// 8. Empty State
+// ============================================
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-16) var(--space-8);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-2xl);
+  
+  &__icon {
+    font-size: 4rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: var(--space-4);
+  }
+  
+  &__title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: var(--space-2);
+  }
+  
+  &__description {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1rem;
+  }
+}
+
+// ============================================
+// 9. Responsive Design
+// ============================================
+
+@media (max-width: 768px) {
+  .store-selection-content {
+    padding: var(--space-6) var(--space-4);
+  }
+  
+  .display-heading {
+    font-size: 2rem;
+  }
+  
+  .store-card {
+    padding: var(--space-4);
+    
+    &__icon {
+      width: 2.5rem;
+      height: 2.5rem;
+      font-size: 1rem;
+    }
+    
+    &__title {
+      font-size: 1.125rem;
+    }
+  }
+  
+  .recent-stores-section {
+    padding: var(--space-6);
+  }
+  
+  .btn-modern {
+    padding: var(--space-3) var(--space-5);
+    
+    &--large {
+      padding: var(--space-4) var(--space-6);
+    }
+  }
+}
+
+// ============================================
+// 10. Accessibility & Animation Controls
+// ============================================
+
+// Reduced motion preference対応
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .store-card:hover {
+    transform: none;
+  }
+  
+  .btn-modern:hover {
+    transform: none;
+  }
+}
+
+// High contrast mode対応
+@media (prefers-contrast: high) {
+  .store-card {
+    border: 2px solid currentColor;
+    background: rgba(255, 255, 255, 0.95);
+  }
+  
+  .store-card__title {
+    color: var(--gray-900);
+  }
+}
+
+// ============================================
+// TODO: Phase 4以降の拡張予定
+// ============================================
+// 🔴 Phase 4: アクセシビリティ強化（推定1日）
+// - 音声読み上げ最適化
+// - キーボードナビゲーション完全対応
+// - カラーコントラスト検証・改善
+// - フォーカストラップ実装
+//
+// 🟡 Phase 5: アニメーション強化（推定0.5日）
+// - Intersection Observer による要素出現アニメーション
+// - スクロール連動パララックス効果
+// - カードスタッキングアニメーション
+//
+// 🟢 Phase 6: 将来拡張（推定2日）
+// - Dark mode対応
+// - Container Queries活用
+// - CSS Houdini Paint API（独自グラデーション）
+// - Variable Fonts対応
