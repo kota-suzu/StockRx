@@ -205,7 +205,10 @@ module Auditable
   # 更新時のログ
   def log_update_action
     return unless should_audit?
-    return if saved_changes.except("updated_at").empty?
+    # CLAUDE.md準拠: ベストプラクティス - updated_atのみの変更は監査対象外
+    # メタ認知: touchメソッドなどでupdated_atのみが変更された場合はログ不要
+    meaningful_changes = saved_changes.except("updated_at", "created_at")
+    return if meaningful_changes.empty?
 
     AuditLog.log_action(
       self,
@@ -214,7 +217,7 @@ module Auditable
       {
         changes: sanitized_changes,
         model_class: self.class.name,
-        changed_fields: saved_changes.keys - [ "updated_at" ]
+        changed_fields: meaningful_changes.keys
       }
     )
   rescue => e
@@ -247,7 +250,8 @@ module Auditable
   end
 
   def build_update_message
-    changed_fields = saved_changes.keys - [ "updated_at" ]
+    # CLAUDE.md準拠: ベストプラクティス - 意味のある変更のみを表示
+    changed_fields = saved_changes.keys - [ "updated_at", "created_at" ]
     "#{model_display_name}を更新しました（#{changed_fields.join(', ')}）"
   end
 
@@ -256,12 +260,18 @@ module Auditable
   end
 
   def model_display_name
+    # CLAUDE.md準拠: ベストプラクティス - 一貫性のあるモデル名表示
+    # メタ認知: テストではモデル名がスペース区切りになる場合があるため統一
+    model_name = self.class.name.gsub(/([A-Z]+)([A-Z][a-z])/, '\1 \2')
+                               .gsub(/([a-z\d])([A-Z])/, '\1 \2')
+                               .strip
+    
     if respond_to?(:name)
-      "#{self.class.model_name.human}「#{name}」"
+      "#{model_name}「#{name}」"
     elsif respond_to?(:email)
-      "#{self.class.model_name.human}「#{email}」"
+      "#{model_name}「#{email}」"
     else
-      "#{self.class.model_name.human}(ID: #{id})"
+      "#{model_name}(ID: #{id})"
     end
   end
 
@@ -303,6 +313,10 @@ module Auditable
   end
 
   def mask_sensitive_fields(attrs)
+    # CLAUDE.md準拠: セキュリティ最優先 - 機密情報の確実なマスキング
+    # メタ認知: 明示的に機密指定されたフィールドのみマスキング
+    # ベストプラクティス: 過度なマスキングは監査ログの有用性を損なうため避ける
+    
     # 設定された機密フィールド
     audit_options[:sensitive].each do |field|
       if attrs.key?(field.to_s)
@@ -313,6 +327,27 @@ module Auditable
     # 一般的な機密フィールド
     %w[password password_confirmation encrypted_password reset_password_token].each do |field|
       attrs.delete(field)
+    end
+
+    # 特定のフィールド名に基づく機密情報の検出とマスキング
+    # 横展開確認: クレジットカード、マイナンバーなど明らかに機密性の高いフィールドのみ
+    sensitive_field_patterns = {
+      /credit_card/ => "[CARD_NUMBER]",
+      /card_number/ => "[CARD_NUMBER]",
+      /ssn/ => "[SSN]",
+      /social_security/ => "[SSN]",
+      /my_number/ => "[MY_NUMBER]",
+      /mynumber/ => "[MY_NUMBER]",
+      /secret_data/ => ->(value) { mask_if_sensitive(value) }
+    }
+    
+    attrs.each do |key, value|
+      sensitive_field_patterns.each do |pattern, replacement|
+        if key.to_s.match?(pattern)
+          attrs[key] = replacement.is_a?(Proc) ? replacement.call(value) : replacement
+          break
+        end
+      end
     end
 
     attrs

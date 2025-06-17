@@ -72,12 +72,26 @@ module AdminControllers
 
       store_name = @store.display_name
 
-      if @store.destroy
-        redirect_to admin_stores_path,
-                    notice: "店舗「#{store_name}」が正常に削除されました。"
-      else
-        redirect_to admin_store_path(@store),
-                    alert: "店舗の削除に失敗しました: #{@store.errors.full_messages.join(', ')}"
+      # CLAUDE.md準拠: メタ認知的エラーハンドリング
+      # TODO: Phase 3 - 論理削除（ソフトデリート）の実装
+      #   - 店舗は重要なマスタデータのため物理削除より論理削除推奨
+      #   - 削除フラグ: deleted_at カラムの追加
+      #   - 関連データの整合性保持（在庫、移動履歴）
+      # 横展開: Admin, Inventoryモデルでも同様の実装検討
+      begin
+        if @store.destroy
+          redirect_to admin_stores_path,
+                      notice: "店舗「#{store_name}」が正常に削除されました。"
+        else
+          handle_destroy_error(store_name)
+        end
+      rescue ActiveRecord::InvalidForeignKey => e
+        # 依存関係による削除制限（管理者、在庫、移動など）
+        Rails.logger.warn "Store deletion restricted: #{e.message}, store_id: #{@store.id}"
+        handle_destroy_error(store_name, "関連するデータ（管理者、在庫、移動履歴など）が存在するため削除できません。")
+      rescue => e
+        Rails.logger.error "Store deletion failed: #{e.message}, store_id: #{@store.id}"
+        handle_destroy_error(store_name, "削除中にエラーが発生しました。")
       end
     end
 
@@ -154,6 +168,15 @@ module AdminControllers
     # ============================================
     # 📊 統計計算メソッド（パフォーマンス最適化）
     # ============================================
+
+    # CLAUDE.md準拠: 削除エラー時の共通処理
+    # メタ認知: InventoriesControllerと同様のパターン適用
+    def handle_destroy_error(store_name, message = nil)
+      error_message = message || @store.errors.full_messages.join("、")
+      
+      redirect_to admin_store_path(@store),
+                  alert: "店舗「#{store_name}」の削除に失敗しました: #{error_message}"
+    end
 
     def calculate_store_overview_stats
       {

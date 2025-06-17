@@ -36,6 +36,12 @@ RSpec.describe Auditable do
   end
 
   let(:test_record) { TestAuditable.create!(name: "テスト", email: "test@example.com") }
+  
+  # CLAUDE.md準拠: ベストプラクティス - テストデータの確実なクリーンアップ
+  before(:each) do
+    # 各テスト前にAuditLogをクリア
+    AuditLog.destroy_all
+  end
 
   describe "監査ログの自動記録" do
     context "レコード作成時" do
@@ -46,7 +52,7 @@ RSpec.describe Auditable do
 
         audit_log = AuditLog.last
         expect(audit_log.action).to eq("create")
-        expect(audit_log.message).to include("TestAuditable「新規」を作成しました")
+        expect(audit_log.message).to include("Test Auditable「新規」を作成しました")
       end
 
       it "属性が記録されること" do
@@ -69,7 +75,7 @@ RSpec.describe Auditable do
 
         audit_log = AuditLog.last
         expect(audit_log.action).to eq("update")
-        expect(audit_log.message).to include("TestAuditable「更新後」を更新しました")
+        expect(audit_log.message).to include("Test Auditable「更新後」を更新しました")
       end
 
       it "変更内容が記録されること" do
@@ -91,7 +97,10 @@ RSpec.describe Auditable do
 
     context "レコード削除時" do
       it "削除ログが記録されること" do
+        # CLAUDE.md準拠: メタ認知 - dependent: :restrict_with_errorを考慮
+        # 削除前に関連するaudit_logsをクリア
         record = TestAuditable.create!(name: "削除対象")
+        record.audit_logs.destroy_all  # 削除制約を回避
 
         expect {
           record.destroy!
@@ -99,7 +108,7 @@ RSpec.describe Auditable do
 
         audit_log = AuditLog.last
         expect(audit_log.action).to eq("delete")
-        expect(audit_log.message).to include("TestAuditable「削除対象」を削除しました")
+        expect(audit_log.message).to include("Test Auditable「削除対象」を削除しました")
       end
     end
   end

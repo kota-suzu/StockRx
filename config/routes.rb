@@ -125,6 +125,14 @@ Rails.application.routes.draw do
       member do
         get :dashboard  # 店舗個別ダッシュボード
       end
+      
+      # 店舗別在庫管理（管理者用）
+      # CLAUDE.md準拠: 管理者は全店舗の詳細在庫情報にアクセス可能
+      resources :inventories, only: [:index], controller: 'admin_controllers/store_inventories' do
+        member do
+          get :details  # 詳細情報（価格・仕入先含む）
+        end
+      end
 
       # 店舗間移動管理（ネストルーティング）
       resources :inter_store_transfers, path: :transfers do

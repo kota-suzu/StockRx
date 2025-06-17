@@ -7,8 +7,12 @@
 # CLAUDE.md準拠: セキュリティ最優先、機密情報の適切なマスキング
 # ============================================
 class StoreInventoriesController < ApplicationController
+  # セキュリティ対策
+  include SecurityHeaders
+  
   # 認証スキップ（公開情報）
-  skip_before_action :authenticate_admin!, if: :admin_signed_in?
+  # CLAUDE.md準拠: 公開APIは認証不要だが、セキュリティ対策は必須
+  skip_before_action :authenticate_admin!
 
   before_action :set_store
   before_action :check_store_active
@@ -220,8 +224,19 @@ class StoreInventoriesController < ApplicationController
   end
 
   # SQL Like演算子のサニタイズ
+  # CLAUDE.md準拠: SQLインジェクション対策の徹底
   def sanitize_sql_like(string)
+    # 危険な文字をエスケープ
     string.gsub(/[%_\\]/, '\\\\\\&')
+  end
+  
+  # XSS対策: 出力時のエスケープ
+  # TODO: Phase 4 - Content Security Policyの強化
+  #   - インラインスクリプトの完全排除
+  #   - nonceベースのスクリプト管理
+  #   - 外部リソースのホワイトリスト化
+  def sanitize_output(text)
+    CGI.escapeHTML(text.to_s)
   end
 end
 

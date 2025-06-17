@@ -94,12 +94,31 @@ module AdminControllers
 
       transfer_summary = @transfer.transfer_summary
 
-      if @transfer.destroy
-        redirect_to admin_inter_store_transfers_path,
-                    notice: "移動申請「#{transfer_summary}」が正常に削除されました。"
-      else
+      # CLAUDE.md準拠: ステータスベースの削除制限
+      # TODO: Phase 3 - 移動履歴の永続保存
+      #   - 完了済み移動は削除不可（監査証跡）
+      #   - キャンセル済みも履歴として保持
+      #   - 論理削除フラグの追加検討
+      # 横展開: Inventoryでも同様の履歴保持戦略
+      unless @transfer.can_be_cancelled?
         redirect_to admin_inter_store_transfer_path(@transfer),
-                    alert: "移動申請の削除に失敗しました: #{@transfer.errors.full_messages.join(', ')}"
+                    alert: "#{@transfer.status_text}の移動申請は削除できません。"
+        return
+      end
+
+      begin
+        if @transfer.destroy
+          redirect_to admin_inter_store_transfers_path,
+                      notice: "移動申請「#{transfer_summary}」が正常に削除されました。"
+        else
+          handle_destroy_error(transfer_summary)
+        end
+      rescue ActiveRecord::InvalidForeignKey => e
+        Rails.logger.warn "Transfer deletion restricted: #{e.message}, transfer_id: #{@transfer.id}"
+        handle_destroy_error(transfer_summary, "関連するデータが存在するため削除できません。")
+      rescue => e
+        Rails.logger.error "Transfer deletion failed: #{e.message}, transfer_id: #{@transfer.id}"
+        handle_destroy_error(transfer_summary, "削除中にエラーが発生しました。")
       end
     end
 
@@ -320,6 +339,15 @@ module AdminControllers
         average_similar_time: calculate_average_processing_time_hours(similar_transfers),
         route_efficiency: calculate_route_efficiency(transfer)
       }
+    end
+
+    # CLAUDE.md準拠: 削除エラー時の共通処理
+    # メタ認知: 他のコントローラーとの一貫性維持
+    def handle_destroy_error(transfer_summary, message = nil)
+      error_message = message || @transfer.errors.full_messages.join("、")
+      
+      redirect_to admin_inter_store_transfer_path(@transfer),
+                  alert: "移動申請「#{transfer_summary}」の削除に失敗しました: #{error_message}"
     end
 
     def calculate_store_transfer_analytics(period)
