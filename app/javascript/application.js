@@ -200,8 +200,8 @@ function initializeBootstrapComponents() {
   // デバッグ用：Bootstrap初期化成功確認
   console.log("🎯 Bootstrap components initialization summary:", {
     dropdowns: `${successCount}/${dropdownCount} (${errorCount} errors)`,
-    tooltips: tooltipTriggerList.length,
-    popovers: popoverTriggerList.length,
+    tooltips: tooltipCount,
+    popovers: popoverCount,
     bootstrapVersion: bootstrap.Tooltip.VERSION || 'unknown'
   });
   
@@ -213,6 +213,31 @@ function initializeBootstrapComponents() {
     console.log('   2. Verify data-bs-toggle="dropdown" attributes');
     console.log('   3. Ensure dropdown menu structure is correct');
   }
+}
+
+// 個別要素用の手動ドロップダウン設定
+// CLAUDE.md準拠: フォールバック機能の個別対応
+function setupManualDropdownForElement(toggle) {
+  console.log('🔧 Setting up manual dropdown for element:', toggle.id || toggle.className);
+  
+  toggle.addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    const dropdownMenu = this.nextElementSibling;
+    if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+      const isOpen = dropdownMenu.style.display === 'block';
+      
+      // 他のドロップダウンを閉じる
+      document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        menu.style.display = 'none';
+      });
+      
+      // 現在のドロップダウンをトグル
+      dropdownMenu.style.display = isOpen ? 'none' : 'block';
+      
+      console.log(`👆 Manual dropdown toggled: ${this.id} (${isOpen ? 'closed' : 'opened'})`);
+    }
+  });
 }
 
 // デバッグ用コンソールメッセージ
