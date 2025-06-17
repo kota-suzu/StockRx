@@ -12,25 +12,18 @@ import "./controllers"
 import "bootstrap"
 
 // Turboとの互換性確保
-// CLAUDE.md準拠: ベストプラクティス - Turbo環境でのBootstrap初期化
+// CLAUDE.md準拠: ベストプラクティス - レイアウトファイルでの初期化を優先
 document.addEventListener("turbo:load", () => {
-  // Bootstrap コンポーネントの初期化
-  // メタ認知: Turboページ遷移後も動的コンポーネントが動作するよう再初期化
+  // 🔴 Phase 3（緊急）- 一時的に初期化を無効化
+  // 理由: レイアウトファイルでの強制初期化と競合を避ける
+  // TODO: デバッグ完了後に復元
   
-  // TODO: 🔴 Phase 1（緊急）- CDN フォールバック機能
-  // 優先度: 最高（ネットワーク問題対策）
-  // 実装内容: Bootstrap CDN 接続失敗時の代替手段
-  // 横展開: 全てのCDNリソースで適用検討
-  
-  // Bootstrap availability check
-  if (typeof bootstrap === 'undefined') {
-    console.warn('🚨 Bootstrap not loaded! Attempting manual initialization...');
-    
-    // Manual dropdown toggle as fallback
-    setupManualDropdown();
+  // Bootstrap 可用性確認のみ（初期化はレイアウト側で実行）
+  if (typeof bootstrap !== 'undefined') {
+    console.log('📦 Application.js: Bootstrap available, initialization handled by layout');
   } else {
-    console.log('✅ Bootstrap loaded successfully');
-    initializeBootstrapComponents();
+    console.warn('⚠️ Application.js: Bootstrap not available');
+    setupManualDropdown();
   }
   
   // フラッシュメッセージが存在する場合は5秒後に自動的に消す
@@ -53,38 +46,21 @@ document.addEventListener("turbo:load", () => {
   }
 })
 
-// TODO: 🔴 Phase 1（緊急）- 手動ドロップダウン機能（フォールバック）
-// 優先度: 最高（Bootstrap読み込み失敗時の代替）
-// 実装内容: JavaScript無しでもドロップダウンが動作する機能
-// メタ認知: プログレッシブエンハンスメントの原則に従う
+// 手動ドロップダウン機能（フォールバック）
+// CLAUDE.md準拠: シンプルで確実なフォールバック実装
 function setupManualDropdown() {
   console.log('🔧 Setting up manual dropdown fallback...');
   
+  // 各ドロップダウンに手動機能を設定
   document.querySelectorAll('.dropdown-toggle').forEach(toggle => {
-    toggle.addEventListener('click', function(e) {
-      e.preventDefault();
-      
-      const dropdownMenu = this.nextElementSibling;
-      if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
-        const isOpen = dropdownMenu.style.display === 'block';
-        
-        // Close all other dropdowns
-        document.querySelectorAll('.dropdown-menu').forEach(menu => {
-          menu.style.display = 'none';
-        });
-        
-        // Toggle current dropdown
-        dropdownMenu.style.display = isOpen ? 'none' : 'block';
-        
-        console.log(`👆 Manual dropdown toggled: ${this.id} (${isOpen ? 'closed' : 'opened'})`);
-      }
-    });
+    setupManualDropdownForElement(toggle);
   });
   
-  // Close dropdown when clicking outside
+  // 外部クリック時にドロップダウンを閉じる
   document.addEventListener('click', function(e) {
     if (!e.target.closest('.dropdown')) {
       document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        menu.classList.remove('show');
         menu.style.display = 'none';
       });
     }
@@ -94,148 +70,94 @@ function setupManualDropdown() {
 }
 
 // Bootstrap コンポーネント初期化関数
-// CLAUDE.md準拠: 横展開 - 全てのBootstrapコンポーネントで適用
+// CLAUDE.md準拠: シンプルで確実な初期化アプローチ
 function initializeBootstrapComponents() {
-  // TODO: 🔴 Phase 1（緊急）- ドロップダウン初期化の強化完了
-  // 問題: レイアウトファイルとの重複により初期化が競合
-  // 解決: 一元化された初期化処理により確実なドロップダウン動作を実現
-  // メタ認知: Bootstrap 5では明示的な初期化が必要
-  // 横展開: 全てのBootstrapコンポーネントで一貫した初期化パターン適用
+  console.log('🔧 Initializing Bootstrap components...');
   
-  let dropdownCount = 0;
-  let successCount = 0;
-  let errorCount = 0;
-  
-  try {
-    const dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'))
-    dropdownCount = dropdownElementList.length;
+  // ドロップダウンの初期化
+  const dropdownElements = document.querySelectorAll('.dropdown-toggle');
+  if (dropdownElements.length > 0) {
+    console.log(`📍 Found ${dropdownElements.length} dropdown elements`);
     
-    console.log(`🔧 Initializing ${dropdownCount} dropdown elements...`);
-    
-    dropdownElementList.forEach((dropdownToggleEl, index) => {
+    dropdownElements.forEach((element, index) => {
       try {
-        // 既存のBootstrapインスタンスがある場合は削除（重複防止）
-        const existingInstance = bootstrap.Dropdown.getInstance(dropdownToggleEl);
+        // 既存インスタンスの重複防止
+        const existingInstance = bootstrap.Dropdown.getInstance(element);
         if (existingInstance) {
           existingInstance.dispose();
-          console.log(`🧹 Disposed existing dropdown instance [${index}]`);
         }
         
-        // 新しいインスタンスを作成
-        const dropdownInstance = new bootstrap.Dropdown(dropdownToggleEl, {
-          boundary: 'viewport', // ビューポート境界を考慮
-          display: 'dynamic'    // 動的配置
-        });
-        successCount++;
-        
-        console.log(`✅ Dropdown [${index}] initialized:`, dropdownToggleEl.id || dropdownToggleEl.className);
-        
-        // ドロップダウンイベントの監視
-        dropdownToggleEl.addEventListener('click', function(e) {
-          console.log(`👆 Dropdown clicked: ${dropdownToggleEl.id}`);
-        });
-        
-        // アクセシビリティ対応: キーボードナビゲーション
-        dropdownToggleEl.addEventListener('keydown', function(e) {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            dropdownInstance.toggle();
-            console.log(`⌨️ Dropdown toggled via keyboard: ${dropdownToggleEl.id}`);
-          }
-          if (e.key === 'Escape') {
-            dropdownInstance.hide();
-            dropdownToggleEl.focus();
-            console.log(`⌨️ Dropdown closed via Escape: ${dropdownToggleEl.id}`);
-          }
-        });
+        // 新しいドロップダウンインスタンス作成
+        new bootstrap.Dropdown(element);
+        console.log(`✅ Dropdown ${index + 1} initialized: ${element.id || 'unnamed'}`);
         
       } catch (error) {
-        errorCount++;
-        console.error(`❌ Failed to initialize dropdown [${index}]:`, error);
-        console.error('Element:', dropdownToggleEl);
-        
-        // フォールバック: 手動ドロップダウン機能
-        setupManualDropdownForElement(dropdownToggleEl);
+        console.error(`❌ Dropdown ${index + 1} initialization failed:`, error);
+        // フォールバック設定
+        setupManualDropdownForElement(element);
       }
     });
-    
-  } catch (globalError) {
-    console.error('🚨 Critical error in dropdown initialization:', globalError);
-    // 全体的なフォールバック
-    setupManualDropdown();
   }
   
-  // Tooltipの初期化
-  let tooltipCount = 0;
-  try {
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    tooltipCount = tooltipTriggerList.length;
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-      return new bootstrap.Tooltip(tooltipTriggerEl)
-    })
-  } catch (error) {
-    console.error('❌ Tooltip initialization error:', error);
+  // ツールチップの初期化
+  const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+  if (tooltipElements.length > 0) {
+    tooltipElements.forEach(element => {
+      try {
+        new bootstrap.Tooltip(element);
+      } catch (error) {
+        console.error('Tooltip initialization failed:', error);
+      }
+    });
+    console.log(`✅ ${tooltipElements.length} tooltips initialized`);
   }
   
-  // Popoverの初期化（必要に応じて）
-  let popoverCount = 0;
-  try {
-    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-    popoverCount = popoverTriggerList.length;
-    popoverTriggerList.map(function (popoverTriggerEl) {
-      return new bootstrap.Popover(popoverTriggerEl)
-    })
-  } catch (error) {
-    console.error('❌ Popover initialization error:', error);
+  // ポップオーバーの初期化
+  const popoverElements = document.querySelectorAll('[data-bs-toggle="popover"]');
+  if (popoverElements.length > 0) {
+    popoverElements.forEach(element => {
+      try {
+        new bootstrap.Popover(element);
+      } catch (error) {
+        console.error('Popover initialization failed:', error);
+      }
+    });
+    console.log(`✅ ${popoverElements.length} popovers initialized`);
   }
-
-  // TODO: 🟡 Phase 3（中）- Toastメッセージ機能の実装
-  // 優先度: 中（UX向上）
-  // 実装内容: 
-  //   - 成功・エラーメッセージのトースト表示
-  //   - 自動消去タイマー
-  //   - スタック表示
-  // 期待効果: ユーザーフィードバックの改善
   
-  // デバッグ用：Bootstrap初期化成功確認
-  console.log("🎯 Bootstrap components initialization summary:", {
-    dropdowns: `${successCount}/${dropdownCount} (${errorCount} errors)`,
-    tooltips: tooltipCount,
-    popovers: popoverCount,
-    bootstrapVersion: bootstrap.Tooltip.VERSION || 'unknown'
-  });
-  
-  // エラーが発生した場合の追加デバッグ情報
-  if (errorCount > 0) {
-    console.warn(`⚠️  ${errorCount} dropdowns failed to initialize. Check console for details.`);
-    console.log('💡 Troubleshooting tips:');
-    console.log('   1. Check if Bootstrap CSS is loaded');
-    console.log('   2. Verify data-bs-toggle="dropdown" attributes');
-    console.log('   3. Ensure dropdown menu structure is correct');
-  }
+  console.log('🎯 Bootstrap components initialization completed');
 }
 
 // 個別要素用の手動ドロップダウン設定
-// CLAUDE.md準拠: フォールバック機能の個別対応
+// CLAUDE.md準拠: シンプルで確実なフォールバック機能
 function setupManualDropdownForElement(toggle) {
-  console.log('🔧 Setting up manual dropdown for element:', toggle.id || toggle.className);
+  console.log('🔧 Setting up manual dropdown for:', toggle.id || 'unnamed');
   
   toggle.addEventListener('click', function(e) {
     e.preventDefault();
+    e.stopPropagation();
     
-    const dropdownMenu = this.nextElementSibling;
+    // ドロップダウンメニューを探す（親要素内）
+    const parent = this.closest('.dropdown');
+    const dropdownMenu = parent ? parent.querySelector('.dropdown-menu') : this.nextElementSibling;
+    
     if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
-      const isOpen = dropdownMenu.style.display === 'block';
+      const isCurrentlyOpen = dropdownMenu.classList.contains('show');
       
-      // 他のドロップダウンを閉じる
+      // 全てのドロップダウンを閉じる
       document.querySelectorAll('.dropdown-menu').forEach(menu => {
+        menu.classList.remove('show');
         menu.style.display = 'none';
       });
       
       // 現在のドロップダウンをトグル
-      dropdownMenu.style.display = isOpen ? 'none' : 'block';
-      
-      console.log(`👆 Manual dropdown toggled: ${this.id} (${isOpen ? 'closed' : 'opened'})`);
+      if (!isCurrentlyOpen) {
+        dropdownMenu.classList.add('show');
+        dropdownMenu.style.display = 'block';
+        console.log(`👆 Manual dropdown opened: ${this.id || 'unnamed'}`);
+      } else {
+        console.log(`👆 Manual dropdown closed: ${this.id || 'unnamed'}`);
+      }
     }
   });
 }
