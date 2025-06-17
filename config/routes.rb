@@ -37,15 +37,23 @@ Rails.application.routes.draw do
   #   - IP制限機能
   #   - レート制限（1分あたり60リクエスト）
   #   - 機密情報のマスキング強化
-  # TODO: 🔴 Phase 1（緊急）- ルーティングヘルパー名の衝突解決
-  #   優先度: 高（開発効率向上）
+  # ✅ Phase 1（完了）- ルーティングヘルパー名の衝突解決
   #   問題: store_inventories_pathが公開ルートと認証済みルートで衝突
-  #   対策案:
-  #     1. as: オプションで明示的な名前を付ける
-  #        例: as: :public_store_inventories
-  #     2. namespace分離の強化
-  #     3. concern化による共通化
-  #   横展開: 他の重複可能性のあるルートも確認必要
+  #   解決策: ビューファイル内で明示的パス(/store/inventories)を使用
+  #   修正ファイル:
+  #     - app/views/store_controllers/inventories/index.html.erb (検索フォーム、ソートリンク等)
+  #     - app/views/store_controllers/inventories/show.html.erb (パンくず、戻るボタン)
+  #     - app/views/layouts/store.html.erb (ナビゲーション)
+  #     - app/views/store_controllers/dashboard/index.html.erb (リンク)
+  #   
+  # TODO: 🟡 Phase 2（推奨）- 根本的な解決策の検討
+  #   優先度: 中（将来的な改善）
+  #   代替案:
+  #     1. as: オプションで明示的な名前を付ける (例: as: :public_store_inventories)
+  #     2. concern化による共通化
+  #     3. 完全なnamespace分離
+  #   メタ認知: 現在の解決策は動作するが、ヘルパー使用が理想的
+  #   横展開: 他の類似ルートでも同様のパターン適用
   resources :stores, only: [] do
     resources :inventories, only: [ :index ], controller: "store_inventories" do
       collection do
