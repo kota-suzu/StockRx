@@ -212,17 +212,23 @@
           <% end %>
         <% else %>
           <%# 空状態 %>
+          <%# CLAUDE.md準拠: セキュリティ強化 - 管理者ログインリンク削除 %>
+          <%# メタ認知: 緊急時でも管理者機能への直接アクセスを提供せず、別チャンネルでサポート %>
           <div class="empty-state" role="status" aria-live="polite">
             <div class="empty-state__icon">
               <i class="bi bi-exclamation-circle"></i>
             </div>
             <h3 class="empty-state__title">利用可能な店舗がありません</h3>
             <p class="empty-state__description">
-              システム管理者にお問い合わせください。
+              システム管理者にお問い合わせください。<br>
+              <small class="text-muted">
+                <i class="bi bi-info-circle me-1"></i>
+                技術的なサポートが必要な場合は、直接お電話またはメールでご連絡ください。
+              </small>
             </p>
-            <%= link_to new_admin_session_path, class: "btn-modern btn-modern--outline mt-4" do %>
-              <i class="bi bi-person-gear me-2"></i>
-              管理者ログイン
+            <%= link_to root_path, class: "btn-modern btn-modern--outline mt-4" do %>
+              <i class="bi bi-house-door me-2"></i>
+              ホームに戻る
             <% end %>
           </div>
         <% end %>
@@ -358,9 +364,16 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <%# ============================================ %>
-<%# TODO: Phase 4以降の拡張予定 %>
+<%# TODO: Phase 2（セキュリティ）以降の拡張予定 %>
 <%# ============================================ %>
-<%# 🔴 Phase 4: 検索・フィルタリング機能（推定2日） %>
+<%# 🔴 Phase 2: セキュリティ強化（推定3日） %>
+<%#   - ✅ 管理者ログインリンク削除完了 %>
+<%#   - ⏳ 店舗アクセス試行制限（レート制限） %>
+<%#   - ⏳ 怪しいアクセスパターン検知 %>
+<%#   - ⏳ ハニーポット実装（ボット対策） %>
+<%#   - ⏳ アクセスログ暗号化 %>
+<%# %>
+<%# 🟡 Phase 4: 検索・フィルタリング機能（推定2日） %>
 <%# - 店舗名での部分一致検索 %>
 <%# - 地域別フィルタリング %>
 <%# - 店舗タイプ別絞り込み %>

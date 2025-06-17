@@ -16,12 +16,14 @@
             ビジネスの成長をサポートします。
           </p>
           <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-start">
-            <%= link_to admin_inventories_path, class: "btn btn-light btn-lg" do %>
-              <i class="fas fa-search me-2"></i>在庫を確認する
-            <% end %>
-            <%= link_to store_selection_path, class: "btn btn-outline-light btn-lg" do %>
+            <%# CLAUDE.md準拠: セキュリティ強化 - 管理者機能への直接リンク削除 %>
+            <%# メタ認知: 一般ユーザーには店舗ログインのみを提供し、管理者アクセスは直URL入力に限定 %>
+            <%= link_to store_selection_path, class: "btn btn-light btn-lg" do %>
               <i class="fas fa-store me-2"></i>店舗ログイン
             <% end %>
+            <a href="#features" class="btn btn-outline-light btn-lg">
+              <i class="fas fa-info-circle me-2"></i>機能について
+            </a>
           </div>
         </div>
       </div>
@@ -39,7 +41,7 @@
 </section>
 
 <%# 機能紹介セクション %>
-<section class="py-5">
+<section id="features" class="py-5">
   <div class="container">
     <div class="row">
       <div class="col-12 text-center mb-5">
@@ -224,12 +226,13 @@
       </div>
       <div class="col-lg-4 text-center text-lg-end mt-3 mt-lg-0">
         <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-end">
-          <%= link_to admin_inventories_path, class: "btn btn-light btn-lg" do %>
-            <i class="fas fa-eye me-2"></i>在庫を見る
+          <%# 横展開: 上部と同様に管理者リンクを削除 %>
+          <%= link_to store_selection_path, class: "btn btn-light btn-lg" do %>
+            <i class="fas fa-store me-2"></i>店舗ログイン
           <% end %>
-          <%= link_to store_selection_path, class: "btn btn-outline-light btn-lg" do %>
-            <i class="fas fa-store me-2"></i>店舗アクセス
-          <% end %>
+          <a href="#features" class="btn btn-outline-light btn-lg">
+            <i class="fas fa-chart-line me-2"></i>システム概要
+          </a>
         </div>
         <div class="d-flex justify-content-center justify-content-lg-end mt-2">
           <small class="text-white-50">
@@ -242,7 +245,18 @@
   </div>
 </section>
 
-<%# TODO: 🟡 Phase 2 - ホームページ機能強化 %>
+<%# TODO: 🔴 Phase 2（セキュリティ）- アクセス制御強化 %>
+<%# 優先度: 高（セキュリティ要件） %>
+<%# 実装内容: %>
+<%#   - ✅ 管理者ログインへの直接リンク削除完了 %>
+<%#   - ⏳ IP制限機能（管理者アクセス） %>
+<%#   - ⏳ レート制限強化（ブルートフォース攻撃対策） %>
+<%#   - ⏳ セキュリティヘッダー強化（CSP、HSTS） %>
+<%#   - ⏳ 監査ログ機能（管理者操作追跡） %>
+<%# メタ認知: セキュリティは段階的に強化し、ユーザビリティとのバランスを維持 %>
+<%# 期待効果: 不正アクセス防止、コンプライアンス要件対応 %>
+
+<%# TODO: 🟡 Phase 3 - ホームページ機能強化 %>
 <%# 優先度: 中（マーケティング・ユーザー体験向上） %>
 <%# 実装内容: お客様の声、FAQ、ニュース機能、多言語対応 %>
 <%# 理由: ユーザーエンゲージメント向上とサポート品質改善 %>
