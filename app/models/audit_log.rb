@@ -4,6 +4,15 @@ class AuditLog < ApplicationRecord
   # ポリモーフィック関連
   belongs_to :auditable, polymorphic: true
   belongs_to :user, optional: true, class_name: "Admin"
+  
+  # CLAUDE.md準拠: ベストプラクティス - 意味的に正しい関連付け名の提供
+  # メタ認知: 監査ログの操作者は管理者（admin）なので、adminエイリアスが意味的に適切
+  # 横展開: InventoryLogと同様のパターン適用で一貫性確保
+  # TODO: 🟡 Phase 3（重要）- ログ系モデル関連付け統一設計
+  #   - user_idカラム名をadmin_idに統一するマイグレーション
+  #   - InventoryLogとの一貫性確保
+  #   - 監査ログ統合インターフェースの設計
+  belongs_to :admin, optional: true, class_name: "Admin", foreign_key: "user_id"
 
   # バリデーション
   validates :action, presence: true
