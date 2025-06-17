@@ -46,17 +46,17 @@ module AdminControllers
                          .recent
                          .page(params[:page])
                          .per(PER_PAGE)
-      
+
       render :index
     end
 
     # 特定の操作種別のログを表示
     def by_operation
       @operation_type = params[:operation_type]
-      
+
       base_query = InventoryLog.by_operation(@operation_type)
       base_query = apply_permission_filter(base_query)
-      
+
       @logs = base_query.includes(:inventory, :admin)
                        .recent
                        .page(params[:page])
@@ -108,14 +108,14 @@ module AdminControllers
     # 権限チェック付きログ取得
     def find_log_with_permission
       log = InventoryLog.find(params[:id])
-      
+
       # 店舗管理者の場合、自店舗のログのみ閲覧可能
       if current_admin.store_manager? || current_admin.store_user?
         unless log.inventory.store_inventories.exists?(store_id: current_admin.store_id)
           raise ActiveRecord::RecordNotFound
         end
       end
-      
+
       log
     end
 
@@ -220,3 +220,9 @@ end
 #    - 既存ファクトリ・テストでの対応
 #    - シードデータでの整合性確保
 #    - ベストプラクティス: 意味的に正しい関連付け名の使用
+#
+# 5. 🟡 Phase 2（重要）- パフォーマンステスト実装
+#    - N+1クエリ検出テスト（exceed_query_limit matcher活用）
+#    - レスポンス時間ベンチマーク（目標: <200ms）
+#    - 大量データでのパフォーマンス確認（10万件）
+#    - CLAUDE.md準拠: AdminControllers全体でのN+1テスト横展開
