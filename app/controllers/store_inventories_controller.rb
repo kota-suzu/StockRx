@@ -131,6 +131,8 @@ class StoreInventoriesController < ApplicationController
     # 機密情報（原価、仕入先等）は除外
     # TODO: 🔴 Phase 4（緊急）- categoryカラム追加後、inventories.categoryを復活
     # 現在はスキーマに存在しないため除外
+    # TODO: 🔴 Phase 1（緊急）- manufacturerカラム追加後、inventories.manufacturerを復活
+    # 現在はスキーマに存在しないため除外（エラーの原因）
     %w[
       store_inventories.id
       store_inventories.quantity
@@ -139,7 +141,6 @@ class StoreInventoriesController < ApplicationController
       inventories.name
       inventories.sku
       inventories.unit
-      inventories.manufacturer
     ].join(", ")
   end
 
@@ -177,7 +178,9 @@ class StoreInventoriesController < ApplicationController
       name: store_inventory.inventory.name,
       sku: store_inventory.inventory.sku,
       category: categorize_by_name(store_inventory.inventory.name),
-      manufacturer: store_inventory.inventory.manufacturer,
+      # TODO: 🔴 Phase 1（緊急）- manufacturerカラム追加後に有効化
+      # manufacturer: store_inventory.inventory.manufacturer,
+      manufacturer: "未設定",  # 暫定値
       unit: store_inventory.inventory.unit,
       stock_status: stock_status(store_inventory.quantity),
       last_updated: store_inventory.updated_at.iso8601

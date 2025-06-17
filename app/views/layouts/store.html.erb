@@ -123,7 +123,9 @@
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" 
                  role="button" data-bs-toggle="dropdown" aria-expanded="false"
-                 title="アカウントメニュー（ログアウトはこちら）">
+                 aria-haspopup="true" aria-label="ユーザーメニューを開く"
+                 title="アカウントメニュー（ログアウトはこちら）"
+                 tabindex="0">
                 <i class="bi bi-person-circle me-2"></i>
                 <span class="d-none d-md-inline"><%= current_store_user.name %></span>
                 <span class="d-md-none small">メニュー</span>
@@ -150,8 +152,13 @@
                 <li>
                   <%= button_to destroy_store_user_session_path, method: :delete, 
                       class: "dropdown-item text-danger d-flex align-items-center logout-btn",
-                      title: "ログアウト",
-                      form: { data: { turbo: false } } do %>
+                      title: "ログアウト（確認ダイアログが表示されます）",
+                      form: { 
+                        data: { 
+                          turbo: false,
+                          confirm: "本当にログアウトしますか？\n\n作業中のデータが保存されていることを確認してください。"
+                        } 
+                      } do %>
                     <i class="bi bi-box-arrow-right me-2 fs-5"></i>
                     <strong>ログアウト</strong>
                   <% end %>

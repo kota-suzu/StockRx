@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_17_070153) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_17_230854) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -139,11 +139,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_17_070153) do
     t.datetime "completed_at", comment: "完了日時"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "shipped_at", comment: "出荷日時"
     t.index ["approved_by_id"], name: "index_inter_store_transfers_on_approved_by_id", comment: "承認者別検索最適化"
     t.index ["destination_store_id"], name: "index_inter_store_transfers_on_destination_store_id", comment: "移動先店舗検索最適化"
     t.index ["inventory_id"], name: "index_inter_store_transfers_on_inventory_id"
     t.index ["requested_at"], name: "index_inter_store_transfers_on_requested_at", comment: "申請日時検索最適化"
     t.index ["requested_by_id"], name: "index_inter_store_transfers_on_requested_by_id", comment: "申請者別検索最適化"
+    t.index ["shipped_at"], name: "index_inter_store_transfers_on_shipped_at", comment: "出荷日時検索最適化"
     t.index ["source_store_id", "status", "requested_at"], name: "idx_source_status_date", comment: "店舗別ステータス・日時複合検索"
     t.index ["source_store_id"], name: "index_inter_store_transfers_on_source_store_id", comment: "移動元店舗検索最適化"
     t.index ["status", "priority"], name: "index_inter_store_transfers_on_status_and_priority", comment: "ステータス・優先度複合検索"

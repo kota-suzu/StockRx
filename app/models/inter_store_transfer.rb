@@ -5,11 +5,13 @@ class InterStoreTransfer < ApplicationRecord
   belongs_to :source_store, class_name: "Store"
   belongs_to :destination_store, class_name: "Store"
   belongs_to :inventory
-  belongs_to :requested_by, class_name: "Admin"
-  belongs_to :approved_by, class_name: "Admin", optional: true
-  belongs_to :shipped_by, class_name: "Admin", optional: true
-  belongs_to :completed_by, class_name: "Admin", optional: true
-  belongs_to :cancelled_by, class_name: "Admin", optional: true
+  # ポリモーフィック関連付け：AdminとStoreUserの両方に対応
+  # メタ認知: 店舗ユーザーと管理者の両方が移動申請を作成・承認できる設計
+  belongs_to :requested_by, polymorphic: true
+  belongs_to :approved_by, polymorphic: true, optional: true
+  belongs_to :shipped_by, polymorphic: true, optional: true
+  belongs_to :completed_by, polymorphic: true, optional: true
+  belongs_to :cancelled_by, polymorphic: true, optional: true
 
   # ============================================
   # enum定義
@@ -55,8 +57,10 @@ class InterStoreTransfer < ApplicationRecord
   scope :by_destination_store, ->(store) { where(destination_store: store) }
   scope :by_store, ->(store) { where("source_store_id = ? OR destination_store_id = ?", store.id, store.id) }
   scope :by_inventory, ->(inventory) { where(inventory: inventory) }
-  scope :by_requestor, ->(admin) { where(requested_by: admin) }
-  scope :by_approver, ->(admin) { where(approved_by: admin) }
+  # ポリモーフィック対応：AdminとStoreUserの両方を受け入れ
+  scope :by_requestor, ->(user) { where(requested_by: user) }
+  # ポリモーフィック対応：AdminとStoreUserの両方を受け入れ
+  scope :by_approver, ->(user) { where(approved_by: user) }
   scope :recent, -> { order(requested_at: :desc) }
   scope :by_priority, ->(priority) { where(priority: priority) }
   scope :active, -> { where(status: [ :pending, :approved, :in_transit ]) }
