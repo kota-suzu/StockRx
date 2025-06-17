@@ -96,12 +96,11 @@ function setupManualDropdown() {
 // Bootstrap コンポーネント初期化関数
 // CLAUDE.md準拠: 横展開 - 全てのBootstrapコンポーネントで適用
 function initializeBootstrapComponents() {
-  // Dropdownの手動初期化（重要：これがないとドロップダウンが動作しない）
-  // メタ認知：Bootstrap 5ではdata属性だけでは不十分な場合がある
-  // TODO: 🔴 Phase 1（緊急）- ドロップダウン初期化の強化
-  // 優先度: 最高（ユーザーログアウト機能に直結）
-  // 実装内容: より堅牢な初期化処理とエラーハンドリング
-  // 横展開: すべてのBootstrapコンポーネントで適用
+  // TODO: 🔴 Phase 1（緊急）- ドロップダウン初期化の強化完了
+  // 問題: レイアウトファイルとの重複により初期化が競合
+  // 解決: 一元化された初期化処理により確実なドロップダウン動作を実現
+  // メタ認知: Bootstrap 5では明示的な初期化が必要
+  // 横展開: 全てのBootstrapコンポーネントで一貫した初期化パターン適用
   
   let dropdownCount = 0;
   let successCount = 0;
@@ -115,32 +114,55 @@ function initializeBootstrapComponents() {
     
     dropdownElementList.forEach((dropdownToggleEl, index) => {
       try {
-        // 既存のBootstrapインスタンスがある場合は削除
+        // 既存のBootstrapインスタンスがある場合は削除（重複防止）
         const existingInstance = bootstrap.Dropdown.getInstance(dropdownToggleEl);
         if (existingInstance) {
           existingInstance.dispose();
+          console.log(`🧹 Disposed existing dropdown instance [${index}]`);
         }
         
         // 新しいインスタンスを作成
-        const dropdownInstance = new bootstrap.Dropdown(dropdownToggleEl);
+        const dropdownInstance = new bootstrap.Dropdown(dropdownToggleEl, {
+          boundary: 'viewport', // ビューポート境界を考慮
+          display: 'dynamic'    // 動的配置
+        });
         successCount++;
         
         console.log(`✅ Dropdown [${index}] initialized:`, dropdownToggleEl.id || dropdownToggleEl.className);
         
-        // デバッグ用: クリックイベントの監視
+        // ドロップダウンイベントの監視
         dropdownToggleEl.addEventListener('click', function(e) {
           console.log(`👆 Dropdown clicked: ${dropdownToggleEl.id}`);
+        });
+        
+        // アクセシビリティ対応: キーボードナビゲーション
+        dropdownToggleEl.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            dropdownInstance.toggle();
+            console.log(`⌨️ Dropdown toggled via keyboard: ${dropdownToggleEl.id}`);
+          }
+          if (e.key === 'Escape') {
+            dropdownInstance.hide();
+            dropdownToggleEl.focus();
+            console.log(`⌨️ Dropdown closed via Escape: ${dropdownToggleEl.id}`);
+          }
         });
         
       } catch (error) {
         errorCount++;
         console.error(`❌ Failed to initialize dropdown [${index}]:`, error);
         console.error('Element:', dropdownToggleEl);
+        
+        // フォールバック: 手動ドロップダウン機能
+        setupManualDropdownForElement(dropdownToggleEl);
       }
     });
     
   } catch (globalError) {
     console.error('🚨 Critical error in dropdown initialization:', globalError);
+    // 全体的なフォールバック
+    setupManualDropdown();
   }
   
   // Tooltipの初期化

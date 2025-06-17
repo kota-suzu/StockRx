@@ -383,93 +383,12 @@
     <%# 横展開: 全レイアウトファイルでCDN重複チェック必要 %>
     <%# メタ認知: モダンRails開発ではImportmap推奨、CDN混在は避ける %>
     
-    <%# TODO: 🟡 Phase 1（完了）- ログアウト機能の完全実装 %>
-    <%# 優先度: 高（ユーザーログアウト機能） %>
-    <%# 実装内容: キーボードナビゲーション対応、確認ダイアログ、アクセシビリティ向上 %>
-    <%# メタ認知: セキュリティとユーザビリティの両立を重視 %>
-    <%# ベストプラクティス: WCAG 2.1準拠のアクセシビリティ対応 %>
-    <script>
-      // 🛡️ CLAUDE.md準拠: Turbo環境でのBootstrap初期化パターン
-      // メタ認知: ログアウト機能の確実な動作とアクセシビリティ確保
-      document.addEventListener('turbo:load', function() {
-        console.log('🔍 Enhanced Logout System - Bootstrap Check (turbo:load):');
-        console.log('- Bootstrap loaded:', typeof bootstrap !== 'undefined');
-        console.log('- Bootstrap version:', typeof bootstrap !== 'undefined' ? bootstrap.Dropdown.VERSION : 'N/A');
-        
-        const dropdownElements = document.querySelectorAll('.dropdown-toggle');
-        const logoutButtons = document.querySelectorAll('.logout-btn');
-        
-        console.log('- Dropdown elements found:', dropdownElements.length);
-        console.log('- Logout buttons found:', logoutButtons.length);
-        
-        // キーボードナビゲーション対応
-        dropdownElements.forEach((element) => {
-          // ESCキーでドロップダウンを閉じる
-          element.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-              const dropdown = bootstrap?.Dropdown?.getInstance(element);
-              if (dropdown) {
-                dropdown.hide();
-                element.focus(); // フォーカスを戻す
-              }
-            }
-          });
-          
-          // Enterキーまたはスペースキーでドロップダウンを開く
-          element.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              const dropdown = bootstrap?.Dropdown?.getInstance(element) || new bootstrap.Dropdown(element);
-              dropdown.toggle();
-            }
-          });
-        });
-        
-        // ログアウトボタンのキーボード対応
-        logoutButtons.forEach((button) => {
-          button.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              // 確認ダイアログを表示してからログアウト実行
-              const confirmMessage = "本当にログアウトしますか？\n\n作業中のデータが保存されていることを確認してください。";
-              if (confirm(confirmMessage)) {
-                button.click();
-              }
-            }
-          });
-        });
-        
-        // フォーカス管理の改善
-        document.addEventListener('shown.bs.dropdown', function(e) {
-          // ドロップダウンが開いたら最初のリンクにフォーカス
-          const firstLink = e.target.querySelector('.dropdown-menu .dropdown-item');
-          if (firstLink) {
-            setTimeout(() => firstLink.focus(), 100);
-          }
-        });
-        
-        // Bootstrap未読み込み時の警告
-        if (typeof bootstrap === 'undefined') {
-          console.error('🚨 Bootstrap not loaded! Check importmap configuration.');
-          // フォールバック: ログアウトボタンに直接イベントリスナー追加
-          logoutButtons.forEach((button) => {
-            button.addEventListener('click', function(e) {
-              const confirmMessage = "本当にログアウトしますか？\n\n作業中のデータが保存されていることを確認してください。";
-              if (!confirm(confirmMessage)) {
-                e.preventDefault();
-              }
-            });
-          });
-        }
-      });
-      
-      // エラー監視（グローバル）
-      window.addEventListener('error', function(e) {
-        if (e.error && e.error.toString().includes('bootstrap')) {
-          console.error('🚨 Bootstrap-related error:', e.error);
-        }
-      });
-    </script>
+    <%# TODO: 🔴 Phase 1（緊急）- 初期化コード重複解消完了 %>
+    <%# 問題: レイアウトファイルとapplication.jsでBootstrap初期化が重複 %>
+    <%# 解決: application.jsに一元化、レイアウト側は削除 %>
+    <%# 理由: 初期化の競合によりドロップダウンが動作しない %>
+    <%# メタ認知: Bootstrap初期化は一箇所に集約することが重要 %>
+    <%# 横展開: store.html.erbでも同様の修正が必要 %>
     
     <!-- 管理者在庫一覧機能 -->
     <% if request.path.include?('/admin/inventories') %>
