@@ -143,7 +143,9 @@
                     <th scope="col">在庫状況</th>
                     <th scope="col">移動状況</th>
                     <th scope="col">ステータス</th>
-                    <th scope="col" class="text-center pe-4">操作</th>
+                    <th scope="col" class="text-center pe-4" style="min-width: 260px;">
+                      <i class="bi bi-gear me-1" aria-hidden="true"></i>操作
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -227,24 +229,60 @@
                           <span class="badge bg-secondary">停止中</span>
                         <% end %>
                       </td>
-                      <td class="text-center pe-4">
-                        <div class="btn-group" role="group" aria-label="店舗操作">
+                      <td class="text-center pe-4" style="min-width: 260px;">
+                        <div class="action-buttons-group d-flex justify-content-center gap-1" role="group" aria-label="店舗操作">
+                          <%# 詳細ボタン %>
                           <%= link_to admin_store_path(store), 
-                                     class: "btn btn-sm btn-outline-primary",
-                                     title: "詳細表示" do %>
+                                     class: "btn btn-primary btn-sm action-btn detail-btn",
+                                     title: "詳細表示",
+                                     data: { 
+                                       bs_toggle: "tooltip",
+                                       bs_placement: "top"
+                                     },
+                                     "aria-label": "#{store.name}の詳細を表示" do %>
                             <i class="bi bi-eye" aria-hidden="true"></i>
+                            <span class="btn-text d-none d-lg-inline ms-1">詳細</span>
                           <% end %>
+                          
+                          <%# ダッシュボードボタン %>
                           <%= link_to dashboard_admin_store_path(store),
-                                     class: "btn btn-sm btn-outline-info",
-                                     title: "ダッシュボード" do %>
+                                     class: "btn btn-info btn-sm action-btn dashboard-btn",
+                                     title: "ダッシュボード",
+                                     data: { 
+                                       bs_toggle: "tooltip",
+                                       bs_placement: "top"
+                                     },
+                                     "aria-label": "#{store.name}のダッシュボードを表示" do %>
                             <i class="bi bi-graph-up" aria-hidden="true"></i>
+                            <span class="btn-text d-none d-lg-inline ms-1">分析</span>
                           <% end %>
+                          
+                          <%# 編集ボタン（権限チェック） %>
                           <% if current_admin.can_manage_store?(store) %>
                             <%= link_to edit_admin_store_path(store),
-                                       class: "btn btn-sm btn-outline-warning",
-                                       title: "編集" do %>
+                                       class: "btn btn-warning btn-sm action-btn edit-btn",
+                                       title: "編集",
+                                       data: { 
+                                         bs_toggle: "tooltip",
+                                         bs_placement: "top"
+                                       },
+                                       "aria-label": "#{store.name}を編集" do %>
                               <i class="bi bi-pencil" aria-hidden="true"></i>
+                              <span class="btn-text d-none d-lg-inline ms-1">編集</span>
                             <% end %>
+                          <% end %>
+                          
+                          <%# 在庫一覧ボタン（管理者用詳細版） %>
+                          <%= link_to admin_store_inventories_path(store),
+                                     class: "btn btn-success btn-sm action-btn inventory-btn",
+                                     title: "在庫一覧",
+                                     data: { 
+                                       bs_toggle: "tooltip",
+                                       bs_placement: "top"
+                                     },
+                                     "aria-label": "#{store.name}の在庫一覧を表示" do %>
+                            <i class="bi bi-boxes" aria-hidden="true"></i>
+                            <span class="btn-text d-none d-lg-inline ms-1">在庫</span>
                           <% end %>
                         </div>
                       </td>
@@ -284,7 +322,7 @@
   </div>
 </div>
 
-<%# カスタムスタイル %>
+<%# カスタムスタイル（CLAUDE.md準拠：統一されたアクションボタン） %>
 <style>
   .icon-md {
     width: 48px;
@@ -334,4 +372,114 @@
   .bg-admin-primary-subtle {
     background-color: var(--admin-primary-subtle, rgba(13, 110, 253, 0.1)) !important;
   }
+
+  /* 統一されたアクションボタンスタイル（横展開対応） */
+  .action-buttons-group {
+    min-width: 260px;
+  }
+  
+  .action-btn {
+    min-width: 38px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease-in-out;
+    position: relative;
+  }
+  
+  /* デスクトップ表示：アイコン + テキスト */
+  @media (min-width: 992px) {
+    .action-btn {
+      min-width: 64px;
+      padding: 0.375rem 0.75rem;
+    }
+  }
+  
+  /* ダッシュボードボタン */
+  .dashboard-btn {
+    background-color: var(--bs-info);
+    border-color: var(--bs-info);
+    color: white;
+  }
+  
+  .dashboard-btn:hover, .dashboard-btn:focus {
+    background-color: #0dcaf0;
+    border-color: #0dcaf0;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(13, 202, 240, 0.3);
+  }
+  
+  /* 在庫ボタン */
+  .inventory-btn {
+    background-color: var(--bs-success);
+    border-color: var(--bs-success);
+    color: white;
+  }
+  
+  .inventory-btn:hover, .inventory-btn:focus {
+    background-color: #198754;
+    border-color: #157347;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(25, 135, 84, 0.3);
+  }
+  
+  /* 基本ボタンスタイル（inventoriesから継承） */
+  .detail-btn {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
+  }
+  
+  .detail-btn:hover, .detail-btn:focus {
+    background-color: var(--bs-blue);
+    border-color: var(--bs-blue);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+  }
+  
+  .edit-btn {
+    background-color: var(--bs-warning);
+    border-color: var(--bs-warning);
+    color: var(--bs-dark);
+  }
+  
+  .edit-btn:hover, .edit-btn:focus {
+    background-color: #f0ad4e;
+    border-color: #eea236;
+    color: var(--bs-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+  }
+  
+  /* アクセシビリティ：フォーカス表示の強化 */
+  .action-btn:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+  }
+  
+  /* モバイル対応：タッチデバイスでのタップ領域確保 */
+  @media (max-width: 991.98px) {
+    .action-btn {
+      min-width: 44px;
+      height: 44px;
+      margin: 0 1px;
+    }
+    
+    .btn-text {
+      display: none !important;
+    }
+  }
+  
+  /* TODO: Phase 3 - 店舗管理特有のアニメーション
+   * - 在庫状況変化時のリアルタイム更新表示
+   * - 移動状況アラートのパルスアニメーション
+   * - ステータス変更時のスムーズトランジション
+   */
 </style>

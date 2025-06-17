@@ -141,7 +141,9 @@
                   <th>対象</th>
                   <th>メッセージ</th>
                   <th>IPアドレス</th>
-                  <th>詳細</th>
+                  <th class="text-center" style="min-width: 120px;">
+                    <i class="bi bi-gear me-1" aria-hidden="true"></i>操作
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -172,11 +174,20 @@
                       </td>
                       <td><%= truncate(log.message, length: 50) %></td>
                       <td><small><%= log.ip_address %></small></td>
-                      <td>
-                        <%= link_to admin_audit_log_path(log), 
-                                    class: "btn btn-sm btn-outline-primary" do %>
-                          <i class="bi bi-eye"></i>
-                        <% end %>
+                      <td class="text-center" style="min-width: 120px;">
+                        <div class="action-buttons-group d-flex justify-content-center">
+                          <%= link_to admin_audit_log_path(log), 
+                                      class: "btn btn-primary btn-sm action-btn detail-btn",
+                                      title: "詳細表示",
+                                      data: { 
+                                        bs_toggle: "tooltip",
+                                        bs_placement: "top"
+                                      },
+                                      "aria-label": "監査ログ詳細を表示" do %>
+                            <i class="bi bi-eye" aria-hidden="true"></i>
+                            <span class="btn-text d-none d-lg-inline ms-1">詳細</span>
+                          <% end %>
+                        </div>
                       </td>
                     </tr>
                   <% end %>
@@ -201,6 +212,75 @@
     </div>
   </div>
 </div>
+
+<%# 統一されたアクションボタンスタイル（CLAUDE.md準拠） %>
+<style>
+  /* アクションボタンの基本スタイル（inventoriesから継承） */
+  .action-buttons-group {
+    min-width: 120px;
+  }
+  
+  .action-btn {
+    min-width: 38px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease-in-out;
+    position: relative;
+  }
+  
+  /* デスクトップ表示：アイコン + テキスト */
+  @media (min-width: 992px) {
+    .action-btn {
+      min-width: 70px;
+      padding: 0.375rem 0.75rem;
+    }
+  }
+  
+  /* 詳細ボタン */
+  .detail-btn {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
+  }
+  
+  .detail-btn:hover, .detail-btn:focus {
+    background-color: var(--bs-blue);
+    border-color: var(--bs-blue);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+  }
+  
+  /* アクセシビリティ：フォーカス表示の強化 */
+  .action-btn:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+  }
+  
+  /* モバイル対応：タッチデバイスでのタップ領域確保 */
+  @media (max-width: 991.98px) {
+    .action-btn {
+      min-width: 44px;
+      height: 44px;
+      margin: 0 1px;
+    }
+    
+    .btn-text {
+      display: none !important;
+    }
+  }
+  
+  /* TODO: Phase 3 - 監査ログ特有の機能
+   * - セキュリティレベル別の色分け表示
+   * - 異常検知時のアラート表示
+   * - エクスポート機能のプログレス表示
+   */
+</style>
 
 <%# TODO: 🔴 Phase 6（緊急）- リアルタイム監査ログ監視 %>
 <%# 優先度: 高（セキュリティ監視） %>
