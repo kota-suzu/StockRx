@@ -49,35 +49,233 @@ end
 # Current.userを設定（ログ記録のため）
 Current.user = Admin.first
 
-# カテゴリごとの商品データ
+# カテゴリごとの商品データ - 医薬品200件を含む充実したデータセット
 categories = {
   "医薬品" => [
+    # 解熱鎮痛薬
     { name: "アスピリン錠 100mg", price: 1200, quantity: 500, status: "active" },
-    { name: "パラセタモール錠 500mg", price: 800, quantity: 0, status: "active" }, # 在庫切れ
-    { name: "イブプロフェン錠 200mg", price: 1500, quantity: 8, status: "active" }, # 低在庫
+    { name: "アスピリン腸溶錠 100mg", price: 1300, quantity: 300, status: "active" },
+    { name: "パラセタモール錠 500mg", price: 800, quantity: 0, status: "active" },
+    { name: "パラセタモール坐剤 200mg", price: 600, quantity: 150, status: "active" },
+    { name: "イブプロフェン錠 200mg", price: 1500, quantity: 8, status: "active" },
+    { name: "イブプロフェン顆粒 20%", price: 1800, quantity: 75, status: "active" },
+    { name: "ロキソプロフェン錠 60mg", price: 1100, quantity: 400, status: "active" },
+    { name: "ナプロキセン錠 100mg", price: 1400, quantity: 200, status: "active" },
+    { name: "ジクロフェナク錠 25mg", price: 1200, quantity: 180, status: "active" },
+    { name: "インドメタシンカプセル 25mg", price: 1600, quantity: 90, status: "active" },
+    
+    # 抗生物質
     { name: "アモキシシリンカプセル 250mg", price: 2500, quantity: 200, status: "active" },
-    { name: "セフジニルカプセル 100mg", price: 3200, quantity: 150, status: "archived" } # アーカイブ済み
+    { name: "アモキシシリン細粒 10%", price: 2800, quantity: 120, status: "active" },
+    { name: "クラリスロマイシン錠 200mg", price: 3200, quantity: 150, status: "active" },
+    { name: "アジスロマイシン錠 250mg", price: 3800, quantity: 80, status: "active" },
+    { name: "セフジニルカプセル 100mg", price: 3200, quantity: 150, status: "archived" },
+    { name: "セフカペンピボキシル錠 100mg", price: 3600, quantity: 100, status: "active" },
+    { name: "レボフロキサシン錠 250mg", price: 4200, quantity: 90, status: "active" },
+    { name: "シプロフロキサシン錠 200mg", price: 4000, quantity: 70, status: "active" },
+    { name: "ドキシサイクリン錠 100mg", price: 2800, quantity: 110, status: "active" },
+    { name: "テトラサイクリン錠 250mg", price: 2600, quantity: 85, status: "active" },
+    
+    # 消化器系薬
+    { name: "オメプラゾール錠 20mg", price: 2200, quantity: 300, status: "active" },
+    { name: "ランソプラゾール錠 15mg", price: 2000, quantity: 280, status: "active" },
+    { name: "エソメプラゾール錠 20mg", price: 2400, quantity: 200, status: "active" },
+    { name: "ファモチジン錠 20mg", price: 1600, quantity: 350, status: "active" },
+    { name: "ドンペリドン錠 10mg", price: 1400, quantity: 250, status: "active" },
+    { name: "メトクロプラミド錠 5mg", price: 1200, quantity: 180, status: "active" },
+    { name: "ロペラミド錠 1mg", price: 1000, quantity: 200, status: "active" },
+    { name: "ビサコジル錠 5mg", price: 800, quantity: 300, status: "active" },
+    { name: "センノシド錠 12mg", price: 600, quantity: 400, status: "active" },
+    { name: "乳酸菌製剤カプセル", price: 1800, quantity: 150, status: "active" },
+    
+    # 循環器系薬
+    { name: "アムロジピン錠 5mg", price: 1800, quantity: 400, status: "active" },
+    { name: "ニフェジピン徐放錠 20mg", price: 2000, quantity: 300, status: "active" },
+    { name: "リシノプリル錠 10mg", price: 2200, quantity: 250, status: "active" },
+    { name: "エナラプリル錠 5mg", price: 2000, quantity: 280, status: "active" },
+    { name: "ロサルタン錠 50mg", price: 2400, quantity: 200, status: "active" },
+    { name: "バルサルタン錠 80mg", price: 2600, quantity: 180, status: "active" },
+    { name: "アテノロール錠 50mg", price: 1600, quantity: 220, status: "active" },
+    { name: "メトプロロール錠 50mg", price: 1800, quantity: 200, status: "active" },
+    { name: "フロセミド錠 40mg", price: 1200, quantity: 300, status: "active" },
+    { name: "スピロノラクトン錠 25mg", price: 1400, quantity: 180, status: "active" },
+    
+    # 呼吸器系薬
+    { name: "サルブタモール錠 2mg", price: 1600, quantity: 200, status: "active" },
+    { name: "テオフィリン錠 100mg", price: 1400, quantity: 250, status: "active" },
+    { name: "プレドニゾロン錠 5mg", price: 2000, quantity: 300, status: "active" },
+    { name: "デキサメタゾン錠 0.5mg", price: 1800, quantity: 150, status: "active" },
+    { name: "モンテルカスト錠 10mg", price: 3200, quantity: 100, status: "active" },
+    { name: "カルボシステイン錠 250mg", price: 1200, quantity: 400, status: "active" },
+    { name: "アンブロキソール錠 15mg", price: 1000, quantity: 350, status: "active" },
+    { name: "コデインリン酸塩錠 20mg", price: 1800, quantity: 120, status: "active" },
+    { name: "デキストロメトルファン錠 15mg", price: 1200, quantity: 200, status: "active" },
+    { name: "グアイフェネシン錠 200mg", price: 1000, quantity: 180, status: "active" },
+    
+    # 中枢神経系薬
+    { name: "ロラゼパム錠 0.5mg", price: 2200, quantity: 100, status: "active" },
+    { name: "ジアゼパム錠 2mg", price: 2000, quantity: 120, status: "active" },
+    { name: "アルプラゾラム錠 0.4mg", price: 2400, quantity: 80, status: "active" },
+    { name: "ゾルピデム錠 5mg", price: 2600, quantity: 90, status: "active" },
+    { name: "トリアゾラム錠 0.25mg", price: 2800, quantity: 70, status: "active" },
+    { name: "フルニトラゼパム錠 1mg", price: 3000, quantity: 60, status: "active" },
+    { name: "カルバマゼピン錠 200mg", price: 2200, quantity: 150, status: "active" },
+    { name: "フェニトイン錠 100mg", price: 2000, quantity: 130, status: "active" },
+    { name: "バルプロ酸ナトリウム錠 200mg", price: 2400, quantity: 110, status: "active" },
+    { name: "レベチラセタム錠 250mg", price: 3500, quantity: 80, status: "active" },
+    
+    # 糖尿病治療薬
+    { name: "メトホルミン錠 250mg", price: 1800, quantity: 300, status: "active" },
+    { name: "グリクラジド錠 40mg", price: 2000, quantity: 200, status: "active" },
+    { name: "グリベンクラミド錠 1.25mg", price: 1600, quantity: 250, status: "active" },
+    { name: "インスリン グラルギン 300単位", price: 8000, quantity: 50, status: "active" },
+    { name: "インスリン アスパルト 300単位", price: 7500, quantity: 60, status: "active" },
+    { name: "シタグリプチン錠 50mg", price: 4200, quantity: 80, status: "active" },
+    { name: "エンパグリフロジン錠 10mg", price: 4800, quantity: 70, status: "active" },
+    { name: "リナグリプチン錠 5mg", price: 4000, quantity: 90, status: "active" },
+    { name: "アカルボース錠 100mg", price: 2800, quantity: 120, status: "active" },
+    { name: "ミグリトール錠 50mg", price: 3000, quantity: 100, status: "active" },
+    
+    # 精神科薬
+    { name: "セルトラリン錠 25mg", price: 3200, quantity: 100, status: "active" },
+    { name: "パロキセチン錠 10mg", price: 3000, quantity: 120, status: "active" },
+    { name: "フルオキセチン錠 10mg", price: 3400, quantity: 90, status: "active" },
+    { name: "エスシタロプラム錠 10mg", price: 3600, quantity: 80, status: "active" },
+    { name: "ミルタザピン錠 15mg", price: 3800, quantity: 70, status: "active" },
+    { name: "アミトリプチリン錠 10mg", price: 2400, quantity: 150, status: "active" },
+    { name: "ハロペリドール錠 1mg", price: 2200, quantity: 100, status: "active" },
+    { name: "リスペリドン錠 1mg", price: 3200, quantity: 90, status: "active" },
+    { name: "オランザピン錠 2.5mg", price: 4000, quantity: 60, status: "active" },
+    { name: "クエチアピン錠 25mg", price: 3600, quantity: 80, status: "active" },
+    
+    # 皮膚科薬
+    { name: "ベタメタゾン軟膏 0.05%", price: 1800, quantity: 200, status: "active" },
+    { name: "ヒドロコルチゾン軟膏 1%", price: 1200, quantity: 300, status: "active" },
+    { name: "フルオシノロンアセトニド軟膏", price: 2000, quantity: 150, status: "active" },
+    { name: "クロトリマゾール軟膏 1%", price: 1600, quantity: 180, status: "active" },
+    { name: "ケトコナゾール軟膏 2%", price: 2200, quantity: 120, status: "active" },
+    { name: "ミコナゾール軟膏 1%", price: 1800, quantity: 160, status: "active" },
+    { name: "アクリノール液 0.1%", price: 800, quantity: 400, status: "active" },
+    { name: "ポビドンヨード液 10%", price: 1000, quantity: 350, status: "active" },
+    { name: "白色ワセリン", price: 600, quantity: 500, status: "active" },
+    { name: "尿素軟膏 20%", price: 1400, quantity: 200, status: "active" },
+    
+    # 眼科薬
+    { name: "ラタノプロスト点眼液 0.005%", price: 4200, quantity: 80, status: "active" },
+    { name: "ブリモニジン点眼液 0.1%", price: 3800, quantity: 90, status: "active" },
+    { name: "チモロール点眼液 0.5%", price: 3200, quantity: 120, status: "active" },
+    { name: "フルオロメトロン点眼液 0.1%", price: 2800, quantity: 150, status: "active" },
+    { name: "ベタメタゾン点眼液 0.1%", price: 3000, quantity: 130, status: "active" },
+    { name: "クロラムフェニコール点眼液", price: 2200, quantity: 180, status: "active" },
+    { name: "人工涙液点眼", price: 800, quantity: 400, status: "active" },
+    { name: "ヒアルロン酸点眼液 0.1%", price: 1800, quantity: 250, status: "active" },
+    { name: "アトロピン点眼液 1%", price: 2000, quantity: 100, status: "active" },
+    { name: "トロピカミド点眼液 1%", price: 1600, quantity: 120, status: "active" },
+    
+    # 耳鼻科薬
+    { name: "オキシメタゾリン点鼻液", price: 1200, quantity: 200, status: "active" },
+    { name: "キシロメタゾリン点鼻液", price: 1000, quantity: 250, status: "active" },
+    { name: "クロルフェニラミン錠 4mg", price: 800, quantity: 400, status: "active" },
+    { name: "ロラタジン錠 10mg", price: 2000, quantity: 200, status: "active" },
+    { name: "セチリジン錠 10mg", price: 1800, quantity: 220, status: "active" },
+    { name: "フェキソフェナジン錠 60mg", price: 2200, quantity: 180, status: "active" },
+    { name: "デスロラタジン錠 5mg", price: 2400, quantity: 150, status: "active" },
+    { name: "モンテルカスト顆粒 4mg", price: 3000, quantity: 100, status: "active" },
+    { name: "ベクロメタゾン点鼻液", price: 2800, quantity: 120, status: "active" },
+    { name: "フルチカゾン点鼻液", price: 3200, quantity: 100, status: "active" },
+    
+    # 産婦人科薬
+    { name: "エチニルエストラジオール錠", price: 2800, quantity: 100, status: "active" },
+    { name: "レボノルゲストレル錠", price: 3200, quantity: 80, status: "active" },
+    { name: "プロゲステロン膣座薬", price: 4000, quantity: 60, status: "active" },
+    { name: "クロミフェン錠 50mg", price: 3600, quantity: 70, status: "active" },
+    { name: "メトロニダゾール膣錠", price: 2400, quantity: 120, status: "active" },
+    { name: "ミコナゾール膣錠", price: 2000, quantity: 150, status: "active" },
+    { name: "葉酸錠 5mg", price: 1200, quantity: 300, status: "active" },
+    { name: "鉄剤錠 100mg", price: 1400, quantity: 250, status: "active" },
+    { name: "ドンペリドン坐剤 30mg", price: 1600, quantity: 180, status: "active" },
+    { name: "オキシトシン注射液", price: 5000, quantity: 40, status: "active" },
+    
+    # 泌尿器科薬
+    { name: "タムスロシン錠 0.2mg", price: 2800, quantity: 150, status: "active" },
+    { name: "デュタステリド錠 0.5mg", price: 4200, quantity: 80, status: "active" },
+    { name: "フィナステリド錠 1mg", price: 3800, quantity: 90, status: "active" },
+    { name: "シルデナフィル錠 50mg", price: 5000, quantity: 60, status: "active" },
+    { name: "トルテロジン錠 2mg", price: 3200, quantity: 120, status: "active" },
+    { name: "ミラベグロン錠 50mg", price: 4000, quantity: 70, status: "active" },
+    { name: "アルファカルシドール錠", price: 2400, quantity: 180, status: "active" },
+    { name: "炭酸カルシウム錠 500mg", price: 1200, quantity: 300, status: "active" },
+    { name: "アロプリノール錠 100mg", price: 1600, quantity: 200, status: "active" },
+    { name: "フェブキソスタット錠 10mg", price: 3000, quantity: 100, status: "active" },
+    
+    # 小児科薬
+    { name: "アセトアミノフェン細粒 20%", price: 1000, quantity: 300, status: "active" },
+    { name: "イブプロフェン細粒 20%", price: 1200, quantity: 250, status: "active" },
+    { name: "アモキシシリン細粒 10%", price: 2000, quantity: 200, status: "active" },
+    { name: "クラリスロマイシン細粒 10%", price: 2400, quantity: 150, status: "active" },
+    { name: "セフジニル細粒 10%", price: 2600, quantity: 130, status: "active" },
+    { name: "プレドニゾロン細粒 1%", price: 1800, quantity: 180, status: "active" },
+    { name: "整腸剤細粒", price: 1400, quantity: 250, status: "active" },
+    { name: "ビタミンB1シロップ", price: 1600, quantity: 200, status: "active" },
+    { name: "総合感冒薬シロップ", price: 1200, quantity: 300, status: "active" },
+    { name: "去痰薬シロップ", price: 1000, quantity: 350, status: "active" },
+    
+    # 整形外科薬
+    { name: "セレコキシブ錠 100mg", price: 3200, quantity: 120, status: "active" },
+    { name: "メロキシカム錠 10mg", price: 2800, quantity: 150, status: "active" },
+    { name: "エトドラク錠 200mg", price: 2400, quantity: 180, status: "active" },
+    { name: "ジクロフェナクナトリウム錠", price: 2000, quantity: 200, status: "active" },
+    { name: "インドメタシン坐剤 25mg", price: 1800, quantity: 150, status: "active" },
+    { name: "ケトプロフェンテープ 20mg", price: 2200, quantity: 180, status: "active" },
+    { name: "フェルビナクテープ 35mg", price: 2000, quantity: 200, status: "active" },
+    { name: "インドメタシンクリーム 1%", price: 1600, quantity: 220, status: "active" },
+    { name: "メントール配合外用剤", price: 1200, quantity: 300, status: "active" },
+    { name: "温湿布", price: 800, quantity: 400, status: "active" },
+    
+    # 外科薬
+    { name: "ポビドンヨード軟膏 10%", price: 1800, quantity: 200, status: "active" },
+    { name: "ゲンタマイシン軟膏 0.1%", price: 2200, quantity: 150, status: "active" },
+    { name: "フラジオマイシン軟膏", price: 2000, quantity: 180, status: "active" },
+    { name: "ベタジン軟膏", price: 1600, quantity: 250, status: "active" },
+    { name: "メチルプレドニゾロン軟膏", price: 2400, quantity: 120, status: "active" },
+    { name: "リドカインゼリー 2%", price: 1400, quantity: 200, status: "active" },
+    { name: "止血剤パウダー", price: 3000, quantity: 80, status: "active" },
+    { name: "創傷治癒促進剤", price: 2800, quantity: 100, status: "active" },
+    { name: "抗真菌クリーム", price: 2200, quantity: 150, status: "active" },
+    { name: "抗菌石鹸液", price: 1200, quantity: 300, status: "active" },
+    
+    # 漢方薬
+    { name: "葛根湯エキス顆粒", price: 2000, quantity: 200, status: "active" },
+    { name: "小青竜湯エキス顆粒", price: 2200, quantity: 180, status: "active" },
+    { name: "桂枝茯苓丸エキス顆粒", price: 2400, quantity: 150, status: "active" },
+    { name: "当帰芍薬散エキス顆粒", price: 2600, quantity: 130, status: "active" },
+    { name: "加味逍遙散エキス顆粒", price: 2800, quantity: 120, status: "active" },
+    { name: "六君子湯エキス顆粒", price: 2400, quantity: 140, status: "active" },
+    { name: "補中益気湯エキス顆粒", price: 2600, quantity: 130, status: "active" },
+    { name: "半夏厚朴湯エキス顆粒", price: 2200, quantity: 160, status: "active" },
+    { name: "大建中湯エキス顆粒", price: 2400, quantity: 140, status: "active" },
+    { name: "真武湯エキス顆粒", price: 2000, quantity: 170, status: "active" }
   ],
   "医療機器" => [
     { name: "血圧計 デジタル式", price: 12000, quantity: 25, status: "active" },
-    { name: "体温計 非接触式", price: 8500, quantity: 0, status: "active" }, # 在庫切れ
-    { name: "パルスオキシメーター", price: 15000, quantity: 5, status: "active" }, # 低在庫
+    { name: "体温計 非接触式", price: 8500, quantity: 0, status: "active" },
+    { name: "パルスオキシメーター", price: 15000, quantity: 5, status: "active" },
     { name: "聴診器 カーディオロジー", price: 25000, quantity: 12, status: "active" },
-    { name: "血糖値測定器", price: 18000, quantity: 0, status: "archived" } # アーカイブ済み
+    { name: "血糖値測定器", price: 18000, quantity: 0, status: "archived" }
   ],
   "消耗品" => [
     { name: "サージカルマスク 50枚入", price: 500, quantity: 1000, status: "active" },
     { name: "ニトリル手袋 Mサイズ 100枚", price: 1200, quantity: 2000, status: "active" },
-    { name: "消毒用アルコール 500ml", price: 800, quantity: 3, status: "active" }, # 低在庫
+    { name: "消毒用アルコール 500ml", price: 800, quantity: 3, status: "active" },
     { name: "ガーゼ 滅菌済み 10cm×10cm", price: 300, quantity: 5000, status: "active" },
-    { name: "注射針 23G 100本入", price: 2000, quantity: 0, status: "active" } # 在庫切れ
+    { name: "注射針 23G 100本入", price: 2000, quantity: 0, status: "active" }
   ],
   "サプリメント" => [
     { name: "ビタミンC 1000mg 60錠", price: 2500, quantity: 100, status: "active" },
     { name: "マルチビタミン 90錠", price: 3500, quantity: 80, status: "active" },
-    { name: "オメガ3 フィッシュオイル", price: 4200, quantity: 7, status: "active" }, # 低在庫
-    { name: "プロバイオティクス 30カプセル", price: 3800, quantity: 0, status: "active" }, # 在庫切れ
-    { name: "ビタミンD3 5000IU", price: 2800, quantity: 120, status: "archived" } # アーカイブ済み
+    { name: "オメガ3 フィッシュオイル", price: 4200, quantity: 7, status: "active" },
+    { name: "プロバイオティクス 30カプセル", price: 3800, quantity: 0, status: "active" },
+    { name: "ビタミンD3 5000IU", price: 2800, quantity: 120, status: "archived" }
   ]
 }
 

@@ -51,6 +51,30 @@ FactoryBot.define do
       end
     end
 
+    # Phase 3: パフォーマンステスト用 - 在庫・管理者付きの店舗
+    trait :with_inventories_and_admins do
+      transient do
+        inventories_count { 5 }
+        admins_count { 2 }
+      end
+
+      after(:create) do |store, evaluator|
+        # 在庫データ作成
+        inventories = create_list(:inventory, evaluator.inventories_count)
+        inventories.each do |inventory|
+          create(:store_inventory, store: store, inventory: inventory,
+                 quantity: rand(10..100), safety_stock_level: rand(5..20))
+        end
+
+        # 管理者作成
+        create_list(:admin, evaluator.admins_count, :with_specific_store, 
+                   target_store: store)
+
+        # Counter Cacheの更新（必要に応じて）
+        store.reload
+      end
+    end
+
     # 東京地域の店舗
     trait :tokyo do
       region { '東京都' }

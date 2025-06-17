@@ -135,7 +135,19 @@ module AdminControllers
       rescue ActiveRecord::InvalidForeignKey, ActiveRecord::DeleteRestrictionError => e
         # 依存関係による削除制限エラー（監査ログなど）
         Rails.logger.warn "Inventory deletion restricted: #{e.message}, inventory_id: #{@inventory.id}"
-        handle_destroy_error("この在庫には関連する履歴データが存在するため、削除できません。")
+        
+        # CLAUDE.md準拠: ユーザーフレンドリーなエラーメッセージ（日本語化）
+        # メタ認知: 技術的なエラーメッセージを業務理解しやすい日本語に変換
+        error_message = case e.message
+        when /inventory.logs.*exist/i, /dependent.*inventory.*logs.*exist/i
+          "この在庫には在庫変動履歴が記録されているため削除できません。\n監査上、履歴データの保護が必要です。\n\n代替案：在庫を「アーカイブ」状態に変更してください。"
+        when /Cannot delete.*dependent.*exist/i
+          "この在庫には関連する記録が存在するため削除できません。\n関連データ：在庫履歴、移動履歴、監査ログなど"
+        else
+          "この在庫には関連する履歴データが存在するため、削除できません。"
+        end
+        
+        handle_destroy_error(error_message)
       rescue => e
         # その他の予期しないエラー
         Rails.logger.error "Inventory deletion failed: #{e.message}, inventory_id: #{@inventory.id}"
