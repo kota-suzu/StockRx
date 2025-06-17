@@ -366,6 +366,52 @@
     <%# 横展開: 全レイアウトファイルでCDN重複チェック必要 %>
     <%# メタ認知: モダンRails開発ではImportmap推奨、CDN混在は避ける %>
     
+    <%# TODO: 🟡 Phase 1（緊急）- ドロップダウンメニュー動作デバッグ %>
+    <%# 優先度: 高（ユーザーログアウト機能） %>
+    <%# 実装内容: Bootstrap初期化状態とエラーチェック %>
+    <%# メタ認知: 問題解決のための一時的デバッグコード %>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('🔍 Bootstrap Dropdown Debug Check:');
+        console.log('- Bootstrap loaded:', typeof bootstrap !== 'undefined');
+        console.log('- Bootstrap.Dropdown available:', typeof bootstrap?.Dropdown !== 'undefined');
+        
+        const dropdownElements = document.querySelectorAll('.dropdown-toggle');
+        console.log('- Dropdown elements found:', dropdownElements.length);
+        
+        dropdownElements.forEach((element, index) => {
+          console.log(`  [${index}] Element:`, element.id, element.getAttribute('data-bs-toggle'));
+        });
+        
+        // エラーキャッチ
+        window.addEventListener('error', function(e) {
+          console.error('🚨 JavaScript Error:', e.error);
+        });
+      });
+      
+      document.addEventListener('turbo:load', function() {
+        console.log('🔄 Turbo:load - Re-checking Bootstrap components');
+        const userDropdown = document.getElementById('userDropdown');
+        if (userDropdown) {
+          console.log('- User dropdown element exists:', !!userDropdown);
+          console.log('- Click event listener test...');
+          
+          // 手動でドロップダウンをテスト
+          userDropdown.addEventListener('click', function(e) {
+            console.log('👆 User dropdown clicked!');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+              try {
+                const dropdown = new bootstrap.Dropdown(userDropdown);
+                console.log('✅ Bootstrap Dropdown manually initialized');
+              } catch (error) {
+                console.error('❌ Bootstrap Dropdown initialization failed:', error);
+              }
+            }
+          });
+        }
+      });
+    </script>
+    
     <!-- 管理者在庫一覧機能 -->
     <% if request.path.include?('/admin/inventories') %>
       <%= javascript_include_tag 'admin_inventories', defer: true %>

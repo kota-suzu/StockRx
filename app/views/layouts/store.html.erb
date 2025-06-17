@@ -216,10 +216,69 @@
       </div>
     </footer>
 
-    <%# TODO: 🔴 Phase 3（緊急）- JavaScript読み込み方法統一完了 %>
-    <%# 問題: javascript_include_tagとimportmap混在 %>
-    <%# 解決: javascript_importmap_tagsに統一 %>
-    <%# 横展開: 全レイアウトファイルで同様の修正実施 %>
-    <%# メタ認知: Rails 7+ではImportmap推奨、一貫性確保重要 %>
+    <%# 横展開確認: 全てのレイアウトファイルで一貫性確保完了 %>
+    <%# ベストプラクティス: Turbo対応のBootstrap初期化実装 %>
+    <%# 将来計画: Web Components移行検討（Bootstrap依存度削減） %>
+    
+    <%# TODO: 🟡 Phase 1（緊急）- ドロップダウンメニュー動作デバッグ（横展開） %>
+    <%# 優先度: 高（ユーザーログアウト機能） %>
+    <%# 実装内容: Bootstrap初期化状態とエラーチェック %>
+    <%# 横展開: admin.html.erbと同様のデバッグ機能実装 %>
+    <%# メタ認知: 店舗ユーザー側でも同じ問題が発生する可能性を考慮 %>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('🔍 Store Layout - Bootstrap Dropdown Debug Check:');
+        console.log('- Bootstrap loaded:', typeof bootstrap !== 'undefined');
+        console.log('- Bootstrap.Dropdown available:', typeof bootstrap?.Dropdown !== 'undefined');
+        
+        const dropdownElements = document.querySelectorAll('.dropdown-toggle');
+        console.log('- Dropdown elements found:', dropdownElements.length);
+        
+        dropdownElements.forEach((element, index) => {
+          console.log(`  [${index}] Element:`, element.id, element.getAttribute('data-bs-toggle'));
+        });
+        
+        // エラーキャッチ
+        window.addEventListener('error', function(e) {
+          console.error('🚨 Store Layout JavaScript Error:', e.error);
+        });
+      });
+      
+      document.addEventListener('turbo:load', function() {
+        console.log('🔄 Store Layout - Turbo:load - Re-checking Bootstrap components');
+        const userDropdown = document.getElementById('userDropdown');
+        if (userDropdown) {
+          console.log('- Store user dropdown element exists:', !!userDropdown);
+          console.log('- Click event listener test...');
+          
+          // 手動でドロップダウンをテスト
+          userDropdown.addEventListener('click', function(e) {
+            console.log('👆 Store user dropdown clicked!');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
+              try {
+                const dropdown = new bootstrap.Dropdown(userDropdown);
+                console.log('✅ Store Bootstrap Dropdown manually initialized');
+              } catch (error) {
+                console.error('❌ Store Bootstrap Dropdown initialization failed:', error);
+              }
+            }
+          });
+        }
+      });
+    </script>
+
+    <%# Flash message auto-hide script %>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // フラッシュメッセージが存在する場合は5秒後に自動的に消す
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+          setTimeout(function() {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+          }, 5000);
+        });
+      });
+    </script>
   </body>
 </html>
