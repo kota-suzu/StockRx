@@ -16,7 +16,7 @@
             ビジネスの成長をサポートします。
           </p>
           <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-start">
-            <%= link_to inventories_path, class: "btn btn-light btn-lg" do %>
+            <%= link_to admin_inventories_path, class: "btn btn-light btn-lg" do %>
               <i class="fas fa-search me-2"></i>在庫を確認する
             <% end %>
             <%= link_to store_selection_path, class: "btn btn-outline-light btn-lg" do %>
@@ -224,7 +224,7 @@
       </div>
       <div class="col-lg-4 text-center text-lg-end mt-3 mt-lg-0">
         <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-end">
-          <%= link_to inventories_path, class: "btn btn-light btn-lg" do %>
+          <%= link_to admin_inventories_path, class: "btn btn-light btn-lg" do %>
             <i class="fas fa-eye me-2"></i>在庫を見る
           <% end %>
           <%= link_to store_selection_path, class: "btn btn-outline-light btn-lg" do %>

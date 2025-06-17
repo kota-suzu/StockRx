@@ -242,6 +242,7 @@
     </div>
     
     <div class="col-sm-6 col-lg-3 mb-3">
+      <%# TODO: 🟡 Phase 3 - inventory_logsパスを/admin/inventory_logsに移行予定 %>
       <%= link_to inventory_logs_path, class: "dashboard-card text-decoration-none h-100 border-0 shadow-sm" do %>
         <div class="card-body text-center p-4 h-100 d-flex flex-column justify-content-center">
           <div class="icon-lg mb-3 text-success"><i class="bi bi-journal-text"></i></div>
@@ -276,6 +277,7 @@
           <h3 class="mb-0 fw-bold">
             <i class="bi bi-activity me-2"></i>最近のアクティビティ
           </h3>
+          <%# TODO: Phase 3 - inventory_logsパスを/admin/inventory_logsに移行予定 %>
           <%= link_to inventory_logs_path, class: "btn btn-outline-light btn-sm hover-lift", 
                       data: { bs_toggle: "tooltip", bs_placement: "top", bs_title: "すべての活動履歴を表示" } do %>
             <i class="bi bi-arrow-right me-1"></i>すべて見る
@@ -523,6 +525,7 @@
                 <i class="bi bi-box-seam me-2"></i>在庫管理
               <% end %>
               
+              <%# TODO: Phase 3 - inventory_logsパスを/admin/inventory_logsに移行予定 %>
               <%= link_to inventory_logs_path, 
                           class: "btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center btn-hover-shadow",
                           data: { bs_toggle: "tooltip", bs_placement: "top", bs_title: "システムログを確認" } do %>
