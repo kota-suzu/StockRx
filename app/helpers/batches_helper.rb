@@ -8,9 +8,9 @@ module BatchesHelper
   # @return [String] CSSクラス
   def batch_row_class(batch)
     if batch.expired?
-      "bg-red-50"
+      "table-danger"
     elsif batch.expiring_soon?
-      "bg-yellow-50"
+      "table-warning"
     else
       ""
     end
