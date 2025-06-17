@@ -105,16 +105,14 @@ module StoreControllers
                                .compact
                                .sort
 
-      # TODO: 🔴 Phase 1（緊急）- manufacturerカラム追加
-      # 優先度: 最高（現在エラーの原因）
-      # 問題: manufacturerカラムがinventoriesテーブルに存在しない
-      # 実装内容:
-      #   - マイグレーション: add_column :inventories, :manufacturer, :string
-      #   - seeds.rb更新: メーカー情報の実際の保存
-      #   - バックフィル: 既存データへのメーカー情報推定・割り当て
-      # 横展開: AdminControllers::StoreInventoriesController等でも同様修正必要
-      # 暫定対応: manufacturerフィルターを無効化
-      @manufacturers = []  # 空配列で暫定対応
+      # ✅ Phase 1（完了）- manufacturerカラム追加完了
+      # マイグレーション実行済み: AddMissingColumnsToInventories
+      # カラム追加: sku, manufacturer, unit
+      @manufacturers = current_store.inventories
+                                   .distinct
+                                   .pluck(:manufacturer)
+                                   .compact
+                                   .sort
 
       @stock_levels = [
         [ "在庫切れ", "out_of_stock" ],
@@ -254,11 +252,10 @@ module StoreControllers
         end
       end
 
-      # メーカーフィルター（暫定無効化）
-      # TODO: 🔴 Phase 1（緊急）- manufacturerカラム追加後に有効化
-      # if search_params[:manufacturer_eq].present?
-      #   scope = scope.where("inventories.manufacturer = ?", search_params[:manufacturer_eq])
-      # end
+      # メーカーフィルター（✅ 復活）
+      if search_params[:manufacturer_eq].present?
+        scope = scope.where("inventories.manufacturer = ?", search_params[:manufacturer_eq])
+      end
 
       scope
     end

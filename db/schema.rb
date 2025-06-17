@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_17_230854) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_17_231228) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -140,12 +140,25 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_17_230854) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.datetime "shipped_at", comment: "出荷日時"
+    t.string "requested_by_type"
+    t.string "approved_by_type"
+    t.integer "shipped_by_id"
+    t.string "shipped_by_type"
+    t.integer "completed_by_id"
+    t.string "completed_by_type"
+    t.integer "cancelled_by_id"
+    t.string "cancelled_by_type"
     t.index ["approved_by_id"], name: "index_inter_store_transfers_on_approved_by_id", comment: "承認者別検索最適化"
+    t.index ["approved_by_type", "approved_by_id"], name: "idx_on_approved_by_type_approved_by_id_f28063040e"
+    t.index ["cancelled_by_type", "cancelled_by_id"], name: "idx_on_cancelled_by_type_cancelled_by_id_176ac8f835"
+    t.index ["completed_by_type", "completed_by_id"], name: "idx_on_completed_by_type_completed_by_id_ebae936891"
     t.index ["destination_store_id"], name: "index_inter_store_transfers_on_destination_store_id", comment: "移動先店舗検索最適化"
     t.index ["inventory_id"], name: "index_inter_store_transfers_on_inventory_id"
     t.index ["requested_at"], name: "index_inter_store_transfers_on_requested_at", comment: "申請日時検索最適化"
     t.index ["requested_by_id"], name: "index_inter_store_transfers_on_requested_by_id", comment: "申請者別検索最適化"
+    t.index ["requested_by_type", "requested_by_id"], name: "idx_on_requested_by_type_requested_by_id_37168d1d32"
     t.index ["shipped_at"], name: "index_inter_store_transfers_on_shipped_at", comment: "出荷日時検索最適化"
+    t.index ["shipped_by_type", "shipped_by_id"], name: "idx_on_shipped_by_type_shipped_by_id_48034d92a4"
     t.index ["source_store_id", "status", "requested_at"], name: "idx_source_status_date", comment: "店舗別ステータス・日時複合検索"
     t.index ["source_store_id"], name: "index_inter_store_transfers_on_source_store_id", comment: "移動元店舗検索最適化"
     t.index ["status", "priority"], name: "index_inter_store_transfers_on_status_and_priority", comment: "ステータス・優先度複合検索"
@@ -165,6 +178,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_17_230854) do
     t.integer "inventory_logs_count", default: 0, null: false
     t.integer "shipments_count", default: 0, null: false
     t.integer "receipts_count", default: 0, null: false
+    t.string "sku"
+    t.string "manufacturer"
+    t.string "unit"
     t.index ["batches_count"], name: "index_inventories_on_batches_count"
     t.index ["inventory_logs_count"], name: "index_inventories_on_inventory_logs_count"
     t.index ["name"], name: "index_inventories_on_name"

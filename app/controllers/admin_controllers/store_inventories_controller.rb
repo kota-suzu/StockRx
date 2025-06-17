@@ -160,9 +160,8 @@ module AdminControllers
           name: store_inventory.inventory.name,
           sku: store_inventory.inventory.sku,
           category: categorize_by_name(store_inventory.inventory.name),
-          # TODO: 🔴 Phase 1（緊急）- manufacturerカラム追加後に有効化
-          # manufacturer: store_inventory.inventory.manufacturer,
-          manufacturer: "未設定",  # 暫定値
+          # ✅ Phase 1（完了）- manufacturerカラム復活
+          manufacturer: store_inventory.inventory.manufacturer,
           unit: store_inventory.inventory.unit,
           price: store_inventory.inventory.price,
           status: store_inventory.inventory.status
@@ -215,9 +214,8 @@ module AdminControllers
         inv.sku,
         inv.name,
         categorize_by_name(inv.name),
-        # TODO: 🔴 Phase 1（緊急）- manufacturerカラム追加後に有効化
-        # inv.manufacturer,
-        "未設定",  # 暫定値
+        # ✅ Phase 1（完了）- manufacturerカラム復活
+        inv.manufacturer,
         inv.unit,
         store_inventory.quantity,
         store_inventory.reserved_quantity,
@@ -309,11 +307,10 @@ module AdminControllers
         end
       end
 
-      # メーカーフィルター（暫定無効化）
-      # TODO: 🔴 Phase 1（緊急）- manufacturerカラム追加後に有効化
-      # if search_params[:manufacturer_eq].present?
-      #   scope = scope.where("inventories.manufacturer = ?", search_params[:manufacturer_eq])
-      # end
+      # メーカーフィルター（✅ 復活）
+      if search_params[:manufacturer_eq].present?
+        scope = scope.where("inventories.manufacturer = ?", search_params[:manufacturer_eq])
+      end
 
       scope
     end

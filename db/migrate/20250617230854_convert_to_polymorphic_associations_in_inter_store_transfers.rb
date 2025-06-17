@@ -34,21 +34,29 @@ class ConvertToPolymorphicAssociationsInInterStoreTransfers < ActiveRecord::Migr
   end
 
   def down
-    # インデックスの削除
-    remove_index :inter_store_transfers, [:requested_by_type, :requested_by_id]
-    remove_index :inter_store_transfers, [:approved_by_type, :approved_by_id]
-    remove_index :inter_store_transfers, [:shipped_by_type, :shipped_by_id]
-    remove_index :inter_store_transfers, [:completed_by_type, :completed_by_id]
-    remove_index :inter_store_transfers, [:cancelled_by_type, :cancelled_by_id]
+    # インデックスの安全な削除（存在する場合のみ）
+    connection.indexes(:inter_store_transfers).each do |index|
+      if index.columns == %w[requested_by_type requested_by_id]
+        remove_index :inter_store_transfers, [:requested_by_type, :requested_by_id]
+      elsif index.columns == %w[approved_by_type approved_by_id]
+        remove_index :inter_store_transfers, [:approved_by_type, :approved_by_id]
+      elsif index.columns == %w[shipped_by_type shipped_by_id]
+        remove_index :inter_store_transfers, [:shipped_by_type, :shipped_by_id]
+      elsif index.columns == %w[completed_by_type completed_by_id]
+        remove_index :inter_store_transfers, [:completed_by_type, :completed_by_id]
+      elsif index.columns == %w[cancelled_by_type cancelled_by_id]
+        remove_index :inter_store_transfers, [:cancelled_by_type, :cancelled_by_id]
+      end
+    end
 
-    # カラムの削除
-    remove_column :inter_store_transfers, :requested_by_type
-    remove_column :inter_store_transfers, :approved_by_type
-    remove_column :inter_store_transfers, :shipped_by_id
-    remove_column :inter_store_transfers, :shipped_by_type
-    remove_column :inter_store_transfers, :completed_by_id
-    remove_column :inter_store_transfers, :completed_by_type
-    remove_column :inter_store_transfers, :cancelled_by_id
-    remove_column :inter_store_transfers, :cancelled_by_type
+    # カラムの安全な削除（存在する場合のみ）
+    remove_column :inter_store_transfers, :requested_by_type if column_exists?(:inter_store_transfers, :requested_by_type)
+    remove_column :inter_store_transfers, :approved_by_type if column_exists?(:inter_store_transfers, :approved_by_type)
+    remove_column :inter_store_transfers, :shipped_by_id if column_exists?(:inter_store_transfers, :shipped_by_id)
+    remove_column :inter_store_transfers, :shipped_by_type if column_exists?(:inter_store_transfers, :shipped_by_type)
+    remove_column :inter_store_transfers, :completed_by_id if column_exists?(:inter_store_transfers, :completed_by_id)
+    remove_column :inter_store_transfers, :completed_by_type if column_exists?(:inter_store_transfers, :completed_by_type)
+    remove_column :inter_store_transfers, :cancelled_by_id if column_exists?(:inter_store_transfers, :cancelled_by_id)
+    remove_column :inter_store_transfers, :cancelled_by_type if column_exists?(:inter_store_transfers, :cancelled_by_type)
   end
 end
