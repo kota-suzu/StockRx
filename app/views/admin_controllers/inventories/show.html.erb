@@ -93,7 +93,7 @@
       <div class="card shadow-sm h-100">
         <div class="card-header bg-info text-white">
           <h2 class="card-title mb-0">
-            <i class="fas fa-layer-group me-2"></i>バッチ情報
+            <i class="fas fa-layer-group me-2"></i>ロット情報
           </h2>
         </div>
         <div class="card-body">
@@ -103,7 +103,7 @@
                 <div class="h3 text-info mb-1">
                   <i class="fas fa-boxes me-1"></i><%= @inventory.batches_count %>
                 </div>
-                <h6 class="text-muted mb-0">バッチ総数</h6>
+                <h6 class="text-muted mb-0">ロット総数</h6>
               </div>
             </div>
             <div class="col-6">
@@ -173,7 +173,7 @@
                   <i class="fas fa-info-circle me-2"></i>統計情報
                 </h6>
                 <ul class="mb-0 small">
-                  <li>バッチ登録日: <%= l(@inventory.created_at, format: :short) %></li>
+                  <li>商品登録日: <%= l(@inventory.created_at, format: :short) %></li>
                   <li>最後の更新: <%= l(@inventory.updated_at, format: :short) %></li>
                   <li>在庫ID: #<%= @inventory.id %></li>
                 </ul>
@@ -202,12 +202,12 @@
   <div class="card shadow-sm mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
       <h2 class="card-title mb-0">
-        <i class="fas fa-layer-group me-2"></i>バッチ一覧
+        <i class="fas fa-layer-group me-2"></i>ロット一覧
       </h2>
       <div>
         <%# TODO: バッチ追加機能の実装 %>
         <button class="btn btn-success" disabled>
-          <i class="fas fa-plus me-2"></i>バッチ追加
+          <i class="fas fa-plus me-2"></i>ロット追加
         </button>
         <small class="text-muted ms-2">（実装予定）</small>
       </div>
@@ -223,6 +223,9 @@
               </th>
               <th scope="col">
                 <i class="fas fa-boxes me-1"></i>数量
+              </th>
+              <th scope="col">
+                <i class="fas fa-percentage me-1"></i>割合
               </th>
               <th scope="col">
                 <i class="fas fa-calendar-alt me-1"></i>有効期限
@@ -246,6 +249,22 @@
                     <span class="badge bg-secondary">
                       <%= batch.quantity %> 個
                     </span>
+                    <% if batch.quantity > 0 %>
+                      <div class="progress mt-1" style="height: 5px;">
+                        <div class="progress-bar bg-info" 
+                             style="width: <%= lot_quantity_percentage(batch, @inventory.quantity) %>%" 
+                             title="在庫数に対する割合"></div>
+                      </div>
+                    <% end %>
+                  </td>
+                  <td class="text-center">
+                    <% if @inventory.quantity > 0 %>
+                      <span class="badge bg-light text-dark">
+                        <%= lot_quantity_percentage(batch, @inventory.quantity) %>%
+                      </span>
+                    <% else %>
+                      <span class="text-muted">-</span>
+                    <% end %>
                   </td>
                   <td>
                     <% if batch.expires_on.present? %>
@@ -285,11 +304,11 @@
               <% end %>
             <% else %>
               <tr>
-                <td colspan="5" class="text-center py-5">
+                <td colspan="6" class="text-center py-5">
                   <div class="text-muted">
                     <i class="fas fa-box-open fa-3x mb-3"></i>
-                    <h6>バッチデータがありません</h6>
-                    <p class="mb-0">「バッチ追加」ボタンからバッチを登録してください</p>
+                    <h6>ロットデータがありません</h6>
+                    <p class="mb-0">「ロット追加」ボタンからロットを登録してください</p>
                   </div>
                 </td>
               </tr>
@@ -340,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       
       const inventoryName = '<%= j(@inventory.name) %>';
-      const confirmText = `商品「${inventoryName}」を削除してもよろしいですか？\n\nこの操作は取り消せません。関連するバッチ情報も全て削除されます。`;
+      const confirmText = `商品「${inventoryName}」を削除してもよろしいですか？\n\nこの操作は取り消せません。関連するロット情報も全て削除されます。`;
       
       if (confirm(confirmText)) {
         this.closest('form').submit();
@@ -351,7 +370,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <%# TODO: 実装予定機能 %>
-<%# - バッチCRUD機能（追加・編集・削除） %>
+<%# - ロットCRUD機能（追加・編集・削除） %>
 <%# - 在庫操作履歴の表示 %>
 <%# - 在庫アラート・通知設定 %>
 <%# - 在庫統計・分析機能 %>

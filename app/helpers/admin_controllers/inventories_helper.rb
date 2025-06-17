@@ -64,8 +64,8 @@ module AdminControllers::InventoriesHelper
     CSV
   end
 
-  # バッチ状態に応じた行のスタイルクラスを返す（Bootstrap 5版）
-  # @param batch [Batch] バッチオブジェクト
+  # ロット状態に応じた行のスタイルクラスを返す（Bootstrap 5版）
+  # @param batch [Batch] ロットオブジェクト
   # @return [String] CSSクラス（期限切れ：table-danger、期限間近：table-warning、正常：空文字）
   def batch_row_class(batch)
     if batch.expired?
@@ -77,8 +77,43 @@ module AdminControllers::InventoriesHelper
     end
   end
 
+  # ロット別在庫表示用のヘルパーメソッド
+  # @param batch [Batch] ロットオブジェクト
+  # @return [String] ロットの状態を日本語で表示
+  def lot_status_display(batch)
+    if batch.expired?
+      "期限切れ"
+    elsif batch.expiring_soon?
+      "期限間近"
+    else
+      "正常"
+    end
+  end
+
+  # ロットの在庫割合を計算
+  # @param batch [Batch] ロットオブジェクト
+  # @param total_quantity [Integer] 総在庫数
+  # @return [Float] パーセンテージ
+  def lot_quantity_percentage(batch, total_quantity)
+    return 0 if total_quantity <= 0
+    (batch.quantity.to_f / total_quantity * 100).round(1)
+  end
+
+  # ロット状態に応じたバッジクラスを返す
+  # @param batch [Batch] ロットオブジェクト
+  # @return [String] Bootstrapバッジクラス
+  def lot_status_badge_class(batch)
+    if batch.expired?
+      "bg-danger"
+    elsif batch.expiring_soon?
+      "bg-warning"
+    else
+      "bg-success"
+    end
+  end
+
   # TODO: 以下の機能実装が必要
-  # - バッチの一括操作機能（期限切れバッチの一括削除など）
+  # - ロットの一括操作機能（期限切れロットの一括削除など）
   # - 在庫アラート設定の表示・管理機能
   # - 在庫履歴の詳細表示機能
   # - エクスポート機能（PDF、Excel対応）

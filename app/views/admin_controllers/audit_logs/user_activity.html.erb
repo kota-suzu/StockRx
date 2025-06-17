@@ -1,0 +1,243 @@
+<%# frozen_string_literal: true %>
+<%# ============================================ %>
+<%# Phase 5-2: セキュリティ強化 %>
+<%# ユーザー活動履歴画面 %>
+<%# ============================================ %>
+
+<% content_for :title, "ユーザー活動履歴" %>
+
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="h2 mb-3">
+        <i class="bi bi-person-lines-fill me-2"></i>
+        ユーザー活動履歴: <%= @user.email %>
+      </h1>
+
+      <%# ユーザー統計 %>
+      <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-primary">
+            <div class="card-body">
+              <h5 class="card-title text-muted">総活動数</h5>
+              <p class="card-text">
+                <span class="h2">
+                  <%= number_with_delimiter(@user_stats[:total_actions] || 0) %>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-info">
+            <div class="card-body">
+              <h5 class="card-title text-muted">異常検知</h5>
+              <p class="card-text">
+                <span class="h2 text-<%= @user_anomalies&.any? ? 'danger' : 'success' %>">
+                  <%= @user_anomalies&.count || 0 %>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-success">
+            <div class="card-body">
+              <h5 class="card-title text-muted">ピーク時間帯</h5>
+              <p class="card-text">
+                <span class="h2 text-success">
+                  <% peak_hour = @user_stats[:active_hours]&.max_by { |_, count| count }&.first %>
+                  <%= peak_hour ? "#{peak_hour}時" : "-" %>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-warning">
+            <div class="card-body">
+              <h5 class="card-title text-muted">最終活動</h5>
+              <p class="card-text">
+                <span class="h5">
+                  <% last_activity = @activities.first&.created_at %>
+                  <%= last_activity ? time_ago_in_words(last_activity) + "前" : "-" %>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# 活動内訳 %>
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-pie-chart me-2"></i>
+                アクション別内訳
+              </h5>
+            </div>
+            <div class="card-body">
+              <% if @user_stats[:actions_breakdown]&.any? %>
+                <% @user_stats[:actions_breakdown].each do |action, count| %>
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-<%= audit_log_action_color(action) %>">
+                      <%= action %>
+                    </span>
+                    <div class="flex-grow-1 mx-3">
+                      <div class="progress" style="height: 8px;">
+                        <div class="progress-bar" 
+                             style="width: <%= (count.to_f / @user_stats[:total_actions] * 100).round(1) %>%">
+                        </div>
+                      </div>
+                    </div>
+                    <span class="badge bg-secondary">
+                      <%= count %>
+                    </span>
+                  </div>
+                <% end %>
+              <% else %>
+                <p class="text-muted">データなし</p>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-database me-2"></i>
+                アクセス対象別内訳
+              </h5>
+            </div>
+            <div class="card-body">
+              <% if @user_stats[:accessed_models]&.any? %>
+                <% @user_stats[:accessed_models].each do |model, count| %>
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-info">
+                      <%= model || "システム" %>
+                    </span>
+                    <div class="flex-grow-1 mx-3">
+                      <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-info" 
+                             style="width: <%= (count.to_f / @user_stats[:total_actions] * 100).round(1) %>%">
+                        </div>
+                      </div>
+                    </div>
+                    <span class="badge bg-secondary">
+                      <%= count %>
+                    </span>
+                  </div>
+                <% end %>
+              <% else %>
+                <p class="text-muted">データなし</p>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# 異常検知結果 %>
+      <% if @user_anomalies&.any? %>
+        <div class="card mb-4 border-warning">
+          <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+              <i class="bi bi-exclamation-triangle me-2"></i>
+              異常検知結果
+            </h5>
+          </div>
+          <div class="card-body">
+            <% @user_anomalies.each do |anomaly| %>
+              <div class="alert alert-warning">
+                <strong><%= anomaly[:type] %></strong>
+                <p class="mb-0"><%= anomaly[:description] %></p>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <%# 活動履歴 %>
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-list-ul me-2"></i>
+            活動履歴
+          </h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>日時</th>
+                  <th>アクション</th>
+                  <th>対象</th>
+                  <th>メッセージ</th>
+                  <th>IPアドレス</th>
+                  <th>詳細</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if @activities.any? %>
+                  <% @activities.each do |activity| %>
+                    <tr>
+                      <td><%= l(activity.created_at, format: :long) %></td>
+                      <td>
+                        <span class="badge bg-<%= audit_log_action_color(activity.action) %>">
+                          <%= activity.action %>
+                        </span>
+                      </td>
+                      <td>
+                        <% if activity.auditable %>
+                          <small class="text-muted">
+                            <%= activity.auditable_type %>#<%= activity.auditable_id %>
+                          </small>
+                        <% else %>
+                          -
+                        <% end %>
+                      </td>
+                      <td><%= truncate(activity.message, length: 50) %></td>
+                      <td><small><%= activity.ip_address %></small></td>
+                      <td>
+                        <%= link_to admin_audit_log_path(activity), 
+                                    class: "btn btn-sm btn-outline-primary" do %>
+                          <i class="bi bi-eye"></i>
+                        <% end %>
+                      </td>
+                    </tr>
+                  <% end %>
+                <% else %>
+                  <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                      活動履歴がありません
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          
+          <% if @activities.any? %>
+            <div class="card-footer">
+              <%= paginate @activities %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# TODO: 🟡 Phase 6（重要）- ユーザー行動パターン分析 %>
+<%# 優先度: 中（分析機能向上） %>
+<%# 実装内容: %>
+<%#   - 時系列グラフ表示 %>
+<%#   - 行動パターン分析 %>
+<%#   - 予測分析機能 %>
+<%# 期待効果: より詳細なユーザー行動の把握 %>

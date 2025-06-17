@@ -75,7 +75,15 @@ module AdminControllers
             flash.now[:alert] = "入力内容に問題があります"
             render :new, status: :unprocessable_entity
           }
-          format.json { render json: { errors: @inventory.errors.full_messages }, status: :unprocessable_entity }
+          format.json {
+            # CLAUDE.md準拠: ベストプラクティス - 一貫性のあるAPIエラーレスポンス
+            error_response = {
+              code: "validation_error",
+              message: "入力内容に問題があります",
+              details: @inventory.errors.full_messages
+            }
+            render json: error_response, status: :unprocessable_entity
+          }
           format.turbo_stream { render :form_update, status: :unprocessable_entity }
         end
       end
@@ -95,7 +103,15 @@ module AdminControllers
             flash.now[:alert] = "入力内容に問題があります"
             render :edit, status: :unprocessable_entity
           }
-          format.json { render json: { errors: @inventory.errors.full_messages }, status: :unprocessable_entity }
+          format.json {
+            # CLAUDE.md準拠: ベストプラクティス - 一貫性のあるAPIエラーレスポンス
+            error_response = {
+              code: "validation_error",
+              message: "入力内容に問題があります",
+              details: @inventory.errors.full_messages
+            }
+            render json: error_response, status: :unprocessable_entity
+          }
           format.turbo_stream { render :form_update, status: :unprocessable_entity }
         end
       end
@@ -183,8 +199,13 @@ module AdminControllers
                       status: :see_other
         }
         format.json {
-          render json: { errors: [ error_message ] },
-                 status: :unprocessable_entity
+          # CLAUDE.md準拠: ベストプラクティス - 一貫性のあるAPIエラーレスポンス
+          error_response = {
+            code: "deletion_error",
+            message: error_message,
+            details: []
+          }
+          render json: error_response, status: :unprocessable_entity
         }
         format.turbo_stream {
           flash.now[:alert] = error_message

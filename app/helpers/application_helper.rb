@@ -26,4 +26,44 @@ module ApplicationHelper
   def active_class(path)
     current_page?(path) ? "active" : ""
   end
+
+  # ============================================
+  # Phase 5-2: 監査ログ関連ヘルパー
+  # ============================================
+
+  # 監査ログアクションの色クラス
+  def audit_log_action_color(action)
+    case action.to_s
+    when "login", "signup" then "success"
+    when "logout" then "info"
+    when "failed_login" then "danger"
+    when "create" then "success"
+    when "update" then "warning"
+    when "delete", "destroy" then "danger"
+    when "view", "show" then "info"
+    when "export" then "warning"
+    when "permission_change" then "danger"
+    when "password_change" then "warning"
+    else "secondary"
+    end
+  end
+
+  # セキュリティイベントの色クラス
+  def security_event_color(action)
+    case action.to_s
+    when "failed_login", "rate_limit_exceeded", "suspicious_activity" then "danger"
+    when "login_success", "password_changed" then "success"
+    when "permission_granted", "access_granted" then "info"
+    when "session_expired" then "warning"
+    else "secondary"
+    end
+  end
+
+  # TODO: 🟡 Phase 6（重要）- 高度なヘルパー機能
+  # 優先度: 中（UI/UX向上）
+  # 実装内容:
+  #   - リスクスコア可視化ヘルパー
+  #   - 時系列データ表示ヘルパー
+  #   - 国際化対応強化
+  # 期待効果: より直感的なUI表示
 end

@@ -1,0 +1,156 @@
+<%# Unified Action Buttons Component for Admin Interface %>
+<%# 
+  Usage: 
+  <%= render 'admin_controllers/shared/action_buttons',
+             buttons: [
+               { 
+                 text: '編集', 
+                 path: edit_path, 
+                 icon: 'bi-pencil', 
+                 class: 'btn-warning',
+                 tooltip: 'このアイテムを編集'
+               },
+               { 
+                 text: '削除', 
+                 path: delete_path, 
+                 method: :delete, 
+                 icon: 'bi-trash', 
+                 class: 'btn-danger',
+                 confirm: '本当に削除しますか？',
+                 tooltip: 'このアイテムを削除'
+               }
+             ],
+             size: 'sm', # or 'md', 'lg'
+             layout: 'group' # or 'dropdown', 'individual'
+%>
+
+<%# 
+  Parameters:
+  - buttons: Array of button configurations (required)
+  - size: Button size ('sm', 'md', 'lg', default: 'sm')
+  - layout: Layout type ('group', 'dropdown', 'individual', default: 'group')
+  - align: Alignment ('start', 'center', 'end', default: 'end')
+  - class: Additional CSS classes
+%>
+
+<% 
+  # Set defaults
+  buttons ||= []
+  size ||= 'sm'
+  layout ||= 'group'
+  align ||= 'end'
+  
+  # Size suffix for button classes
+  size_suffix = size == 'md' ? '' : "-#{size}"
+  
+  # Alignment class
+  align_class = case align
+  when 'start'
+    'justify-content-start'
+  when 'center'
+    'justify-content-center'
+  else
+    'justify-content-end'
+  end
+%>
+
+<% if buttons.any? %>
+  <div class="admin-action-buttons d-flex <%= align_class %> <%= local_assigns[:class] %>">
+    <% case layout %>
+    <% when 'group' %>
+      <%# Button Group Layout %>
+      <div class="btn-group btn-group<%= size_suffix %>" role="group" aria-label="アクション">
+        <% buttons.each do |button| %>
+          <%= render 'admin_controllers/shared/single_action_button', 
+                     button: button, 
+                     size: size %>
+        <% end %>
+      </div>
+      
+    <% when 'dropdown' %>
+      <%# Dropdown Layout %>
+      <div class="dropdown">
+        <button class="btn btn-outline-secondary btn<%= size_suffix %> dropdown-toggle" 
+                type="button" 
+                data-bs-toggle="dropdown" 
+                aria-expanded="false">
+          <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
+          <span class="visually-hidden">アクション</span>
+        </button>
+        <ul class="dropdown-menu">
+          <% buttons.each_with_index do |button, index| %>
+            <% if button[:divider] %>
+              <li><hr class="dropdown-divider"></li>
+            <% else %>
+              <li>
+                <% if button[:method] == :delete %>
+                  <%= button_to button[:path], 
+                               method: button[:method],
+                               class: "dropdown-item #{'text-danger' if button[:class]&.include?('danger')}",
+                               form: { 
+                                 data: { 
+                                   turbo_confirm: button[:confirm],
+                                   turbo_method: button[:method]
+                                 } 
+                               } do %>
+                    <% if button[:icon] %>
+                      <i class="bi <%= button[:icon] %> me-2" aria-hidden="true"></i>
+                    <% end %>
+                    <%= button[:text] %>
+                  <% end %>
+                <% else %>
+                  <%= link_to button[:path], 
+                             class: "dropdown-item #{'text-danger' if button[:class]&.include?('danger')}",
+                             method: button[:method],
+                             title: button[:tooltip] do %>
+                    <% if button[:icon] %>
+                      <i class="bi <%= button[:icon] %> me-2" aria-hidden="true"></i>
+                    <% end %>
+                    <%= button[:text] %>
+                  <% end %>
+                <% end %>
+              </li>
+            <% end %>
+          <% end %>
+        </ul>
+      </div>
+      
+    <% when 'individual' %>
+      <%# Individual Buttons Layout %>
+      <div class="d-flex gap-2">
+        <% buttons.each do |button| %>
+          <%= render 'admin_controllers/shared/single_action_button', 
+                     button: button, 
+                     size: size %>
+        <% end %>
+      </div>
+      
+    <% end %>
+  </div>
+<% end %>
+
+<%# Action Buttons Styles %>
+<style>
+  .admin-action-buttons {
+    .btn-group .btn {
+      transition: all 0.2s ease-in-out;
+    }
+    
+    .btn-group .btn:hover {
+      transform: translateY(-1px);
+      z-index: 1;
+    }
+    
+    .dropdown-item {
+      transition: all 0.15s ease-in-out;
+      
+      &:hover {
+        background-color: rgba(var(--bs-primary-rgb), 0.1);
+      }
+      
+      &.text-danger:hover {
+        background-color: rgba(var(--bs-danger-rgb), 0.1);
+      }
+    }
+  }
+</style>

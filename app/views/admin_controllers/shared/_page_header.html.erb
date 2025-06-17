@@ -1,0 +1,156 @@
+<%# Unified Page Header Component for Admin Interface %>
+<%# 
+  Usage: 
+  <%= render 'admin_controllers/shared/page_header',
+             title: 'Page Title',
+             subtitle: 'Page description',
+             icon: 'bi-box',
+             icon_color: 'primary',
+             back_path: admin_inventories_path,
+             back_text: '一覧に戻る',
+             breadcrumbs: [
+               { text: 'ダッシュボード', path: admin_root_path },
+               { text: '在庫管理', path: admin_inventories_path },
+               { text: '詳細', active: true }
+             ],
+             actions: [
+               { text: '編集', path: edit_path, icon: 'bi-pencil', class: 'btn-warning' },
+               { text: '削除', path: delete_path, method: :delete, icon: 'bi-trash', class: 'btn-danger', confirm: 'Are you sure?' }
+             ]
+%>
+
+<%# 
+  Parameters:
+  - title: Page title (required)
+  - subtitle: Page subtitle/description (optional)
+  - icon: Bootstrap icon class (optional, default: 'bi-file-text')
+  - icon_color: Bootstrap color name (optional, default: 'primary')
+  - back_path: Path for back button (optional)
+  - back_text: Text for back button (optional, default: '戻る')
+  - breadcrumbs: Array of breadcrumb items (optional)
+  - actions: Array of action buttons (optional)
+%>
+
+<% 
+  # Set defaults
+  icon ||= 'bi-file-text'
+  icon_color ||= 'primary'
+  back_text ||= '戻る'
+  breadcrumbs ||= []
+  actions ||= []
+%>
+
+<div class="admin-page-header mb-4">
+  <%# Breadcrumb Navigation %>
+  <% if breadcrumbs.any? %>
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <% breadcrumbs.each do |crumb| %>
+          <% if crumb[:active] %>
+            <li class="breadcrumb-item active" aria-current="page"><%= crumb[:text] %></li>
+          <% else %>
+            <li class="breadcrumb-item">
+              <%= link_to crumb[:path], class: "text-decoration-none" do %>
+                <% if crumb[:icon] %>
+                  <i class="<%= crumb[:icon] %> me-1" aria-hidden="true"></i>
+                <% end %>
+                <%= crumb[:text] %>
+              <% end %>
+            </li>
+          <% end %>
+        <% end %>
+      </ol>
+    </nav>
+  <% end %>
+
+  <%# Main Header Card %>
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <div class="d-flex align-items-center">
+            <%# Back Button (if provided) %>
+            <% if back_path.present? %>
+              <%= link_to back_path, class: "btn btn-outline-secondary me-3" do %>
+                <i class="bi bi-arrow-left me-2"></i><%= back_text %>
+              <% end %>
+            <% end %>
+            
+            <%# Icon %>
+            <div class="page-header-icon me-3 text-<%= icon_color %>">
+              <i class="bi <%= icon %>"></i>
+            </div>
+            
+            <%# Title and Subtitle %>
+            <div>
+              <h1 class="h2 mb-1 fw-bold"><%= title %></h1>
+              <% if subtitle.present? %>
+                <p class="text-muted mb-0"><%= subtitle %></p>
+              <% end %>
+            </div>
+          </div>
+        </div>
+        
+        <%# Action Buttons %>
+        <% if actions.any? %>
+          <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+            <div class="btn-group" role="group" aria-label="ページアクション">
+              <% actions.each do |action| %>
+                <% if action[:method] == :delete %>
+                  <%= button_to action[:path], 
+                               method: action[:method],
+                               class: "btn #{action[:class] || 'btn-secondary'}",
+                               form: { data: { turbo_confirm: action[:confirm] } } do %>
+                    <% if action[:icon] %>
+                      <i class="bi <%= action[:icon] %> me-1" aria-hidden="true"></i>
+                    <% end %>
+                    <%= action[:text] %>
+                  <% end %>
+                <% else %>
+                  <%= link_to action[:path], 
+                             class: "btn #{action[:class] || 'btn-secondary'}",
+                             method: action[:method] do %>
+                    <% if action[:icon] %>
+                      <i class="bi <%= action[:icon] %> me-1" aria-hidden="true"></i>
+                    <% end %>
+                    <%= action[:text] %>
+                  <% end %>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# Page Header Styles %>
+<style>
+  .admin-page-header .page-header-icon {
+    font-size: 48px;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.1), rgba(var(--bs-primary-rgb), 0.2));
+    border-radius: 50%;
+  }
+  
+  .admin-page-header .page-header-icon.text-success {
+    background: linear-gradient(135deg, rgba(var(--bs-success-rgb), 0.1), rgba(var(--bs-success-rgb), 0.2));
+  }
+  
+  .admin-page-header .page-header-icon.text-warning {
+    background: linear-gradient(135deg, rgba(var(--bs-warning-rgb), 0.1), rgba(var(--bs-warning-rgb), 0.2));
+  }
+  
+  .admin-page-header .page-header-icon.text-danger {
+    background: linear-gradient(135deg, rgba(var(--bs-danger-rgb), 0.1), rgba(var(--bs-danger-rgb), 0.2));
+  }
+  
+  .admin-page-header .page-header-icon.text-info {
+    background: linear-gradient(135deg, rgba(var(--bs-info-rgb), 0.1), rgba(var(--bs-info-rgb), 0.2));
+  }
+</style>

@@ -1,0 +1,213 @@
+<%# frozen_string_literal: true %>
+<%# ============================================ %>
+<%# Phase 5-2: セキュリティ強化 %>
+<%# 監査ログ詳細画面 %>
+<%# ============================================ %>
+
+<% content_for :title, "監査ログ詳細" %>
+
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h2 mb-0">
+          <i class="bi bi-shield-check me-2"></i>
+          監査ログ詳細
+        </h1>
+        <%= link_to admin_audit_logs_path, class: "btn btn-outline-secondary" do %>
+          <i class="bi bi-arrow-left me-1"></i>一覧に戻る
+        <% end %>
+      </div>
+
+      <%# 基本情報 %>
+      <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-info-circle me-2"></i>
+            基本情報
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <table class="table table-borderless">
+                <tr>
+                  <th scope="row" style="width: 30%;">ID</th>
+                  <td><code>#<%= @audit_log.id %></code></td>
+                </tr>
+                <tr>
+                  <th scope="row">日時</th>
+                  <td><%= l(@audit_log.created_at, format: :long) %></td>
+                </tr>
+                <tr>
+                  <th scope="row">ユーザー</th>
+                  <td>
+                    <% if @audit_log.user %>
+                      <strong><%= @audit_log.user.email %></strong>
+                      <br><small class="text-muted">ID: <%= @audit_log.user.id %></small>
+                    <% else %>
+                      <span class="text-muted">システム</span>
+                    <% end %>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">アクション</th>
+                  <td>
+                    <span class="badge bg-<%= audit_log_action_color(@audit_log.action) %> fs-6">
+                      <%= @audit_log.action %>
+                    </span>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            <div class="col-md-6">
+              <table class="table table-borderless">
+                <tr>
+                  <th scope="row" style="width: 30%;">IPアドレス</th>
+                  <td><code><%= @audit_log.ip_address %></code></td>
+                </tr>
+                <tr>
+                  <th scope="row">User Agent</th>
+                  <td>
+                    <small class="text-muted">
+                      <%= truncate(@audit_log.user_agent, length: 50) %>
+                    </small>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">対象リソース</th>
+                  <td>
+                    <% if @audit_log.auditable %>
+                      <strong><%= @audit_log.auditable_type %></strong>
+                      <br><small class="text-muted">ID: <%= @audit_log.auditable_id %></small>
+                    <% else %>
+                      <span class="text-muted">-</span>
+                    <% end %>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">メッセージ</th>
+                  <td><%= @audit_log.message %></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# 詳細情報 %>
+      <% if @audit_log.details.present? %>
+        <div class="card mb-4">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+              <i class="bi bi-code me-2"></i>
+              詳細情報
+            </h5>
+          </div>
+          <div class="card-body">
+            <pre class="bg-light p-3 rounded"><code><%= JSON.pretty_generate(@audit_log.details) %></code></pre>
+          </div>
+        </div>
+      <% end %>
+
+      <%# 関連ログ %>
+      <% if @related_logs&.any? %>
+        <div class="card mb-4">
+          <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">
+              <i class="bi bi-link me-2"></i>
+              関連する監査ログ
+            </h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>日時</th>
+                    <th>ユーザー</th>
+                    <th>アクション</th>
+                    <th>メッセージ</th>
+                    <th>詳細</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @related_logs.each do |log| %>
+                    <tr>
+                      <td><%= l(log.created_at, format: :short) %></td>
+                      <td>
+                        <% if log.user %>
+                          <%= log.user.email %>
+                        <% else %>
+                          <span class="text-muted">システム</span>
+                        <% end %>
+                      </td>
+                      <td>
+                        <span class="badge bg-<%= audit_log_action_color(log.action) %>">
+                          <%= log.action %>
+                        </span>
+                      </td>
+                      <td><%= truncate(log.message, length: 50) %></td>
+                      <td>
+                        <%= link_to admin_audit_log_path(log), 
+                                    class: "btn btn-sm btn-outline-primary" do %>
+                          <i class="bi bi-eye"></i>
+                        <% end %>
+                      </td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%# セキュリティ情報 %>
+      <% if @audit_log.action.in?(%w[login logout failed_login permission_change]) %>
+        <div class="card border-warning">
+          <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+              <i class="bi bi-shield-exclamation me-2"></i>
+              セキュリティ関連情報
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-warning">
+              <strong>注意:</strong> このログはセキュリティに関連するイベントです。
+              不審な活動や異常な行動パターンがないか確認してください。
+            </div>
+            
+            <% if @audit_log.user %>
+              <div class="row">
+                <div class="col-md-6">
+                  <h6>ユーザー詳細</h6>
+                  <ul class="list-unstyled">
+                    <li><strong>Role:</strong> <%= @audit_log.user.role %></li>
+                    <li><strong>Last Sign In:</strong> <%= @audit_log.user.last_sign_in_at ? l(@audit_log.user.last_sign_in_at, format: :short) : 'N/A' %></li>
+                    <li><strong>Sign In Count:</strong> <%= @audit_log.user.sign_in_count %></li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <h6>アクセス情報</h6>
+                  <ul class="list-unstyled">
+                    <li><strong>IP Address:</strong> <code><%= @audit_log.ip_address %></code></li>
+                    <li><strong>User Agent:</strong> <small><%= truncate(@audit_log.user_agent, length: 40) %></small></li>
+                  </ul>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<%# TODO: 🟡 Phase 6（重要）- 監査ログ分析機能 %>
+<%# 優先度: 中（分析機能強化） %>
+<%# 実装内容: %>
+<%#   - 関連ログの時系列分析 %>
+<%#   - 異常パターン検知 %>
+<%#   - リスクスコア表示 %>
+<%# 期待効果: より詳細なログ分析による脅威検知 %>
