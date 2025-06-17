@@ -4,7 +4,7 @@ class AuditLog < ApplicationRecord
   # ポリモーフィック関連
   belongs_to :auditable, polymorphic: true
   belongs_to :user, optional: true, class_name: "Admin"
-  
+
   # CLAUDE.md準拠: ベストプラクティス - 意味的に正しい関連付け名の提供
   # メタ認知: 監査ログの操作者は管理者（admin）なので、adminエイリアスが意味的に適切
   # 横展開: InventoryLogと同様のパターン適用で一貫性確保

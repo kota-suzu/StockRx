@@ -3,7 +3,7 @@
 class InventoryLog < ApplicationRecord
   belongs_to :inventory, counter_cache: true
   belongs_to :user, optional: true, class_name: "Admin"
-  
+
   # CLAUDE.md準拠: ベストプラクティス - 意味的に正しい関連付け名の提供
   # メタ認知: 在庫ログの操作者は管理者（admin）なので、adminエイリアスが意味的に適切
   # 横展開: 他のログ系モデルでも同様のエイリアス設定を検討
