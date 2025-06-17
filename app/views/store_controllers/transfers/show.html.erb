@@ -1,0 +1,188 @@
+<%# 店舗間移動詳細ビュー - 基本実装 %>
+<%# CLAUDE.md準拠: ベストプラクティス - 最小限の機能実装からスタート %>
+<%# TODO: 🔴 Phase 1（緊急）- 基本機能実装 %>
+<%# 優先度: 高（ビューテンプレートエラー解決） %>
+<%# 実装内容: 移動詳細情報表示、基本的な操作機能 %>
+
+<% content_for :title, "移動詳細 ##{@transfer&.id}" %>
+
+<div class="row">
+  <div class="col-12">
+    <%# パンくずナビ %>
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          <%= link_to store_root_path do %>
+            <i class="bi bi-house-door"></i> ダッシュボード
+          <% end %>
+        </li>
+        <li class="breadcrumb-item">
+          <%= link_to store_transfers_path do %>
+            <i class="bi bi-arrow-left-right"></i> 店舗間移動
+          <% end %>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+          詳細 #<%= @transfer&.id %>
+        </li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<% if @transfer.present? %>
+  <div class="row">
+    <div class="col-12">
+      <%# ページヘッダー %>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h3 mb-1">
+            移動申請 #<%= @transfer.id %>
+          </h1>
+          <p class="text-muted mb-0">
+            申請日: <%= l(@transfer.created_at, format: :long) %>
+          </p>
+        </div>
+        
+        <div class="d-flex gap-2">
+          <% if @transfer.status == 'pending' && @transfer.source_store == current_store %>
+            <%= link_to "取消", cancel_store_transfer_path(@transfer), 
+                        method: :patch, 
+                        class: "btn btn-outline-danger",
+                        confirm: "この移動申請を取り消しますか？" %>
+          <% end %>
+          
+          <%= link_to store_transfers_path, class: "btn btn-secondary" do %>
+            <i class="bi bi-arrow-left me-1"></i>一覧に戻る
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# 移動情報カード %>
+  <div class="row g-4 mb-4">
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header bg-primary text-white">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-info-circle me-2"></i>移動情報
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-12">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">ステータス</span>
+                <span class="badge bg-info"><%= @transfer.status %></span>
+              </div>
+            </div>
+            
+            <div class="col-12">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">商品</span>
+                <span class="fw-bold"><%= @transfer.inventory&.name %></span>
+              </div>
+            </div>
+            
+            <div class="col-12">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">数量</span>
+                <span class="badge bg-secondary"><%= @transfer.quantity %> 個</span>
+              </div>
+            </div>
+            
+            <div class="col-12">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">送付元</span>
+                <span><%= @transfer.source_store&.name %></span>
+              </div>
+            </div>
+            
+            <div class="col-12">
+              <div class="d-flex justify-content-between">
+                <span class="text-muted">送付先</span>
+                <span><%= @transfer.destination_store&.name %></span>
+              </div>
+            </div>
+            
+            <% if @transfer.reason.present? %>
+              <div class="col-12">
+                <div class="bg-light p-3 rounded">
+                  <h6 class="text-muted mb-1">理由</h6>
+                  <p class="mb-0"><%= @transfer.reason %></p>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-6">
+      <div class="card h-100">
+        <div class="card-header bg-secondary text-white">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-clock-history me-2"></i>履歴
+          </h5>
+        </div>
+        <div class="card-body">
+          <%# TODO: 🟡 Phase 2（重要）- タイムライン機能実装 %>
+          <%# 優先度: 中（ユーザビリティ向上） %>
+          <%# 実装内容: 移動申請のステータス変更履歴をタイムライン形式で表示 %>
+          <%# メタ認知: 承認フローの可視化により業務透明性を向上 %>
+          
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-marker bg-primary"></div>
+              <div class="timeline-content">
+                <h6 class="mb-1">申請作成</h6>
+                <p class="text-muted mb-0">
+                  <%= l(@transfer.created_at, format: :short) %>
+                  <br><small>申請者: <%= @transfer.requested_by&.name %></small>
+                </p>
+              </div>
+            </div>
+            
+            <% if @transfer.approved_at %>
+              <div class="timeline-item">
+                <div class="timeline-marker bg-success"></div>
+                <div class="timeline-content">
+                  <h6 class="mb-1">承認</h6>
+                  <p class="text-muted mb-0">
+                    <%= l(@transfer.approved_at, format: :short) %>
+                    <br><small>承認者: <%= @transfer.approved_by&.name %></small>
+                  </p>
+                </div>
+              </div>
+            <% end %>
+            
+            <% if @transfer.completed_at %>
+              <div class="timeline-item">
+                <div class="timeline-marker bg-info"></div>
+                <div class="timeline-content">
+                  <h6 class="mb-1">完了</h6>
+                  <p class="text-muted mb-0">
+                    <%= l(@transfer.completed_at, format: :short) %>
+                  </p>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<% else %>
+  <div class="alert alert-danger">
+    移動申請が見つかりません。
+  </div>
+<% end %>
+
+<%# TODO: 🟡 Phase 2（重要）- 移動詳細機能の拡張 %>
+<%# 優先度: 中（機能完成度向上） %>
+<%# 実装内容: %>
+<%#   - タイムライン表示機能 %>
+<%#   - 関連在庫情報の表示 %>
+<%#   - 移動追跡機能 %>
+<%#   - PDF出力機能 %>
+<%# メタ認知: 業務効率化と監査要件を考慮した機能設計 %>

@@ -1,0 +1,89 @@
+<%# 店舗間移動一覧ビュー - 基本実装 %>
+<%# CLAUDE.md準拠: ベストプラクティス - 最小限の機能実装からスタート %>
+<%# TODO: 🔴 Phase 1（緊急）- 基本機能実装 %>
+<%# 優先度: 高（ビューテンプレートエラー解決） %>
+<%# 実装内容: 移動一覧表示、基本的なフィルタリング機能 %>
+
+<% content_for :title, "店舗間移動" %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">
+      <i class="bi bi-arrow-left-right me-2"></i>店舗間移動
+    </h1>
+    <p class="text-muted mb-0">移動申請の管理</p>
+  </div>
+  
+  <div>
+    <%= link_to new_store_transfer_path, class: "btn btn-primary" do %>
+      <i class="bi bi-plus me-1"></i>新規申請
+    <% end %>
+  </div>
+</div>
+
+<%# TODO: 🟡 Phase 2（重要）- 詳細機能実装 %>
+<%# 優先度: 中（機能完成度向上） %>
+<%# 実装内容: %>
+<%#   - 高度なフィルタリング機能 %>
+<%#   - ステータス別タブ表示 %>
+<%#   - 移動履歴の詳細表示 %>
+<%#   - CSV出力機能 %>
+<%# メタ認知: 店舗業務での重要性を考慮した優先順位設定 %>
+
+<div class="card">
+  <div class="card-header">
+    <h5 class="card-title mb-0">
+      <i class="bi bi-list me-2"></i>移動履歴
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <% if defined?(@transfers) && @transfers.present? %>
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>申請日</th>
+              <th>商品</th>
+              <th>数量</th>
+              <th>送付先/送付元</th>
+              <th>ステータス</th>
+              <th>アクション</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @transfers.each do |transfer| %>
+              <tr>
+                <td><%= l(transfer.created_at, format: :short) %></td>
+                <td><%= transfer.inventory&.name %></td>
+                <td><%= transfer.quantity %></td>
+                <td>
+                  <% if transfer.source_store == current_store %>
+                    → <%= transfer.destination_store&.name %>
+                  <% else %>
+                    ← <%= transfer.source_store&.name %>
+                  <% end %>
+                </td>
+                <td>
+                  <span class="badge bg-info"><%= transfer.status %></span>
+                </td>
+                <td>
+                  <%= link_to "詳細", store_transfer_path(transfer), class: "btn btn-sm btn-outline-primary" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      
+      <%# ページネーション %>
+      <%= paginate @transfers if defined?(@transfers) %>
+    <% else %>
+      <div class="text-center py-5">
+        <i class="bi bi-arrow-left-right display-4 text-muted mb-3"></i>
+        <h6>移動履歴がありません</h6>
+        <p class="text-muted">「新規申請」ボタンから移動申請を作成してください</p>
+      </div>
+    <% end %>
+  </div>
+</div>

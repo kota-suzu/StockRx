@@ -1,0 +1,189 @@
+<%# 店舗間移動申請フォーム - 基本実装 %>
+<%# CLAUDE.md準拠: ベストプラクティス - 最小限の機能実装からスタート %>
+<%# TODO: 🔴 Phase 1（緊急）- 基本機能実装 %>
+<%# 優先度: 高（ビューテンプレートエラー解決） %>
+<%# 実装内容: 移動申請フォーム、基本的なバリデーション %>
+
+<% content_for :title, "新規移動申請" %>
+
+<div class="row">
+  <div class="col-12">
+    <%# パンくずナビ %>
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          <%= link_to store_root_path do %>
+            <i class="bi bi-house-door"></i> ダッシュボード
+          <% end %>
+        </li>
+        <li class="breadcrumb-item">
+          <%= link_to store_transfers_path do %>
+            <i class="bi bi-arrow-left-right"></i> 店舗間移動
+          <% end %>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+          新規申請
+        </li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="h3 mb-1">
+          <i class="bi bi-plus-circle me-2"></i>新規移動申請
+        </h1>
+        <p class="text-muted mb-0">他店舗への在庫移動を申請します</p>
+      </div>
+      
+      <div>
+        <%= link_to store_transfers_path, class: "btn btn-secondary" do %>
+          <i class="bi bi-arrow-left me-1"></i>一覧に戻る
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% if @transfer.present? %>
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-form me-2"></i>申請フォーム
+          </h5>
+        </div>
+        
+        <div class="card-body">
+          <%= form_with model: [@transfer], url: store_transfers_path, local: true do |f| %>
+            <%# エラー表示 %>
+            <% if @transfer.errors.any? %>
+              <div class="alert alert-danger">
+                <h6><i class="bi bi-exclamation-triangle me-2"></i>入力エラーがあります</h6>
+                <ul class="mb-0">
+                  <% @transfer.errors.full_messages.each do |message| %>
+                    <li><%= message %></li>
+                  <% end %>
+                </ul>
+              </div>
+            <% end %>
+
+            <div class="row g-3">
+              <%# 商品選択 %>
+              <div class="col-md-6">
+                <%= f.label :inventory_id, "商品", class: "form-label" %>
+                <% if defined?(@available_inventories) && @available_inventories.present? %>
+                  <%= f.select :inventory_id, 
+                               options_from_collection_for_select(@available_inventories, "inventory.id", "inventory.name", @transfer.inventory_id),
+                               { prompt: "商品を選択してください" },
+                               { class: "form-select", required: true } %>
+                <% else %>
+                  <select class="form-select" disabled>
+                    <option>移動可能な在庫がありません</option>
+                  </select>
+                <% end %>
+                <div class="form-text">移動可能な在庫のみ表示されます</div>
+              </div>
+
+              <%# 送付先店舗 %>
+              <div class="col-md-6">
+                <%= f.label :destination_store_id, "送付先店舗", class: "form-label" %>
+                <% if defined?(@destination_stores) && @destination_stores.present? %>
+                  <%= f.select :destination_store_id,
+                               options_from_collection_for_select(@destination_stores, :id, :name, @transfer.destination_store_id),
+                               { prompt: "送付先を選択してください" },
+                               { class: "form-select", required: true } %>
+                <% else %>
+                  <select class="form-select" disabled>
+                    <option>利用可能な店舗がありません</option>
+                  </select>
+                <% end %>
+              </div>
+
+              <%# 数量 %>
+              <div class="col-md-6">
+                <%= f.label :quantity, "数量", class: "form-label" %>
+                <%= f.number_field :quantity, 
+                                   class: "form-control", 
+                                   min: 1, 
+                                   required: true,
+                                   placeholder: "移動する数量を入力" %>
+              </div>
+
+              <%# 優先度 %>
+              <div class="col-md-6">
+                <%= f.label :priority, "優先度", class: "form-label" %>
+                <%= f.select :priority,
+                             options_for_select([
+                               ['通常', 'normal'],
+                               ['緊急', 'urgent'],
+                               ['高', 'high']
+                             ], @transfer.priority),
+                             { prompt: "優先度を選択" },
+                             { class: "form-select" } %>
+              </div>
+
+              <%# 希望配送日 %>
+              <div class="col-md-6">
+                <%= f.label :requested_delivery_date, "希望配送日", class: "form-label" %>
+                <%= f.date_field :requested_delivery_date, 
+                                 class: "form-control",
+                                 min: Date.tomorrow %>
+                <div class="form-text">空欄の場合は最短での配送となります</div>
+              </div>
+
+              <%# 理由 %>
+              <div class="col-12">
+                <%= f.label :reason, "移動理由", class: "form-label" %>
+                <%= f.select :reason,
+                             options_for_select([
+                               ['在庫不足', '在庫不足'],
+                               ['過剰在庫', '過剰在庫'],
+                               ['期限間近', '期限間近'],
+                               ['顧客要求', '顧客要求'],
+                               ['その他', 'その他']
+                             ], @transfer.reason),
+                             { prompt: "理由を選択してください" },
+                             { class: "form-select", required: true } %>
+              </div>
+
+              <%# 備考 %>
+              <div class="col-12">
+                <%= f.label :notes, "備考", class: "form-label" %>
+                <%= f.text_area :notes, 
+                                class: "form-control", 
+                                rows: 3,
+                                placeholder: "追加の情報や特記事項があれば記入してください" %>
+              </div>
+
+              <%# 送信ボタン %>
+              <div class="col-12">
+                <div class="d-flex justify-content-end gap-2 mt-3">
+                  <%= link_to "キャンセル", store_transfers_path, class: "btn btn-outline-secondary" %>
+                  <%= f.submit "申請する", class: "btn btn-primary" %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+<% else %>
+  <div class="alert alert-danger">
+    申請フォームの初期化に失敗しました。
+  </div>
+<% end %>
+
+<%# TODO: 🟡 Phase 2（重要）- 申請フォーム機能の拡張 %>
+<%# 優先度: 中（ユーザビリティ向上） %>
+<%# 実装内容: %>
+<%#   - 在庫数リアルタイム表示 %>
+<%#   - 送付先在庫状況表示 %>
+<%#   - フォームバリデーション強化 %>
+<%#   - 下書き保存機能 %>
+<%# メタ認知: 申請プロセスの効率化により業務負荷を軽減 %>
