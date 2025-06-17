@@ -1,22 +1,25 @@
 <%# Bootstrap 5 モダンログインページ - StockRx 管理者認証 %>
-<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light py-5">
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
   <div class="container">
     <div class="row justify-content-center">
-      <div class="col-12 col-md-6 col-lg-4">
+      <div class="col-12 col-md-6 col-lg-5 col-xl-4">
         
         <%# ブランドヘッダー %>
         <div class="text-center mb-4">
           <div class="mb-3">
-            <i class="fas fa-boxes-stacked fa-3x text-primary"></i>
+            <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-lg" style="width: 80px; height: 80px;">
+              <i class="fas fa-boxes-stacked fa-2x text-primary"></i>
+            </div>
           </div>
-          <h1 class="h3 mb-2 fw-bold text-dark">StockRx 管理画面</h1>
-          <p class="text-muted mb-0">在庫管理システム</p>
+          <h1 class="h3 mb-2 fw-bold text-white">StockRx 管理画面</h1>
+          <p class="text-white-50 mb-0">在庫管理システム</p>
         </div>
 
         <%# ログインカード %>
-        <div class="card shadow-lg border-0">
-          <div class="card-header bg-primary text-white text-center py-3">
-            <h2 class="h5 mb-0">
+        <div class="card shadow-lg border-0 overflow-hidden">
+          <div class="card-header bg-primary text-white text-center py-4 position-relative">
+            <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.1) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.1) 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; opacity: 0.3;"></div>
+            <h2 class="h5 mb-0 position-relative">
               <i class="fas fa-sign-in-alt me-2"></i>管理者ログイン
             </h2>
           </div>
@@ -30,16 +33,17 @@
               
               <%# メールアドレス入力 %>
               <div class="mb-3">
-                <%= f.label :email, "メールアドレス", class: "form-label fw-medium" %>
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="fas fa-envelope text-muted"></i>
+                <%= f.label :email, "メールアドレス", class: "form-label fw-medium text-dark" %>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text bg-light border-end-0">
+                    <i class="fas fa-envelope text-primary"></i>
                   </span>
                   <%= f.email_field :email, 
                       autofocus: true, 
                       autocomplete: "email",
-                      class: "form-control form-control-lg",
+                      class: "form-control border-start-0 ps-0",
                       placeholder: "admin@example.com",
+                      style: "box-shadow: none; border-color: #ced4da;",
                       required: true %>
                   <div class="invalid-feedback">
                     有効なメールアドレスを入力してください。
@@ -49,16 +53,20 @@
 
               <%# パスワード入力 %>
               <div class="mb-3">
-                <%= f.label :password, "パスワード", class: "form-label fw-medium" %>
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="fas fa-lock text-muted"></i>
+                <%= f.label :password, "パスワード", class: "form-label fw-medium text-dark" %>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text bg-light border-end-0">
+                    <i class="fas fa-lock text-primary"></i>
                   </span>
                   <%= f.password_field :password, 
                       autocomplete: "current-password",
-                      class: "form-control form-control-lg",
+                      class: "form-control border-start-0 ps-0",
                       placeholder: "パスワードを入力",
+                      style: "box-shadow: none; border-color: #ced4da;",
                       required: true %>
+                  <button class="btn btn-outline-secondary border-start-0" type="button" id="togglePassword" style="border-color: #ced4da;">
+                    <i class="fas fa-eye" id="toggleIcon"></i>
+                  </button>
                   <div class="invalid-feedback">
                     パスワードを入力してください。
                   </div>
@@ -78,7 +86,8 @@
               <%# ログインボタン %>
               <div class="d-grid mb-3">
                 <%= f.submit "ログイン", 
-                    class: "btn btn-primary btn-lg fw-medium",
+                    class: "btn btn-primary btn-lg fw-medium py-3",
+                    style: "background: linear-gradient(45deg, #007bff, #0056b3); border: none; box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);",
                     data: { 
                       disable_with: '<i class="fas fa-spinner fa-spin me-2"></i>ログイン中...' 
                     } %>
@@ -88,14 +97,17 @@
             <%# GitHubソーシャルログイン %>
             <div class="text-center">
               <div class="d-flex align-items-center mb-3">
-                <hr class="flex-grow-1">
-                <span class="px-3 text-muted small">または</span>
-                <hr class="flex-grow-1">
+                <hr class="flex-grow-1 opacity-25">
+                <span class="px-3 text-muted small fw-medium">または</span>
+                <hr class="flex-grow-1 opacity-25">
               </div>
               
               <%= link_to admin_omniauth_authorize_path(:github), 
                   method: :post,
-                  class: "btn btn-outline-dark btn-lg w-100",
+                  class: "btn btn-outline-dark btn-lg w-100 py-3",
+                  style: "border: 2px solid #333; transition: all 0.3s ease;",
+                  onmouseover: "this.style.backgroundColor='#333'; this.style.color='white'; this.style.transform='translateY(-2px)';",
+                  onmouseout: "this.style.backgroundColor='transparent'; this.style.color='#333'; this.style.transform='translateY(0)';",
                   data: { turbo: false } do %>
                 <i class="fab fa-github me-2"></i>GitHubでログイン
               <% end %>
@@ -110,7 +122,7 @@
 
         <%# セキュリティ情報 %>
         <div class="text-center mt-4">
-          <small class="text-muted">
+          <small class="text-white-50">
             <i class="fas fa-shield-alt me-1"></i>
             このサイトは SSL で保護されています
           </small>
@@ -129,7 +141,7 @@
   </div>
 </div>
 
-<%# Bootstrap 5 Form Validation %>
+<%# Enhanced JavaScript for improved UX %>
 <script>
 (function() {
   'use strict';
@@ -145,6 +157,58 @@
         form.classList.add('was-validated');
       }, false);
     });
+
+    // パスワード表示切り替え機能
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordField = document.getElementById('admin_password');
+    const toggleIcon = document.getElementById('toggleIcon');
+
+    if (togglePassword && passwordField && toggleIcon) {
+      togglePassword.addEventListener('click', function() {
+        const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordField.setAttribute('type', type);
+        
+        // アイコン切り替え
+        if (type === 'text') {
+          toggleIcon.classList.remove('fa-eye');
+          toggleIcon.classList.add('fa-eye-slash');
+        } else {
+          toggleIcon.classList.remove('fa-eye-slash');
+          toggleIcon.classList.add('fa-eye');
+        }
+      });
+    }
+
+    // 入力フィールドのフォーカス効果
+    const inputGroups = document.querySelectorAll('.input-group');
+    inputGroups.forEach(function(group) {
+      const input = group.querySelector('input');
+      if (input) {
+        input.addEventListener('focus', function() {
+          group.style.boxShadow = '0 0 0 0.25rem rgba(13, 110, 253, 0.25)';
+          group.style.borderColor = '#86b7fe';
+        });
+        
+        input.addEventListener('blur', function() {
+          group.style.boxShadow = 'none';
+          group.style.borderColor = '#ced4da';
+        });
+      }
+    });
+
+    // ログインボタンのホバー効果
+    const loginBtn = document.querySelector('input[type="submit"]');
+    if (loginBtn) {
+      loginBtn.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-2px)';
+        this.style.boxShadow = '0 6px 20px rgba(0, 123, 255, 0.4)';
+      });
+      
+      loginBtn.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 4px 15px rgba(0, 123, 255, 0.3)';
+      });
+    }
   }, false);
 })();
 </script> 
