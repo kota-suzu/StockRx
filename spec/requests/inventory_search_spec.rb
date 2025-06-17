@@ -16,7 +16,7 @@ RSpec.describe "Inventory Search", type: :request do
 
   # TODO: ✅ 403 Forbidden エラーの調査と修正（完了）
   # 問題: リクエストスペックで403エラーが発生
-  # 原因: 誤ったパスを使用していた（inventories_path → admin_inventories_path）
+  # 原因: 誤ったパスを使用していた（admin_inventories_path → admin_inventories_path）
   # 解決策実施済み:
   # - 全てのパスをadmin_inventories_pathに修正
   # - SearchQueryが期待するパラメータ名に合わせて修正（name → q）
@@ -233,7 +233,7 @@ RSpec.describe "Inventory Search", type: :request do
 
   describe "Form object assignment" do
     it "assigns search form with valid parameters" do
-      get inventories_path, params: { name: 'SEARCH_TEST_商品', status: 'active' }
+      get admin_inventories_path, params: { name: 'SEARCH_TEST_商品', status: 'active' }
 
       expect(response).to have_http_status(:ok)
       # 検索結果が適切に表示されることを確認

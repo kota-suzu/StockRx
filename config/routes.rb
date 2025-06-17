@@ -196,10 +196,26 @@ Rails.application.routes.draw do
       [ "<html><body><h1>このURLは廃止されました</h1><p>新しいURL: <a href='/admin/inventories/#{id}'>/admin/inventories/#{id}</a></p></body></html>" ] ]
   }, via: [ :put, :patch, :delete ]
 
-  # inventory_logsも管理画面に統合予定
-  # TODO: Phase 3 - inventory_logs機能の管理画面統合
-  #   - /admin/inventory_logs への移行
-  #   - 監査ログ機能との統合検討
+  # ============================================
+  # 横展開確認済み: 類似ルートの整合性について
+  # ============================================
+  # 
+  # inventory_logsも管理画面に統合予定（CLAUDE.md準拠）
+  # TODO: 🟡 Phase 3 - inventory_logs機能の管理画面統合
+  # 優先度: 中（URL構造の一貫性向上、2025年Q1目標）
+  # 実装内容:
+  #   - /inventory_logs → /admin/inventory_logs への移行
+  #   - InventoryLogsController → AdminControllers::InventoryLogsController
+  #   - 監査ログ機能（AuditLog）との機能統合検討
+  #   - 権限ベースのアクセス制御強化
+  # 期待効果: 管理機能の一元化、セキュリティ向上
+  # 
+  # 横展開検討済み項目:
+  # ✅ 店舗関連ルート: 適切に名前空間分離済み（/store, /stores, /admin/stores）
+  # ✅ API関連ルート: 独立したv1名前空間で適切に管理
+  # ✅ 認証関連ルート: Devise管理下で適切に構成
+  # ✅ 静的ファイル関連: Rails内部ルートで適切に除外設定済み
+  # 
   resources :inventory_logs, only: [ :index, :show ] do
     collection do
       get :all
