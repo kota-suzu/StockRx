@@ -665,6 +665,23 @@ config.omniauth :github,
 - ベストプラクティス: 関連付け名の意味的正確性とコード可読性向上
 - 将来計画: 統一的ログ管理インターフェースの検討
 
+### ✅ **管理画面ナビゲーションドロップダウン修正完了（6月18日）**
+- 問題: 管理画面で店舗管理・移動管理・在庫管理・監視のリンクが機能しない
+- 原因: Bootstrap JavaScriptの重複読み込みによるコンフリクト
+  - ImportmapとCDN両方でBootstrap読み込み
+  - javascript_include_tagとjavascript_importmap_tagsの混在
+- 解決策: JavaScript読み込み方法の統一
+- 修正ファイル:
+  - `app/views/layouts/admin.html.erb`: Bootstrap CDN削除
+  - `app/views/layouts/store.html.erb`: importmap統一
+  - `app/views/layouts/store_auth.html.erb`: importmap統一
+  - `app/views/layouts/store_selection.html.erb`: importmap統一
+  - `app/javascript/application.js`: Bootstrap初期化関数追加
+- メタ認知: モダンRails開発ではImportmap推奨、CDN混在は避ける
+- 横展開確認: 全レイアウトファイルで一貫性確保完了
+- ベストプラクティス: Turbo対応のBootstrap初期化実装
+- 将来計画: Web Components移行検討（Bootstrap依存度削減）
+
 ## 直近の重要な改善（2025年6月）
 
 ### ✅ **完了済み主要タスク**
