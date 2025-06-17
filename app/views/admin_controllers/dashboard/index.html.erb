@@ -256,6 +256,10 @@
     </div>
     
     <div class="col-sm-6 col-lg-3 mb-3">
+      <%# TODO: 🟢 Phase 4（推奨）- Sidekiq Webマウントエンジンのパス管理 %>
+      <%# 優先度: 低（機能的には問題なし） %>
+      <%# 理由: Sidekiq::Webは外部エンジンのため、Railsパスヘルパーが自動生成されない %>
+      <%# 現状: ハードコードパスは正常動作（routes.rbでマウント確認済み） %>
       <%= link_to "/admin/sidekiq", class: "dashboard-card text-decoration-none h-100 border-0 shadow-sm", target: "_blank", rel: "noopener noreferrer" do %>
         <div class="card-body text-center p-4 h-100 d-flex flex-column justify-content-center">
           <div class="icon-lg mb-3 text-warning"><i class="bi bi-gear"></i></div>

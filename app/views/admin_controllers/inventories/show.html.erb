@@ -1,45 +1,53 @@
-<%# 在庫詳細 - Bootstrap 5版 %>
+<%# 在庫詳細 - 統一UI版 %>
 <div class="container-fluid py-4">
-  <%# ページヘッダー %>
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div class="d-flex align-items-center">
-      <%= link_to admin_inventories_path, class: "btn btn-outline-secondary me-3" do %>
-        <i class="fas fa-arrow-left me-2"></i>一覧に戻る
-      <% end %>
-      <div>
-        <h1 class="h2 mb-1">
-          <i class="fas fa-box me-2 text-primary"></i><%= @inventory.name %>
-        </h1>
-        <div class="d-flex align-items-center gap-2">
-          <%= @inventory.status_badge %>
-          <%= @inventory.alert_badge %>
-          <small class="text-muted">
-            最終更新: <%= l(@inventory.updated_at, format: :short) if @inventory.updated_at.present? %>
-          </small>
-        </div>
-      </div>
-    </div>
-    <div class="d-flex gap-2">
-      <%= link_to edit_admin_inventory_path(@inventory), class: "btn btn-warning" do %>
-        <i class="fas fa-edit me-2"></i>編集
-      <% end %>
-      <%= button_to admin_inventory_path(@inventory), 
-                   method: :delete, 
-                   form: { data: { turbo_confirm: "この在庫を削除してもよろしいですか？" } }, 
-                   class: "btn btn-danger" do %>
-        <i class="fas fa-trash me-2"></i>削除
-      <% end %>
-    </div>
+  <%# 統一ページヘッダー %>
+  <%= render 'admin_controllers/shared/page_header',
+             title: @inventory.name,
+             subtitle: "最終更新: #{l(@inventory.updated_at, format: :short) if @inventory.updated_at.present?}",
+             icon: 'bi-box',
+             icon_color: 'primary',
+             back_path: admin_inventories_path,
+             back_text: '一覧に戻る',
+             breadcrumbs: [
+               { text: 'ダッシュボード', path: admin_root_path, icon: 'bi-house' },
+               { text: '在庫管理', path: admin_inventories_path, icon: 'bi-box' },
+               { text: @inventory.name, active: true }
+             ],
+             actions: [
+               {
+                 text: '編集',
+                 path: edit_admin_inventory_path(@inventory),
+                 icon: 'bi-pencil',
+                 class: 'btn-warning'
+               },
+               {
+                 text: '削除',
+                 path: admin_inventory_path(@inventory),
+                 method: :delete,
+                 icon: 'bi-trash',
+                 class: 'btn-danger',
+                 confirm: 'この在庫を削除してもよろしいですか？'
+               }
+             ] %>
+
+  <%# ステータスバッジ表示 %>
+  <div class="mb-4 d-flex align-items-center gap-3">
+    <%= render 'admin_controllers/shared/status_badge',
+               status: @inventory.status,
+               type: 'status' %>
+    <%= render 'admin_controllers/shared/status_badge',
+               status: @inventory.alert_level,
+               type: 'level' %>
   </div>
 
   <%# メイン情報カード群 %>
   <div class="row g-4 mb-4">
     <%# 基本情報 %>
     <div class="col-lg-4">
-      <div class="card shadow-sm h-100">
+      <div class="card admin-card h-100">
         <div class="card-header bg-primary text-white">
           <h2 class="card-title mb-0">
-            <i class="fas fa-info-circle me-2"></i>基本情報
+            <i class="bi bi-info-circle me-2"></i>基本情報
           </h2>
         </div>
         <div class="card-body">
@@ -53,7 +61,7 @@
             <div class="col-6">
               <div class="text-center">
                 <div class="h5 text-success mb-1">
-                  <i class="fas fa-yen-sign me-1"></i><%= number_with_delimiter(@inventory.price) %>
+                  <i class="bi bi-currency-yen me-1"></i><%= number_with_delimiter(@inventory.price) %>
                 </div>
                 <small class="text-muted">価格（円）</small>
               </div>
@@ -61,7 +69,7 @@
             <div class="col-6">
               <div class="text-center">
                 <div class="h5 mb-1 <%= @inventory.quantity <= 0 ? 'text-danger' : @inventory.quantity < 10 ? 'text-warning' : 'text-success' %>">
-                  <i class="fas fa-boxes me-1"></i><%= @inventory.quantity %>
+                  <i class="bi bi-boxes me-1"></i><%= @inventory.quantity %>
                 </div>
                 <small class="text-muted">在庫数（個）</small>
               </div>
@@ -90,10 +98,10 @@
 
     <%# バッチ情報サマリー %>
     <div class="col-lg-4">
-      <div class="card shadow-sm h-100">
+      <div class="card admin-card h-100">
         <div class="card-header bg-info text-white">
           <h2 class="card-title mb-0">
-            <i class="fas fa-layer-group me-2"></i>ロット情報
+            <i class="bi bi-layers me-2"></i>ロット情報
           </h2>
         </div>
         <div class="card-body">
@@ -101,7 +109,7 @@
             <div class="col-12">
               <div class="bg-light p-3 rounded">
                 <div class="h3 text-info mb-1">
-                  <i class="fas fa-boxes me-1"></i><%= @inventory.batches_count %>
+                  <i class="bi bi-boxes me-1"></i><%= @inventory.batches_count %>
                 </div>
                 <h6 class="text-muted mb-0">ロット総数</h6>
               </div>
@@ -110,7 +118,7 @@
               <% expired_count = @inventory.batches.select(&:expired?).count %>
               <div class="p-2 <%= expired_count > 0 ? 'bg-danger bg-opacity-10' : 'bg-light' %> rounded">
                 <div class="h5 mb-1 <%= expired_count > 0 ? 'text-danger' : 'text-muted' %>">
-                  <i class="fas fa-exclamation-triangle me-1"></i><%= expired_count %>
+                  <i class="bi bi-exclamation-triangle me-1"></i><%= expired_count %>
                 </div>
                 <small class="text-muted">期限切れ</small>
                 <% if expired_count > 0 %>
@@ -124,7 +132,7 @@
               <% expiring_soon_count = @inventory.batches.select(&:expiring_soon?).count %>
               <div class="p-2 <%= expiring_soon_count > 0 ? 'bg-warning bg-opacity-10' : 'bg-light' %> rounded">
                 <div class="h5 mb-1 <%= expiring_soon_count > 0 ? 'text-warning' : 'text-muted' %>">
-                  <i class="fas fa-clock me-1"></i><%= expiring_soon_count %>
+                  <i class="bi bi-clock me-1"></i><%= expiring_soon_count %>
                 </div>
                 <small class="text-muted">期限間近</small>
                 <% if expiring_soon_count > 0 %>
@@ -159,10 +167,10 @@
 
     <%# 操作履歴・統計情報 %>
     <div class="col-lg-4">
-      <div class="card shadow-sm h-100">
+      <div class="card admin-card h-100">
         <div class="card-header bg-secondary text-white">
           <h2 class="card-title mb-0">
-            <i class="fas fa-chart-line me-2"></i>統計・履歴
+            <i class="bi bi-graph-up me-2"></i>統計・履歴
           </h2>
         </div>
         <div class="card-body">
@@ -199,42 +207,45 @@
   </div>
 
   <%# バッチ一覧テーブル %>
-  <div class="card shadow-sm mb-4">
+  <div class="card admin-card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
       <h2 class="card-title mb-0">
-        <i class="fas fa-layer-group me-2"></i>ロット一覧
+        <i class="bi bi-layers me-2"></i>ロット一覧
       </h2>
       <div>
-        <%# TODO: バッチ追加機能の実装 %>
+        <%# TODO: 🟡 Phase 3（重要）- バッチ追加・編集機能の実装 %>
+        <%# 優先度: 中（在庫管理機能の完成） %>
+        <%# 実装内容: CRUD機能、バリデーション、権限制御 %>
+        <%# 期待効果: 在庫管理の完全自動化、データ精度向上 %>
         <button class="btn btn-success" disabled>
-          <i class="fas fa-plus me-2"></i>ロット追加
+          <i class="bi bi-plus me-2"></i>ロット追加
         </button>
         <small class="text-muted ms-2">（実装予定）</small>
       </div>
     </div>
 
     <div class="card-body p-0">
-      <div class="table-responsive">
+      <div class="table-responsive admin-table">
         <table class="table table-hover mb-0">
           <thead class="table-dark">
             <tr>
               <th scope="col">
-                <i class="fas fa-barcode me-1"></i>ロットコード
+                <i class="bi bi-upc me-1"></i>ロットコード
               </th>
               <th scope="col">
-                <i class="fas fa-boxes me-1"></i>数量
+                <i class="bi bi-boxes me-1"></i>数量
               </th>
               <th scope="col">
-                <i class="fas fa-percentage me-1"></i>割合
+                <i class="bi bi-percent me-1"></i>割合
               </th>
               <th scope="col">
-                <i class="fas fa-calendar-alt me-1"></i>有効期限
+                <i class="bi bi-calendar-event me-1"></i>有効期限
               </th>
               <th scope="col">
-                <i class="fas fa-traffic-light me-1"></i>状態
+                <i class="bi bi-traffic-light me-1"></i>状態
               </th>
               <th scope="col" class="text-end">
-                <i class="fas fa-cogs me-1"></i>アクション
+                <i class="bi bi-gear me-1"></i>アクション
               </th>
             </tr>
           </thead>
@@ -268,7 +279,7 @@
                   </td>
                   <td>
                     <% if batch.expires_on.present? %>
-                      <i class="fas fa-calendar me-1 text-muted"></i>
+                      <i class="bi bi-calendar-event me-1 text-muted"></i>
                       <%= l(batch.expires_on, format: :short) %>
                     <% else %>
                       <span class="text-muted">-</span>
@@ -276,29 +287,44 @@
                   </td>
                   <td>
                     <% if batch.expired? %>
-                      <span class="badge bg-danger">
-                        <i class="fas fa-exclamation-triangle me-1"></i>期限切れ
-                      </span>
+                      <%= render 'admin_controllers/shared/status_badge',
+                                 status: 'expired',
+                                 text: '期限切れ',
+                                 type: 'level' %>
                     <% elsif batch.expiring_soon? %>
-                      <span class="badge bg-warning">
-                        <i class="fas fa-clock me-1"></i>期限間近
-                      </span>
+                      <%= render 'admin_controllers/shared/status_badge',
+                                 status: 'expiring_soon',
+                                 text: '期限間近',
+                                 type: 'level' %>
                     <% else %>
-                      <span class="badge bg-success">
-                        <i class="fas fa-check-circle me-1"></i>正常
-                      </span>
+                      <%= render 'admin_controllers/shared/status_badge',
+                                 status: 'normal',
+                                 text: '正常',
+                                 type: 'level' %>
                     <% end %>
                   </td>
                   <td class="text-end">
-                    <div class="btn-group btn-group-sm" role="group">
-                      <%# TODO: バッチの編集・削除機能の実装 %>
-                      <button class="btn btn-outline-warning" disabled>
-                        <i class="fas fa-edit"></i>
-                      </button>
-                      <button class="btn btn-outline-danger" disabled>
-                        <i class="fas fa-trash"></i>
-                      </button>
-                    </div>
+                    <%= render 'admin_controllers/shared/action_buttons',
+                               buttons: [
+                                 {
+                                   text: '編集',
+                                   path: nil,
+                                   icon: 'bi-pencil',
+                                   class: 'btn-outline-warning',
+                                   disabled: true,
+                                   tooltip: '実装予定'
+                                 },
+                                 {
+                                   text: '削除',
+                                   path: nil,
+                                   icon: 'bi-trash',
+                                   class: 'btn-outline-danger',
+                                   disabled: true,
+                                   tooltip: '実装予定'
+                                 }
+                               ],
+                               size: 'sm',
+                               layout: 'group' %>
                   </td>
                 </tr>
               <% end %>
@@ -306,7 +332,7 @@
               <tr>
                 <td colspan="6" class="text-center py-5">
                   <div class="text-muted">
-                    <i class="fas fa-box-open fa-3x mb-3"></i>
+                    <i class="bi bi-box display-4 mb-3"></i>
                     <h6>ロットデータがありません</h6>
                     <p class="mb-0">「ロット追加」ボタンからロットを登録してください</p>
                   </div>
@@ -369,9 +395,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<%# TODO: 実装予定機能 %>
-<%# - ロットCRUD機能（追加・編集・削除） %>
-<%# - 在庫操作履歴の表示 %>
-<%# - 在庫アラート・通知設定 %>
-<%# - 在庫統計・分析機能 %>
+<%# TODO: 🟡 Phase 3-4（重要）- 在庫管理機能完全実装 %>
+<%# 優先度: 中（機能完成度向上） %>
+<%# 実装内容: %>
+<%#   - ロットCRUD機能（追加・編集・削除） %>
+<%#   - 在庫操作履歴の表示機能 %>
+<%#   - 在庫アラート・通知設定 %>
+<%#   - 在庫統計・分析機能 %>
+<%#   - エクスポート機能（PDF・Excel） %>
+<%# 期待効果: 完全な在庫管理システム、業務効率化、データ分析強化 %>
 <%# - エクスポート機能（PDF・Excel） %> 
