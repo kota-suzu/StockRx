@@ -8,9 +8,9 @@ module AdminControllers
     before_action :ensure_multi_store_permissions, except: [ :index, :dashboard ]
 
     def index
-      # 🔍 パフォーマンス最適化: includesでN+1クエリ対策（CLAUDE.md準拠）
-      @stores = Store.includes(:store_inventories, :inventories, :admins)
-                    .active
+      # 🔍 パフォーマンス最適化: Counter Cacheを活用（CLAUDE.md準拠）
+      # メタ認知: includesは不要、viewでCounter Cacheメソッドのみ使用
+      @stores = Store.active
                     .page(params[:page])
                     .per(20)
 
@@ -123,7 +123,18 @@ module AdminControllers
     private
 
     def set_store
-      @store = Store.find(params[:id])
+      # CLAUDE.md準拠: パフォーマンス最適化 - アクション別に必要な関連データのみを読み込み
+      # メタ認知: show/editアクションは関連データが必要、update/destroyは基本情報のみで十分
+      case action_name
+      when 'show', 'edit', 'dashboard'
+        # 詳細表示・編集・ダッシュボード: 関連データを含む包括的なデータを読み込み
+        @store = Store.includes(:store_inventories, :admins, :outgoing_transfers, :incoming_transfers)
+                      .find(params[:id])
+      else
+        # update, destroy: 基本的なStoreデータのみで十分
+        # パフォーマンス向上: 不要なJOINとデータ読み込みを回避
+        @store = Store.find(params[:id])
+      end
     end
 
     def store_params
