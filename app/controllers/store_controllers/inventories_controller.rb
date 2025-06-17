@@ -15,13 +15,16 @@ module StoreControllers
 
     # 在庫一覧
     def index
-      @q = current_store.store_inventories
-                       .joins(:inventory)
-                       .includes(inventory: :batches)
-                       .ransack(params[:q])
+      # CLAUDE.md準拠: ransack代替実装でセキュリティとパフォーマンスを両立
+      # メタ認知: AdvancedSearchQueryパターンと一貫性を保つ
+      base_scope = current_store.store_inventories
+                               .joins(:inventory)
+                               .includes(inventory: :batches)
 
-      @store_inventories = @q.result
-                            .order(sort_column => sort_direction)
+      # 検索条件の適用（ransackの代替）
+      @q = apply_search_filters(base_scope, params[:q] || {})
+
+      @store_inventories = @q.order(sort_column => sort_direction)
                             .page(params[:page])
                             .per(per_page)
 
@@ -119,9 +122,9 @@ module StoreControllers
     # 統計情報の読み込み
     def load_statistics
       @statistics = {
-        total_items: @q.result.count,
-        total_quantity: @q.result.sum(:quantity),
-        total_value: calculate_total_value(@q.result),
+        total_items: @q.count,
+        total_quantity: @q.sum(:quantity),
+        total_value: calculate_total_value(@q),
         low_stock_percentage: calculate_low_stock_percentage
       }
     end
@@ -207,6 +210,61 @@ module StoreControllers
       else
         { text: "良好", class: "badge bg-success" }
       end
+    end
+
+    private
+
+    # 検索フィルターの適用（ransack代替実装）
+    # CLAUDE.md準拠: SQLインジェクション対策とパフォーマンス最適化
+    # TODO: 🟡 Phase 3（重要）- 検索機能の拡張
+    #   - 全文検索機能（MySQL FULLTEXT INDEX活用）
+    #   - 検索結果のハイライト表示
+    #   - 検索履歴・お気に入り機能
+    #   - 横展開: AdminControllers::StoreInventoriesControllerと共通化
+    def apply_search_filters(scope, search_params)
+      # 基本的な名前検索
+      if search_params[:name_cont].present?
+        scope = scope.where("inventories.name LIKE ?", "%#{sanitize_sql_like(search_params[:name_cont])}%")
+      end
+
+      # カテゴリフィルター（商品名パターンマッチング）
+      if search_params[:category_eq].present?
+        category_keywords = category_keywords_map[search_params[:category_eq]]
+        if category_keywords
+          scope = scope.where("inventories.name REGEXP ?", category_keywords.join('|'))
+        end
+      end
+
+      # 在庫レベルフィルター
+      if search_params[:stock_level_eq].present?
+        case search_params[:stock_level_eq]
+        when 'out_of_stock'
+          scope = scope.where(quantity: 0)
+        when 'low_stock'
+          scope = scope.where("store_inventories.quantity > 0 AND store_inventories.quantity <= store_inventories.safety_stock_level")
+        when 'normal_stock'
+          scope = scope.where("store_inventories.quantity > store_inventories.safety_stock_level AND store_inventories.quantity <= store_inventories.safety_stock_level * 2")
+        when 'excess_stock'
+          scope = scope.where("store_inventories.quantity > store_inventories.safety_stock_level * 2")
+        end
+      end
+
+      # メーカーフィルター
+      if search_params[:manufacturer_eq].present?
+        scope = scope.where("inventories.manufacturer = ?", search_params[:manufacturer_eq])
+      end
+
+      scope
+    end
+
+    # カテゴリキーワードマップ
+    def category_keywords_map
+      {
+        "医薬品" => %w[錠 カプセル 軟膏 点眼 坐剤 注射 シロップ 細粒 顆粒 液 mg IU],
+        "医療機器" => %w[血圧計 体温計 パルスオキシメーター 聴診器 測定器],
+        "消耗品" => %w[マスク 手袋 アルコール ガーゼ 注射針],
+        "サプリメント" => %w[ビタミン サプリ オメガ プロバイオティクス フィッシュオイル]
+      }
     end
 
     # 商品名からカテゴリを推定するヘルパーメソッド

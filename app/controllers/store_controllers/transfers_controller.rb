@@ -19,14 +19,17 @@ module StoreControllers
 
     # 移動一覧
     def index
-      @q = InterStoreTransfer.where(
+      # CLAUDE.md準拠: ransack代替実装でセキュリティとパフォーマンスを両立
+      base_scope = InterStoreTransfer.where(
         "source_store_id = :store_id OR destination_store_id = :store_id",
         store_id: current_store.id
-      ).ransack(params[:q])
+      )
 
-      @transfers = @q.result
-                    .includes(:source_store, :destination_store, :inventory,
-                             :requested_by, :approved_by)
+      # 検索条件の適用（ransackの代替）
+      @q = apply_search_filters(base_scope, params[:q] || {})
+
+      @transfers = @q.includes(:source_store, :destination_store, :inventory,
+                              :requested_by, :approved_by)
                     .order(created_at: :desc)
                     .page(params[:page])
                     .per(per_page)
@@ -267,6 +270,50 @@ module StoreControllers
       end
 
       events.sort_by { |e| e[:timestamp] }
+    end
+
+    private
+
+    # 検索フィルターの適用（ransack代替実装）
+    # CLAUDE.md準拠: SQLインジェクション対策とパフォーマンス最適化
+    # TODO: 🟡 Phase 3（重要）- 移動履歴高度検索機能
+    #   - 移動経路・ルート検索
+    #   - 承認者・申請者による絞り込み
+    #   - 移動量・金額による範囲検索
+    #   - 横展開: 管理者側InterStoreTransfersControllerとの統合
+    def apply_search_filters(scope, search_params)
+      # 在庫名検索
+      if search_params[:inventory_name_cont].present?
+        scope = scope.joins(:inventory)
+                    .where("inventories.name LIKE ?", "%#{sanitize_sql_like(search_params[:inventory_name_cont])}%")
+      end
+
+      # ステータスフィルター
+      if search_params[:status_eq].present?
+        scope = scope.where(status: search_params[:status_eq])
+      end
+
+      # 日付範囲フィルター
+      if search_params[:requested_at_gteq].present?
+        scope = scope.where("requested_at >= ?", Date.parse(search_params[:requested_at_gteq]))
+      end
+
+      if search_params[:requested_at_lteq].present?
+        scope = scope.where("requested_at <= ?", Date.parse(search_params[:requested_at_lteq]).end_of_day)
+      end
+
+      # 移動方向フィルター
+      case search_params[:direction_eq]
+      when 'outgoing'
+        scope = scope.where(source_store_id: current_store.id)
+      when 'incoming'
+        scope = scope.where(destination_store_id: current_store.id)
+      end
+
+      scope
+    rescue Date::Error
+      # 日付解析エラーの場合はフィルターをスキップ
+      scope
     end
 
     # ============================================
