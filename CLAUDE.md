@@ -407,6 +407,118 @@ IMPORTANT: パフォーマンスへの影響を考慮
 IMPORTANT: 後方互換性を維持
 IMPORTANT: セキュリティベストプラクティスに従う
 
+## セキュリティベストプラクティス
+
+### Rails 7+ SQLインジェクション対策
+
+**問題**: Rails 7以降、セキュリティ強化により生SQLの直接使用が制限される
+**解決策**: Arel.sql()による安全なSQL文字列のラップ
+
+#### ❌ 危険なパターン（エラーが発生）
+```ruby
+# ActiveRecord::UnknownAttributeReference エラーが発生
+.order("(quantity::float / NULLIF(safety_stock, 0)) ASC")
+.select("table.*, other.column")
+.group("CUSTOM_SQL_FUNCTION(column)")
+```
+
+#### ✅ 安全なパターン（推奨）
+```ruby
+# Arel.sql()でラップして安全性を保証
+safety_ratio_order = Arel.sql(
+  "(store_inventories.quantity::float / NULLIF(store_inventories.safety_stock_level, 0)) ASC"
+)
+.order(safety_ratio_order)
+
+# SELECT句の安全化
+custom_select = Arel.sql("store_inventories.*, batches.expiration_date")
+.select(custom_select)
+
+# GROUP BY句の安全化
+group_clause = Arel.sql("DATE(created_at)")
+.group(group_clause)
+```
+
+#### 🛡️ ベストプラクティス指針
+
+**1. メタ認知的アプローチ**
+```ruby
+# なぜ生SQLを使うのかを明確化
+# メタ認知: 在庫レベル比率による複雑ソートのため生SQLが必要
+safety_ratio_order = Arel.sql(
+  "(store_inventories.quantity::float / NULLIF(store_inventories.safety_stock_level, 0)) ASC"
+)
+```
+
+**2. セキュリティコメントの必須化**
+```ruby
+# 🛡️ セキュリティ対策: Arel.sql()でSQL文字列の安全性を保証
+# 横展開: 他の計算系クエリでも同様のパターン適用
+complex_calculation = Arel.sql("COMPLEX_SQL_HERE")
+```
+
+**3. 変数による可読性向上**
+```ruby
+# ❌ 避けるべき（可読性が低い）
+.order(Arel.sql("(quantity::float / NULLIF(safety_stock, 0)) ASC"))
+
+# ✅ 推奨（可読性が高い）
+safety_ratio_order = Arel.sql(
+  "(quantity::float / NULLIF(safety_stock, 0)) ASC"
+)
+.order(safety_ratio_order)
+```
+
+**4. 横展開確認チェックリスト**
+- [ ] 他のコントローラーで同様の生SQL使用がないか確認
+- [ ] モデルのスコープで生SQL使用がないか確認
+- [ ] サービスクラスで生SQL使用がないか確認
+- [ ] 一貫したArel.sql()使用パターンの適用
+
+#### 🔍 検出・修正パターン
+
+**検出コマンド**:
+```bash
+# 危険なパターンを検出
+grep -r "\.order([\"'].*[\"'])" app/
+grep -r "\.select([\"'].*[\"'])" app/
+grep -r "\.group([\"'].*[\"'])" app/
+```
+
+**修正手順**:
+1. **Phase 1**: 緊急修正（エラー解決）
+2. **Phase 2**: 横展開確認（全体チェック）
+3. **Phase 3**: ベストプラクティス確立
+4. **Phase 4**: ドキュメント化とレビュープロセス確立
+
+#### 📝 TODOコメントパターン
+```ruby
+# TODO: 🟡 Phase 4（重要）- より効率的なクエリへの最適化
+#   - 計算結果のキャッシュ化
+#   - インデックス最適化
+#   - N+1クエリ完全解消
+#   - 横展開: 他の計算系クエリでも同様の最適化適用
+```
+
+### セキュリティチェックリスト
+
+**開発時の必須確認項目**:
+- [ ] 生SQLは全てArel.sql()でラップ済み
+- [ ] ユーザー入力はプレースホルダー使用（`where("name = ?", params[:name])`）
+- [ ] SQLインジェクション脆弱性スキャン実行済み
+- [ ] セキュリティテスト実行済み
+- [ ] 認証・認可ロジック確認済み
+
+**コミット前チェック**:
+```bash
+# セキュリティスキャン
+make security-scan
+
+# 危険なパターン検出
+grep -r "\.where.*#{" app/  # 文字列補間の検出
+grep -r "\.order([\"'].*[\"'])" app/  # 生SQL検出
+```
+
 ## GitHub OAuth App設定手順
 
 ### 1. GitHub OAuth App作成
