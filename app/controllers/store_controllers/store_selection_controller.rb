@@ -8,7 +8,7 @@ module StoreControllers
   # ============================================
   class StoreSelectionController < ApplicationController
     include StoreAuthenticatable
-    
+
     # 認証不要（ログイン前のアクセス）
     # ApplicationControllerには authenticate_admin! が定義されていないため、
     # このスキップは不要
@@ -36,27 +36,58 @@ module StoreControllers
 
     # 特定店舗のログインページ表示
     def show
-      @store = Store.active.find_by!(slug: params[:slug])
+      # 店舗検索（CLAUDE.md: セキュリティ最優先 - 不正なslugへの対策）
+      @store = Store.active.find_by(slug: params[:slug])
+
+      unless @store
+        Rails.logger.warn "Store not found or inactive: slug=#{params[:slug]}, ip=#{request.remote_ip}"
+        redirect_to store_selection_path,
+                    alert: I18n.t("errors.messages.store_not_found") and return
+      end
 
       # より厳密な認証チェック：完全にログインしており、同じ店舗の場合のみダッシュボードへ
       # CLAUDE.md準拠: セキュリティ最優先の認証判定
-      if store_signed_in? && current_store_user.store == @store && current_store.active?
-        redirect_to store_root_path and return
+      begin
+        if store_signed_in? && current_store_user&.store == @store && current_store&.active?
+          redirect_to store_root_path and return
+        end
+      rescue => e
+        # 認証チェック中の例外をログ記録し、セッションクリア（CLAUDE.md: セキュリティ最優先）
+        Rails.logger.error "Store authentication check failed: #{e.message}, store: #{@store.slug}, ip: #{request.remote_ip}"
+        sign_out(:store_user) if store_user_signed_in?
       end
 
       # 不完全な認証状態の場合はセッションをクリア（CLAUDE.md: セキュリティ最優先）
       # メタ認知: store_user_signed_in?だけでなく、店舗の整合性も確認する必要性
-      if store_user_signed_in? && (current_store_user.store != @store || !current_store&.active?)
-        # TODO: Phase 4 - セキュリティ強化（推定1日）
-        # 実装予定:
-        #   - 監査ログに記録（不正アクセス試行の可能性）
-        #   - セキュリティアラート機能
-        #   - IP制限・デバイス認証との連携
-        #   - 横展開: 他の認証箇所でも同様の保護を実装
-        sign_out(:store_user)
-        Rails.logger.info "Cleared invalid store session for store: #{@store.slug}, " \
-                         "user_store: #{current_store_user.store&.slug}, " \
-                         "ip: #{request.remote_ip}"
+      if store_user_signed_in? && (current_store_user&.store != @store || !current_store&.active?)
+        begin
+          # TODO: Phase 4 - セキュリティ強化（推定1日）
+          # 実装予定:
+          #   - 監査ログに記録（不正アクセス試行の可能性）
+          #   - セキュリティアラート機能
+          #   - IP制限・デバイス認証との連携
+          #   - 横展開: 他の認証箇所でも同様の保護を実装
+
+          # sign_out前にユーザー情報を保存（CLAUDE.md: ベストプラクティス適用）
+          invalid_user_store_slug = current_store_user&.store&.slug || "unknown"
+          invalid_user_email = current_store_user&.email || "unknown"
+          user_ip = request.remote_ip
+
+          sign_out(:store_user)
+
+          # セキュリティログ記録（改善版: nil安全 + より詳細な情報）
+          Rails.logger.warn "SECURITY: Cleared invalid store session - " \
+                           "target_store: #{@store.slug}, " \
+                           "user_store: #{invalid_user_store_slug}, " \
+                           "user_email: #{invalid_user_email}, " \
+                           "ip: #{user_ip}, " \
+                           "user_agent: #{request.user_agent}"
+        rescue => e
+          # セッションクリア処理での例外ハンドリング（CLAUDE.md: 堅牢性確保）
+          Rails.logger.error "Session cleanup failed: #{e.message}, store: #{@store.slug}, ip: #{request.remote_ip}"
+          # セッション全体をクリア
+          reset_session
+        end
       end
 
       # 最近アクセスした店舗として記録
@@ -138,7 +169,7 @@ end
 # ============================================
 # TODO: Phase 4以降の拡張予定（CLAUDE.md準拠）
 # ============================================
-# 
+#
 # 🔴 Phase 4: セキュリティ強化（優先度: 高、推定3日）
 # 1. 認証セキュリティ
 #    - 店舗間のセッション漏洩検出・防止機能
@@ -164,9 +195,24 @@ end
 #    - GPS連携での距離表示
 #
 # ============================================
-# メタ認知的改善ポイント
+# メタ認知的改善ポイント（今回の問題から得た教訓）
 # ============================================
-# 1. 認証状態の整合性チェック強化の必要性
-# 2. エラーログの構造化（JSON形式での出力）
-# 3. セキュリティインシデント対応手順の文書化
-# 4. 他コントローラーへの横展開適用チェックリスト作成
+# 1. **nil安全性の確保**: sign_out後のcurrentユーザー参照回避
+#    - 横展開チェック: 全認証関連メソッドで同様パターン確認済み
+#    - ベストプラクティス: 操作前の状態保存パターン確立
+#
+# 2. **包括的エラーハンドリング**:
+#    - 認証チェック時の例外処理追加
+#    - セッションクリア処理の堅牢性確保
+#    - ログ記録の詳細化（セキュリティ観点）
+#
+# 3. **セキュリティログの改善**:
+#    - より詳細な情報記録（email, user_agent等）
+#    - 重要度に応じたログレベル設定（WARN/ERROR）
+#    - 不正アクセス試行の可視化強化
+#
+# 4. **今後の横展開適用チェックリスト**:
+#    - [ ] 全コントローラーでのsign_out使用箇所確認
+#    - [ ] currentユーザー参照のnil安全性監査
+#    - [ ] 認証例外処理の標準化
+#    - [ ] セキュリティログ記録の一元化
