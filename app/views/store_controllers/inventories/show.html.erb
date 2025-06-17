@@ -1,0 +1,339 @@
+<%# 店舗在庫詳細ビュー %>
+<%# CLAUDE.md準拠: ベストプラクティス - 店舗ユーザー向けのシンプルで分かりやすいUI %>
+<%# メタ認知: 管理者画面と異なり、店舗ユーザーには必要最小限の情報を見やすく表示 %>
+<%# 横展開: 他の店舗コントローラーのビューでも同様のUIパターンを適用 %>
+
+<% content_for :title, "#{@inventory.name} - 在庫詳細" %>
+
+<div class="row">
+  <div class="col-12">
+    <%# パンくずナビ %>
+    <nav aria-label="breadcrumb" class="mb-3">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+          <%= link_to store_root_path do %>
+            <i class="bi bi-house-door"></i> ダッシュボード
+          <% end %>
+        </li>
+        <li class="breadcrumb-item">
+          <%= link_to store_inventories_path do %>
+            <i class="bi bi-box-seam"></i> 在庫管理
+          <% end %>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+          <i class="bi bi-info-circle"></i> <%= @inventory.name %>
+        </li>
+      </ol>
+    </nav>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <%# ページヘッダー %>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h1 class="h3 mb-1">
+          <i class="bi bi-box-seam me-2"></i><%= @inventory.name %>
+        </h1>
+        <p class="text-muted mb-0">
+          最終更新: <%= l(@inventory.updated_at, format: :short) if @inventory.updated_at.present? %>
+        </p>
+      </div>
+      
+      <div class="d-flex gap-2">
+        <%# TODO: 🟡 Phase 3（重要）- 店舗間移動申請機能 %>
+        <%# 優先度: 中（業務効率化） %>
+        <%# 実装内容: 移動申請フォーム、承認フロー、履歴表示 %>
+        <%# メタ認知: 店舗ユーザーにとって重要な機能なので優先度を高く設定 %>
+        <button class="btn btn-outline-primary" disabled>
+          <i class="bi bi-arrow-left-right me-1"></i>移動申請
+        </button>
+        
+        <%= link_to store_inventories_path, class: "btn btn-secondary" do %>
+          <i class="bi bi-arrow-left me-1"></i>一覧に戻る
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# メイン情報カード %>
+<div class="row g-4 mb-4">
+  <%# 基本情報 %>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header bg-primary text-white">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-info-circle me-2"></i>基本情報
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="text-center bg-light p-3 rounded">
+              <h4 class="mb-1"><%= @inventory.name %></h4>
+              <p class="text-muted mb-0">商品名</p>
+            </div>
+          </div>
+          
+          <div class="col-6">
+            <div class="text-center">
+              <div class="h5 text-success mb-1">
+                <i class="bi bi-currency-yen me-1"></i><%= number_with_delimiter(@inventory.price) %>
+              </div>
+              <small class="text-muted">価格（円）</small>
+            </div>
+          </div>
+          
+          <div class="col-6">
+            <div class="text-center">
+              <div class="h5 mb-1 <%= @store_inventory.quantity <= 0 ? 'text-danger' : @store_inventory.quantity <= @store_inventory.safety_stock_level ? 'text-warning' : 'text-success' %>">
+                <i class="bi bi-boxes me-1"></i><%= @store_inventory.quantity %>
+              </div>
+              <small class="text-muted">在庫数（個）</small>
+            </div>
+          </div>
+          
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-muted">在庫状態</span>
+              <% badge = stock_level_badge(@store_inventory) %>
+              <span class="<%= badge[:class] %>"><%= badge[:text] %></span>
+            </div>
+          </div>
+          
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-muted">安全在庫レベル</span>
+              <span class="badge bg-info"><%= @store_inventory.safety_stock_level %> 個</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# バッチ情報 %>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header bg-info text-white">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-layers me-2"></i>ロット情報
+        </h5>
+      </div>
+      <div class="card-body">
+        <% if @batches.present? %>
+          <div class="row g-3 text-center">
+            <div class="col-12">
+              <div class="bg-light p-3 rounded">
+                <div class="h4 text-info mb-1">
+                  <i class="bi bi-boxes me-1"></i><%= @batches.count %>
+                </div>
+                <p class="text-muted mb-0">ロット総数</p>
+              </div>
+            </div>
+            
+            <div class="col-6">
+              <% expired_count = @batches.select { |batch| batch.expires_on && batch.expires_on < Date.current }.count %>
+              <div class="p-2 <%= expired_count > 0 ? 'bg-danger bg-opacity-10' : 'bg-light' %> rounded">
+                <div class="h5 mb-1 <%= expired_count > 0 ? 'text-danger' : 'text-muted' %>">
+                  <i class="bi bi-exclamation-triangle me-1"></i><%= expired_count %>
+                </div>
+                <small class="text-muted">期限切れ</small>
+              </div>
+            </div>
+            
+            <div class="col-6">
+              <% expiring_soon_count = @batches.select { |batch| batch.expires_on && batch.expires_on <= 30.days.from_now && batch.expires_on >= Date.current }.count %>
+              <div class="p-2 <%= expiring_soon_count > 0 ? 'bg-warning bg-opacity-10' : 'bg-light' %> rounded">
+                <div class="h5 mb-1 <%= expiring_soon_count > 0 ? 'text-warning' : 'text-muted' %>">
+                  <i class="bi bi-clock me-1"></i><%= expiring_soon_count %>
+                </div>
+                <small class="text-muted">期限間近</small>
+              </div>
+            </div>
+          </div>
+        <% else %>
+          <div class="text-center text-muted">
+            <i class="bi bi-box display-4 mb-3"></i>
+            <p>ロット情報がありません</p>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <%# 統計情報 %>
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header bg-secondary text-white">
+        <h5 class="card-title mb-0">
+          <i class="bi bi-graph-up me-2"></i>統計情報
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">在庫回転日数</span>
+              <span class="badge bg-primary"><%= turnover_days(@store_inventory) %> 日</span>
+            </div>
+          </div>
+          
+          <div class="col-12">
+            <div class="d-flex justify-content-between">
+              <span class="text-muted">在庫金額</span>
+              <span class="text-success fw-bold">
+                ¥<%= number_with_delimiter(@store_inventory.quantity * @inventory.price) %>
+              </span>
+            </div>
+          </div>
+          
+          <div class="col-12">
+            <hr>
+            <small class="text-muted">
+              <i class="bi bi-calendar me-1"></i>
+              登録日: <%= l(@inventory.created_at, format: :short) %>
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# バッチ一覧 %>
+<% if @batches.present? %>
+  <div class="card mb-4">
+    <div class="card-header">
+      <h5 class="card-title mb-0">
+        <i class="bi bi-layers me-2"></i>ロット一覧
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th><i class="bi bi-upc me-1"></i>ロットコード</th>
+              <th><i class="bi bi-boxes me-1"></i>数量</th>
+              <th><i class="bi bi-calendar-event me-1"></i>有効期限</th>
+              <th><i class="bi bi-clock me-1"></i>残り日数</th>
+              <th><i class="bi bi-traffic-light me-1"></i>状態</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @batches.each do |batch| %>
+              <tr>
+                <td>
+                  <code class="text-primary"><%= batch.lot_code %></code>
+                </td>
+                <td>
+                  <span class="badge bg-secondary"><%= batch.quantity %> 個</span>
+                </td>
+                <td>
+                  <% if batch.expires_on.present? %>
+                    <%= l(batch.expires_on, format: :short) %>
+                  <% else %>
+                    <span class="text-muted">-</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if batch.expires_on.present? %>
+                    <% days_until_expiry = (batch.expires_on - Date.current).to_i %>
+                    <% if days_until_expiry < 0 %>
+                      <span class="text-danger">期限切れ</span>
+                    <% elsif days_until_expiry <= 30 %>
+                      <span class="text-warning"><%= days_until_expiry %> 日</span>
+                    <% else %>
+                      <span class="text-success"><%= days_until_expiry %> 日</span>
+                    <% end %>
+                  <% else %>
+                    <span class="text-muted">-</span>
+                  <% end %>
+                </td>
+                <td>
+                  <% if batch.expires_on.present? %>
+                    <% days_until_expiry = (batch.expires_on - Date.current).to_i %>
+                    <% if days_until_expiry < 0 %>
+                      <span class="badge bg-danger">期限切れ</span>
+                    <% elsif days_until_expiry <= 30 %>
+                      <span class="badge bg-warning">期限間近</span>
+                    <% else %>
+                      <span class="badge bg-success">正常</span>
+                    <% end %>
+                  <% else %>
+                    <span class="badge bg-secondary">期限なし</span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<%# 在庫履歴 %>
+<% if @inventory_logs.present? %>
+  <div class="card">
+    <div class="card-header">
+      <h5 class="card-title mb-0">
+        <i class="bi bi-clock-history me-2"></i>最近の在庫変動履歴
+      </h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th><i class="bi bi-calendar me-1"></i>日時</th>
+              <th><i class="bi bi-arrow-up-down me-1"></i>操作</th>
+              <th><i class="bi bi-hash me-1"></i>変動数</th>
+              <th><i class="bi bi-boxes me-1"></i>変動後</th>
+              <th><i class="bi bi-person me-1"></i>実行者</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @inventory_logs.each do |log| %>
+              <tr>
+                <td>
+                  <small><%= l(log.created_at, format: :short) %></small>
+                </td>
+                <td>
+                  <span class="badge bg-info"><%= log.operation_display_name %></span>
+                </td>
+                <td>
+                  <span class="<%= log.delta >= 0 ? 'text-success' : 'text-danger' %>">
+                    <%= log.delta >= 0 ? '+' : '' %><%= log.delta %>
+                  </span>
+                </td>
+                <td>
+                  <strong><%= log.current_quantity %></strong>
+                </td>
+                <td>
+                  <small class="text-muted">
+                    <%= log.admin ? log.admin.display_name : '自動' %>
+                  </small>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<%# TODO: 🟡 Phase 3（重要）- 店舗在庫詳細機能の拡張 %>
+<%# 優先度: 中（業務効率化） %>
+<%# 実装内容: %>
+<%#   - 店舗間移動申請フォーム %>
+<%#   - 移動履歴表示 %>
+<%#   - 在庫調整機能（棚卸し対応） %>
+<%#   - PDF・CSVエクスポート機能 %>
+<%#   - 在庫アラート設定 %>
+<%# 期待効果: 店舗業務の効率化、正確な在庫管理 %>
+<%# 横展開: 他の店舗機能でも同様のUIパターンを適用 %>
