@@ -40,13 +40,15 @@ module StoreControllers
     # 店舗統計情報の読み込み
     def load_store_statistics
       @statistics = {
-        total_items: current_store.store_inventories.count,
+        # Counter Cache使用でN+1クエリ完全解消
+        total_items: current_store.store_inventories_count,
         total_quantity: current_store.store_inventories.sum(:quantity),
         total_value: current_store.total_inventory_value,
         low_stock_items: current_store.low_stock_items_count,
         out_of_stock_items: current_store.out_of_stock_items_count,
-        pending_transfers_in: current_store.incoming_transfers.pending.count,
-        pending_transfers_out: current_store.outgoing_transfers.pending.count
+        # Counter Cache使用でN+1クエリ完全解消
+        pending_transfers_in: current_store.pending_incoming_transfers_count,
+        pending_transfers_out: current_store.pending_outgoing_transfers_count
       }
     end
 
@@ -149,6 +151,7 @@ module StoreControllers
     def calculate_inventory_on_date(date)
       # 簡易実装：現在の在庫数を返す
       # TODO: Phase 4 - 履歴データからの正確な計算
+      # Counter Cache使用できない集計処理のため、sum(:quantity)はそのまま維持
       current_store.store_inventories.sum(:quantity)
     end
 
@@ -173,6 +176,8 @@ module StoreControllers
       dates = (6.days.ago.to_date..Date.current).to_a
 
       trend_data = dates.map do |date|
+        # 日別集計はCounter Cacheでは対応できないため、.countを維持
+        # TODO: Phase 3 - Redis等を使った集計データキャッシュで最適化
         incoming = current_store.incoming_transfers
                                .where(requested_at: date.beginning_of_day..date.end_of_day)
                                .count

@@ -22,9 +22,13 @@ module StoreControllers
 
     # 店舗一覧表示
     def index
+      # Counter Cache使用のため、includesは不要（N+1クエリ完全解消）
+      # TODO: Phase 1 - Counter Cache整合性の定期チェック機能実装
+      # - 開発環境: Counter Cache値の自動検証
+      # - 本番環境: 定期的な整合性チェックバッチ処理
+      # - 横展開確認: 他のCounter Cache使用箇所でも同様の最適化適用
       @stores = Store.active
                      .order(:store_type, :name)
-                     .includes(:store_inventories)
 
       # 店舗タイプ別にグループ化
       @stores_by_type = @stores.group_by(&:store_type)
@@ -57,31 +61,48 @@ module StoreControllers
         sign_out(:store_user) if store_user_signed_in?
       end
 
-      # 不完全な認証状態の場合はセッションをクリア（CLAUDE.md: セキュリティ最優先）
-      # メタ認知: store_user_signed_in?だけでなく、店舗の整合性も確認する必要性
+      # 異なる店舗へのアクセス時の処理（CLAUDE.md: セキュリティ最優先）
+      # メタ認知: マルチテナント環境では店舗間の厳格な分離が必要
       if store_user_signed_in? && (current_store_user&.store != @store || !current_store&.active?)
         begin
+          # sign_out前にユーザー情報を保存（CLAUDE.md: ベストプラクティス適用）
+          current_user_store_slug = current_store_user&.store&.slug || "unknown"
+          current_user_email = current_store_user&.email || "unknown"
+          current_user_name = current_store_user&.name || "unknown"
+          user_ip = request.remote_ip
+
+          # 異なる店舗アクセスの理由を判定
+          access_reason = if current_store_user&.store != @store
+                           "different_store_access"
+                         elsif !current_store&.active?
+                           "inactive_store_session"
+                         else
+                           "unknown_reason"
+                         end
+
+          sign_out(:store_user)
+
+          # 情報ログ記録（正常な店舗切り替えの可能性もあるためINFOレベル）
+          Rails.logger.info "Store session cleared for cross-store access - " \
+                           "reason: #{access_reason}, " \
+                           "from_store: #{current_user_store_slug}, " \
+                           "to_store: #{@store.slug}, " \
+                           "user: #{current_user_name}(#{current_user_email}), " \
+                           "ip: #{user_ip}"
+
+          # UX改善: 店舗切り替えの場合は専用メッセージ
+          if access_reason == "different_store_access"
+            flash[:notice] = I18n.t("devise.sessions.store_switched", 
+                                   from_store: current_user_store_slug, 
+                                   to_store: @store.slug)
+          end
+
           # TODO: Phase 4 - セキュリティ強化（推定1日）
           # 実装予定:
           #   - 監査ログに記録（不正アクセス試行の可能性）
           #   - セキュリティアラート機能
           #   - IP制限・デバイス認証との連携
           #   - 横展開: 他の認証箇所でも同様の保護を実装
-
-          # sign_out前にユーザー情報を保存（CLAUDE.md: ベストプラクティス適用）
-          invalid_user_store_slug = current_store_user&.store&.slug || "unknown"
-          invalid_user_email = current_store_user&.email || "unknown"
-          user_ip = request.remote_ip
-
-          sign_out(:store_user)
-
-          # セキュリティログ記録（改善版: nil安全 + より詳細な情報）
-          Rails.logger.warn "SECURITY: Cleared invalid store session - " \
-                           "target_store: #{@store.slug}, " \
-                           "user_store: #{invalid_user_store_slug}, " \
-                           "user_email: #{invalid_user_email}, " \
-                           "ip: #{user_ip}, " \
-                           "user_agent: #{request.user_agent}"
         rescue => e
           # セッションクリア処理での例外ハンドリング（CLAUDE.md: 堅牢性確保）
           Rails.logger.error "Session cleanup failed: #{e.message}, store: #{@store.slug}, ip: #{request.remote_ip}"
@@ -154,7 +175,8 @@ module StoreControllers
     # 店舗の状態表示
     helper_method :store_status_badge
     def store_status_badge(store)
-      if store.store_inventories.count.zero?
+      # Counter Cacheを使用してN+1クエリ解消
+      if store.store_inventories_count.zero?
         { text: "準備中", class: "badge bg-secondary" }
       elsif store.low_stock_items_count > 0
         { text: "在庫不足: #{store.low_stock_items_count}件",

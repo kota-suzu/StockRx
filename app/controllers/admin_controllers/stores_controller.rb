@@ -176,13 +176,15 @@ module AdminControllers
 
     def calculate_store_detailed_stats(store)
       {
-        total_items: store.store_inventories.count,
+        # Counter Cache使用でN+1クエリ完全解消
+        total_items: store.store_inventories_count,
         total_value: store.total_inventory_value,
         low_stock_count: store.low_stock_items_count,
         out_of_stock_count: store.out_of_stock_items_count,
         available_items_count: store.available_items_count,
-        pending_outgoing: store.outgoing_transfers.pending.count,
-        pending_incoming: store.incoming_transfers.pending.count,
+        # Counter Cache使用でN+1クエリ完全解消
+        pending_outgoing: store.pending_outgoing_transfers_count,
+        pending_incoming: store.pending_incoming_transfers_count,
         transfers_this_month: store.outgoing_transfers
                                   .where(requested_at: 1.month.ago..Time.current)
                                   .count
