@@ -16,7 +16,10 @@ module Auditable
     after_destroy :log_destroy_action
 
     # 関連
-    has_many :audit_logs, as: :auditable, dependent: :destroy
+    # CLAUDE.md準拠: 監査ログの永続保存（GDPR/PCI DSS対応）
+    # メタ認知: 監査証跡は法的要件のため削除不可、親レコード削除も制限
+    # 横展開: InventoryLoggableと同様のパターン適用
+    has_many :audit_logs, as: :auditable, dependent: :restrict_with_error
 
     # クラス属性
     class_attribute :audit_options, default: {}

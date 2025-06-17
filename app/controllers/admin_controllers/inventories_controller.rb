@@ -103,12 +103,27 @@ module AdminControllers
 
     # DELETE /admin/inventories/1
     def destroy
-      @inventory.destroy!
-
-      respond_to do |format|
-        format.html { redirect_to admin_inventories_path, notice: "在庫が正常に削除されました。", status: :see_other }
-        format.json { head :no_content }
-        format.turbo_stream { flash.now[:notice] = "在庫が正常に削除されました。" }
+      # CLAUDE.md準拠: 監査ログの完全性保護を考慮した削除処理
+      # メタ認知: 削除前に関連レコードの存在確認が必要
+      # ベストプラクティス: 明示的なエラーハンドリングとユーザーフィードバック
+      begin
+        if @inventory.destroy
+          respond_to do |format|
+            format.html { redirect_to admin_inventories_path, notice: "在庫が正常に削除されました。", status: :see_other }
+            format.json { head :no_content }
+            format.turbo_stream { flash.now[:notice] = "在庫が正常に削除されました。" }
+          end
+        else
+          handle_destroy_error
+        end
+      rescue ActiveRecord::InvalidForeignKey, ActiveRecord::DeleteRestrictionError => e
+        # 依存関係による削除制限エラー（監査ログなど）
+        Rails.logger.warn "Inventory deletion restricted: #{e.message}, inventory_id: #{@inventory.id}"
+        handle_destroy_error("この在庫には関連する履歴データが存在するため、削除できません。")
+      rescue => e
+        # その他の予期しないエラー
+        Rails.logger.error "Inventory deletion failed: #{e.message}, inventory_id: #{@inventory.id}"
+        handle_destroy_error("削除中にエラーが発生しました。")
       end
     end
 
@@ -154,6 +169,29 @@ module AdminControllers
     def set_inventory
       # 詳細ページで使用する関連データのみをinclude（:batchesのみ使用）
       @inventory = Inventory.includes(:batches).find(params[:id]).decorate
+    end
+
+    # 削除エラー時の共通処理（CLAUDE.md準拠: ベストプラクティス）
+    # @param message [String] 表示するエラーメッセージ
+    def handle_destroy_error(message = nil)
+      error_message = message || @inventory.errors.full_messages.join("、")
+
+      respond_to do |format|
+        format.html {
+          redirect_to admin_inventories_path,
+                      alert: error_message,
+                      status: :see_other
+        }
+        format.json {
+          render json: { errors: [ error_message ] },
+                 status: :unprocessable_entity
+        }
+        format.turbo_stream {
+          flash.now[:alert] = error_message
+          render turbo_stream: turbo_stream.update("flash",
+                                                  partial: "shared/flash_messages")
+        }
+      end
     end
 
     # Only allow a list of trusted parameters through.

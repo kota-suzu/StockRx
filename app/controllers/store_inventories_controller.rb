@@ -9,7 +9,7 @@
 class StoreInventoriesController < ApplicationController
   # 認証スキップ（公開情報）
   skip_before_action :authenticate_admin!, if: :admin_signed_in?
-  
+
   before_action :set_store
   before_action :check_store_active
   before_action :apply_rate_limiting
@@ -51,7 +51,7 @@ class StoreInventoriesController < ApplicationController
   #   - 検索結果のスコアリング
   def search
     query = params[:q].to_s.strip
-    
+
     if query.blank?
       render json: { error: "検索キーワードを入力してください" }, status: :bad_request
       return
@@ -61,7 +61,7 @@ class StoreInventoriesController < ApplicationController
     # TODO: Phase 3 - より高度な検索機能実装
     results = @store.store_inventories
                    .joins(:inventory)
-                   .where("inventories.name LIKE :query OR inventories.sku LIKE :query", 
+                   .where("inventories.name LIKE :query OR inventories.sku LIKE :query",
                          query: "%#{sanitize_sql_like(query)}%")
                    .merge(Inventory.where(status: :active))
                    .select(public_inventory_columns)
@@ -82,7 +82,7 @@ class StoreInventoriesController < ApplicationController
 
   def set_store
     @store = Store.find_by(id: params[:store_id])
-    
+
     unless @store
       respond_to do |format|
         format.html { redirect_to stores_path, alert: "指定された店舗が見つかりません" }
@@ -106,7 +106,7 @@ class StoreInventoriesController < ApplicationController
     # セッションベースの簡易レート制限
     session[:api_requests] ||= []
     session[:api_requests] = session[:api_requests].select { |time| time > 1.minute.ago }
-    
+
     if session[:api_requests].count >= 60
       respond_to do |format|
         format.html { redirect_to stores_path, alert: "リクエスト数が制限を超えました。しばらくお待ちください。" }
@@ -114,7 +114,7 @@ class StoreInventoriesController < ApplicationController
       end
       return
     end
-    
+
     session[:api_requests] << Time.current
   end
 
@@ -201,7 +201,7 @@ class StoreInventoriesController < ApplicationController
 
   def sort_column
     # 公開情報のみソート可能
-    %w[inventories.name inventories.sku inventories.category].include?(params[:sort]) ? 
+    %w[inventories.name inventories.sku inventories.category].include?(params[:sort]) ?
       params[:sort] : "inventories.name"
   end
 
@@ -211,7 +211,7 @@ class StoreInventoriesController < ApplicationController
 
   def per_page_limit
     # 公開APIは最大50件/ページに制限
-    [params[:per_page].to_i, 50].min.then { |n| n > 0 ? n : 25 }
+    [ params[:per_page].to_i, 50 ].min.then { |n| n > 0 ? n : 25 }
   end
 
   # キャッシュキー生成

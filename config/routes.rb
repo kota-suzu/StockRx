@@ -168,26 +168,26 @@ Rails.application.routes.draw do
   #   - アクセスログ分析で利用状況確認
   #   - 301リダイレクトで検索エンジン対応
   #   - 削除時は404ではなく適切なエラーメッセージ表示
-  
+
   # 在庫管理の旧URLリダイレクト（GETリクエスト）
   get "/inventories", to: redirect("/admin/inventories", status: 301)
   get "/inventories/new", to: redirect("/admin/inventories/new", status: 301)
   get "/inventories/:id", to: redirect("/admin/inventories/%{id}", status: 301)
   get "/inventories/:id/edit", to: redirect("/admin/inventories/%{id}/edit", status: 301)
-  
+
   # 在庫管理の旧URLリダイレクト（POST/PUT/DELETE用）
   # NOTE: 301リダイレクトはPOSTデータを失うため、直接エラーメッセージを表示
-  match "/inventories", to: proc { |env| 
-    [ 410, { "Content-Type" => "text/html" }, 
-      [ "<html><body><h1>このURLは廃止されました</h1><p>新しいURL: <a href='/admin/inventories'>/admin/inventories</a></p></body></html>" ]]
+  match "/inventories", to: proc { |env|
+    [ 410, { "Content-Type" => "text/html" },
+      [ "<html><body><h1>このURLは廃止されました</h1><p>新しいURL: <a href='/admin/inventories'>/admin/inventories</a></p></body></html>" ] ]
   }, via: [ :post ]
-  
+
   match "/inventories/:id", to: proc { |env|
     id = env["action_dispatch.request.path_parameters"][:id]
-    [ 410, { "Content-Type" => "text/html" }, 
-      [ "<html><body><h1>このURLは廃止されました</h1><p>新しいURL: <a href='/admin/inventories/#{id}'>/admin/inventories/#{id}</a></p></body></html>" ]]
+    [ 410, { "Content-Type" => "text/html" },
+      [ "<html><body><h1>このURLは廃止されました</h1><p>新しいURL: <a href='/admin/inventories/#{id}'>/admin/inventories/#{id}</a></p></body></html>" ] ]
   }, via: [ :put, :patch, :delete ]
-  
+
   # inventory_logsも管理画面に統合予定
   # TODO: Phase 3 - inventory_logs機能の管理画面統合
   #   - /admin/inventory_logs への移行

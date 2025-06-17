@@ -51,7 +51,7 @@ RSpec.describe "AdminControllers::Inventories", type: :request do
     # TODO: Phase 3 - CSVインポート機能実装時のテスト
     # context "with valid CSV file" do
     #   let(:csv_file) { fixture_file_upload('inventories.csv', 'text/csv') }
-    #   
+    #
     #   it "enqueues ImportInventoriesJob" do
     #     expect {
     #       post import_admin_inventories_path, params: { file: csv_file }
@@ -63,7 +63,7 @@ RSpec.describe "AdminControllers::Inventories", type: :request do
     #   it "returns error for oversized file" do
     #     # ファイルサイズ制限のテスト
     #   end
-    #   
+    #
     #   it "returns error for non-CSV file" do
     #     # ファイル形式チェックのテスト
     #   end

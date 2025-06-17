@@ -173,6 +173,28 @@
                     <% end %>
                   </li>
                   <li>
+                    <%= link_to admin_audit_logs_path, class: "dropdown-item" do %>
+                      <i class="bi bi-shield-check me-2"></i>監査ログ
+                    <% end %>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
+                    <%= link_to security_events_admin_audit_logs_path, class: "dropdown-item" do %>
+                      <i class="bi bi-shield-exclamation me-2"></i>セキュリティイベント
+                    <% end %>
+                  </li>
+                  <li>
+                    <%= link_to user_activity_admin_audit_logs_path, class: "dropdown-item" do %>
+                      <i class="bi bi-person-lines-fill me-2"></i>ユーザー活動履歴
+                    <% end %>
+                  </li>
+                  <li>
+                    <%= link_to compliance_report_admin_audit_logs_path, class: "dropdown-item" do %>
+                      <i class="bi bi-file-earmark-check me-2"></i>コンプライアンスレポート
+                    <% end %>
+                  </li>
+                  <li><hr class="dropdown-divider"></li>
+                  <li>
                     <%= link_to "/admin/sidekiq", class: "dropdown-item", target: "_blank", rel: "noopener" do %>
                       <i class="bi bi-gear me-2"></i>ジョブ監視
                     <% end %>

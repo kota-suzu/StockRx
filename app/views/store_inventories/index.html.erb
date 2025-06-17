@@ -1,0 +1,175 @@
+<%# 店舗別在庫一覧（公開用） %>
+<% content_for :title, "#{@store.name} - 在庫一覧" %>
+
+<div class="container mt-4">
+  <%# パンくずリスト %>
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><%= link_to "ホーム", root_path %></li>
+      <li class="breadcrumb-item"><%= link_to "店舗一覧", stores_path %></li>
+      <li class="breadcrumb-item active" aria-current="page"><%= @store.name %></li>
+    </ol>
+  </nav>
+
+  <%# 店舗情報ヘッダー %>
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h1 class="h3 mb-2">
+            <i class="<%= store_type_icon(@store.store_type) %> me-2"></i>
+            <%= @store.name %>
+          </h1>
+          <p class="text-muted mb-0">
+            <i class="fas fa-map-marker-alt me-1"></i>
+            <%= @store.address || "住所未登録" %>
+          </p>
+        </div>
+        <div class="col-md-4 text-md-end">
+          <span class="badge bg-primary fs-6">
+            <%= @store.store_type_text %>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# 統計情報 %>
+  <div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <h5 class="card-title text-muted">取扱商品数</h5>
+          <p class="card-text fs-3 fw-bold text-primary">
+            <%= number_with_delimiter(@statistics[:total_items]) %>
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <h5 class="card-title text-muted">カテゴリ数</h5>
+          <p class="card-text fs-3 fw-bold text-info">
+            <%= @statistics[:categories] %>
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <h5 class="card-title text-muted">最終更新</h5>
+          <p class="card-text fs-6 fw-bold text-secondary">
+            <% if @statistics[:last_updated] %>
+              <%= l(@statistics[:last_updated], format: :short) %>
+            <% else %>
+              データなし
+            <% end %>
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body text-center">
+          <h5 class="card-title text-muted">店舗状態</h5>
+          <p class="card-text">
+            <span class="badge bg-success fs-6">営業中</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# 検索フォーム %>
+  <div class="card mb-4 shadow-sm">
+    <div class="card-body">
+      <%= form_with url: store_inventories_path(@store), method: :get, local: true, class: "row g-3" do |f| %>
+        <div class="col-md-8">
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <%= text_field_tag :q, params[:q], 
+                class: "form-control", 
+                placeholder: "商品名・SKUで検索...",
+                autocomplete: "off" %>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <%= submit_tag "検索", class: "btn btn-primary w-100" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# 在庫一覧テーブル %>
+  <div class="card shadow-sm">
+    <div class="card-header bg-light">
+      <h5 class="mb-0">在庫一覧</h5>
+    </div>
+    <div class="card-body p-0">
+      <% if @store_inventories.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead>
+              <tr>
+                <th><%= sort_link("商品名", "inventories.name") %></th>
+                <th><%= sort_link("SKU", "inventories.sku") %></th>
+                <th><%= sort_link("カテゴリ", "inventories.category") %></th>
+                <th>メーカー</th>
+                <th>単位</th>
+                <th class="text-center">在庫状態</th>
+                <th>最終更新</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @store_inventories.each do |store_inventory| %>
+                <tr>
+                  <td class="fw-semibold"><%= store_inventory.inventory.name %></td>
+                  <td><code><%= store_inventory.inventory.sku %></code></td>
+                  <td>
+                    <% if store_inventory.inventory.category.present? %>
+                      <span class="badge bg-secondary">
+                        <%= store_inventory.inventory.category %>
+                      </span>
+                    <% else %>
+                      <span class="text-muted">-</span>
+                    <% end %>
+                  </td>
+                  <td><%= store_inventory.inventory.manufacturer || "-" %></td>
+                  <td><%= store_inventory.inventory.unit || "-" %></td>
+                  <td class="text-center">
+                    <%= stock_status_badge(store_inventory.quantity) %>
+                  </td>
+                  <td>
+                    <small class="text-muted">
+                      <%= l(store_inventory.updated_at, format: :short) %>
+                    </small>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        
+        <%# ページネーション %>
+        <div class="card-footer">
+          <%= paginate @store_inventories %>
+        </div>
+      <% else %>
+        <div class="p-5 text-center">
+          <i class="fas fa-boxes fa-4x text-muted mb-3"></i>
+          <p class="text-muted">在庫データがありません</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# 注意事項 %>
+  <div class="alert alert-info mt-4" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>ご注意：</strong>
+    表示されている在庫状態は参考情報です。正確な在庫数や価格については、店舗にお問い合わせください。
+  </div>
+</div>
+
