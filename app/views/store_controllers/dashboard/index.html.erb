@@ -118,8 +118,10 @@
             </table>
           </div>
           <div class="text-center">
+            <%# CLAUDE.md準拠: 横展開 - store layoutと同様のルーティング修正 %>
+            <%# ベストプラクティス: 名前衝突回避のため明示的パス使用 %>
             <%= link_to "すべて見る", 
-                        store_inventories_path(q: { stock_level: 'low_stock' }),
+                        "/store/inventories?q[stock_level]=low_stock",
                         class: "btn btn-sm btn-outline-warning" %>
           </div>
         <% else %>

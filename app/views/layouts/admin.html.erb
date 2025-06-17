@@ -369,45 +369,42 @@
     <%# TODO: 🟡 Phase 1（緊急）- ドロップダウンメニュー動作デバッグ %>
     <%# 優先度: 高（ユーザーログアウト機能） %>
     <%# 実装内容: Bootstrap初期化状態とエラーチェック %>
-    <%# メタ認知: 問題解決のための一時的デバッグコード %>
+    <%# メタ認知: Turbo環境での正しい初期化パターン適用 %>
+    <%# ベストプラクティス: turbo:loadイベントのみ使用（DOMContentLoaded非推奨） %>
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        console.log('🔍 Bootstrap Dropdown Debug Check:');
+      // 🛡️ CLAUDE.md準拠: Turbo環境でのBootstrap初期化パターン
+      // メタ認知: DOMContentLoadedはTurboページ遷移で発火しないため除外
+      document.addEventListener('turbo:load', function() {
+        console.log('🔍 Bootstrap Dropdown Debug Check (turbo:load):');
         console.log('- Bootstrap loaded:', typeof bootstrap !== 'undefined');
-        console.log('- Bootstrap.Dropdown available:', typeof bootstrap?.Dropdown !== 'undefined');
+        console.log('- Bootstrap version:', typeof bootstrap !== 'undefined' ? bootstrap.Dropdown.VERSION : 'N/A');
         
         const dropdownElements = document.querySelectorAll('.dropdown-toggle');
         console.log('- Dropdown elements found:', dropdownElements.length);
         
-        dropdownElements.forEach((element, index) => {
-          console.log(`  [${index}] Element:`, element.id, element.getAttribute('data-bs-toggle'));
-        });
+        // 詳細なデバッグ情報
+        if (dropdownElements.length > 0) {
+          dropdownElements.forEach((element, index) => {
+            const instance = bootstrap?.Dropdown?.getInstance(element);
+            console.log(`  [${index}] ${element.id || element.className}:`, {
+              'data-bs-toggle': element.getAttribute('data-bs-toggle'),
+              'aria-expanded': element.getAttribute('aria-expanded'),
+              'hasInstance': !!instance
+            });
+          });
+        }
         
-        // エラーキャッチ
-        window.addEventListener('error', function(e) {
-          console.error('🚨 JavaScript Error:', e.error);
-        });
+        // Bootstrap未読み込み時の警告
+        if (typeof bootstrap === 'undefined') {
+          console.error('🚨 Bootstrap not loaded! Check importmap configuration.');
+          // TODO: 🔴 Phase 1 - CDNフォールバック機能を発動
+        }
       });
       
-      document.addEventListener('turbo:load', function() {
-        console.log('🔄 Turbo:load - Re-checking Bootstrap components');
-        const userDropdown = document.getElementById('userDropdown');
-        if (userDropdown) {
-          console.log('- User dropdown element exists:', !!userDropdown);
-          console.log('- Click event listener test...');
-          
-          // 手動でドロップダウンをテスト
-          userDropdown.addEventListener('click', function(e) {
-            console.log('👆 User dropdown clicked!');
-            if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
-              try {
-                const dropdown = new bootstrap.Dropdown(userDropdown);
-                console.log('✅ Bootstrap Dropdown manually initialized');
-              } catch (error) {
-                console.error('❌ Bootstrap Dropdown initialization failed:', error);
-              }
-            }
-          });
+      // エラー監視（グローバル）
+      window.addEventListener('error', function(e) {
+        if (e.error && e.error.toString().includes('bootstrap')) {
+          console.error('🚨 Bootstrap-related error:', e.error);
         }
       });
     </script>

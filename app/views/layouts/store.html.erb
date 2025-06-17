@@ -100,7 +100,10 @@
               <% end %>
             </li>
             <li class="nav-item">
-              <%= link_to store_inventories_path, class: "nav-link #{active_class('store/inventories')}" do %>
+              <%# CLAUDE.md準拠: メタ認知 - 認証済み店舗ユーザー用のnamespaceルート使用 %>
+              <%# 横展開: 公開ルート(/stores/:store_id/inventories)との名前衝突回避 %>
+              <%# ベストプラクティス: 明示的パス指定で曖昧性を排除 %>
+              <%= link_to "/store/inventories", class: "nav-link #{active_class('store/inventories')}" do %>
                 <i class="bi bi-box-seam me-1"></i>
                 在庫管理
               <% end %>
@@ -225,44 +228,41 @@
     <%# 実装内容: Bootstrap初期化状態とエラーチェック %>
     <%# 横展開: admin.html.erbと同様のデバッグ機能実装 %>
     <%# メタ認知: 店舗ユーザー側でも同じ問題が発生する可能性を考慮 %>
+    <%# ベストプラクティス: turbo:loadイベントのみ使用（DOMContentLoaded非推奨） %>
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        console.log('🔍 Store Layout - Bootstrap Dropdown Debug Check:');
+      // 🛡️ CLAUDE.md準拠: Turbo環境でのBootstrap初期化パターン（横展開）
+      // メタ認知: admin.html.erbと同一パターンで一貫性確保
+      document.addEventListener('turbo:load', function() {
+        console.log('🔍 Store Layout - Bootstrap Dropdown Debug Check (turbo:load):');
         console.log('- Bootstrap loaded:', typeof bootstrap !== 'undefined');
-        console.log('- Bootstrap.Dropdown available:', typeof bootstrap?.Dropdown !== 'undefined');
+        console.log('- Bootstrap version:', typeof bootstrap !== 'undefined' ? bootstrap.Dropdown.VERSION : 'N/A');
         
         const dropdownElements = document.querySelectorAll('.dropdown-toggle');
         console.log('- Dropdown elements found:', dropdownElements.length);
         
-        dropdownElements.forEach((element, index) => {
-          console.log(`  [${index}] Element:`, element.id, element.getAttribute('data-bs-toggle'));
-        });
+        // 詳細なデバッグ情報
+        if (dropdownElements.length > 0) {
+          dropdownElements.forEach((element, index) => {
+            const instance = bootstrap?.Dropdown?.getInstance(element);
+            console.log(`  [${index}] ${element.id || element.className}:`, {
+              'data-bs-toggle': element.getAttribute('data-bs-toggle'),
+              'aria-expanded': element.getAttribute('aria-expanded'),
+              'hasInstance': !!instance
+            });
+          });
+        }
         
-        // エラーキャッチ
-        window.addEventListener('error', function(e) {
-          console.error('🚨 Store Layout JavaScript Error:', e.error);
-        });
+        // Bootstrap未読み込み時の警告
+        if (typeof bootstrap === 'undefined') {
+          console.error('🚨 Bootstrap not loaded! Check importmap configuration.');
+          // TODO: 🔴 Phase 1 - CDNフォールバック機能を発動（横展開）
+        }
       });
       
-      document.addEventListener('turbo:load', function() {
-        console.log('🔄 Store Layout - Turbo:load - Re-checking Bootstrap components');
-        const userDropdown = document.getElementById('userDropdown');
-        if (userDropdown) {
-          console.log('- Store user dropdown element exists:', !!userDropdown);
-          console.log('- Click event listener test...');
-          
-          // 手動でドロップダウンをテスト
-          userDropdown.addEventListener('click', function(e) {
-            console.log('👆 Store user dropdown clicked!');
-            if (typeof bootstrap !== 'undefined' && bootstrap.Dropdown) {
-              try {
-                const dropdown = new bootstrap.Dropdown(userDropdown);
-                console.log('✅ Store Bootstrap Dropdown manually initialized');
-              } catch (error) {
-                console.error('❌ Store Bootstrap Dropdown initialization failed:', error);
-              }
-            }
-          });
+      // エラー監視（グローバル）
+      window.addEventListener('error', function(e) {
+        if (e.error && e.error.toString().includes('bootstrap')) {
+          console.error('🚨 Store Layout Bootstrap-related error:', e.error);
         }
       });
     </script>
