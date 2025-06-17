@@ -74,11 +74,11 @@ module StoreControllers
           # 異なる店舗アクセスの理由を判定
           access_reason = if current_store_user&.store != @store
                            "different_store_access"
-                         elsif !current_store&.active?
+          elsif !current_store&.active?
                            "inactive_store_session"
-                         else
+          else
                            "unknown_reason"
-                         end
+          end
 
           sign_out(:store_user)
 
@@ -90,11 +90,13 @@ module StoreControllers
                            "user: #{current_user_name}(#{current_user_email}), " \
                            "ip: #{user_ip}"
 
-          # UX改善: 店舗切り替えの場合は専用メッセージ
+          # UX改善: 店舗切り替えの場合は専用メッセージとリダイレクト先変更
           if access_reason == "different_store_access"
-            flash[:notice] = I18n.t("devise.sessions.store_switched", 
-                                   from_store: current_user_store_slug, 
-                                   to_store: @store.slug)
+            # 店舗切り替えを明確に伝えるメッセージ
+            flash[:info] = "#{current_user_store_slug}から#{@store.slug}への店舗切り替えのため、再度ログインしてください。"
+
+            # 店舗切り替えの場合は直接ログインページへ（UX改善）
+            redirect_to new_store_user_session_path(store_slug: @store.slug) and return
           end
 
           # TODO: Phase 4 - セキュリティ強化（推定1日）
