@@ -528,6 +528,20 @@ config.omniauth :github,
 - SQLクエリ数90%削減
 - Bullet gem継続監視体制構築
 
+#### AdminControllers N+1問題完全解決（6月17日）
+- AdminInventoriesController最適化：set_inventory条件分岐実装
+  - showアクション: includes(:batches)で関連データ事前読み込み
+  - edit/update/destroyアクション: 基本データのみで高速化
+  - 期待効果: editページレスポンス時間50%改善、22→6クエリ削減
+- AdminStoresController最適化：不要eager loading完全除去
+  - indexアクション: Counter Cache活用でincludes削除
+  - set_store条件分岐最適化（show/edit vs update/destroy）
+  - 期待効果: indexページクエリ数60%削減想定
+- パフォーマンステスト体制完全構築
+  - exceed_query_limit: カスタムマッチャー活用
+  - CRUD全アクションの自動回帰テスト
+  - 横展開確認の標準化・テスト駆動開発
+
 #### CI環境最適化（6月15日）  
 - テスト実行時間58%短縮（9.27秒→3.84秒）
 - GitHub Actionsタイムアウト問題完全解決

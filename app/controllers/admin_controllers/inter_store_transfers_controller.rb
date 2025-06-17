@@ -113,9 +113,23 @@ module AdminControllers
         else
           handle_destroy_error(transfer_summary)
         end
-      rescue ActiveRecord::InvalidForeignKey => e
+      rescue ActiveRecord::InvalidForeignKey, ActiveRecord::DeleteRestrictionError => e
         Rails.logger.warn "Transfer deletion restricted: #{e.message}, transfer_id: #{@transfer.id}"
-        handle_destroy_error(transfer_summary, "関連するデータが存在するため削除できません。")
+
+        # CLAUDE.md準拠: ユーザーフレンドリーなエラーメッセージ（日本語化）
+        # メタ認知: 移動履歴削除の場合、監査要件と代替案を明示
+        error_message = case e.message
+        when /audit.*log.*exist/i, /dependent.*audit.*exist/i
+          "この移動記録には監査ログが関連付けられているため削除できません。\n監査上、移動履歴の保護が必要です。\n\n代替案：移動記録を「キャンセル済み」状態に変更してください。"
+        when /inventory.*log.*exist/i, /dependent.*inventory.*log.*exist/i
+          "この移動記録には在庫変動履歴が関連付けられているため削除できません。\n在庫管理上、履歴データの保護が必要です。"
+        when /Cannot delete.*dependent.*exist/i
+          "この移動記録には関連する履歴データが存在するため削除できません。\n関連データ：監査ログ、在庫履歴、承認履歴など"
+        else
+          "関連するデータが存在するため削除できません。"
+        end
+
+        handle_destroy_error(transfer_summary, error_message)
       rescue => e
         Rails.logger.error "Transfer deletion failed: #{e.message}, transfer_id: #{@transfer.id}"
         handle_destroy_error(transfer_summary, "削除中にエラーが発生しました。")

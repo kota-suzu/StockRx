@@ -21,4 +21,10 @@ ja:
       bad_request: "リクエストに問題があります"
       too_many_requests: "短時間に多くのリクエストが行われました。しばらく待ってから再試行してください"
       internal_server_error: "サーバー内部でエラーが発生しました"
-      conflict: "操作が競合しています。最新の情報に更新してから再試行してください" 
+      conflict: "操作が競合しています。最新の情報に更新してから再試行してください"
+      
+      # 削除制限エラー（CLAUDE.md準拠：監査ログ保護）
+      delete_restriction: "関連するデータが存在するため削除できません"
+      inventory_logs_exist: "在庫変動履歴が存在するため削除できません"
+      audit_logs_exist: "監査ログが存在するため削除できません"
+      dependent_records_exist: "関連レコードが存在するため削除できません" 

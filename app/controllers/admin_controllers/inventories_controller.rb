@@ -135,7 +135,7 @@ module AdminControllers
       rescue ActiveRecord::InvalidForeignKey, ActiveRecord::DeleteRestrictionError => e
         # 依存関係による削除制限エラー（監査ログなど）
         Rails.logger.warn "Inventory deletion restricted: #{e.message}, inventory_id: #{@inventory.id}"
-        
+
         # CLAUDE.md準拠: ユーザーフレンドリーなエラーメッセージ（日本語化）
         # メタ認知: 技術的なエラーメッセージを業務理解しやすい日本語に変換
         error_message = case e.message
@@ -146,7 +146,7 @@ module AdminControllers
         else
           "この在庫には関連する履歴データが存在するため、削除できません。"
         end
-        
+
         handle_destroy_error(error_message)
       rescue => e
         # その他の予期しないエラー

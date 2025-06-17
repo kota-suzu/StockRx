@@ -83,6 +83,10 @@ ja:
       inventory: "在庫"
       batch: "バッチ"
       admin: "管理者"
+      store: "店舗"
+      inter_store_transfer: "店舗間移動"
+      audit_log: "監査ログ"
+      inventory_log: "在庫履歴"
     attributes:
       inventory:
         name: "商品名"
@@ -104,6 +108,10 @@ ja:
         missing_lower: "小文字を含める必要があります"
         missing_upper: "大文字を含める必要があります"
         missing_symbol: "記号を含める必要があります"
+        # 削除制限エラー（CLAUDE.md準拠：監査ログ保護）
+        restrict_dependent_destroy:
+          has_one: "%{record}に関連する%{dependent}が存在するため削除できません"
+          has_many: "%{record}に関連する%{dependent}が存在するため削除できません"
   
   # フォームオブジェクトのバリデーションメッセージ
   form_validation:

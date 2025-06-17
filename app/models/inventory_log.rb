@@ -92,7 +92,7 @@ class InventoryLog < ApplicationRecord
       id,
       inventory_id,
       inventory.name,
-      operation_type,
+      operation_display_name,
       delta,
       previous_quantity,
       current_quantity,

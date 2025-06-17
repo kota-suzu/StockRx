@@ -85,10 +85,26 @@ module AdminControllers
         else
           handle_destroy_error(store_name)
         end
-      rescue ActiveRecord::InvalidForeignKey => e
+      rescue ActiveRecord::InvalidForeignKey, ActiveRecord::DeleteRestrictionError => e
         # 依存関係による削除制限（管理者、在庫、移動など）
         Rails.logger.warn "Store deletion restricted: #{e.message}, store_id: #{@store.id}"
-        handle_destroy_error(store_name, "関連するデータ（管理者、在庫、移動履歴など）が存在するため削除できません。")
+
+        # CLAUDE.md準拠: ユーザーフレンドリーなエラーメッセージ（日本語化）
+        # メタ認知: 店舗削除の場合、具体的な関連データを明示してユーザーの理解を促進
+        error_message = case e.message
+        when /admin.*exist/i, /dependent.*admin.*exist/i
+          "この店舗には管理者アカウントが紐付けられているため削除できません。\n\n削除手順：\n1. 該当管理者を他店舗に移動、または削除\n2. 店舗の削除を再実行"
+        when /inventory.*exist/i, /dependent.*inventory.*exist/i
+          "この店舗には在庫データが存在するため削除できません。\n\n削除手順：\n1. 在庫の他店舗への移動\n2. または在庫のアーカイブ化\n3. 店舗の削除を再実行"
+        when /transfer.*exist/i, /dependent.*transfer.*exist/i
+          "この店舗には移動履歴が記録されているため削除できません。\n監査上、移動履歴の保護が必要です。\n\n代替案：店舗を「非アクティブ」状態に変更してください。"
+        when /Cannot delete.*dependent.*exist/i
+          "この店舗には関連する記録が存在するため削除できません。\n関連データ：管理者、在庫、移動履歴、監査ログなど\n\n詳細確認後、関連データの整理を行ってください。"
+        else
+          "関連するデータ（管理者、在庫、移動履歴など）が存在するため削除できません。"
+        end
+
+        handle_destroy_error(store_name, error_message)
       rescue => e
         Rails.logger.error "Store deletion failed: #{e.message}, store_id: #{@store.id}"
         handle_destroy_error(store_name, "削除中にエラーが発生しました。")
@@ -126,7 +142,7 @@ module AdminControllers
       # CLAUDE.md準拠: パフォーマンス最適化 - アクション別に必要な関連データのみを読み込み
       # メタ認知: show/editアクションは関連データが必要、update/destroyは基本情報のみで十分
       case action_name
-      when 'show', 'edit', 'dashboard'
+      when "show", "edit", "dashboard"
         # 詳細表示・編集・ダッシュボード: 関連データを含む包括的なデータを読み込み
         @store = Store.includes(:store_inventories, :admins, :outgoing_transfers, :incoming_transfers)
                       .find(params[:id])

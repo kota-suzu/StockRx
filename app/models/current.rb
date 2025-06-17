@@ -25,6 +25,12 @@ class Current < ActiveSupport::CurrentAttributes
   # 管理者情報（認証されたadminユーザー）
   attribute :admin
 
+  # 店舗ユーザー情報（認証された店舗ユーザー）
+  attribute :store_user
+
+  # 店舗情報（現在の店舗コンテキスト）
+  attribute :store
+
   # 操作の理由（オプション、管理操作の監査証跡に利用）
   attribute :reason
 
