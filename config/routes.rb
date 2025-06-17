@@ -27,8 +27,23 @@ Rails.application.routes.draw do
              }
 
   # 店舗選択画面（ログイン前）
-  get "store", to: "store_controllers/store_selection#index", as: :store_selection
-  get "store/:slug", to: "store_controllers/store_selection#show", as: :store_login_page
+  # CLAUDE.md準拠: 認証済みユーザーダッシュボード(/store)との競合回避のため/storesに変更
+  get "stores", to: "store_controllers/store_selection#index", as: :store_selection
+  get "stores/:slug", to: "store_controllers/store_selection#show", as: :store_login_page
+
+  # 店舗別公開在庫一覧（認証不要）
+  # CLAUDE.md準拠: メタ認知的設計 - 公開情報は限定的、詳細は認証エリア
+  # TODO: Phase 2 - アクセス制御の段階的強化
+  #   - IP制限機能
+  #   - レート制限（1分あたり60リクエスト）
+  #   - 機密情報のマスキング強化
+  resources :stores, only: [] do
+    resources :inventories, only: [ :index ], controller: "store_inventories" do
+      collection do
+        get :search  # 在庫検索API
+      end
+    end
+  end
 
   # 店舗ユーザー用の認証済みルート
   authenticated :store_user do
@@ -95,7 +110,12 @@ Rails.application.routes.draw do
     root "dashboard#index"
 
     # 在庫管理
-    resources :inventories
+    resources :inventories do
+      collection do
+        get :import_form  # CSVインポートフォーム
+        post :import      # CSVインポート実行
+      end
+    end
 
     # ジョブステータス確認用API
     resources :job_statuses, only: [ :show ]

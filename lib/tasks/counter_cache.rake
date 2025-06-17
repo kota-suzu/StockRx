@@ -28,11 +28,11 @@ namespace :counter_cache do
   task reset_all: :environment do
     puts "=== Counter Cache強制リセット開始 ==="
     puts "⚠️  この操作は全てのCounter Cacheを再計算します"
-    
+
     if Rails.env.production?
       print "本番環境での実行です。続行しますか？ (y/N): "
       response = STDIN.gets.chomp.downcase
-      unless response == 'y' || response == 'yes'
+      unless response == "y" || response == "yes"
         puts "処理を中止しました。"
         exit
       end
@@ -43,9 +43,9 @@ namespace :counter_cache do
   end
 
   desc "特定ストアのCounter Cacheをリセット"
-  task :reset_store, [:store_id] => :environment do |t, args|
+  task :reset_store, [ :store_id ] => :environment do |t, args|
     store_id = args[:store_id]
-    
+
     unless store_id
       puts "❌ エラー: store_idを指定してください"
       puts "使用例: rails counter_cache:reset_store[123]"
@@ -75,7 +75,7 @@ namespace :counter_cache do
       actual_count = store.store_inventories.count
       cached_count = store.store_inventories_count
       status = actual_count == cached_count ? "✅" : "❌"
-      
+
       puts "  #{status} #{store.display_name}: 実測#{actual_count} / Cache#{cached_count}"
     end
     puts
@@ -90,18 +90,18 @@ namespace :counter_cache do
         shipments: inventory.shipments.count,
         receipts: inventory.receipts.count
       }
-      
+
       cached = {
         batches: inventory.batches_count,
         inventory_logs: inventory.inventory_logs_count,
         shipments: inventory.shipments_count,
         receipts: inventory.receipts_count
       }
-      
+
       inconsistent = checks.any? { |key, actual| actual != cached[key] }
       inconsistent_inventories += 1 if inconsistent
     end
-    
+
     puts "  総Inventory数: #{Inventory.count}"
     puts "  Counter Cache不整合: #{inconsistent_inventories}件"
     puts
@@ -112,16 +112,16 @@ namespace :counter_cache do
 
   def check_store_counter_caches(results)
     puts "【Store Counter Cacheチェック】"
-    
+
     Store.find_each do |store|
       results[:checked] += 1
-      
+
       # store_inventories_count チェック
       actual_inventories = store.store_inventories.count
       if store.store_inventories_count != actual_inventories
         puts "  ❌ #{store.display_name}: store_inventories_count 不整合"
         puts "     実測: #{actual_inventories}, Cache: #{store.store_inventories_count}"
-        
+
         results[:inconsistent] += 1
         fix_store_inventories_count(store, actual_inventories)
         results[:fixed] += 1
@@ -132,7 +132,7 @@ namespace :counter_cache do
       if store.pending_outgoing_transfers_count != actual_outgoing
         puts "  ❌ #{store.display_name}: pending_outgoing_transfers_count 不整合"
         puts "     実測: #{actual_outgoing}, Cache: #{store.pending_outgoing_transfers_count}"
-        
+
         results[:inconsistent] += 1
         fix_pending_outgoing_count(store, actual_outgoing)
         results[:fixed] += 1
@@ -143,7 +143,7 @@ namespace :counter_cache do
       if store.pending_incoming_transfers_count != actual_incoming
         puts "  ❌ #{store.display_name}: pending_incoming_transfers_count 不整合"
         puts "     実測: #{actual_incoming}, Cache: #{store.pending_incoming_transfers_count}"
-        
+
         results[:inconsistent] += 1
         fix_pending_incoming_count(store, actual_incoming)
         results[:fixed] += 1
@@ -154,7 +154,7 @@ namespace :counter_cache do
       if store.low_stock_items_count != actual_low_stock
         puts "  ❌ #{store.display_name}: low_stock_items_count 不整合"
         puts "     実測: #{actual_low_stock}, Cache: #{store.low_stock_items_count}"
-        
+
         results[:inconsistent] += 1
         fix_low_stock_count(store, actual_low_stock)
         results[:fixed] += 1
@@ -165,16 +165,16 @@ namespace :counter_cache do
       puts "  💥 エラー: #{error_msg}"
       results[:errors] << error_msg
     end
-    
+
     puts "  ✅ Store Counter Cache チェック完了"
     puts
   end
 
   def check_inventory_counter_caches(results)
     puts "【Inventory Counter Cacheチェック】"
-    
+
     inconsistent_count = 0
-    
+
     Inventory.find_each do |inventory|
       results[:checked] += 1
       inventory_inconsistent = false
@@ -226,7 +226,7 @@ namespace :counter_cache do
       puts "  💥 エラー: #{error_msg}"
       results[:errors] << error_msg
     end
-    
+
     puts "  ✅ Inventory Counter Cache チェック完了"
     puts "  不整合商品数: #{inconsistent_count}件"
     puts
@@ -251,7 +251,7 @@ namespace :counter_cache do
   def reset_all_counter_caches
     puts "Store Counter Cacheリセット中..."
     Store.reset_counters_safely
-    
+
     puts "Inventory Counter Cacheリセット中..."
     Inventory.find_each do |inventory|
       Inventory.reset_counters(inventory.id, :batches, :inventory_logs, :shipments, :receipts)
@@ -270,20 +270,20 @@ namespace :counter_cache do
     puts "チェック対象: #{results[:checked]}件"
     puts "不整合検出: #{results[:inconsistent]}件"
     puts "修正完了: #{results[:fixed]}件"
-    
+
     if results[:errors].any?
       puts "エラー: #{results[:errors].count}件"
       results[:errors].each do |error|
         puts "  - #{error}"
       end
     end
-    
+
     if results[:inconsistent] == 0
       puts "✅ 全てのCounter Cacheが正常です"
     else
       puts "⚠️  #{results[:inconsistent]}件の不整合を検出し、修正しました"
     end
-    
+
     puts "完了時刻: #{Time.current}"
     puts "==="
 
@@ -299,7 +299,7 @@ namespace :counter_cache do
       fixed: results[:fixed],
       errors: results[:errors]
     }
-    
+
     Rails.logger.info "Counter Cache Integrity Check: #{log_entry.to_json}"
   end
 end

@@ -99,7 +99,19 @@ module StoreAuthenticatable
     return unless current_store
 
     unless current_store.active?
+      # sign_out前にユーザー情報を保存（CLAUDE.md: ベストプラクティス横展開適用）
+      inactive_store_slug = current_store&.slug || "unknown"
+      user_email = current_store_user&.email || "unknown"
+      user_ip = request.remote_ip
+
       sign_out(:store_user)
+
+      # セキュリティログ記録（横展開: StoreSelectionControllerと一貫したログ形式）
+      Rails.logger.warn "SECURITY: User signed out due to inactive store - " \
+                       "store: #{inactive_store_slug}, " \
+                       "user: #{user_email}, " \
+                       "ip: #{user_ip}"
+
       redirect_to store_selection_path,
                   alert: I18n.t("errors.messages.store_inactive")
     end
@@ -120,16 +132,56 @@ module StoreAuthenticatable
 end
 
 # ============================================
-# TODO: Phase 3以降の拡張予定
+# TODO: Phase 3以降の拡張予定（CLAUDE.md準拠の包括的改善）
 # ============================================
-# 1. 🔴 IPアドレス制限
-#    - 店舗ごとの許可IPリスト管理
-#    - アクセス拒否時の詳細ログ
 #
-# 2. 🟡 営業時間制限
+# 🔴 Phase 3: セキュリティ強化（優先度: 高、推定4日）
+# 1. IPアドレス制限
+#    - 店舗ごとの許可IPリスト管理
+#    - アクセス拒否時の詳細ログ（nil安全性確保）
+#    - 横展開: 全認証ポイントでの統一IP制限実装
+#
+# 2. 営業時間制限
 #    - 店舗営業時間外のアクセス制限
 #    - 管理者の例外設定
+#    - タイムゾーン対応の包括的時間管理
 #
-# 3. 🟢 デバイス認証
+# 3. デバイス認証
 #    - 登録済みデバイスのみアクセス許可
 #    - 新規デバイスの承認フロー
+#    - デバイス情報のセキュアな保存
+#
+# 🟡 Phase 4: 監査・コンプライアンス（優先度: 中、推定3日）
+# 1. 監査ログ強化
+#    - 構造化ログの統一フォーマット
+#    - ログローテーションとアーカイブ
+#    - GDPR/PCI DSS準拠の個人情報保護
+#
+# 🟢 Phase 5: パフォーマンス最適化（優先度: 低、推定2日）
+# 1. セッション管理最適化
+#    - Redis活用のセッション最適化
+#    - 認証キャッシュの効率化
+#
+# ============================================
+# メタ認知的改善ポイント（今回の横展開から得た教訓）
+# ============================================
+# 1. **一貫性の確保**: sign_out処理で共通パターン確立
+#    - 事前情報保存→セッションクリア→詳細ログ記録
+#    - 横展開完了: StoreSelectionController, StoreAuthenticatable
+#    - 既存対応済み: SessionsController（手動実装済み）
+#
+# 2. **エラー処理の標準化**:
+#    - nil安全性の徹底（safe navigation演算子活用）
+#    - フォールバック機能の実装
+#    - 例外時の適切なログ記録
+#
+# 3. **セキュリティログの標準化**:
+#    - SECURITY: プレフィックスによる分類
+#    - 構造化された情報記録（店舗、ユーザー、IP、理由）
+#    - 適切なログレベル設定（INFO/WARN/ERROR）
+#
+# 4. **今後の実装チェックリスト**:
+#    - [ ] 全sign_out処理でのnil安全性確認
+#    - [ ] セキュリティログの統一フォーマット適用
+#    - [ ] 認証例外処理の包括的レビュー
+#    - [ ] ルーティング競合の事前検証

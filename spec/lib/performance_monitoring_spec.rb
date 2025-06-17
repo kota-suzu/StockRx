@@ -186,14 +186,14 @@ RSpec.describe PerformanceMonitoring, type: :model do
       end
 
       it 'パフォーマンス監視を実行すること' do
-        allow(app).to receive(:call).with(env).and_return([200, {}, ['response']])
+        allow(app).to receive(:call).with(env).and_return([ 200, {}, [ 'response' ] ])
         allow(PerformanceMonitoring::QueryMonitor).to receive(:monitor_request).and_yield.and_return({
-          result: { result: [200, {}, ['response']] },
+          result: { result: [ 200, {}, [ 'response' ] ] },
           query_count: 1,
           duration: 10
         })
         allow(PerformanceMonitoring::ResponseTimeBenchmark).to receive(:benchmark_endpoint).and_yield.and_return({
-          result: [200, {}, ['response']],
+          result: [ 200, {}, [ 'response' ] ],
           duration: 10,
           threshold: 50,
           within_threshold: true
@@ -203,7 +203,7 @@ RSpec.describe PerformanceMonitoring, type: :model do
 
         result = middleware.call(env)
 
-        expect(result).to eq([200, {}, ['response']])
+        expect(result).to eq([ 200, {}, [ 'response' ] ])
         expect(PerformanceMonitoring::QueryMonitor).to have_received(:monitor_request)
         expect(PerformanceMonitoring::ResponseTimeBenchmark).to have_received(:benchmark_endpoint)
         expect(PerformanceMonitoring::MemoryMonitor).to have_received(:check_memory_usage)
@@ -211,11 +211,11 @@ RSpec.describe PerformanceMonitoring, type: :model do
 
       it '静的ファイルリクエストの場合は監視をスキップすること' do
         static_env = { 'REQUEST_METHOD' => 'GET', 'PATH_INFO' => '/assets/application.css' }
-        allow(app).to receive(:call).with(static_env).and_return([200, {}, ['css']])
+        allow(app).to receive(:call).with(static_env).and_return([ 200, {}, [ 'css' ] ])
 
         result = middleware.call(static_env)
 
-        expect(result).to eq([200, {}, ['css']])
+        expect(result).to eq([ 200, {}, [ 'css' ] ])
         # 監視メソッドが呼ばれていないことを確認
         expect(PerformanceMonitoring::QueryMonitor).not_to receive(:monitor_request)
       end
@@ -227,11 +227,11 @@ RSpec.describe PerformanceMonitoring, type: :model do
       end
 
       it 'パフォーマンス監視をスキップすること' do
-        allow(app).to receive(:call).with(env).and_return([200, {}, ['response']])
+        allow(app).to receive(:call).with(env).and_return([ 200, {}, [ 'response' ] ])
 
         result = middleware.call(env)
 
-        expect(result).to eq([200, {}, ['response']])
+        expect(result).to eq([ 200, {}, [ 'response' ] ])
         expect(PerformanceMonitoring::QueryMonitor).not_to receive(:monitor_request)
       end
     end
@@ -249,10 +249,10 @@ RSpec.describe PerformanceMonitoring, type: :model do
 
       # 不整合を作成してテスト
       store.update_column(:store_inventories_count, 999)
-      
+
       # Store.firstが不整合のあるstoreを返すように設定
       allow(Store).to receive(:first).and_return(store)
-      
+
       health = PerformanceMonitoring::PerformanceStats.send(:counter_cache_health_check)
       expect(health).to eq('inconsistencies_detected')
     end

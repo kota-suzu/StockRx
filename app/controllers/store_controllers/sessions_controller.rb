@@ -63,10 +63,22 @@ module StoreControllers
       sign_in(resource_name, resource)
       yield resource if block_given?
 
+      # TODO: 🔴 Phase 5-1（緊急）- 初回ログイン・パスワード期限切れチェック強化
+      # 優先度: 高（セキュリティ要件）
+      # 実装内容:
+      #   - パスワード有効期限（90日）チェック
+      #   - 弱いパスワードの強制変更
+      #   - パスワード履歴チェック（過去5回と重複禁止）
+      # 期待効果: セキュリティコンプライアンス向上
+      #
       # 初回ログインチェック
       if resource.must_change_password?
         redirect_to store_change_password_profile_path,
                     notice: I18n.t("devise.passwords.must_change_on_first_login")
+      elsif resource.password_expired?
+        # TODO: パスワード期限切れ時の処理
+        redirect_to store_change_password_profile_path,
+                    alert: I18n.t("devise.passwords.password_expired")
       else
         respond_with resource, location: after_sign_in_path_for(resource)
       end

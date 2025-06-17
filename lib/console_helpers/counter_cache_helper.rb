@@ -3,7 +3,7 @@
 # Rails Consoleで使用するCounter Cacheヘルパー
 # ============================================
 # 開発時のCounter Cache管理を簡単にするためのヘルパーメソッド
-# 
+#
 # 使用例:
 #   reload_helpers                         # ヘルパーをリロード
 #   check_all_counter_caches              # 全Counter Cacheをチェック
@@ -42,16 +42,16 @@ module CounterCacheHelper
         puts "  ❌ #{inventory.name}: inventory_logs不整合 (実測: #{actual_logs}, Cache: #{inventory.inventory_logs_count})"
       end
     end
-    
+
     if inconsistent_count == 0
       puts "  ✅ 全てのInventory Counter Cacheが整合しています"
     else
       puts "  ❌ #{inconsistent_count}件のInventory Counter Cache不整合を検出"
     end
-    
+
     puts
     puts "=== チェック完了 ==="
-    
+
     {
       store_inconsistencies: store_inconsistencies.count,
       inventory_inconsistencies: inconsistent_count,
@@ -90,7 +90,7 @@ module CounterCacheHelper
 
     puts "✅ Counter Cache修正完了（修正件数: #{fixed_count}件）"
     puts "=== 修正完了 ==="
-    
+
     fixed_count
   end
 
@@ -98,9 +98,9 @@ module CounterCacheHelper
   def store_stats(store_code_or_id)
     store = if store_code_or_id.is_a?(String)
               Store.find_by(code: store_code_or_id.upcase)
-            else
+    else
               Store.find(store_code_or_id)
-            end
+    end
 
     unless store
       puts "❌ 店舗が見つかりません: #{store_code_or_id}"
@@ -131,9 +131,9 @@ module CounterCacheHelper
     else
       puts "✅ 全てのCounter Cacheが正常です"
     end
-    
+
     puts "=== 統計完了 ==="
-    
+
     stats
   end
 
@@ -145,23 +145,23 @@ module CounterCacheHelper
 
     total_inventories = Inventory.count
     inconsistent_count = 0
-    
+
     counter_types = %w[batches_count inventory_logs_count shipments_count receipts_count]
-    
+
     counter_types.each do |counter_type|
-      association = counter_type.gsub('_count', '').pluralize
+      association = counter_type.gsub("_count", "").pluralize
       puts "【#{counter_type.humanize}】"
-      
+
       Inventory.includes(association.to_sym).find_each do |inventory|
         actual_count = inventory.send(association).count
         cached_count = inventory.send(counter_type)
-        
+
         if actual_count != cached_count
           puts "  ❌ #{inventory.name}: 実測#{actual_count} / Cache#{cached_count}"
           inconsistent_count += 1
         end
       end
-      
+
       puts "  ✅ #{counter_type}チェック完了"
       puts
     end
@@ -170,16 +170,16 @@ module CounterCacheHelper
     puts "  総Inventory数: #{total_inventories}"
     puts "  不整合件数: #{inconsistent_count}"
     puts "  整合率: #{((total_inventories - inconsistent_count).to_f / total_inventories * 100).round(2)}%"
-    
+
     if inconsistent_count > 0
       puts
       puts "【修正方法】"
       puts "  全Inventory Counter Cacheをリセットする場合:"
       puts "  Inventory.find_each { |i| Inventory.reset_counters(i.id, :batches, :inventory_logs, :shipments, :receipts) }"
     end
-    
+
     puts "=== 概要完了 ==="
-    
+
     {
       total: total_inventories,
       inconsistent: inconsistent_count,
@@ -194,7 +194,7 @@ module CounterCacheHelper
     puts
 
     store_issues = []
-    
+
     Store.find_each do |store|
       inconsistencies = store.check_counter_cache_integrity
       if inconsistencies.any?
@@ -227,14 +227,14 @@ module CounterCacheHelper
     puts "【一括修正コマンド】"
     puts "fix_stores([#{top_issues.map { |i| i[:store].id }.join(', ')}])"
     puts "=== 分析完了 ==="
-    
+
     top_issues
   end
 
   # 指定店舗のCounter Cache修正
   def fix_stores(store_ids)
-    store_ids = [store_ids] unless store_ids.is_a?(Array)
-    
+    store_ids = [ store_ids ] unless store_ids.is_a?(Array)
+
     puts "=== 指定店舗Counter Cache修正 ==="
     puts "対象店舗: #{store_ids.join(', ')}"
     puts "実行時刻: #{Time.current}"
@@ -245,7 +245,7 @@ module CounterCacheHelper
     store_ids.each do |store_id|
       store = Store.find(store_id)
       inconsistencies = store.check_counter_cache_integrity
-      
+
       if inconsistencies.any?
         puts "🔧 #{store.display_name}: #{inconsistencies.count}件修正中..."
         store.fix_counter_cache_integrity!
@@ -259,13 +259,13 @@ module CounterCacheHelper
     puts
     puts "✅ 全店舗修正完了（総修正件数: #{fixed_total}件）"
     puts "=== 修正完了 ==="
-    
+
     fixed_total
   end
 
   # ヘルパーのリロード
   def reload_helpers
-    load Rails.root.join('lib/console_helpers/counter_cache_helper.rb')
+    load Rails.root.join("lib/console_helpers/counter_cache_helper.rb")
     puts "✅ Counter Cacheヘルパーをリロードしました"
     puts
     puts "【利用可能なコマンド】"

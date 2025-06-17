@@ -15,6 +15,14 @@ module StoreControllers
     # ============================================
 
     def index
+      # TODO: 🟡 Phase 4（重要）- ダッシュボードパフォーマンス最適化
+      # 優先度: 中（UX改善）
+      # 実装内容:
+      #   - 非同期データロード（Turbo Frames活用）
+      #   - Redisキャッシュによる集計値の高速化
+      #   - GraphQLによる効率的なデータフェッチ
+      # 期待効果: 初期表示時間50%短縮
+
       # 店舗の基本統計情報
       load_store_statistics
 
