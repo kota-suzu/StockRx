@@ -41,6 +41,13 @@ document.addEventListener("turbo:load", () => {
 // Bootstrap コンポーネント初期化関数
 // CLAUDE.md準拠: 横展開 - 全てのBootstrapコンポーネントで適用
 function initializeBootstrapComponents() {
+  // Dropdownの手動初期化（重要：これがないとドロップダウンが動作しない）
+  // メタ認知：Bootstrap 5ではdata属性だけでは不十分な場合がある
+  const dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'))
+  dropdownElementList.map(function (dropdownToggleEl) {
+    return new bootstrap.Dropdown(dropdownToggleEl)
+  })
+  
   // Tooltipの初期化
   const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
   tooltipTriggerList.map(function (tooltipTriggerEl) {
@@ -60,6 +67,13 @@ function initializeBootstrapComponents() {
   //   - 自動消去タイマー
   //   - スタック表示
   // 期待効果: ユーザーフィードバックの改善
+  
+  // デバッグ用：Bootstrap初期化成功確認
+  console.log("Bootstrap components initialized:", {
+    dropdowns: dropdownElementList.length,
+    tooltips: tooltipTriggerList.length,
+    popovers: popoverTriggerList.length
+  })
 }
 
 // デバッグ用コンソールメッセージ

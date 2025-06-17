@@ -225,7 +225,7 @@ Rails.application.routes.draw do
   # ✅ 静的ファイル関連: Rails内部ルートで適切に除外設定済み
   # ✅ 在庫履歴ルート: admin名前空間に移行済み（/admin/inventory_logs）
   #
-  
+
   # 在庫ログの旧URLリダイレクト（後方互換性維持）
   # CLAUDE.md準拠: 段階的移行戦略（2026年Q1削除予定）
   get "/inventory_logs", to: redirect("/admin/inventory_logs", status: 301)

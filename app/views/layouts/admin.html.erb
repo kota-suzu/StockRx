@@ -108,7 +108,7 @@
               <% if current_admin.can_access_all_stores? || current_admin.store_manager? %>
                 <li class="nav-item dropdown">
                   <a class="nav-link dropdown-toggle <%= 'active' if request.path.include?('/admin/stores') %>" 
-                     href="javascript:void(0)" id="storeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                     href="#" id="storeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
                      title="店舗管理">
                     <i class="bi bi-shop me-1"></i>
                     <span class="d-none d-lg-inline">店舗管理</span>
@@ -138,7 +138,7 @@
 
                 <li class="nav-item dropdown">
                   <a class="nav-link dropdown-toggle <%= 'active' if request.path.include?('/admin/transfers') %>" 
-                     href="javascript:void(0)" id="transferDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                     href="#" id="transferDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
                      title="店舗間移動">
                     <i class="bi bi-truck me-1"></i>
                     <span class="d-none d-lg-inline">移動管理</span>
@@ -192,7 +192,7 @@
               <!-- 在庫管理 -->
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle <%= 'active' if request.path.include?('/admin/inventories') %>" 
-                   href="javascript:void(0)" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                   href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
                    title="在庫管理">
                   <i class="bi bi-boxes me-1"></i>
                   <span class="d-none d-lg-inline">在庫管理</span>
@@ -225,7 +225,7 @@
 
               <!-- 履歴・監視 -->
               <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="javascript:void(0)" id="monitorDropdown" role="button" 
+                <a class="nav-link dropdown-toggle" href="#" id="monitorDropdown" role="button" 
                    data-bs-toggle="dropdown" aria-expanded="false" title="監視・履歴">
                   <i class="bi bi-activity me-1"></i>
                   <span class="d-none d-lg-inline">監視</span>
@@ -281,7 +281,7 @@
             <ul class="navbar-nav">
               <!-- 通知（未実装） -->
               <li class="nav-item">
-                <a class="nav-link position-relative" href="javascript:void(0)" title="通知（実装予定）">
+                <a class="nav-link position-relative" href="#" title="通知（実装予定）">
                   <i class="bi bi-bell"></i>
                   <!-- TODO: Phase 3 - 通知機能実装時に表示 -->
                   <!-- <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">3</span> -->
@@ -290,7 +290,7 @@
 
               <!-- ユーザーメニュー（ログアウト含む） -->
               <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle d-flex align-items-center" href="javascript:void(0)" id="userDropdown" 
+                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" 
                    role="button" data-bs-toggle="dropdown" aria-expanded="false"
                    title="アカウントメニュー（ログアウトはこちら）">
                   <i class="bi bi-person-circle me-2"></i>
