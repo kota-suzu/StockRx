@@ -159,12 +159,39 @@ Rails.application.routes.draw do
     # resources :settings
   end
 
-  # 在庫管理リソース（HTML/JSONレスポンス対応）
-  resources :inventories do
-    resources :inventory_logs, only: [ :index ]
-  end
-
-  # 在庫ログリソース
+  # ============================================
+  # 後方互換性のためのリダイレクト設定
+  # ============================================
+  # CLAUDE.md準拠: 段階的移行戦略
+  # 旧: /inventories → 新: /admin/inventories
+  # TODO: Phase 4 - 2025年Q2目標で完全削除予定
+  #   - アクセスログ分析で利用状況確認
+  #   - 301リダイレクトで検索エンジン対応
+  #   - 削除時は404ではなく適切なエラーメッセージ表示
+  
+  # 在庫管理の旧URLリダイレクト（GETリクエスト）
+  get "/inventories", to: redirect("/admin/inventories", status: 301)
+  get "/inventories/new", to: redirect("/admin/inventories/new", status: 301)
+  get "/inventories/:id", to: redirect("/admin/inventories/%{id}", status: 301)
+  get "/inventories/:id/edit", to: redirect("/admin/inventories/%{id}/edit", status: 301)
+  
+  # 在庫管理の旧URLリダイレクト（POST/PUT/DELETE用）
+  # NOTE: 301リダイレクトはPOSTデータを失うため、直接エラーメッセージを表示
+  match "/inventories", to: proc { |env| 
+    [ 410, { "Content-Type" => "text/html" }, 
+      [ "<html><body><h1>このURLは廃止されました</h1><p>新しいURL: <a href='/admin/inventories'>/admin/inventories</a></p></body></html>" ]]
+  }, via: [ :post ]
+  
+  match "/inventories/:id", to: proc { |env|
+    id = env["action_dispatch.request.path_parameters"][:id]
+    [ 410, { "Content-Type" => "text/html" }, 
+      [ "<html><body><h1>このURLは廃止されました</h1><p>新しいURL: <a href='/admin/inventories/#{id}'>/admin/inventories/#{id}</a></p></body></html>" ]]
+  }, via: [ :put, :patch, :delete ]
+  
+  # inventory_logsも管理画面に統合予定
+  # TODO: Phase 3 - inventory_logs機能の管理画面統合
+  #   - /admin/inventory_logs への移行
+  #   - 監査ログ機能との統合検討
   resources :inventory_logs, only: [ :index, :show ] do
     collection do
       get :all
