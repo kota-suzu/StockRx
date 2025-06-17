@@ -41,12 +41,12 @@ RSpec.describe Auditable do
     # 各テスト前にAuditLogをクリア
     AuditLog.destroy_all
     TestAuditable.destroy_all
-    
+
     # デフォルトの監査設定にリセット
     TestAuditable.auditable except: [ :created_at, :updated_at ],
                             sensitive: [ :api_key ]
   end
-  
+
   let(:test_record) { TestAuditable.create!(name: "テスト", email: "test@example.com") }
 
   describe "監査ログの自動記録" do
@@ -78,7 +78,7 @@ RSpec.describe Auditable do
         # レコード作成時のログをクリア
         test_record
         AuditLog.destroy_all
-        
+
         expect {
           test_record.update!(name: "更新後")
         }.to change(AuditLog, :count).by(1)
@@ -92,7 +92,7 @@ RSpec.describe Auditable do
         # レコード作成時のログをクリア
         test_record
         AuditLog.destroy_all
-        
+
         test_record.update!(name: "変更後", email: "changed@example.com")
 
         audit_log = test_record.audit_logs.where(action: "update").last
@@ -106,7 +106,7 @@ RSpec.describe Auditable do
         # レコード作成時のログをクリア
         test_record
         AuditLog.destroy_all
-        
+
         expect {
           test_record.touch
         }.not_to change(AuditLog, :count)
@@ -189,7 +189,7 @@ RSpec.describe Auditable do
       # 条件付き監査の設定
       TestAuditable.auditable if: -> { name != "無視" }
     end
-    
+
     after do
       # CLAUDE.md準拠: ベストプラクティス - テスト後の設定リセット
       # メタ認知: 他のテストに影響しないよう設定を元に戻す
@@ -227,7 +227,7 @@ RSpec.describe Auditable do
       # レコード作成時のログをクリア
       test_record
       AuditLog.destroy_all
-      
+
       expect {
         test_record.audit_log("security_event", "カスタムアクション実行", { custom_data: "test" })
       }.to change(AuditLog, :count).by(1)

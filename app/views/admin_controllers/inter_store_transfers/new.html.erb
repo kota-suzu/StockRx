@@ -1,30 +1,22 @@
 <%# frozen_string_literal: true %>
-<%# 新規移動申請作成ページ %>
-<div class="container-fluid">
+<%# 新規移動申請作成ページ - 統一UI版 %>
+<div class="container-fluid py-4">
+  <%# 統一ページヘッダー - UI一貫性向上 %>
+  <%= render 'admin_controllers/shared/page_header',
+             title: '新規移動申請',
+             subtitle: '店舗間での在庫移動を申請',
+             icon: 'bi-truck',
+             icon_color: 'info',
+             back_path: admin_inter_store_transfers_path,
+             back_text: '一覧に戻る',
+             breadcrumbs: [
+               { text: 'ダッシュボード', path: admin_root_path, icon: 'bi-house' },
+               { text: '移動管理', path: admin_inter_store_transfers_path, icon: 'bi-truck' },
+               { text: '新規申請', active: true }
+             ] %>
+
   <div class="row">
     <div class="col-12">
-      <%# ヘッダーセクション %>
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h1 class="h2 mb-2">
-            <i class="bi bi-plus-circle me-2"></i>新規移動申請
-          </h1>
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-              <li class="breadcrumb-item"><%= link_to "ダッシュボード", admin_root_path %></li>
-              <li class="breadcrumb-item"><%= link_to "移動管理", admin_inter_store_transfers_path %></li>
-              <li class="breadcrumb-item active" aria-current="page">新規申請</li>
-            </ol>
-          </nav>
-        </div>
-        
-        <%# アクションボタン %>
-        <div>
-          <%= link_to admin_inter_store_transfers_path, class: "btn btn-outline-secondary" do %>
-            <i class="bi bi-arrow-left me-1"></i>一覧に戻る
-          <% end %>
-        </div>
-      </div>
 
       <div class="row">
         <div class="col-lg-8">

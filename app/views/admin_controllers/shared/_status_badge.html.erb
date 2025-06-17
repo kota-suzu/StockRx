@@ -1,20 +1,19 @@
 <%# Unified Status Badge Component for Admin Interface %>
-<%# 
-  Usage: 
-  <%= render 'admin_controllers/shared/status_badge',
-             status: 'active',
-             text: 'アクティブ',
-             type: 'status' # or 'level', 'priority', 'custom'
-%>
 
-<%# 
+<!--
+  Usage: 
+  render 'admin_controllers/shared/status_badge',
+         status: 'active',
+         text: 'アクティブ',
+         type: 'status' # or 'level', 'priority', 'custom'
+
   Parameters:
   - status: Status value (required) - used for determining color and icon
   - text: Display text (optional, will use humanized status if not provided)
   - type: Badge type (optional, default: 'status')
   - icon: Custom icon (optional)
   - size: Badge size (optional: 'sm', 'md', 'lg', default: 'md')
-%>
+-->
 
 <% 
   # Set defaults

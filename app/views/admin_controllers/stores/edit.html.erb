@@ -1,67 +1,29 @@
 <%# 🏪 店舗情報編集 - Phase 2: Multi-Store Management %>
 <div class="container-fluid py-4">
-  <%# パンくずナビゲーション %>
-  <nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item">
-        <%= link_to admin_stores_path, class: "text-decoration-none" do %>
-          <i class="bi bi-shop me-1" aria-hidden="true"></i>店舗管理
-        <% end %>
-      </li>
-      <li class="breadcrumb-item">
-        <%= link_to admin_store_path(@store), class: "text-decoration-none" do %>
-          <%= @store.name %>
-        <% end %>
-      </li>
-      <li class="breadcrumb-item active" aria-current="page">編集</li>
-    </ol>
-  </nav>
-
-  <%# ページヘッダー %>
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body p-4">
-          <div class="row align-items-center">
-            <div class="col-lg-8">
-              <div class="d-flex align-items-center">
-                <div class="store-edit-icon me-3">
-                  <% if @store.pharmacy? %>
-                    <i class="bi bi-hospital text-admin-primary"></i>
-                  <% elsif @store.warehouse? %>
-                    <i class="bi bi-building text-info"></i>
-                  <% else %>
-                    <i class="bi bi-building-check text-success"></i>
-                  <% end %>
-                </div>
-                <div>
-                  <h1 class="h2 mb-1 fw-bold"><%= @store.name %> の編集</h1>
-                  <p class="text-muted mb-0">
-                    店舗情報を更新します
-                    <span class="badge bg-secondary ms-2"><%= @store.code %></span>
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-              <div class="btn-group" role="group" aria-label="店舗操作">
-                <%= link_to admin_store_path(@store),
-                           class: "btn btn-outline-primary" do %>
-                  <i class="bi bi-eye me-1" aria-hidden="true"></i>
-                  詳細表示
-                <% end %>
-                <%= link_to dashboard_admin_store_path(@store),
-                           class: "btn btn-outline-info" do %>
-                  <i class="bi bi-graph-up me-1" aria-hidden="true"></i>
-                  ダッシュボード
-                <% end %>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <%# 統一ページヘッダー - UI一貫性向上 %>
+  <% 
+    # 店舗タイプ別のアイコンと色の動的設定
+    store_icon = @store.pharmacy? ? 'bi-hospital' : (@store.warehouse? ? 'bi-building' : 'bi-building-check')
+    store_color = @store.pharmacy? ? 'primary' : (@store.warehouse? ? 'info' : 'success')
+  %>
+  
+  <%= render 'admin_controllers/shared/page_header',
+             title: "#{@store.name} の編集",
+             subtitle: "店舗情報を更新します（店舗コード: #{@store.code}）",
+             icon: store_icon,
+             icon_color: store_color,
+             back_path: admin_store_path(@store),
+             back_text: '詳細に戻る',
+             breadcrumbs: [
+               { text: 'ダッシュボード', path: admin_root_path, icon: 'bi-house' },
+               { text: '店舗管理', path: admin_stores_path, icon: 'bi-shop' },
+               { text: @store.name, path: admin_store_path(@store) },
+               { text: '編集', active: true }
+             ],
+             actions: [
+               { text: '詳細表示', path: admin_store_path(@store), icon: 'bi-eye', class: 'btn-outline-primary' },
+               { text: 'ダッシュボード', path: dashboard_admin_store_path(@store), icon: 'bi-graph-up', class: 'btn-outline-info' }
+             ] %>
 
   <%# 編集注意事項 %>
   <div class="row mb-4">

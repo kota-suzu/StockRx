@@ -3,13 +3,38 @@
 
 // =========================================
 // CSS Custom Properties (CSS Variables)
+// CLAUDE.md準拠: SCSS/CSS変数互換性対応
 // =========================================
 :root {
   // Primary Color Palette
   --admin-primary: #0d6efd;
   --admin-primary-dark: #0056b3;
   --admin-primary-light: #6ea8fe;
+  
+  // Accent Color System（hover状態用事前計算値）
   --admin-accent: #6f42c1;
+  --admin-accent-dark: #5a3699;  // darken(#6f42c1, 10%) - hover状態用
+  
+  // ============================================
+  // TODO: 🟢 Phase 4（推奨）- CSS color-mix()移行計画
+  // ============================================
+  // 優先度: 低（ブラウザサポート確認後 - 2025年Q2以降検討）
+  // 現在の実装: 事前計算済みCSS変数（IE11+対応）
+  // 移行後の実装: 
+  //   --admin-accent-dark: color-mix(in srgb, var(--admin-accent) 90%, black 10%);
+  //   --admin-accent-light: color-mix(in srgb, var(--admin-accent) 80%, white 20%);
+  // 
+  // 期待効果:
+  // - 動的色計算による保守性向上
+  // - テーマ切り替え機能の簡素化
+  // - カラーパレット管理の一元化
+  // 
+  // 横展開検討:
+  // - 全スタイルシートでの統一的適用
+  // - Bootstrapカスタムプロパティとの統合
+  // 
+  // 対象ブラウザ: Chrome 111+, Firefox 113+, Safari 16.2+
+  // ============================================
   
   // Status Colors
   --admin-success: #198754;
@@ -154,8 +179,8 @@
   color: white;
   
   &:hover {
-    background-color: darken(var(--admin-accent), 10%);
-    border-color: darken(var(--admin-accent), 10%);
+    background-color: var(--admin-accent-dark);
+    border-color: var(--admin-accent-dark);
     color: white;
   }
 }

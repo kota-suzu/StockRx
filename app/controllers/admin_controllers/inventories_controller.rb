@@ -186,7 +186,7 @@ module AdminControllers
       # CLAUDE.md準拠: パフォーマンス最適化 - アクション別に必要な関連データのみを読み込み
       # メタ認知: showアクションのみbatchesデータが必要、その他は基本情報のみで十分
       case action_name
-      when 'show'
+      when "show"
         # showアクション: バッチ情報を含む詳細表示に必要な全関連データを読み込み
         @inventory = Inventory.includes(:batches).find(params[:id]).decorate
       else

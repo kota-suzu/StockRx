@@ -10,7 +10,7 @@ module AdminControllers
   class StoreInventoriesController < BaseController
     before_action :set_store
     before_action :authorize_store_access
-    before_action :set_inventory, only: [:details]
+    before_action :set_inventory, only: [ :details ]
 
     # ============================================
     # アクション
@@ -23,15 +23,15 @@ module AdminControllers
                  .joins(:inventory)
                  .includes(:inventory, :batches)
                  .ransack(params[:q])
-      
+
       @store_inventories = @q.result
                             .order(sort_column => sort_direction)
                             .page(params[:page])
                             .per(params[:per_page] || 25)
-      
+
       # 統計情報（管理者用詳細版）
       @statistics = calculate_detailed_statistics
-      
+
       respond_to do |format|
         format.html
         format.json { render json: detailed_inventory_json }
@@ -48,10 +48,10 @@ module AdminControllers
                                  .includes(:admin)
                                  .order(created_at: :desc)
                                  .limit(50)
-      
+
       @transfer_history = load_transfer_history
       @batch_details = @store_inventory.batches.includes(:receipts)
-      
+
       respond_to do |format|
         format.html
         format.json { render json: inventory_details_json }
@@ -74,7 +74,7 @@ module AdminControllers
       #   - 地域管理者: 担当地域の店舗のみ
       #   - 店舗管理者: 自店舗のみ
       unless current_admin.can_access_store?(@store)
-        redirect_to admin_stores_path, 
+        redirect_to admin_stores_path,
                    alert: "この店舗の在庫情報にアクセスする権限がありません"
       end
     end
@@ -177,7 +177,7 @@ module AdminControllers
     def generate_csv
       CSV.generate(headers: true) do |csv|
         csv << csv_headers
-        
+
         @store_inventories.find_each do |store_inventory|
           csv << csv_row(store_inventory)
         end
@@ -187,7 +187,7 @@ module AdminControllers
     def csv_headers
       [
         "商品ID", "SKU", "商品名", "カテゴリ", "メーカー", "単位",
-        "在庫数", "予約数", "利用可能数", "安全在庫", "単価", 
+        "在庫数", "予約数", "利用可能数", "安全在庫", "単価",
         "在庫金額", "在庫状態", "最終更新"
       ]
     end

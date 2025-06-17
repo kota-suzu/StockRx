@@ -1,32 +1,23 @@
 <%# frozen_string_literal: true %>
-<%# 移動申請編集ページ %>
-<div class="container-fluid">
+<%# 移動申請編集ページ - 統一UI版 %>
+<div class="container-fluid py-4">
+  <%# 統一ページヘッダー - UI一貫性向上 %>
+  <%= render 'admin_controllers/shared/page_header',
+             title: '移動申請編集',
+             subtitle: "#{@transfer.source_store.name} → #{@transfer.destination_store.name}",
+             icon: 'bi-pencil-square',
+             icon_color: 'warning',
+             back_path: admin_inter_store_transfer_path(@transfer),
+             back_text: '詳細に戻る',
+             breadcrumbs: [
+               { text: 'ダッシュボード', path: admin_root_path, icon: 'bi-house' },
+               { text: '移動管理', path: admin_inter_store_transfers_path, icon: 'bi-truck' },
+               { text: '詳細', path: admin_inter_store_transfer_path(@transfer) },
+               { text: '編集', active: true }
+             ] %>
+
   <div class="row">
     <div class="col-12">
-      <%# ヘッダーセクション %>
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h1 class="h2 mb-2">
-            <i class="bi bi-pencil me-2"></i>移動申請編集
-          </h1>
-          <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-              <li class="breadcrumb-item"><%= link_to "ダッシュボード", admin_root_path %></li>
-              <li class="breadcrumb-item"><%= link_to "移動管理", admin_inter_store_transfers_path %></li>
-              <li class="breadcrumb-item"><%= link_to "詳細", admin_inter_store_transfer_path(@transfer) %></li>
-              <li class="breadcrumb-item active" aria-current="page">編集</li>
-            </ol>
-          </nav>
-        </div>
-        
-        <%# アクションボタン %>
-        <div>
-          <%= link_to admin_inter_store_transfer_path(@transfer), class: "btn btn-outline-secondary" do %>
-            <i class="bi bi-arrow-left me-1"></i>詳細に戻る
-          <% end %>
-        </div>
-      </div>
-
       <div class="row">
         <div class="col-lg-8">
           <%# 編集フォーム %>

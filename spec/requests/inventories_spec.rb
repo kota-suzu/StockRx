@@ -183,7 +183,7 @@ RSpec.describe "Inventories", type: :request do
         # 横展開確認: 削除前に関連するすべての制約レコードをクリア
         inventory.audit_logs.destroy_all      # Auditable concern
         inventory.inventory_logs.destroy_all  # InventoryLoggable concern
-        
+
         expect {
           delete admin_inventory_path(inventory)
         }.to change(Inventory, :count).by(-1)
@@ -195,7 +195,7 @@ RSpec.describe "Inventories", type: :request do
           # 横展開確認: 削除前に関連するすべての制約レコードをクリア
           inventory.audit_logs.destroy_all      # Auditable concern
           inventory.inventory_logs.destroy_all  # InventoryLoggable concern
-          
+
           delete admin_inventory_path(inventory),
                  headers: { "Accept" => "application/json" }
 

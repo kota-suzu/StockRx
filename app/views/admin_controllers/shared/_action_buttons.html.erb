@@ -1,39 +1,40 @@
 <%# frozen_string_literal: true %>
 <%# 統一されたアクションボタンコンポーネント（CLAUDE.md準拠） %>
-<%# 
+
+<!--
   新しい使用例: 
-  <%= render 'admin_controllers/shared/action_buttons',
-             resource: inventory,
-             buttons: [:detail, :edit, :delete] %>
+  render 'admin_controllers/shared/action_buttons',
+         resource: inventory,
+         buttons: [:detail, :edit, :delete]
              
   カスタムボタン例:
-  <%= render 'admin_controllers/shared/action_buttons',
-             resource: store,
-             buttons: [
-               { type: :detail, path: admin_store_path(store) },
-               { type: :dashboard, path: dashboard_admin_store_path(store), text: '分析' },
-               { type: :inventory, path: admin_store_inventories_path(store), text: '在庫' }
-             ] %>
+  render 'admin_controllers/shared/action_buttons',
+         resource: store,
+         buttons: [
+           { type: :detail, path: admin_store_path(store) },
+           { type: :dashboard, path: dashboard_admin_store_path(store), text: '分析' },
+           { type: :inventory, path: admin_store_inventories_path(store), text: '在庫' }
+         ]
              
   レガシー形式（互換性維持）:
-  <%= render 'admin_controllers/shared/action_buttons',
-             buttons: [
-               { 
-                 text: '編集', 
-                 path: edit_path, 
-                 icon: 'bi-pencil', 
-                 class: 'btn-warning',
-                 tooltip: 'このアイテムを編集'
-               }
-             ],
-             legacy: true %>
+  render 'admin_controllers/shared/action_buttons',
+         buttons: [
+           { 
+             text: '編集', 
+             path: edit_path, 
+             icon: 'bi-pencil', 
+             class: 'btn-warning',
+             tooltip: 'このアイテムを編集'
+           }
+         ],
+         legacy: true
 
   Parameters:
   - resource: ActiveRecord object (for auto-path generation)
   - buttons: Array of button symbols or configurations
   - additional_classes: Additional CSS classes
   - legacy: Use legacy format (default: false)
-%>
+-->
 
 <%
   # デフォルト設定

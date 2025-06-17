@@ -1,33 +1,18 @@
 <%# 🏪 新規店舗作成 - Phase 2: Multi-Store Management %>
 <div class="container-fluid py-4">
-  <%# パンくずナビゲーション %>
-  <nav aria-label="breadcrumb" class="mb-3">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item">
-        <%= link_to admin_stores_path, class: "text-decoration-none" do %>
-          <i class="bi bi-shop me-1" aria-hidden="true"></i>店舗管理
-        <% end %>
-      </li>
-      <li class="breadcrumb-item active" aria-current="page">新規店舗作成</li>
-    </ol>
-  </nav>
-
-  <%# ページヘッダー %>
-  <div class="row mb-4">
-    <div class="col-12">
-      <div class="card border-0 shadow-sm">
-        <div class="card-body p-4">
-          <div class="d-flex align-items-center">
-            <div class="icon-lg me-3" style="background: linear-gradient(135deg, var(--admin-primary), var(--admin-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">🏪</div>
-            <div>
-              <h1 class="h2 mb-1 fw-bold">新規店舗作成</h1>
-              <p class="text-muted mb-0">新しい店舗をチェーンに追加します</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <%# 統一ページヘッダー - UI一貫性向上 %>
+  <%= render 'admin_controllers/shared/page_header',
+             title: '新規店舗作成',
+             subtitle: '新しい店舗をチェーンに追加します',
+             icon: 'bi-shop',
+             icon_color: 'primary',
+             back_path: admin_stores_path,
+             back_text: '店舗一覧に戻る',
+             breadcrumbs: [
+               { text: 'ダッシュボード', path: admin_root_path, icon: 'bi-house' },
+               { text: '店舗管理', path: admin_stores_path, icon: 'bi-shop' },
+               { text: '新規店舗作成', active: true }
+             ] %>
 
   <%# 作成ガイド %>
   <div class="row mb-4">

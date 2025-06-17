@@ -345,7 +345,7 @@ module AdminControllers
     # メタ認知: 他のコントローラーとの一貫性維持
     def handle_destroy_error(transfer_summary, message = nil)
       error_message = message || @transfer.errors.full_messages.join("、")
-      
+
       redirect_to admin_inter_store_transfer_path(@transfer),
                   alert: "移動申請「#{transfer_summary}」の削除に失敗しました: #{error_message}"
     end

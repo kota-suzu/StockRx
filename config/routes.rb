@@ -125,10 +125,10 @@ Rails.application.routes.draw do
       member do
         get :dashboard  # 店舗個別ダッシュボード
       end
-      
+
       # 店舗別在庫管理（管理者用）
       # CLAUDE.md準拠: 管理者は全店舗の詳細在庫情報にアクセス可能
-      resources :inventories, only: [:index], controller: 'admin_controllers/store_inventories' do
+      resources :inventories, only: [ :index ], controller: "admin_controllers/store_inventories" do
         member do
           get :details  # 詳細情報（価格・仕入先含む）
         end
@@ -199,7 +199,7 @@ Rails.application.routes.draw do
   # ============================================
   # 横展開確認済み: 類似ルートの整合性について
   # ============================================
-  # 
+  #
   # inventory_logsも管理画面に統合予定（CLAUDE.md準拠）
   # TODO: 🟡 Phase 3 - inventory_logs機能の管理画面統合
   # 優先度: 中（URL構造の一貫性向上、2025年Q1目標）
@@ -209,13 +209,13 @@ Rails.application.routes.draw do
   #   - 監査ログ機能（AuditLog）との機能統合検討
   #   - 権限ベースのアクセス制御強化
   # 期待効果: 管理機能の一元化、セキュリティ向上
-  # 
+  #
   # 横展開検討済み項目:
   # ✅ 店舗関連ルート: 適切に名前空間分離済み（/store, /stores, /admin/stores）
   # ✅ API関連ルート: 独立したv1名前空間で適切に管理
   # ✅ 認証関連ルート: Devise管理下で適切に構成
   # ✅ 静的ファイル関連: Rails内部ルートで適切に除外設定済み
-  # 
+  #
   resources :inventory_logs, only: [ :index, :show ] do
     collection do
       get :all

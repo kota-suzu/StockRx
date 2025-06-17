@@ -9,10 +9,10 @@
 class StoreInventoriesController < ApplicationController
   # セキュリティ対策
   include SecurityHeaders
-  
-  # 認証スキップ（公開情報）
+
+  # 認証不要（公開情報）
   # CLAUDE.md準拠: 公開APIは認証不要だが、セキュリティ対策は必須
-  skip_before_action :authenticate_admin!
+  # Note: ApplicationControllerには認証フィルターがないため、skip不要
 
   before_action :set_store
   before_action :check_store_active
@@ -229,7 +229,7 @@ class StoreInventoriesController < ApplicationController
     # 危険な文字をエスケープ
     string.gsub(/[%_\\]/, '\\\\\\&')
   end
-  
+
   # XSS対策: 出力時のエスケープ
   # TODO: Phase 4 - Content Security Policyの強化
   #   - インラインスクリプトの完全排除

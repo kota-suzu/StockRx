@@ -265,7 +265,7 @@ module Auditable
     model_name = self.class.name.gsub(/([A-Z]+)([A-Z][a-z])/, '\1 \2')
                                .gsub(/([a-z\d])([A-Z])/, '\1 \2')
                                .strip
-    
+
     if respond_to?(:name)
       "#{model_name}「#{name}」"
     elsif respond_to?(:email)
@@ -334,7 +334,7 @@ module Auditable
     # CLAUDE.md準拠: セキュリティ最優先 - 機密情報の確実なマスキング
     # メタ認知: 明示的に機密指定されたフィールドのみマスキング
     # ベストプラクティス: 過度なマスキングは監査ログの有用性を損なうため避ける
-    
+
     # 設定された機密フィールド
     audit_options[:sensitive].each do |field|
       if attrs.key?(field.to_s)
@@ -358,7 +358,7 @@ module Auditable
       /mynumber/ => "[MY_NUMBER]",
       /secret_data/ => ->(value) { mask_if_sensitive(value) }
     }
-    
+
     attrs.each do |key, value|
       sensitive_field_patterns.each do |pattern, replacement|
         if key.to_s.match?(pattern)

@@ -43,7 +43,7 @@ RSpec.describe StoreInventoriesHelper, type: :helper do
 
   describe "#sort_link" do
     let(:store) { create(:store) }
-    
+
     before do
       assign(:store, store)
       allow(helper).to receive(:request).and_return(

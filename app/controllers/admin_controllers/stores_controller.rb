@@ -173,7 +173,7 @@ module AdminControllers
     # メタ認知: InventoriesControllerと同様のパターン適用
     def handle_destroy_error(store_name, message = nil)
       error_message = message || @store.errors.full_messages.join("、")
-      
+
       redirect_to admin_store_path(@store),
                   alert: "店舗「#{store_name}」の削除に失敗しました: #{error_message}"
     end
