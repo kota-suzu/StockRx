@@ -123,6 +123,8 @@ module AdminControllers
     # レスポンス生成
     # ============================================
 
+    # CLAUDE.md準拠: メタ認知 - JSONレスポンスのメソッド名不一致を修正
+    # 横展開: 他のコントローラーでも同様のメソッド名確認が必要
     def logs_json
       @logs.map do |log|
         {
@@ -132,7 +134,7 @@ module AdminControllers
             name: log.inventory.name
           },
           operation_type: log.operation_type,
-          operation_type_text: log.operation_type_text,
+          operation_type_text: log.operation_display_name,
           delta: log.delta,
           previous_quantity: log.previous_quantity,
           current_quantity: log.current_quantity,
@@ -163,7 +165,7 @@ module AdminControllers
           csv << [
             log.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             log.inventory.name,
-            log.operation_type_text,
+            log.operation_display_name,
             log.delta,
             log.previous_quantity,
             log.current_quantity,
