@@ -139,11 +139,14 @@ module StoreControllers
     end
 
     # 低在庫率の計算
+    # CLAUDE.md準拠: 代替検索パターンでのActiveRecord::Relation使用
+    # メタ認知: ransack依存を除去し、@qを直接使用
+    # 横展開: 他コントローラーでも同様のパターン適用
     def calculate_low_stock_percentage
-      total = @q.result.count
+      total = @q.count
       return 0 if total.zero?
 
-      low_stock = @q.result.where("quantity <= safety_stock_level").count
+      low_stock = @q.where("store_inventories.quantity <= store_inventories.safety_stock_level").count
       ((low_stock.to_f / total) * 100).round(1)
     end
 
