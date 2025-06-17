@@ -27,11 +27,11 @@ RSpec.describe "AdminControllers::Stores", type: :request do
       it "uses counter cache to avoid N+1 queries" do
         # 複数の店舗を作成してCounter Cacheの効果を確認
         create_list(:store, 3, :with_inventories_and_admins)
-        
+
         expect {
           get admin_stores_path
         }.not_to exceed_query_limit(8)
-        
+
         expect(response).to have_http_status(:success)
       end
 
@@ -40,10 +40,10 @@ RSpec.describe "AdminControllers::Stores", type: :request do
         expect {
           get admin_stores_path
         }.not_to exceed_query_limit(8)
-        
+
         # 店舗数を増加してもクエリ数が線形増加しないことを確認
         create_list(:store, 5, :with_inventories_and_admins)
-        
+
         expect {
           get admin_stores_path
         }.not_to exceed_query_limit(8)
@@ -62,7 +62,7 @@ RSpec.describe "AdminControllers::Stores", type: :request do
         expect {
           get admin_store_path(store)
         }.not_to exceed_query_limit(15)
-        
+
         expect(response).to have_http_status(:success)
       end
     end
@@ -72,7 +72,7 @@ RSpec.describe "AdminControllers::Stores", type: :request do
         expect {
           get edit_admin_store_path(store)
         }.not_to exceed_query_limit(12)
-        
+
         expect(response).to have_http_status(:success)
       end
     end
@@ -84,7 +84,7 @@ RSpec.describe "AdminControllers::Stores", type: :request do
             store: { name: "Updated Store Name" }
           }
         }.not_to exceed_query_limit(6)
-        
+
         expect(response).to have_http_status(:found) # リダイレクト
         expect(store.reload.name).to eq("Updated Store Name")
       end
@@ -95,7 +95,7 @@ RSpec.describe "AdminControllers::Stores", type: :request do
         expect {
           get dashboard_admin_store_path(store)
         }.not_to exceed_query_limit(20)
-        
+
         expect(response).to have_http_status(:success)
       end
 
@@ -116,21 +116,21 @@ RSpec.describe "AdminControllers::Stores", type: :request do
             store: attributes_for(:store)
           }
         }.not_to exceed_query_limit(8)
-        
+
         created_store = Store.last
-        
+
         # Read operations
         expect {
           get admin_store_path(created_store)
         }.not_to exceed_query_limit(15)
-        
+
         # Update
         expect {
           patch admin_store_path(created_store), params: {
             store: { name: "Performance Test Store" }
           }
         }.not_to exceed_query_limit(6)
-        
+
         # Delete (if authorized)
         expect {
           delete admin_store_path(created_store)

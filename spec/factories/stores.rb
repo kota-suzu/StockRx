@@ -67,7 +67,7 @@ FactoryBot.define do
         end
 
         # 管理者作成
-        create_list(:admin, evaluator.admins_count, :with_specific_store, 
+        create_list(:admin, evaluator.admins_count, :with_specific_store,
                    target_store: store)
 
         # Counter Cacheの更新（必要に応じて）

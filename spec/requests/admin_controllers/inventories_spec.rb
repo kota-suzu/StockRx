@@ -28,7 +28,7 @@ RSpec.describe "AdminControllers::Inventories", type: :request do
         expect {
           get admin_inventory_path(inventory)
         }.not_to exceed_query_limit(10)
-        
+
         expect(response).to have_http_status(:success)
       end
 
@@ -45,18 +45,18 @@ RSpec.describe "AdminControllers::Inventories", type: :request do
         expect {
           get edit_admin_inventory_path(inventory)
         }.not_to exceed_query_limit(5)
-        
+
         expect(response).to have_http_status(:success)
       end
 
       it "does not trigger N+1 queries for basic inventory data" do
         # 複数回アクセスしてもクエリ数が増加しないことを確認
         baseline_count = nil
-        
+
         expect {
           get edit_admin_inventory_path(inventory)
         }.not_to exceed_query_limit(5)
-        
+
         # 別のインベントリでも同様のクエリ数を維持
         another_inventory = create(:inventory, :with_batches)
         expect {
@@ -72,7 +72,7 @@ RSpec.describe "AdminControllers::Inventories", type: :request do
             inventory: { name: "Updated Name" }
           }
         }.not_to exceed_query_limit(8)
-        
+
         expect(response).to have_http_status(:found) # リダイレクト
         expect(inventory.reload.name).to eq("Updated Name")
       end
@@ -83,11 +83,11 @@ RSpec.describe "AdminControllers::Inventories", type: :request do
       it "performs deletion without unnecessary relation loading" do
         # 関連データのない削除可能なインベントリを作成
         deletable_inventory = create(:inventory)
-        
+
         expect {
           delete admin_inventory_path(deletable_inventory)
         }.not_to exceed_query_limit(10)
-        
+
         expect(response).to have_http_status(:see_other) # リダイレクト
         # NOTE: 監査ログやバッチなどの関連レコード制約で削除が制限される場合は
         #       削除失敗レスポンスも正常動作として扱う
