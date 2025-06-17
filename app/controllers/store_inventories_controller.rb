@@ -63,7 +63,7 @@ class StoreInventoriesController < ApplicationController
                    .joins(:inventory)
                    .where("inventories.name LIKE :query OR inventories.sku LIKE :query", 
                          query: "%#{sanitize_sql_like(query)}%")
-                   .merge(Inventory.active)
+                   .merge(Inventory.where(status: :active))
                    .select(public_inventory_columns)
                    .limit(20)
 
@@ -142,7 +142,7 @@ class StoreInventoriesController < ApplicationController
   def calculate_public_statistics
     {
       total_items: @store_inventories.count,
-      categories: @store.inventories.active.distinct.count(:category),
+      categories: @store.inventories.where(status: :active).distinct.count(:category),
       last_updated: @store.store_inventories.maximum(:updated_at),
       store_info: {
         name: @store.name,
