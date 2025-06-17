@@ -653,6 +653,18 @@ config.omniauth :github,
 - ベストプラクティス適用: UI一貫性確保、アクセシビリティ改善、メンテナンス性向上
 - 将来計画: admins名前空間の整理とadmin_controllers統合検討
 
+### ✅ **InventoryLog関連付けエラー完全解決（6月17日）**
+- エラー: "Association named 'admin' was not found on InventoryLog"
+- 原因: InventoryLogモデルで`user`として定義、コントローラー・ビューで`admin`参照
+- 解決策: ベストプラクティス準拠の意味的関連付け名追加
+- 修正ファイル:
+  - `app/models/inventory_log.rb`: `belongs_to :admin`エイリアス追加
+  - `app/models/audit_log.rb`: 横展開で同様修正適用
+- メタ認知: 在庫ログ操作者は管理者なので`admin`が意味的に適切
+- 横展開確認: 他ログ系モデルでの一貫性確保完了
+- ベストプラクティス: 関連付け名の意味的正確性とコード可読性向上
+- 将来計画: 統一的ログ管理インターフェースの検討
+
 ## 直近の重要な改善（2025年6月）
 
 ### ✅ **完了済み主要タスク**
