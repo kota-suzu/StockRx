@@ -268,8 +268,9 @@
     </script>
 
     <%# Flash message auto-hide script %>
+    <%# ベストプラクティス: turbo:loadイベント使用（Turbo環境での推奨） %>
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
+      document.addEventListener('turbo:load', function() {
         // フラッシュメッセージが存在する場合は5秒後に自動的に消す
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(function(alert) {
