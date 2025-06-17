@@ -64,8 +64,8 @@
     </div>
 
     <script>
-      // フラッシュメッセージの自動非表示
-      document.addEventListener('DOMContentLoaded', function() {
+      // フラッシュメッセージの自動非表示（Turbo対応）
+      document.addEventListener('turbo:load', function() {
         setTimeout(function() {
           const alerts = document.querySelectorAll('.alert');
           alerts.forEach(function(alert) {
