@@ -52,7 +52,23 @@ module StoreControllers
       # より厳密な認証チェック：完全にログインしており、同じ店舗の場合のみダッシュボードへ
       # CLAUDE.md準拠: セキュリティ最優先の認証判定
       begin
+        # デバッグ情報の詳細ログ出力（CLAUDE.md: 問題解決のための可視化）
+        store_signed_in_check = store_signed_in?
+        store_user_signed_in_check = store_user_signed_in?
+        current_store_check = current_store&.id
+        current_store_active_check = current_store&.active?
+        current_store_user_store_check = current_store_user&.store&.id
+        target_store_check = @store.id
+
+        Rails.logger.debug "AUTH_DEBUG: store_signed_in=#{store_signed_in_check}, " \
+                          "store_user_signed_in=#{store_user_signed_in_check}, " \
+                          "current_store_id=#{current_store_check}, " \
+                          "current_store_active=#{current_store_active_check}, " \
+                          "user_store_id=#{current_store_user_store_check}, " \
+                          "target_store_id=#{target_store_check}"
+
         if store_signed_in? && current_store_user&.store == @store && current_store&.active?
+          Rails.logger.info "AUTH_SUCCESS: Redirecting to dashboard for store #{@store.slug}, user: #{current_store_user&.email}"
           redirect_to store_root_path and return
         end
       rescue => e
