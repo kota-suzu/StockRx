@@ -306,10 +306,28 @@ module Auditable
       changes = changes.except(*audit_options[:except].map(&:to_s))
     end
 
-    # 機密フィールドのマスキング
-    changes.transform_values do |values|
-      [ mask_if_sensitive(values[0]), mask_if_sensitive(values[1]) ]
+    # CLAUDE.md準拠: ベストプラクティス - 変更内容は属性と同じルールでマスキング
+    # メタ認知: 変更内容のマスキングは属性のマスキングと一貫性を保つ
+    changes.each do |key, values|
+      # 設定された機密フィールドのみマスキング
+      if audit_options[:sensitive].include?(key.to_sym)
+        changes[key] = [ "[FILTERED]", "[FILTERED]" ]
+      else
+        # 特定のフィールド名パターンに基づくマスキング
+        case key.to_s
+        when /credit_card/, /card_number/
+          changes[key] = [ "[CARD_NUMBER]", "[CARD_NUMBER]" ]
+        when /ssn/, /social_security/
+          changes[key] = [ "[SSN]", "[SSN]" ]
+        when /my_number/, /mynumber/
+          changes[key] = [ "[MY_NUMBER]", "[MY_NUMBER]" ]
+        when /secret_data/
+          changes[key] = [ mask_if_sensitive(values[0]), mask_if_sensitive(values[1]) ]
+        end
+      end
     end
+
+    changes
   end
 
   def mask_sensitive_fields(attrs)
