@@ -16,7 +16,8 @@
           <% end %>
         </li>
         <li class="breadcrumb-item">
-          <%= link_to store_inventories_path do %>
+          <%# CLAUDE.md準拠: 横展開 - ルーティング衝突問題の解決 %>
+          <%= link_to "/store/inventories" do %>
             <i class="bi bi-box-seam"></i> 在庫管理
           <% end %>
         </li>
@@ -50,7 +51,8 @@
           <i class="bi bi-arrow-left-right me-1"></i>移動申請
         </button>
         
-        <%= link_to store_inventories_path, class: "btn btn-secondary" do %>
+        <%# 横展開: 一覧に戻るボタンも同様に修正 %>
+        <%= link_to "/store/inventories", class: "btn btn-secondary" do %>
           <i class="bi bi-arrow-left me-1"></i>一覧に戻る
         <% end %>
       </div>

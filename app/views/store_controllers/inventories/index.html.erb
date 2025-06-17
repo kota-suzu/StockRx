@@ -109,7 +109,10 @@
     </h5>
   </div>
   <div class="card-body">
-    <%= search_form_for @q, url: store_inventories_path, method: :get, class: "row g-3" do |f| %>
+    <%# CLAUDE.md準拠: 横展開 - ルーティング衝突問題の解決 %>
+    <%# メタ認知: 公開ルート(/stores/:store_id/inventories)と認証済みルート(/store/inventories)の区別 %>
+    <%# ベストプラクティス: 明示的パス指定で曖昧性を排除 %>
+    <%= search_form_for @q, url: "/store/inventories", method: :get, class: "row g-3" do |f| %>
       <div class="col-md-3">
         <%= f.search_field :inventory_name_cont, placeholder: "商品名で検索", 
                            class: "form-control", 
@@ -145,7 +148,8 @@
       <div class="col-md-2">
         <div class="d-flex gap-2">
           <%= f.submit "検索", class: "btn btn-primary" %>
-          <%= link_to "クリア", store_inventories_path, class: "btn btn-outline-secondary" %>
+          <%# 横展開: 同様のルーティング修正 %>
+          <%= link_to "クリア", "/store/inventories", class: "btn btn-outline-secondary" %>
         </div>
       </div>
     <% end %>
@@ -170,7 +174,8 @@
         <thead class="table-light">
           <tr>
             <th>
-              <%= link_to store_inventories_path(params.permit!.merge(sort: 'inventories.name', direction: sort_direction == 'asc' ? 'desc' : 'asc')), 
+              <%# 横展開: ソートリンクも同様にルーティング修正 %>
+              <%= link_to "/store/inventories?#{params.permit!.merge(sort: 'inventories.name', direction: sort_direction == 'asc' ? 'desc' : 'asc').to_query}", 
                           class: "text-decoration-none" do %>
                 <i class="bi bi-box me-1"></i>商品名
                 <% if params[:sort] == 'inventories.name' %>
@@ -179,7 +184,8 @@
               <% end %>
             </th>
             <th>
-              <%= link_to store_inventories_path(params.permit!.merge(sort: 'quantity', direction: sort_direction == 'asc' ? 'desc' : 'asc')), 
+              <%# 横展開: 在庫数ソートリンクも同様に修正 %>
+              <%= link_to "/store/inventories?#{params.permit!.merge(sort: 'quantity', direction: sort_direction == 'asc' ? 'desc' : 'asc').to_query}", 
                           class: "text-decoration-none" do %>
                 <i class="bi bi-stack me-1"></i>在庫数
                 <% if params[:sort] == 'quantity' %>
@@ -202,8 +208,9 @@
                   <div class="d-flex align-items-center">
                     <div>
                       <div class="fw-bold">
+                        <%# 横展開: 個別在庫詳細リンクも修正 %>
                         <%= link_to store_inventory.inventory.name, 
-                                    store_inventory_path(store_inventory.inventory), 
+                                    "/store/inventories/#{store_inventory.inventory.id}", 
                                     class: "text-decoration-none" %>
                       </div>
                       <% if store_inventory.inventory.manufacturer.present? %>
@@ -252,7 +259,8 @@
                 
                 <td class="text-end">
                   <div class="btn-group" role="group">
-                    <%= link_to store_inventory_path(store_inventory.inventory), 
+                    <%# 横展開: 詳細表示ボタンも同様に修正 %>
+                    <%= link_to "/store/inventories/#{store_inventory.inventory.id}", 
                                 class: "btn btn-outline-primary btn-sm",
                                 title: "詳細表示" do %>
                       <i class="bi bi-eye"></i>

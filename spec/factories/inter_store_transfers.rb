@@ -5,6 +5,8 @@ FactoryBot.define do
     association :source_store, factory: :store
     association :destination_store, factory: :store
     association :inventory
+    # ポリモーフィック関連付け：デフォルトはAdmin、traitでStoreUserも対応
+    # メタ認知: テスト時にAdminとStoreUserの両方のケースをカバー
     association :requested_by, factory: :admin
     quantity { 10 }
     status { 'pending' }
@@ -154,6 +156,35 @@ FactoryBot.define do
       association :source_store, :tokyo, factory: :store
       association :destination_store, :osaka, factory: :store
       reason { '地域間での在庫調整' }
+    end
+
+    # ポリモーフィック関連付けのテスト用trait
+    # TODO: 🟡 Phase 5（重要）- StoreUserとAdminの権限テスト拡張
+    #   - StoreUserによる申請・承認テストケース
+    #   - 権限ベースのアクセス制御テスト
+    #   - 横展開: 他のポリモーフィック関連付けでも同様のパターン適用
+    trait :requested_by_store_user do
+      association :requested_by, factory: :store_user
+    end
+
+    trait :approved_by_store_user do
+      association :approved_by, factory: :store_user
+    end
+
+    trait :full_store_user_workflow do
+      association :source_store, factory: :store
+      association :destination_store, factory: :store  
+      association :requested_by, factory: :store_user
+      association :approved_by, factory: :store_user
+      
+      after(:create) do |transfer|
+        # StoreUserの店舗に在庫を確保
+        create(:store_inventory,
+               store: transfer.requested_by.store,
+               inventory: transfer.inventory,
+               quantity: transfer.quantity + 30,
+               reserved_quantity: 0)
+      end
     end
   end
 end

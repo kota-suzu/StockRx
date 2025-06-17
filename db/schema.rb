@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_17_231228) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_17_232635) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -353,8 +353,6 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_17_231228) do
   add_foreign_key "audit_logs", "admins", column: "user_id", on_delete: :nullify
   add_foreign_key "batches", "inventories", on_delete: :cascade
   add_foreign_key "identities", "admins"
-  add_foreign_key "inter_store_transfers", "admins", column: "approved_by_id"
-  add_foreign_key "inter_store_transfers", "admins", column: "requested_by_id"
   add_foreign_key "inter_store_transfers", "inventories", on_delete: :cascade
   add_foreign_key "inter_store_transfers", "stores", column: "destination_store_id", on_delete: :cascade
   add_foreign_key "inter_store_transfers", "stores", column: "source_store_id", on_delete: :cascade
