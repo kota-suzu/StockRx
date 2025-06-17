@@ -152,6 +152,152 @@ class Store < ApplicationRecord
     end
   end
 
+  # Counter Cache整合性チェック
+  def self.check_counter_cache_integrity
+    inconsistencies = []
+    
+    find_each do |store|
+      # store_inventories_count チェック
+      actual_inventories = store.store_inventories.count
+      if store.store_inventories_count != actual_inventories
+        inconsistencies << {
+          store: store.display_name,
+          counter: 'store_inventories_count',
+          actual: actual_inventories,
+          cached: store.store_inventories_count
+        }
+      end
+
+      # pending_outgoing_transfers_count チェック
+      actual_outgoing = store.outgoing_transfers.pending.count
+      if store.pending_outgoing_transfers_count != actual_outgoing
+        inconsistencies << {
+          store: store.display_name,
+          counter: 'pending_outgoing_transfers_count',
+          actual: actual_outgoing,
+          cached: store.pending_outgoing_transfers_count
+        }
+      end
+
+      # pending_incoming_transfers_count チェック
+      actual_incoming = store.incoming_transfers.pending.count
+      if store.pending_incoming_transfers_count != actual_incoming
+        inconsistencies << {
+          store: store.display_name,
+          counter: 'pending_incoming_transfers_count',
+          actual: actual_incoming,
+          cached: store.pending_incoming_transfers_count
+        }
+      end
+
+      # low_stock_items_count チェック
+      actual_low_stock = store.calculate_low_stock_items_count
+      if store.low_stock_items_count != actual_low_stock
+        inconsistencies << {
+          store: store.display_name,
+          counter: 'low_stock_items_count',
+          actual: actual_low_stock,
+          cached: store.low_stock_items_count
+        }
+      end
+    end
+    
+    inconsistencies
+  end
+
+  # 単一店舗のCounter Cache整合性チェック
+  def check_counter_cache_integrity
+    inconsistencies = []
+    
+    # store_inventories_count チェック
+    actual_inventories = store_inventories.count
+    if store_inventories_count != actual_inventories
+      inconsistencies << {
+        counter: 'store_inventories_count',
+        actual: actual_inventories,
+        cached: store_inventories_count
+      }
+    end
+
+    # pending_outgoing_transfers_count チェック
+    actual_outgoing = outgoing_transfers.pending.count
+    if pending_outgoing_transfers_count != actual_outgoing
+      inconsistencies << {
+        counter: 'pending_outgoing_transfers_count',
+        actual: actual_outgoing,
+        cached: pending_outgoing_transfers_count
+      }
+    end
+
+    # pending_incoming_transfers_count チェック
+    actual_incoming = incoming_transfers.pending.count
+    if pending_incoming_transfers_count != actual_incoming
+      inconsistencies << {
+        counter: 'pending_incoming_transfers_count',
+        actual: actual_incoming,
+        cached: pending_incoming_transfers_count
+      }
+    end
+
+    # low_stock_items_count チェック
+    actual_low_stock = calculate_low_stock_items_count
+    if low_stock_items_count != actual_low_stock
+      inconsistencies << {
+        counter: 'low_stock_items_count',
+        actual: actual_low_stock,
+        cached: low_stock_items_count
+      }
+    end
+    
+    inconsistencies
+  end
+
+  # 単一店舗のCounter Cache修正
+  def fix_counter_cache_integrity!
+    # store_inventories_countの修正
+    actual_inventories = store_inventories.count
+    update_column(:store_inventories_count, actual_inventories) if store_inventories_count != actual_inventories
+
+    # pending_outgoing_transfers_countの修正
+    actual_outgoing = outgoing_transfers.pending.count
+    update_column(:pending_outgoing_transfers_count, actual_outgoing) if pending_outgoing_transfers_count != actual_outgoing
+
+    # pending_incoming_transfers_countの修正
+    actual_incoming = incoming_transfers.pending.count
+    update_column(:pending_incoming_transfers_count, actual_incoming) if pending_incoming_transfers_count != actual_incoming
+
+    # low_stock_items_countの修正
+    update_low_stock_items_count!
+    
+    Rails.logger.info "Counter Cache fixed for store: #{display_name}"
+  end
+
+  # Counter Cache統計情報
+  def counter_cache_stats
+    {
+      store_inventories: {
+        actual: store_inventories.count,
+        cached: store_inventories_count,
+        consistent: store_inventories.count == store_inventories_count
+      },
+      pending_outgoing_transfers: {
+        actual: outgoing_transfers.pending.count,
+        cached: pending_outgoing_transfers_count,
+        consistent: outgoing_transfers.pending.count == pending_outgoing_transfers_count
+      },
+      pending_incoming_transfers: {
+        actual: incoming_transfers.pending.count,
+        cached: pending_incoming_transfers_count,
+        consistent: incoming_transfers.pending.count == pending_incoming_transfers_count
+      },
+      low_stock_items: {
+        actual: calculate_low_stock_items_count,
+        cached: low_stock_items_count,
+        consistent: calculate_low_stock_items_count == low_stock_items_count
+      }
+    }
+  end
+
   # 店舗コード生成ヘルパー
   def self.generate_code(prefix = "ST")
     loop do
