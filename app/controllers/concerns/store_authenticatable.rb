@@ -67,14 +67,17 @@ module StoreAuthenticatable
     return unless current_store_user.password_expired?
 
     # パスワード変更ページ以外へのアクセスは制限
+    # CLAUDE.md準拠: ルーティングヘルパーの正しい命名規則
+    # メタ認知: singular resourceのmember routeは action_namespace_resource_path
+    # 横展開: ビューファイルでも同様の修正実施済み
     allowed_paths = [
-      store_change_password_profile_path,
-      store_update_password_profile_path,
+      change_password_store_profile_path,
+      update_password_store_profile_path,
       destroy_store_user_session_path
     ]
 
     unless allowed_paths.include?(request.path)
-      redirect_to store_change_password_profile_path,
+      redirect_to change_password_store_profile_path,
                   alert: I18n.t("devise.passwords.expired")
     end
   end

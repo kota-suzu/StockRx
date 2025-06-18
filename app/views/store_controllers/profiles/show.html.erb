@@ -133,13 +133,16 @@
           <% end %>
           
           <% if @user.must_change_password? %>
-            <%= link_to store_change_password_profile_path, 
+            <%# CLAUDE.md準拠: ルーティングヘルパーの正しい命名規則 %>
+            <%# メタ認知: singular resourceのmember routeは action_namespace_resource_path %>
+            <%# 横展開: 他のstore profileビューでも同様のパターンを確認 %>
+            <%= link_to change_password_store_profile_path, 
                         class: "btn btn-warning btn-sm w-100" do %>
               <i class="fas fa-key me-1"></i>
               パスワード変更（必須）
             <% end %>
           <% else %>
-            <%= link_to store_change_password_profile_path, 
+            <%= link_to change_password_store_profile_path, 
                         class: "btn btn-outline-primary btn-sm w-100" do %>
               <i class="fas fa-key me-1"></i>
               パスワード変更

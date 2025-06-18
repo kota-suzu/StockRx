@@ -72,12 +72,14 @@ module StoreControllers
       # 期待効果: セキュリティコンプライアンス向上
       #
       # 初回ログインチェック
+      # CLAUDE.md準拠: ルーティングヘルパーの正しい命名規則
+      # 横展開: store_authenticatable.rb, ビューファイル等でも同様の修正実施済み
       if resource.must_change_password?
-        redirect_to store_change_password_profile_path,
+        redirect_to change_password_store_profile_path,
                     notice: I18n.t("devise.passwords.must_change_on_first_login")
       elsif resource.password_expired?
         # TODO: パスワード期限切れ時の処理
-        redirect_to store_change_password_profile_path,
+        redirect_to change_password_store_profile_path,
                     alert: I18n.t("devise.passwords.password_expired")
       else
         respond_with resource, location: after_sign_in_path_for(resource)
