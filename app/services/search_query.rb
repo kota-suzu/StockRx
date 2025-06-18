@@ -116,6 +116,20 @@ class SearchQuery
         query = query.in_range("price", params[:min_price]&.to_f, params[:max_price]&.to_f)
       end
 
+      # 在庫数範囲
+      if params[:min_quantity].present? || params[:max_quantity].present?
+        # 入力検証: 負の数値を0に変換
+        min_quantity = params[:min_quantity].present? ? [params[:min_quantity].to_i, 0].max : nil
+        max_quantity = params[:max_quantity].present? ? [params[:max_quantity].to_i, 0].max : nil
+        
+        # 入力検証: 最小値が最大値より大きい場合は値を入れ替える
+        if min_quantity && max_quantity && min_quantity > max_quantity
+          min_quantity, max_quantity = max_quantity, min_quantity
+        end
+        
+        query = query.in_range("quantity", min_quantity, max_quantity)
+      end
+
       # 日付範囲
       if params[:created_from].present? || params[:created_to].present?
         query = query.between_dates("created_at", params[:created_from], params[:created_to])
@@ -219,6 +233,20 @@ class SearchQuery
         query = query.in_range("price", params[:min_price]&.to_f, params[:max_price]&.to_f)
       end
 
+      # 在庫数範囲
+      if params[:min_quantity].present? || params[:max_quantity].present?
+        # 入力検証: 負の数値を0に変換
+        min_quantity = params[:min_quantity].present? ? [params[:min_quantity].to_i, 0].max : nil
+        max_quantity = params[:max_quantity].present? ? [params[:max_quantity].to_i, 0].max : nil
+        
+        # 入力検証: 最小値が最大値より大きい場合は値を入れ替える
+        if min_quantity && max_quantity && min_quantity > max_quantity
+          min_quantity, max_quantity = max_quantity, min_quantity
+        end
+        
+        query = query.in_range("quantity", min_quantity, max_quantity)
+      end
+
       # 日付範囲
       if params[:created_from].present? || params[:created_to].present?
         query = query.between_dates("created_at", params[:created_from], params[:created_to])
@@ -311,6 +339,7 @@ class SearchQuery
       conditions << "ステータス: #{params[:status]}" if params[:status].present?
       conditions << "在庫状態: #{params[:stock_filter]}" if params[:stock_filter].present?
       conditions << "価格範囲: #{params[:min_price]}〜#{params[:max_price]}円" if params[:min_price].present? || params[:max_price].present?
+      conditions << "在庫数範囲: #{params[:min_quantity]}〜#{params[:max_quantity]}個" if params[:min_quantity].present? || params[:max_quantity].present?
       conditions << "作成日: #{params[:created_from]}〜#{params[:created_to]}" if params[:created_from].present? || params[:created_to].present?
       conditions << "ロット: #{params[:lot_code]}" if params[:lot_code].present?
       conditions << "期限切れ間近" if params[:expiring_soon].present?
@@ -408,6 +437,8 @@ class SearchQuery
       [
         params[:min_price].present?,
         params[:max_price].present?,
+        params[:min_quantity].present?,
+        params[:max_quantity].present?,
         params[:created_from].present?,
         params[:created_to].present?,
         params[:lot_code].present?,

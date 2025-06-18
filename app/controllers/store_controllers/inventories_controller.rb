@@ -543,6 +543,20 @@ module StoreControllers
         scope = scope.where("inventories.manufacturer = ?", search_params[:manufacturer_eq])
       end
 
+      # 在庫数範囲フィルター
+      if search_params[:quantity_gteq].present? || search_params[:quantity_lteq].present?
+        min = search_params[:quantity_gteq]&.to_i
+        max = search_params[:quantity_lteq]&.to_i
+        
+        if min && max
+          scope = scope.where("store_inventories.quantity BETWEEN ? AND ?", min, max)
+        elsif min
+          scope = scope.where("store_inventories.quantity >= ?", min)
+        elsif max
+          scope = scope.where("store_inventories.quantity <= ?", max)
+        end
+      end
+
       scope
     end
 

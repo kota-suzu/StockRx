@@ -8,7 +8,7 @@ module AdminControllers
     # メタ認知: ジョブステータス取得は機密データ操作ではないため
     # 横展開: 他の読み取り専用APIコントローラーでも同様の考慮が必要
     skip_around_action :audit_sensitive_data_access
-    
+
     # TODO: 🟡 Phase 3（中）- リアルタイム監視機能強化
     # 優先度: 中（基本機能は動作確認済み）
     # 実装内容: WebSocket統合、進捗可視化、失敗通知システム
@@ -16,7 +16,7 @@ module AdminControllers
     # 期待効果: CSVインポート処理の透明性向上、エラー早期発見
     # 工数見積: 1-2週間
     # 依存関係: ActionCable設定、フロントエンド改修
-    
+
     before_action :authenticate_admin!
 
     # GET /admin/job_status/:id

@@ -228,15 +228,15 @@ module AdminControllers
     def analytics
       # 📈 移動分析ダッシュボード（本部管理者のみ）
       # authorize_headquarters_admin! # TODO: 権限チェックメソッドの実装
-      
+
       begin
         # 期間パラメータの安全な処理
         period_days = params[:period]&.to_i
         @period = if period_days&.positive? && period_days <= 365
                    period_days.days.ago
-                 else
+        else
                    30.days.ago
-                 end
+        end
 
         # 分析データの生成（エラーハンドリング付き）
         @analytics = InterStoreTransfer.transfer_analytics(@period..) rescue {}
@@ -247,18 +247,18 @@ module AdminControllers
 
         # 📈 期間別トレンド（エラー時は空のハッシュ）
         @trend_data = calculate_transfer_trends(@period) rescue {}
-        
+
       rescue => e
         # CLAUDE.md準拠: エラーハンドリング強化
         Rails.logger.error "Analytics calculation failed: #{e.message}"
         Rails.logger.error e.backtrace.first(5).join("\n") if e.backtrace
-        
+
         # フォールバック値の設定
         @period = 30.days.ago
         @analytics = {}
         @store_analytics = []
         @trend_data = {}
-        
+
         flash.now[:alert] = "分析データの取得中にエラーが発生しました。デフォルトデータを表示しています。"
       end
     end
@@ -395,12 +395,12 @@ module AdminControllers
       # CLAUDE.md準拠: N+1クエリ対策とパフォーマンス最適化
       # メタ認知: ビューで期待される配列構造に合わせてデータを返す
       # 横展開: 他の統計表示機能でも同様の構造統一が必要
-      
+
       # パフォーマンス最適化: 店舗ごとに個別クエリではなく、まとめて取得
       all_outgoing = InterStoreTransfer.where(requested_at: period..)
                                       .includes(:source_store, :destination_store, :inventory)
                                       .group_by(&:source_store_id)
-      
+
       all_incoming = InterStoreTransfer.where(requested_at: period..)
                                       .includes(:source_store, :destination_store, :inventory)
                                       .group_by(&:destination_store_id)
@@ -410,9 +410,9 @@ module AdminControllers
         # 事前に取得したデータから該当店舗のものを抽出
         outgoing_transfers = all_outgoing[store.id] || []
         incoming_transfers = all_incoming[store.id] || []
-        
-        outgoing_completed = outgoing_transfers.select { |t| t.status == 'completed' }
-        incoming_completed = incoming_transfers.select { |t| t.status == 'completed' }
+
+        outgoing_completed = outgoing_transfers.select { |t| t.status == "completed" }
+        incoming_completed = incoming_transfers.select { |t| t.status == "completed" }
 
         {
           store: store,
@@ -612,12 +612,12 @@ module AdminControllers
       # 基本効率性スコア（承認率と完了率の組み合わせ）
       total_outgoing = outgoing_transfers.count
       total_incoming = incoming_transfers.count
-      
+
       return 0 if total_outgoing == 0 && total_incoming == 0
-      
+
       outgoing_success_rate = total_outgoing > 0 ? (outgoing_transfers.where(status: %w[approved completed]).count.to_f / total_outgoing) : 1.0
       incoming_success_rate = total_incoming > 0 ? (incoming_transfers.where(status: %w[approved completed]).count.to_f / total_incoming) : 1.0
-      
+
       # 効率性スコア（0-100）
       ((outgoing_success_rate + incoming_success_rate) / 2 * 100).round(1)
     end
@@ -626,22 +626,22 @@ module AdminControllers
     def calculate_store_efficiency_from_arrays(outgoing_transfers, incoming_transfers)
       total_outgoing = outgoing_transfers.size
       total_incoming = incoming_transfers.size
-      
+
       return 0 if total_outgoing == 0 && total_incoming == 0
-      
+
       outgoing_success = outgoing_transfers.count { |t| %w[approved completed].include?(t.status) }
       incoming_success = incoming_transfers.count { |t| %w[approved completed].include?(t.status) }
-      
+
       outgoing_success_rate = total_outgoing > 0 ? (outgoing_success.to_f / total_outgoing) : 1.0
       incoming_success_rate = total_incoming > 0 ? (incoming_success.to_f / total_incoming) : 1.0
-      
+
       ((outgoing_success_rate + incoming_success_rate) / 2 * 100).round(1)
     end
 
     # パフォーマンス最適化: 配列ベースの承認率計算
     def calculate_approval_rate_from_array(transfers)
       return 0 if transfers.empty?
-      
+
       approved_count = transfers.count { |t| %w[approved completed].include?(t.status) }
       ((approved_count.to_f / transfers.size) * 100).round(1)
     end
@@ -649,19 +649,19 @@ module AdminControllers
     # パフォーマンス最適化: 配列ベースの平均完了時間計算
     def calculate_average_completion_time_from_array(completed_transfers)
       return 0 if completed_transfers.empty?
-      
+
       total_time = completed_transfers.sum do |transfer|
         next 0 unless transfer.completed_at && transfer.requested_at
         transfer.completed_at - transfer.requested_at
       end
-      
+
       (total_time / completed_transfers.size / 1.hour).round(1)
     end
 
     # パフォーマンス最適化: 配列ベースの最頻移動商品計算
     def calculate_most_transferred_items_from_array(transfers)
       return [] if transfers.empty?
-      
+
       inventory_counts = transfers.group_by(&:inventory).transform_values(&:count)
       inventory_counts.sort_by { |_, count| -count }.first(3).map do |inventory, count|
         { inventory: inventory, count: count }

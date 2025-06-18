@@ -42,10 +42,16 @@ class ApplicationMailer < ActionMailer::Base
     # 本番環境でのメール設定確認
     if Rails.env.production?
       unless ENV["SMTP_USERNAME"].present? && ENV["SMTP_PASSWORD"].present?
-        Rails.logger.error "SMTP credentials not configured for production"
-        raise "メール設定が不完全です"
+        Rails.logger.error "💥 [ApplicationMailer] SMTP credentials not configured for production"
+        Rails.logger.error "Available ENV keys: #{ENV.keys.grep(/SMTP|MAIL/).inspect}"
+        raise StandardError, "SMTP設定が不完全です。システム管理者にお問い合わせください。"
       end
     end
+
+    Rails.logger.debug "✅ [ApplicationMailer] Email settings validation passed"
+  rescue => e
+    Rails.logger.error "💥 [ApplicationMailer] Email settings validation failed: #{e.message}"
+    raise e
   end
 
   # メール送信試行をログに記録

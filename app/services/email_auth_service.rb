@@ -141,6 +141,58 @@ class EmailAuthService
     cleanup_count
   end
 
+  # レート制限チェック（外部公開用）
+  def rate_limit_check(email, ip_address)
+    return true unless config.rate_limit_enabled
+
+    # 時間別制限チェック
+    hourly_key = HOURLY_ATTEMPTS_KEY_PATTERN % { email: email }
+    hourly_count = get_rate_limit_count(hourly_key)
+
+    return false if hourly_count >= config.max_attempts_per_hour
+
+    # 日別制限チェック
+    daily_key = DAILY_ATTEMPTS_KEY_PATTERN % { email: email }
+    daily_count = get_rate_limit_count(daily_key)
+
+    return false if daily_count >= config.max_attempts_per_day
+
+    # IP別制限チェック
+    ip_key = RATE_LIMIT_KEY_PATTERN % { email: email, ip: ip_address }
+    ip_count = get_rate_limit_count(ip_key)
+
+    return false if ip_count >= config.max_attempts_per_hour
+
+    true
+  end
+
+  # 認証試行記録（外部公開用）
+  # CLAUDE.md準拠: 適切なカプセル化によるセキュリティ機能提供
+  # メタ認知: privateメソッドへの適切なpublicインターフェース
+  # 横展開: 他のサービスクラスでも同様のパターン適用
+  def record_authentication_attempt(email, ip_address)
+    return unless config.rate_limit_enabled
+
+    begin
+      increment_rate_limit_counter(email, ip_address)
+
+      log_security_event(
+        "authentication_attempt_recorded",
+        nil,
+        {
+          email: email,
+          ip_address: ip_address,
+          recorded_at: Time.current
+        }
+      )
+
+      true
+    rescue => e
+      Rails.logger.error "[EmailAuthService] Failed to record authentication attempt: #{e.message}"
+      false
+    end
+  end
+
   # ============================================================================
   # プライベートメソッド
   # ============================================================================
@@ -236,58 +288,6 @@ class EmailAuthService
 
     if ip_count > config.max_attempts_per_hour
       raise RateLimitExceededError, "IP-based rate limit exceeded for #{ip_address}"
-    end
-  end
-
-  # レート制限チェック（外部公開用）
-  def rate_limit_check(email, ip_address)
-    return true unless config.rate_limit_enabled
-
-    # 時間別制限チェック
-    hourly_key = HOURLY_ATTEMPTS_KEY_PATTERN % { email: email }
-    hourly_count = get_rate_limit_count(hourly_key)
-
-    return false if hourly_count >= config.max_attempts_per_hour
-
-    # 日別制限チェック
-    daily_key = DAILY_ATTEMPTS_KEY_PATTERN % { email: email }
-    daily_count = get_rate_limit_count(daily_key)
-
-    return false if daily_count >= config.max_attempts_per_day
-
-    # IP別制限チェック
-    ip_key = RATE_LIMIT_KEY_PATTERN % { email: email, ip: ip_address }
-    ip_count = get_rate_limit_count(ip_key)
-
-    return false if ip_count >= config.max_attempts_per_hour
-
-    true
-  end
-
-  # 認証試行記録（外部公開用）
-  # CLAUDE.md準拠: 適切なカプセル化によるセキュリティ機能提供
-  # メタ認知: privateメソッドへの適切なpublicインターフェース
-  # 横展開: 他のサービスクラスでも同様のパターン適用
-  def record_authentication_attempt(email, ip_address)
-    return unless config.rate_limit_enabled
-
-    begin
-      increment_rate_limit_counter(email, ip_address)
-      
-      log_security_event(
-        "authentication_attempt_recorded",
-        nil,
-        {
-          email: email,
-          ip_address: ip_address,
-          recorded_at: Time.current
-        }
-      )
-      
-      true
-    rescue => e
-      Rails.logger.error "[EmailAuthService] Failed to record authentication attempt: #{e.message}"
-      false
     end
   end
 

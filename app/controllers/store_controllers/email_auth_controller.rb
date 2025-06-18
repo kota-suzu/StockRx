@@ -88,6 +88,8 @@ module StoreControllers
 
       # EmailAuthServiceで一時パスワード生成・送信
       begin
+        Rails.logger.info "📧 [EmailAuth] Starting temp password generation for #{mask_email(email)}"
+
         service = EmailAuthService.new
         result = service.generate_and_send_temp_password(
           store_user,
@@ -99,10 +101,14 @@ module StoreControllers
           }
         )
 
+        Rails.logger.info "📧 [EmailAuth] Service result: success=#{result[:success]}, error=#{result[:error]}"
+
         if result[:success]
+          Rails.logger.info "✅ [EmailAuth] Email sent successfully, proceeding to success response"
           track_rate_limit_action!(email) # 成功時もレート制限カウント
           respond_to_request_success(email)
         else
+          Rails.logger.warn "❌ [EmailAuth] Email service returned failure: #{result[:error]}"
           error_message = case result[:error]
           when "rate_limit_exceeded"
             "一時パスワードの送信回数が制限を超えました。しばらくしてからお試しください。"
@@ -116,7 +122,8 @@ module StoreControllers
         end
 
       rescue StandardError => e
-        Rails.logger.error "一時パスワード生成エラー: #{e.message}"
+        Rails.logger.error "💥 [EmailAuth] Exception in request_temp_password: #{e.class.name}: #{e.message}"
+        Rails.logger.error e.backtrace.first(10).join("\n")
         respond_to_request_error(
           "システムエラーが発生しました。しばらくしてからお試しください。",
           :system_error
@@ -235,44 +242,68 @@ module StoreControllers
     # ============================================
 
     def respond_to_request_success(email)
-      masked_email = mask_email(email)
+      begin
+        masked_email = mask_email(email)
+        Rails.logger.info "🎭 [EmailAuth] Masked email: #{masked_email}"
 
-      # CLAUDE.md準拠: セッションにメールアドレスを保存してUX向上
-      # メタ認知: 一時パスワード検証画面で再入力不要にする
-      # セキュリティ: セッションに保存することで安全に情報を保持
-      # 横展開: 他の多段階認証フローでも同様のパターン適用可能
-      session[:temp_password_email] = email
-      session[:temp_password_email_expires_at] = 30.minutes.from_now.to_i
+        # CLAUDE.md準拠: セッションにメールアドレスを保存してUX向上
+        # メタ認知: 一時パスワード検証画面で再入力不要にする
+        # セキュリティ: セッションに保存することで安全に情報を保持
+        # 横展開: 他の多段階認証フローでも同様のパターン適用可能
+        session[:temp_password_email] = email
+        session[:temp_password_email_expires_at] = 30.minutes.from_now.to_i
+        Rails.logger.info "💾 [EmailAuth] Session data saved successfully"
 
-      respond_to do |format|
-        format.html do
-          redirect_to store_verify_temp_password_form_path(store_slug: @store.slug),
-                      notice: "#{masked_email} に一時パスワードを送信しました"
+        respond_to do |format|
+          format.html do
+            redirect_url = store_verify_temp_password_form_path(store_slug: @store.slug)
+            Rails.logger.info "🔗 [EmailAuth] Redirecting to: #{redirect_url}"
+            redirect_to redirect_url,
+                        notice: "#{masked_email} に一時パスワードを送信しました"
+          end
+          format.json do
+            json_response = {
+              success: true,
+              message: "一時パスワードを送信しました。メールをご確認ください。",
+              masked_email: masked_email,
+              next_step: "verify_temp_password",
+              redirect_url: store_verify_temp_password_form_path(store_slug: @store.slug)
+            }
+            Rails.logger.info "📤 [EmailAuth] JSON response: #{json_response.except(:redirect_url).inspect}"
+            render json: json_response, status: :ok
+          end
         end
-        format.json do
-          render json: {
-            success: true,
-            message: "一時パスワードを送信しました。メールをご確認ください。",
-            masked_email: masked_email,
-            next_step: "verify_temp_password"
-          }, status: :ok
-        end
+      rescue StandardError => e
+        Rails.logger.error "💥 [EmailAuth] Error in respond_to_request_success: #{e.class.name}: #{e.message}"
+        Rails.logger.error e.backtrace.first(5).join("\n")
+
+        # フォールバック処理：メール送信は成功しているため、適切なメッセージを表示
+        respond_to_request_error(
+          "メール送信は完了しましたが、画面遷移中にエラーが発生しました。ブラウザを更新してお試しください。",
+          :redirect_error
+        )
       end
     end
 
     def respond_to_request_error(message, error_code)
+      Rails.logger.warn "⚠️ [EmailAuth] Request error: #{error_code} - #{message}"
+
       respond_to do |format|
         format.html do
           @email_auth_request = EmailAuthRequest.new(store_id: @store&.id)
           flash.now[:alert] = message
+          Rails.logger.info "🔄 [EmailAuth] Rendering error page with message: #{message}"
           render :new, status: :unprocessable_entity
         end
         format.json do
-          render json: {
+          json_error = {
             success: false,
             error: message,
             error_code: error_code
-          }, status: :unprocessable_entity
+          }
+          Rails.logger.info "📤 [EmailAuth] JSON error response: #{json_error.inspect}"
+          status_code = error_code == :rate_limit_exceeded ? :too_many_requests : :unprocessable_entity
+          render json: json_error, status: status_code
         end
       end
     end
@@ -281,14 +312,14 @@ module StoreControllers
       respond_to do |format|
         format.html do
           # 🔧 店舗ダッシュボードへリダイレクト
-          redirect_to store_dashboard_path(store_slug: @store.slug),
+          redirect_to store_root_path,
                       notice: "ログインしました"
         end
         format.json do
           render json: {
             success: true,
             message: "ログインしました",
-            redirect_url: store_dashboard_path(store_slug: @store.slug)
+            redirect_url: store_root_path
           }, status: :ok
         end
       end
@@ -406,14 +437,21 @@ module StoreControllers
       # CLAUDE.md準拠: 適切なpublicインターフェース使用
       # メタ認知: privateメソッド直接呼び出しから適切なカプセル化へ修正
       # 横展開: 他のコントローラーでも同様のパターン適用
-      service = EmailAuthService.new
-      success = service.record_authentication_attempt(email, request.remote_ip)
-      
-      unless success
-        Rails.logger.warn "レート制限記録に失敗しましたが、処理を継続します"
+      begin
+        Rails.logger.info "📊 [EmailAuth] Recording rate limit for #{mask_email(email)}"
+
+        service = EmailAuthService.new
+        success = service.record_authentication_attempt(email, request.remote_ip)
+
+        if success
+          Rails.logger.info "✅ [EmailAuth] Rate limit recorded successfully"
+        else
+          Rails.logger.warn "⚠️ [EmailAuth] Rate limit recording failed but processing continues"
+        end
+      rescue => e
+        Rails.logger.warn "💥 [EmailAuth] Rate limit count failed: #{e.class.name}: #{e.message}"
+        # レート制限記録失敗は処理を止めない
       end
-    rescue => e
-      Rails.logger.warn "レート制限カウント失敗: #{e.message}"
     end
 
     # ============================================

@@ -115,7 +115,7 @@ module SecurityCompliance
       # 横展開: 他のログ記録箇所でも同様のエラーハンドリング必要
       Rails.logger.error "Failed to create compliance audit log: #{e.message}"
       Rails.logger.error e.backtrace.first(5).join("\n") if e.backtrace
-      
+
       # TODO: 🔴 Phase 1（緊急）- 監査ログ失敗時の代替記録メカニズム
       # 優先度: 高（コンプライアンス要件）
       # 実装内容:

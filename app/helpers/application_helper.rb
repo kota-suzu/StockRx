@@ -98,11 +98,205 @@ module ApplicationHelper
     end
   end
 
+  # ============================================
+  # 統一フラッシュメッセージ・レイアウト支援ヘルパー
+  # ============================================
+
+  # 統一フラッシュメッセージのアラートクラス
+  def flash_alert_class(type)
+    case type.to_s
+    when "notice", "success" then "alert-success"
+    when "alert", "error" then "alert-danger"
+    when "warning" then "alert-warning"
+    when "info" then "alert-info"
+    else "alert-info"
+    end
+  end
+
+  # 統一フラッシュメッセージのアイコンクラス
+  def flash_icon_class(type)
+    case type.to_s
+    when "notice", "success" then "bi bi-check-circle"
+    when "alert", "error" then "bi bi-exclamation-triangle"
+    when "warning" then "bi bi-exclamation-circle"
+    when "info" then "bi bi-info-circle"
+    else "bi bi-info-circle"
+    end
+  end
+
+  # フラッシュメッセージタイトル（オプション）
+  def flash_title_for(type)
+    case type.to_s
+    when "notice", "success" then "成功"
+    when "alert", "error" then "エラー"
+    when "warning" then "警告"
+    when "info" then "情報"
+    else nil
+    end
+  end
+
+  # フラッシュメッセージ詳細（オプション）
+  def flash_detail_for(type, message)
+    case type.to_s
+    when "alert", "error" then "エラーが解決しない場合は管理者にお問い合わせください。"
+    else nil
+    end
+  end
+
+  # ============================================
+  # 統一フッター支援ヘルパー
+  # ============================================
+
+  # フッター全体のCSSクラス
+  def footer_classes
+    case current_section
+    when "admin" then "footer-admin py-4 mt-auto"
+    when "store" then "footer-store py-4 mt-auto"
+    else "footer-public bg-dark text-light py-4 mt-auto"
+    end
+  end
+
+  # フッターコンテナのCSSクラス
+  def footer_container_classes
+    case current_section
+    when "admin", "store" then "container-fluid"
+    else "container"
+    end
+  end
+
+  # フッター区切り線のCSSクラス
+  def footer_divider_classes
+    "my-3 opacity-25"
+  end
+
+  # フッターブランドアイコンクラス
+  def footer_brand_icon_class
+    case current_section
+    when "admin" then "bi bi-boxes"
+    when "store" then "bi bi-shop"
+    else "bi bi-boxes-stacked"
+    end
+  end
+
+  # フッターブランドアイコン色
+  def footer_brand_icon_color
+    case current_section
+    when "admin" then "text-primary"
+    when "store" then "text-info"
+    else "text-primary"
+    end
+  end
+
+  # フッターブランドテキスト
+  def footer_brand_text
+    "StockRx"
+  end
+
+  # フッターバッジクラス（オプション）
+  def footer_badge_class
+    case current_section
+    when "admin" then "bg-danger"
+    when "store" then "bg-success"
+    else "bg-secondary"
+    end
+  end
+
+  # フッターデフォルト説明文
+  def footer_default_description
+    case current_section
+    when "admin" then "モダンな在庫管理システム - 管理者画面"
+    when "store" then "モダンな在庫管理システム - 店舗画面"
+    else "モダンな在庫管理システム"
+    end
+  end
+
+  # フッター説明文クラス
+  def footer_description_class
+    "small"
+  end
+
+  # フッターメタ情報の配置
+  def footer_meta_alignment
+    "justify-content-md-end"
+  end
+
+  # フッターセキュリティアイコン色
+  def footer_security_icon_color
+    "text-success"
+  end
+
+  # フッターセキュリティテキスト
+  def footer_security_text
+    "SSL保護済み"
+  end
+
+  # フッターコピーライト保持者
+  def footer_copyright_holder
+    "StockRx"
+  end
+
+  # ============================================
+  # 統一ブランディング支援ヘルパー
+  # ============================================
+
+  # ブランドリンクパス（動的リンク生成）
+  def brand_link_path
+    if defined?(current_admin) && current_admin
+      admin_root_path
+    elsif defined?(current_store_user) && current_store_user
+      store_root_path
+    else
+      root_path
+    end
+  end
+
+  # 現在のセクション判定
+  def current_section
+    case controller.class.name
+    when /^AdminControllers::/
+      "admin"
+    when /^StoreControllers::/
+      "store"
+    else
+      "public"
+    end
+  end
+
+  # ブランドアイコンクラス（ナビゲーション用）
+  def brand_icon_class
+    case current_section
+    when "admin" then "bi bi-boxes"
+    when "store" then "bi bi-shop"
+    else "bi bi-boxes-stacked"
+    end
+  end
+
+  # ブランドテキスト
+  def brand_text
+    "StockRx"
+  end
+
+  # ブランドクラス（ナビゲーション用）
+  def brand_classes
+    "d-flex align-items-center"
+  end
+
+  # ブランドテキストクラス
+  def brand_text_classes
+    "fw-bold"
+  end
+
+  # バッジクラス（ナビゲーション用）
+  def badge_classes
+    "ms-2 badge bg-light text-dark"
+  end
+
   # TODO: 🟡 Phase 6（重要）- 高度なヘルパー機能
   # 優先度: 中（UI/UX向上）
   # 実装内容:
   #   - リスクスコア可視化ヘルパー
   #   - 時系列データ表示ヘルパー
   #   - 国際化対応強化
-  # 期待効果: より直感的なUI表示
+  #   - セクション別テーマ動的切り替え
+  # 期待効果: より直感的なUI表示、統一されたブランド体験
 end

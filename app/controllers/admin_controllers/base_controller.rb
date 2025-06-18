@@ -42,7 +42,7 @@ module AdminControllers
     # メタ認知: データ変更・詳細表示アクションのみ監査対象
     # 横展開: 一覧表示（index）は統計データのため監査対象外
     audit_sensitive_access :show, :edit, :update, :destroy
-    
+
     # TODO: 🟡 Phase 3（中）- セキュリティポリシーの細分化
     # 優先度: 中（現在の一律適用は動作中）
     # 実装内容:
