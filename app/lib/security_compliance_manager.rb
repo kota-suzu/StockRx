@@ -71,9 +71,17 @@ class SecurityComplianceManager
   # タイミング攻撃対策設定
   TIMING_ATTACK_CONFIG = {
     # 定数時間比較のための最小実行時間
-    minimum_execution_time: 100.milliseconds,
+    # CLAUDE.md準拠: Rails 8対応 - milliseconds廃止への対応
+    # メタ認知: 100ミリ秒 = 0.1秒として明示的に秒単位で指定
+    # セキュリティ要件: タイミング攻撃防止のための定数時間実行保証
+    minimum_execution_time: 0.1, # 100ms in seconds
     
     # 認証試行の遅延設定
+    # TODO: 🟡 Phase 2（重要）- Rails 8時間表記の統一化
+    # 優先度: 中（コード一貫性向上）
+    # 実装内容: 他のDurationメソッドもRails 8対応確認
+    # 現状: seconds, minutes, hoursは継続利用可能
+    # メタ認知: millisecondsのみ廃止、他は問題なし
     authentication_delays: {
       first_attempt: 0.seconds,
       second_attempt: 1.second,
