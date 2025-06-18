@@ -79,8 +79,18 @@
               <div class="col-md-6">
                 <%= f.label :inventory_id, "商品", class: "form-label" %>
                 <% if defined?(@available_inventories) && @available_inventories.present? %>
+                  <%# 🔧 修正: StoreInventoryから関連先のInventoryデータを正しく取得 %>
+                  <%# CLAUDE.md準拠: 関連データの適切なアクセス方法実装 %>
+                  <%# メタ認知: inventory.idという文字列はメソッドとして認識されないため、mapで変換 %>
+                  <%# ベストプラクティス: options_from_collection_for_selectの使用方法 %>
+                  <%#   ❌ 誤: options_from_collection_for_select(collection, "relation.attribute", "relation.name") %>
+                  <%#   ✅ 正: options_for_select(collection.map { |item| [item.relation.name, item.relation_id] }) %>
+                  <%# 横展開: 他の関連データ選択フォームでも同様のパターン適用 %>
                   <%= f.select :inventory_id, 
-                               options_from_collection_for_select(@available_inventories, "inventory.id", "inventory.name", @transfer.inventory_id),
+                               options_for_select(
+                                 @available_inventories.map { |si| [si.inventory.name, si.inventory_id] },
+                                 @transfer.inventory_id
+                               ),
                                { prompt: "商品を選択してください" },
                                { class: "form-select", required: true } %>
                 <% else %>

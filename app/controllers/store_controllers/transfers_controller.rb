@@ -61,6 +61,10 @@ module StoreControllers
       # 在庫選択用のデータ
       # 🔧 SQL修正: テーブル名明示でカラム曖昧性解消（store_inventories.quantityを明確化）
       # CLAUDE.md準拠: store_inventoriesとinventoriesの両テーブルにquantityカラム存在のため
+      # 📌 ベストプラクティス: StoreInventoryコレクションからInventory情報へのアクセス
+      #   - ビューでは map { |si| [si.inventory.name, si.inventory_id] } でアクセス
+      #   - options_from_collection_for_selectでは"inventory.id"は使用不可（ドット記法は単一メソッドとして解釈される）
+      # メタ認知: 関連モデルのデータ取得は明示的な関連アクセスが必要
       @available_inventories = current_store.store_inventories
                                           .where("store_inventories.quantity > store_inventories.reserved_quantity")
                                           .includes(:inventory)
@@ -167,6 +171,7 @@ module StoreControllers
     def load_form_data
       # 🔧 SQL修正: テーブル名明示でカラム曖昧性解消（横展開適用）
       # メタ認知: newアクションと同じパターンで一貫性確保
+      # 📌 ベストプラクティス: StoreInventoryコレクションの関連データアクセス（newアクションと同一）
       @available_inventories = current_store.store_inventories
                                           .where("store_inventories.quantity > store_inventories.reserved_quantity")
                                           .includes(:inventory)
@@ -313,9 +318,9 @@ module StoreControllers
 
       # 移動方向フィルター
       case search_params[:direction_eq]
-      when 'outgoing'
+      when "outgoing"
         scope = scope.where(source_store_id: current_store.id)
-      when 'incoming'
+      when "incoming"
         scope = scope.where(destination_store_id: current_store.id)
       end
 
