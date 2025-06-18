@@ -80,6 +80,10 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+  
+  # メール開発用ツール - ブラウザでメール内容確認
+  gem "letter_opener", "~> 1.10"      # メールをブラウザで表示
+  gem "letter_opener_web", "~> 3.0"   # Web UI for sent emails
 end
 
 group :test do

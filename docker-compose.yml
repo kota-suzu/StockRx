@@ -124,6 +124,25 @@ services:
       - app
     # TODO: バックアップローテーション機能の追加
 
+  # ============================================
+  # Development Mail Server (Mailtrap)
+  # ============================================
+  mailtrap:
+    image: mailhog/mailhog:latest
+    container_name: stockrx_mailtrap
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    environment:
+      - MH_STORAGE=memory
+      - MH_UI_BIND_ADDR=0.0.0.0:8025
+      - MH_API_BIND_ADDR=0.0.0.0:8025
+    networks:
+      - stockrx_network
+    profiles:
+      - dev
+    restart: unless-stopped
+
 volumes:
   mysql_data:
   redis_data:
