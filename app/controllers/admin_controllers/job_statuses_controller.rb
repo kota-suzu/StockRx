@@ -10,11 +10,11 @@ module AdminControllers
     # ジョブのステータスをJSONで返す
     def show
       job_id = params[:id]
-      
+
       begin
         # Redis からジョブステータスを取得
         job_status = get_job_status_from_redis(job_id)
-        
+
         if job_status
           render json: job_status
         else
@@ -25,10 +25,10 @@ module AdminControllers
             progress: 0
           }, status: :not_found
         end
-        
+
       rescue => e
         Rails.logger.error "Job status retrieval error: #{e.message}"
-        
+
         render json: {
           job_id: job_id,
           status: "error",
@@ -46,13 +46,13 @@ module AdminControllers
       return nil unless redis
 
       status_key = "csv_import:#{job_id}"
-      
+
       begin
         # ハッシュからすべてのフィールドを取得
         status_data = redis.hgetall(status_key)
-        
+
         return nil if status_data.empty?
-        
+
         # CLAUDE.md準拠: 構造化されたステータス情報
         {
           job_id: job_id,
@@ -69,7 +69,7 @@ module AdminControllers
           error_message: status_data["error_message"],
           message: status_data["message"]
         }
-        
+
       rescue Redis::CannotConnectError => e
         Rails.logger.warn "Redis connection failed: #{e.message}"
         nil
