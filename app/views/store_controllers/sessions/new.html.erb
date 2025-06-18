@@ -37,7 +37,7 @@
 
   <!-- Step 2: パスコード入力（送信後に表示） -->
   <div id="email-auth-step2" style="display: none;">
-    <%= form_with url: store_verify_temp_password_path(store_slug: @store.slug), local: false, id: "passcode-verify-form" do |f| %>
+    <%= form_with url: store_verify_temp_password_path(store_slug: @store.slug), local: true, id: "passcode-verify-form" do |f| %>
       <%= f.hidden_field :email, id: "verify-email" %>
       
       <div class="alert alert-success mb-4" role="alert">

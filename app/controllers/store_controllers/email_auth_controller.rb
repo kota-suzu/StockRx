@@ -252,14 +252,15 @@ module StoreControllers
     def respond_to_verification_success
       respond_to do |format|
         format.html do
-          redirect_to store_root_path,
-                      notice: I18n.t("email_auth.messages.login_successful")
+          # 🔧 店舗ダッシュボードへリダイレクト
+          redirect_to store_dashboard_path(store_slug: @store.slug),
+                      notice: "ログインしました"
         end
         format.json do
           render json: {
             success: true,
-            message: I18n.t("email_auth.messages.login_successful"),
-            redirect_url: store_root_path
+            message: "ログインしました",
+            redirect_url: store_dashboard_path(store_slug: @store.slug)
           }, status: :ok
         end
       end
@@ -268,9 +269,9 @@ module StoreControllers
     def respond_to_verification_error(message, error_code)
       respond_to do |format|
         format.html do
-          @temp_password_verification = TempPasswordVerification.new(store_id: @store&.id)
-          flash.now[:alert] = message
-          render :verify_form, status: :unprocessable_entity
+          # 🔧 パスコード専用フローのため、ログイン画面に戻す
+          redirect_to new_store_user_session_path(store_slug: @store&.slug),
+                      alert: message
         end
         format.json do
           render json: {

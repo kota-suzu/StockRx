@@ -106,6 +106,7 @@ class EmailAuthService
         {
           success: true,
           temp_password_id: temp_password.id,
+          temp_password: temp_password,  # 🔧 コントローラー用にオブジェクトも返す
           authenticated_at: Time.current
         }
       else
