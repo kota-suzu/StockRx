@@ -37,7 +37,8 @@ class ComplianceAuditLog < ApplicationRecord
   # ============================================================================
   # エニューム
   # ============================================================================
-  enum compliance_standard: {
+  # Rails 8対応: 位置引数による enum 定義
+  enum :compliance_standard, {
     pci_dss: 'PCI_DSS',
     gdpr: 'GDPR', 
     sox: 'SOX',
@@ -45,7 +46,7 @@ class ComplianceAuditLog < ApplicationRecord
     iso27001: 'ISO27001'
   }
 
-  enum severity: {
+  enum :severity, {
     low: 'low',
     medium: 'medium', 
     high: 'high',
