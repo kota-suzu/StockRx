@@ -262,8 +262,17 @@ module SecurityCompliance
   # ============================================================================
 
   # セキュリティ用の現在ユーザー取得
+  # 🔧 メタ認知: 認証システムに応じた適切なユーザー取得
+  # 横展開: AdminControllers と StoreControllers 両方で利用可能
   def current_user_for_security
-    current_admin || current_store_user || current_user
+    # AdminControllersではcurrent_admin、StoreControllersではcurrent_store_userを使用
+    if defined?(current_admin) && respond_to?(:current_admin)
+      current_admin
+    elsif defined?(current_store_user) && respond_to?(:current_store_user)
+      current_store_user
+    else
+      nil
+    end
   end
 
   # カードデータパラメータの検出

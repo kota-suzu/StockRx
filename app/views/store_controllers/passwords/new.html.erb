@@ -1,75 +1,222 @@
+<%# ============================================ %>
+<%# StockRx Password Reset - Improved UI Design %>
+<%# ============================================ %>
+<%# CLAUDE.md準拠: Phase 4 UI統一化対応 %>
+<%# メタ認知: ログイン画面と一貫性のあるデザインパターン適用 %>
+<%# 横展開: 統一されたフォームスタイル、カラーパレット使用 %>
+<%# ============================================ %>
+
 <% content_for :title, "パスワードリセット" %>
 
-<h2 class="h4 mb-4 text-center">
-  <i class="fas fa-key me-2"></i>
-  パスワードをリセット
-</h2>
-
-<p class="text-muted text-center mb-4">
-  登録されているメールアドレスを入力してください。<br>
-  パスワードリセット用のリンクをお送りします。
-</p>
-
-<%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :post }) do |f| %>
-  <%# 店舗情報を隠しフィールドで送信 %>
-  <%= hidden_field_tag :store_slug, @store.slug if @store %>
+<style>
+  /* 共通スタイル定義（ログイン画面と統一） */
+  :root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-color: #10b981;
+    --error-color: #ef4444;
+    --focus-ring: rgba(102, 126, 234, 0.4);
+  }
   
-  <%# エラー表示 %>
-  <%= render "devise/shared/error_messages", resource: resource %>
+  .gradient-bg {
+    background: var(--primary-gradient);
+    min-height: 100vh;
+  }
+  
+  .card-shadow {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  .form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+  }
+  
+  .form-input:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+  
+  .btn-primary {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(to right, #7c3aed, #ec4899);
+    color: white;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  }
+  
+  .btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+</style>
 
-  <%# メールアドレス %>
-  <div class="mb-4">
-    <%= f.label :email, class: "form-label" do %>
-      <i class="fas fa-envelope me-1"></i>
-      メールアドレス
-    <% end %>
-    <%= f.email_field :email, 
-                      autofocus: true, 
-                      autocomplete: "email",
-                      class: "form-control form-control-lg",
-                      placeholder: "email@example.com",
-                      required: true %>
-    <% if @store %>
-      <div class="form-text">
-        <%= @store.name %>で登録されているメールアドレスを入力してください
+<div class="gradient-bg flex items-center justify-center px-4 py-12">
+  <div class="max-w-md w-full animate-slide-up">
+    <!-- ロゴとタイトル -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
+        <i class="bi bi-key-fill text-3xl text-purple-600"></i>
       </div>
-    <% end %>
+      <h1 class="text-3xl font-bold text-white mb-2">StockRx</h1>
+      <p class="text-purple-200"><%= @store ? @store.name : "店舗パスワードリセット" %></p>
+    </div>
+    
+    <!-- メインカード -->
+    <div class="bg-white rounded-2xl card-shadow overflow-hidden">
+      <div class="p-8">
+        <!-- ヘッダー -->
+        <div class="text-center mb-6">
+          <h2 class="text-2xl font-semibold text-gray-800 mb-2">パスワードリセット</h2>
+          <p class="text-gray-600">
+            登録されているメールアドレスを入力してください<br>
+            <span class="text-sm">パスワードリセット用のリンクをお送りします</span>
+          </p>
+        </div>
+        
+        <%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :post }) do |f| %>
+          <%# 店舗情報を隠しフィールドで送信 %>
+          <%= hidden_field_tag :store_slug, @store.slug if @store %>
+          
+          <%# エラー表示 %>
+          <% if resource.errors.any? %>
+            <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div class="flex items-start">
+                <i class="bi bi-exclamation-circle-fill text-red-500 me-2"></i>
+                <div>
+                  <% resource.errors.full_messages.each do |message| %>
+                    <p class="text-sm text-red-700"><%= message %></p>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+          
+          <!-- メールアドレス入力 -->
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="bi bi-envelope me-1"></i>
+              メールアドレス
+            </label>
+            <%= f.email_field :email,
+                              autofocus: true,
+                              autocomplete: "email",
+                              class: "form-input",
+                              placeholder: "email@example.com",
+                              required: true %>
+            <% if @store %>
+              <p class="mt-2 text-sm text-gray-600">
+                <%= @store.name %>で登録されているメールアドレスを入力してください
+              </p>
+            <% end %>
+          </div>
+          
+          <!-- ヘルプテキスト -->
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-5">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <i class="bi bi-info-circle text-blue-500"></i>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                  パスワードリセット用のリンクをメールでお送りします。<br>
+                  リンクは24時間有効です。
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- 送信ボタン -->
+          <div>
+            <%= f.submit "リセットリンクを送信",
+                         class: "btn-primary",
+                         data: { disable_with: "送信中...", turbo: false } %>
+          </div>
+          
+          <!-- 戻るリンク -->
+          <div class="mt-6 text-center">
+            <% if @store %>
+              <%= link_to new_store_user_session_path(store_slug: @store.slug),
+                          class: "text-sm text-purple-600 hover:text-purple-700 font-medium" do %>
+                <i class="bi bi-arrow-left me-1"></i>
+                ログイン画面に戻る
+              <% end %>
+            <% else %>
+              <%= link_to new_store_user_session_path,
+                          class: "text-sm text-purple-600 hover:text-purple-700 font-medium" do %>
+                <i class="bi bi-arrow-left me-1"></i>
+                ログイン画面に戻る
+              <% end %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+      
+      <!-- フッター -->
+      <div class="bg-gray-50 px-8 py-4 text-center">
+        <p class="text-sm text-gray-600">
+          <%= link_to store_selection_path, class: "text-purple-600 hover:text-purple-700 font-medium" do %>
+            <i class="bi bi-shop me-1"></i>
+            別の店舗を選択
+          <% end %>
+        </p>
+      </div>
+    </div>
+    
+    <!-- セキュリティ情報 -->
+    <div class="mt-8 text-center">
+      <div class="inline-flex items-center text-white/80 text-sm">
+        <i class="bi bi-shield-check mr-2"></i>
+        <span>安全な接続で保護されています</span>
+      </div>
+    </div>
   </div>
-
-  <%# 送信ボタン %>
-  <div class="d-grid mb-3">
-    <%= f.submit "リセットリンクを送信", 
-                 class: "btn btn-primary btn-lg",
-                 data: { turbo: false } %>
-  </div>
-
-  <%# ログインページへのリンク %>
-  <div class="text-center">
-    <% if @store %>
-      <%= link_to new_store_user_session_path(store_slug: @store.slug), 
-                  class: "text-decoration-none" do %>
-        <i class="fas fa-arrow-left me-1"></i>
-        ログイン画面に戻る
-      <% end %>
-    <% else %>
-      <%= link_to store_selection_path, 
-                  class: "text-decoration-none" do %>
-        <i class="fas fa-arrow-left me-1"></i>
-        店舗選択に戻る
-      <% end %>
-    <% end %>
-  </div>
-<% end %>
-
-<%# 注意事項 %>
-<div class="mt-4 p-3 bg-light rounded">
-  <h6 class="text-muted mb-2">
-    <i class="fas fa-info-circle me-1"></i>
-    ご注意
-  </h6>
-  <ul class="small text-muted mb-0">
-    <li>リセットリンクの有効期限は6時間です</li>
-    <li>メールが届かない場合は、迷惑メールフォルダをご確認ください</li>
-    <li>登録されていないメールアドレスではリセットできません</li>
-  </ul>
 </div>
+
+<%# ============================================ %>
+<%# TODO: Phase 5-6 の実装項目 %>
+<%# ============================================ %>
+<%# 
+  TODO: 🟢 Phase 5（推奨）- メールアドレス自動補完
+  優先度: 低（利便性向上）
+  実装内容:
+    - 最近使用したメールアドレスの候補表示
+    - ドメイン補完機能
+  期待効果: 入力効率の向上
+  
+  TODO: 🟢 Phase 6（推奨）- メール送信状態のリアルタイム表示
+  優先度: 低（UX向上）
+  実装内容:
+    - 送信完了後の確認画面
+    - メール到達確認機能
+  期待効果: ユーザー不安の解消
+%>

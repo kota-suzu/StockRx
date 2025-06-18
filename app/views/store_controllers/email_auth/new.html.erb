@@ -2,6 +2,7 @@
   EmailAuth - 一時パスワードリクエストフォーム
   ============================================================================
   CLAUDE.md準拠: レスポンシブデザイン・ユーザビリティ重視
+  Phase 4: UI統一化対応
   
   用途:
   - パスワード忘れ時の一時パスワード発行
@@ -12,92 +13,198 @@
   - モバイルファースト（店舗現場での使用想定）
   - 明確なフォームガイダンス
   - セキュリティ注意事項の適切な表示
+  - ログイン画面と統一されたUIパターン
   ============================================================================
 %>
 
-<% content_for :title, t('email_auth.titles.request_form') %>
+<% content_for :title, "パスワードリセット" %>
 
-<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-  <div class="sm:mx-auto sm:w-full sm:max-w-md">
-    <!-- ヘッダー部分 -->
-    <div class="text-center">
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">
-        🏪 <%= @store.name %>
-      </h1>
-      <h2 class="text-xl font-semibold text-gray-700 mb-6">
-        <%= t('email_auth.titles.request_form') %>
-      </h2>
+<style>
+  /* 共通スタイル定義（ログイン画面と統一） */
+  :root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-color: #10b981;
+    --error-color: #ef4444;
+    --focus-ring: rgba(102, 126, 234, 0.4);
+  }
+  
+  .gradient-bg {
+    background: var(--primary-gradient);
+    min-height: 100vh;
+  }
+  
+  .card-shadow {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  .form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+  }
+  
+  .form-input:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+  
+  .btn-primary {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(to right, #7c3aed, #ec4899);
+    color: white;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  }
+  
+  .btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+</style>
+
+<div class="gradient-bg flex items-center justify-center px-4 py-12">
+  <div class="max-w-md w-full animate-slide-up">
+    <!-- ロゴとタイトル -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
+        <i class="bi bi-envelope-open text-3xl text-purple-600"></i>
+      </div>
+      <h1 class="text-3xl font-bold text-white mb-2">StockRx</h1>
+      <p class="text-purple-200"><%= @store.name %></p>
     </div>
 
-    <!-- メインフォーム -->
-    <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-      <%= form_with model: @email_auth_request, 
-                    url: store_request_temp_password_path(store_slug: @store.slug),
-                    local: true,
-                    class: "space-y-6" do |form| %>
+    <!-- メインカード -->
+    <div class="bg-white rounded-2xl card-shadow overflow-hidden">
+      <div class="p-8">
+        <!-- ヘッダー -->
+        <div class="text-center mb-6">
+          <h2 class="text-2xl font-semibold text-gray-800 mb-2">パスワードリセット</h2>
+          <p class="text-gray-600">登録メールアドレスにパスコードを送信します</p>
+        </div>
         
-        <!-- メールアドレス入力 -->
-        <div>
-          <%= form.label :email, t('email_auth.labels.email'), 
-                         class: "block text-sm font-medium text-gray-700" %>
-          <div class="mt-1">
+        <%= form_with model: @email_auth_request, 
+                      url: store_request_temp_password_path(store_slug: @store.slug),
+                      local: true,
+                      class: "space-y-5" do |form| %>
+          
+          <!-- メールアドレス入力 -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="bi bi-envelope me-1"></i>
+              メールアドレス
+            </label>
             <%= form.email_field :email, 
-                                 placeholder: "your-email@example.com",
+                                 placeholder: "email@example.com",
                                  required: true,
                                  autofocus: true,
                                  autocomplete: "email",
-                                 class: "appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
+                                 class: "form-input" %>
           </div>
-        </div>
 
-        <!-- 店舗情報（隠しフィールド） -->
-        <%= form.hidden_field :store_id, value: @store.id %>
-        <%= form.hidden_field :store_slug, value: @store.slug %>
-
-        <!-- ヘルプテキスト -->
-        <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <div class="flex">
-            <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-              </svg>
-            </div>
-            <div class="ml-3">
-              <p class="text-sm text-blue-700">
-                <%= simple_format(t('email_auth.help.request_form')) %>
-              </p>
+          <!-- 店舗情報（隠しフィールド） -->
+          <%= form.hidden_field :store_id, value: @store.id %>
+          <%= form.hidden_field :store_slug, value: @store.slug %>
+          
+          <!-- ヘルプテキスト -->
+          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <i class="bi bi-info-circle text-blue-500"></i>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                  登録されているメールアドレスに6桁のパスコードを送信します。<br>
+                  パスコードは15分間有効です。
+                </p>
+              </div>
             </div>
           </div>
-        </div>
-
-        <!-- 送信ボタン -->
-        <div>
-          <%= form.submit t('email_auth.buttons.request_password'),
-                          class: "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out" %>
-        </div>
-
-        <!-- 戻るリンク -->
-        <div class="flex items-center justify-between">
-          <%= link_to t('email_auth.buttons.back_to_login'),
-                      new_store_user_session_path,
-                      class: "text-sm text-blue-600 hover:text-blue-500 font-medium" %>
-          <%= link_to t('email_auth.buttons.back_to_store_selection'),
-                      store_selection_path,
-                      class: "text-sm text-gray-600 hover:text-gray-500" %>
-        </div>
-      <% end %>
+          
+          <!-- 送信ボタン -->
+          <div>
+            <%= form.submit "パスコードを送信",
+                            class: "btn-primary",
+                            data: { disable_with: "送信中..." } %>
+          </div>
+          
+          <!-- 戻るリンク -->
+          <div class="mt-6 text-center space-y-2">
+            <p>
+              <%= link_to new_store_user_session_path(store_slug: @store.slug),
+                          class: "text-sm text-purple-600 hover:text-purple-700 font-medium" do %>
+                <i class="bi bi-arrow-left me-1"></i>
+                ログイン画面に戻る
+              <% end %>
+            </p>
+          </div>
+        <% end %>
+      </div>
+      
+      <!-- フッター -->
+      <div class="bg-gray-50 px-8 py-4 text-center">
+        <p class="text-sm text-gray-600">
+          <%= link_to store_selection_path, class: "text-purple-600 hover:text-purple-700 font-medium" do %>
+            <i class="bi bi-shop me-1"></i>
+            別の店舗を選択
+          <% end %>
+        </p>
+      </div>
     </div>
 
+    
+    <!-- セキュリティ情報 -->
+    <div class="mt-8 text-center">
+      <div class="inline-flex items-center text-white/80 text-sm">
+        <i class="bi bi-shield-check mr-2"></i>
+        <span>安全な接続で保護されています</span>
+      </div>
+    </div>
+    
     <!-- セキュリティ注意事項 -->
-    <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-md p-4">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-          </svg>
+    <div class="mt-4 mx-auto max-w-sm">
+      <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-white/90 text-xs">
+        <div class="flex items-start">
+          <i class="bi bi-exclamation-triangle-fill me-2 text-yellow-300"></i>
+          <div>
+            <p class="font-medium mb-1">セキュリティのご注意</p>
+            <ul class="space-y-1 text-white/80">
+              <li>• パスコードは他人に教えないでください</li>
+              <li>• 15分以内に入力してください</li>
+              <li>• 不審なメールにご注意ください</li>
+            </ul>
+          </div>
         </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-yellow-800">
+      </div>
+    </div>
             セキュリティについて
           </h3>
           <p class="mt-1 text-sm text-yellow-700">
