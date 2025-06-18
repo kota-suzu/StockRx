@@ -303,7 +303,7 @@ FactoryBot.define do
       system_operation
       low_severity
 
-      compliance_standard { 'ISO27001' }
+      compliance_standard { :iso27001 }  # enum\u30ad\u30fc\u306b\u5909\u63db
       event_type { 'system_configuration_change' }
     end
 
@@ -313,7 +313,7 @@ FactoryBot.define do
       headquarters_admin
 
       event_type { 'security_incident' }
-      compliance_standard { %w[PCI_DSS GDPR ISO27001].sample }
+      compliance_standard { [ :pci_dss, :gdpr, :iso27001 ].sample }  # enum\u30ad\u30fc\u306b\u5909\u63db
     end
   end
 end

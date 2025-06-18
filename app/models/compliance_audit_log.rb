@@ -25,13 +25,13 @@ class ComplianceAuditLog < ApplicationRecord
   # ============================================================================
   # バリデーション
   # ============================================================================
+  # CLAUDE.md準拠: Rails enumは自動的にバリデーションを提供するため、
+  #               手動のinclusionバリデーションは不要（競合回避）
+  # メタ認知: enum使用時の二重バリデーション問題を解決
+  # 横展開: 他のenum使用モデルでも同様の確認が必要
   validates :event_type, presence: true
-  validates :compliance_standard, presence: true,
-            inclusion: { in: %w[PCI_DSS GDPR SOX HIPAA ISO27001],
-                        message: "は有効なコンプライアンス標準である必要があります" }
-  validates :severity, presence: true,
-            inclusion: { in: %w[low medium high critical],
-                        message: "は有効な重要度レベルである必要があります" }
+  validates :compliance_standard, presence: true
+  validates :severity, presence: true
   validates :encrypted_details, presence: true
 
   # ============================================================================
