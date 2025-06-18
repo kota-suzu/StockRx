@@ -395,24 +395,37 @@ module AdminControllers
       # CLAUDE.md準拠: N+1クエリ対策とパフォーマンス最適化
       # メタ認知: ビューで期待される配列構造に合わせてデータを返す
       # 横展開: 他の統計表示機能でも同様の構造統一が必要
+      
+      # パフォーマンス最適化: 店舗ごとに個別クエリではなく、まとめて取得
+      all_outgoing = InterStoreTransfer.where(requested_at: period..)
+                                      .includes(:source_store, :destination_store, :inventory)
+                                      .group_by(&:source_store_id)
+      
+      all_incoming = InterStoreTransfer.where(requested_at: period..)
+                                      .includes(:source_store, :destination_store, :inventory)
+                                      .group_by(&:destination_store_id)
+
       Store.active.includes(:outgoing_transfers, :incoming_transfers)
            .map do |store|
-        # 各店舗の出入り移動数を効率的に計算
-        outgoing = InterStoreTransfer.where(source_store: store, requested_at: period..)
-        incoming = InterStoreTransfer.where(destination_store: store, requested_at: period..)
+        # 事前に取得したデータから該当店舗のものを抽出
+        outgoing_transfers = all_outgoing[store.id] || []
+        incoming_transfers = all_incoming[store.id] || []
+        
+        outgoing_completed = outgoing_transfers.select { |t| t.status == 'completed' }
+        incoming_completed = incoming_transfers.select { |t| t.status == 'completed' }
 
         {
           store: store,
           stats: {
-            outgoing_count: outgoing.count,
-            incoming_count: incoming.count,
-            outgoing_completed: outgoing.completed.count,
-            incoming_completed: incoming.completed.count,
-            net_flow: incoming.completed.count - outgoing.completed.count,
-            approval_rate: calculate_approval_rate(outgoing),
-            avg_processing_time: calculate_average_completion_time(outgoing.completed),
-            most_transferred_items: calculate_most_transferred_items(store, period),
-            efficiency_score: calculate_store_efficiency(outgoing, incoming)
+            outgoing_count: outgoing_transfers.size,
+            incoming_count: incoming_transfers.size,
+            outgoing_completed: outgoing_completed.size,
+            incoming_completed: incoming_completed.size,
+            net_flow: incoming_completed.size - outgoing_completed.size,
+            approval_rate: calculate_approval_rate_from_array(outgoing_transfers),
+            avg_processing_time: calculate_average_completion_time_from_array(outgoing_completed),
+            most_transferred_items: calculate_most_transferred_items_from_array(outgoing_transfers + incoming_transfers),
+            efficiency_score: calculate_store_efficiency_from_arrays(outgoing_transfers, incoming_transfers)
           }
         }
       end
@@ -607,6 +620,52 @@ module AdminControllers
       
       # 効率性スコア（0-100）
       ((outgoing_success_rate + incoming_success_rate) / 2 * 100).round(1)
+    end
+
+    # パフォーマンス最適化: 配列ベースの効率性計算（N+1回避）
+    def calculate_store_efficiency_from_arrays(outgoing_transfers, incoming_transfers)
+      total_outgoing = outgoing_transfers.size
+      total_incoming = incoming_transfers.size
+      
+      return 0 if total_outgoing == 0 && total_incoming == 0
+      
+      outgoing_success = outgoing_transfers.count { |t| %w[approved completed].include?(t.status) }
+      incoming_success = incoming_transfers.count { |t| %w[approved completed].include?(t.status) }
+      
+      outgoing_success_rate = total_outgoing > 0 ? (outgoing_success.to_f / total_outgoing) : 1.0
+      incoming_success_rate = total_incoming > 0 ? (incoming_success.to_f / total_incoming) : 1.0
+      
+      ((outgoing_success_rate + incoming_success_rate) / 2 * 100).round(1)
+    end
+
+    # パフォーマンス最適化: 配列ベースの承認率計算
+    def calculate_approval_rate_from_array(transfers)
+      return 0 if transfers.empty?
+      
+      approved_count = transfers.count { |t| %w[approved completed].include?(t.status) }
+      ((approved_count.to_f / transfers.size) * 100).round(1)
+    end
+
+    # パフォーマンス最適化: 配列ベースの平均完了時間計算
+    def calculate_average_completion_time_from_array(completed_transfers)
+      return 0 if completed_transfers.empty?
+      
+      total_time = completed_transfers.sum do |transfer|
+        next 0 unless transfer.completed_at && transfer.requested_at
+        transfer.completed_at - transfer.requested_at
+      end
+      
+      (total_time / completed_transfers.size / 1.hour).round(1)
+    end
+
+    # パフォーマンス最適化: 配列ベースの最頻移動商品計算
+    def calculate_most_transferred_items_from_array(transfers)
+      return [] if transfers.empty?
+      
+      inventory_counts = transfers.group_by(&:inventory).transform_values(&:count)
+      inventory_counts.sort_by { |_, count| -count }.first(3).map do |inventory, count|
+        { inventory: inventory, count: count }
+      end
     end
 
     def calculate_most_transferred_items(store, period)
