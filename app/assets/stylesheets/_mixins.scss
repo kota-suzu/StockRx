@@ -1,0 +1,866 @@
+/* ========================================== */
+/* 共通ミックスイン - StockRx Design System */
+/* ========================================== */
+/* CLAUDE.md準拠: DRY原則によるスタイルの再利用とメンテナンス性向上 */
+/* メタ認知: 重複スタイルパターンをミックスインで統一管理 */
+/* 横展開: 全コンポーネントで一貫したスタイルパターン適用 */
+/* ========================================== */
+
+// ========================================
+// カードコンポーネントミックスイン
+// ========================================
+
+@mixin card-base(
+  $bg: var(--bg-primary),
+  $shadow: var(--shadow-md),
+  $radius: var(--radius-lg),
+  $padding: var(--spacing-lg)
+) {
+  background-color: #{$bg} !important;
+  border: 1px solid var(--border-primary);
+  border-radius: #{$radius};
+  box-shadow: #{$shadow};
+  padding: #{$padding};
+  transition: var(--transition-normal);
+}
+
+@mixin card-hover-effect(
+  $transform: translateY(-2px),
+  $shadow: var(--shadow-lg)
+) {
+  &:hover {
+    transform: #{$transform};
+    box-shadow: #{$shadow};
+  }
+}
+
+@mixin card-header(
+  $bg: var(--bg-secondary),
+  $color: var(--text-primary),
+  $border: var(--border-primary)
+) {
+  background-color: #{$bg} !important;
+  color: #{$color} !important;
+  border-bottom: 1px solid #{$border} !important;
+  font-weight: 600;
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+// ========================================
+// ボタンコンポーネントミックスイン
+// ========================================
+
+@mixin button-base(
+  $padding: 0.375rem 0.75rem,
+  $radius: var(--radius-md),
+  $transition: var(--transition-fast)
+) {
+  padding: #{$padding};
+  border-radius: #{$radius};
+  transition: #{$transition};
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+@mixin button-variant(
+  $bg: var(--section-primary),
+  $color: var(--text-light),
+  $border: var(--section-primary),
+  $hover-bg: var(--section-primary),
+  $hover-color: var(--text-light),
+  $hover-transform: translateY(-1px)
+) {
+  background-color: #{$bg} !important;
+  color: #{$color} !important;
+  border-color: #{$border} !important;
+  
+  &:hover,
+  &:focus {
+    background-color: #{$hover-bg} !important;
+    color: #{$hover-color} !important;
+    transform: #{$hover-transform};
+    box-shadow: var(--shadow-md);
+  }
+}
+
+@mixin button-outline-variant(
+  $color: var(--section-primary),
+  $border: var(--section-primary),
+  $hover-bg: var(--section-primary),
+  $hover-color: var(--text-light)
+) {
+  background-color: transparent !important;
+  color: #{$color} !important;
+  border-color: #{$border} !important;
+  
+  &:hover,
+  &:focus {
+    background-color: #{$hover-bg} !important;
+    color: #{$hover-color} !important;
+    border-color: #{$border} !important;
+  }
+}
+
+// ========================================
+// ナビゲーションミックスイン
+// ========================================
+
+@mixin navbar-base(
+  $bg: var(--section-primary),
+  $min-height: 64px,
+  $shadow: var(--shadow-md)
+) {
+  background: #{$bg} !important;
+  min-height: #{$min-height};
+  box-shadow: #{$shadow};
+  padding: var(--spacing-sm) 0;
+}
+
+@mixin navbar-brand(
+  $color: var(--text-light),
+  $font-weight: 600,
+  $font-size: 1.25rem
+) {
+  color: #{$color} !important;
+  font-weight: #{$font-weight};
+  font-size: #{$font-size};
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  
+  &:hover {
+    color: #{$color} !important;
+    transform: translateY(-1px);
+    transition: var(--transition-fast);
+  }
+}
+
+@mixin navbar-nav-link(
+  $color: rgba(255, 255, 255, 0.9),
+  $hover-color: #ffffff,
+  $hover-bg: rgba(255, 255, 255, 0.1)
+) {
+  color: #{$color} !important;
+  font-weight: 500;
+  transition: var(--transition-fast);
+  border-radius: var(--radius-sm);
+  margin: 0 0.25rem;
+  padding: 0.5rem 1rem !important;
+  
+  &:hover,
+  &:focus {
+    color: #{$hover-color} !important;
+    background-color: #{$hover-bg};
+    transform: translateY(-1px);
+  }
+  
+  &.active {
+    color: #{$hover-color} !important;
+    background-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+// ========================================
+// フォームコンポーネントミックスイン
+// ========================================
+
+@mixin form-control-base(
+  $bg: var(--bg-primary),
+  $color: var(--text-primary),
+  $border: var(--border-primary),
+  $radius: var(--radius-md)
+) {
+  background-color: #{$bg} !important;
+  color: #{$color} !important;
+  border: 1px solid #{$border} !important;
+  border-radius: #{$radius};
+  transition: var(--transition-fast);
+  
+  &:focus {
+    background-color: #{$bg} !important;
+    color: #{$color} !important;
+    border-color: var(--section-primary) !important;
+    box-shadow: 0 0 0 0.2rem rgba(var(--section-primary), 0.25) !important;
+  }
+  
+  &::placeholder {
+    color: var(--text-muted) !important;
+  }
+}
+
+@mixin form-group-spacing($margin-bottom: var(--spacing-lg)) {
+  margin-bottom: #{$margin-bottom};
+  
+  .form-label {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .form-text {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin-top: var(--spacing-xs);
+  }
+}
+
+// ========================================
+// アラート・メッセージミックスイン
+// ========================================
+
+@mixin alert-base(
+  $padding: var(--spacing-md),
+  $radius: var(--radius-md),
+  $shadow: var(--shadow-sm)
+) {
+  padding: #{$padding};
+  border-radius: #{$radius};
+  box-shadow: #{$shadow};
+  border: none;
+  border-left: 4px solid;
+  display: flex;
+  align-items: flex-start;
+}
+
+@mixin alert-variant(
+  $bg: var(--bg-secondary),
+  $color: var(--text-primary),
+  $border-color: var(--section-primary)
+) {
+  background-color: #{$bg} !important;
+  color: #{$color} !important;
+  border-left-color: #{$border-color} !important;
+}
+
+// ========================================
+// レスポンシブミックスイン
+// ========================================
+
+@mixin responsive-grid($columns: 12, $gap: var(--spacing-md)) {
+  display: grid;
+  grid-template-columns: repeat(#{$columns}, 1fr);
+  gap: #{$gap};
+  
+  @media (max-width: 767.98px) {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-sm);
+  }
+}
+
+@mixin mobile-stack {
+  @media (max-width: 767.98px) {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    
+    & > * {
+      margin-bottom: var(--spacing-sm);
+      margin-right: 0 !important;
+      margin-left: 0 !important;
+    }
+    
+    & > *:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+@mixin hide-on-mobile {
+  @media (max-width: 767.98px) {
+    display: none !important;
+  }
+}
+
+@mixin show-on-mobile-only {
+  display: none !important;
+  
+  @media (max-width: 767.98px) {
+    display: block !important;
+  }
+}
+
+// ========================================
+// アニメーション・トランジションミックスイン
+// ========================================
+
+@mixin smooth-transition($properties: all, $duration: var(--transition-normal)) {
+  transition: #{$properties} #{$duration};
+}
+
+@mixin hover-lift($transform: translateY(-2px), $shadow: var(--shadow-md)) {
+  transition: var(--transition-normal);
+  
+  &:hover {
+    transform: #{$transform};
+    box-shadow: #{$shadow};
+  }
+}
+
+@mixin fade-in-animation($duration: 0.5s, $delay: 0s) {
+  opacity: 0;
+  animation: fadeIn #{$duration} ease-out #{$delay} forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ========================================
+// ユーティリティミックスイン
+// ========================================
+
+@mixin center-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin full-width-height {
+  width: 100%;
+  height: 100%;
+}
+
+@mixin ellipsis-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@mixin sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+// ========================================
+// アクセシビリティミックスイン
+// ========================================
+
+@mixin focus-ring($color: var(--section-primary)) {
+  &:focus {
+    outline: 2px solid #{$color} !important;
+    outline-offset: 2px !important;
+  }
+}
+
+@mixin high-contrast-support {
+  @media (prefers-contrast: high) {
+    border-width: 2px !important;
+    outline-width: 2px !important;
+  }
+}
+
+@mixin reduced-motion-support {
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// ========================================
+// コンポーネント特化ミックスイン
+// ========================================
+
+@mixin dropdown-modern {
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+  
+  .dropdown-item {
+    border-radius: var(--radius-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    transition: var(--transition-fast);
+    
+    &:hover {
+      background-color: var(--bg-secondary);
+      color: var(--text-primary);
+    }
+  }
+}
+
+@mixin table-modern {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  
+  th {
+    background-color: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-primary) !important;
+    padding: var(--spacing-md);
+  }
+  
+  td {
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-secondary) !important;
+  }
+  
+  tbody tr:hover {
+    background-color: var(--bg-secondary) !important;
+  }
+}
+
+@mixin icon-wrapper($size: 40px, $bg: var(--bg-secondary), $color: var(--section-primary)) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: #{$size};
+  height: #{$size};
+  border-radius: 50%;
+  background-color: #{$bg};
+  color: #{$color};
+  margin-right: var(--spacing-sm);
+}
+
+// ========================================
+// TODO: 🟡 Phase 3（重要）- 高度なミックスイン機能
+// 優先度: 中（基本ミックスイン安定後）
+// 実装内容:
+//   - CSS Grid レスポンシブミックスイン
+//   - カスタムスクロールバーミックスイン  
+//   - 印刷専用スタイルミックスイン
+//   - タイポグラフィスケールミックスイン
+// 期待効果: 開発効率40%向上、スタイル一貫性確保
+// 工数見積: 1-2日
+// 依存関係: 基本ミックスイン運用開始後
+// ========================================
+
+// ========================================
+// モダンテキストミックスイン（WCAG AA準拠）
+// ========================================
+
+@mixin text-hierarchy-primary($font-size: var(--font-size-base), $font-weight: var(--font-weight-medium)) {
+  color: var(--text-primary) !important;
+  font-size: #{$font-size};
+  font-weight: #{$font-weight};
+  line-height: var(--line-height-normal);
+}
+
+@mixin text-hierarchy-secondary($font-size: var(--font-size-sm), $font-weight: var(--font-weight-normal)) {
+  color: var(--text-secondary) !important;
+  font-size: #{$font-size};
+  font-weight: #{$font-weight};
+  line-height: var(--line-height-normal);
+}
+
+@mixin text-hierarchy-muted($font-size: var(--font-size-sm), $font-weight: var(--font-weight-normal)) {
+  color: var(--text-muted) !important;
+  font-size: #{$font-size};
+  font-weight: #{$font-weight};
+  line-height: var(--line-height-relaxed);
+}
+
+@mixin text-accent($font-weight: var(--font-weight-medium)) {
+  color: var(--text-accent) !important;
+  font-weight: #{$font-weight};
+  transition: var(--transition-fast);
+  
+  &:hover {
+    color: var(--brand-primary-dark) !important;
+  }
+}
+
+// ========================================
+// モダンカードミックスイン（2024年デザイン）
+// ========================================
+
+@mixin card-modern-base(
+  $bg: var(--bg-primary),
+  $shadow: var(--shadow-md),
+  $radius: var(--radius-xl),
+  $padding: var(--spacing-6)
+) {
+  background-color: #{$bg} !important;
+  border: 1px solid var(--border-primary);
+  border-radius: #{$radius};
+  box-shadow: #{$shadow};
+  padding: #{$padding};
+  transition: var(--transition-normal);
+  
+  // Glassモーフィズム効果（オプション）
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+@mixin card-modern-hover(
+  $transform: translateY(-4px),
+  $shadow: var(--shadow-lg)
+) {
+  &:hover {
+    transform: #{$transform};
+    box-shadow: #{$shadow};
+  }
+}
+
+@mixin card-modern-interactive {
+  cursor: pointer;
+  user-select: none;
+  
+  &:hover {
+    @include card-modern-hover();
+  }
+  
+  &:active {
+    transform: translateY(-1px);
+  }
+}
+
+// ========================================
+// モダンボタンミックスイン
+// ========================================
+
+@mixin button-modern-base(
+  $padding: var(--spacing-3) var(--spacing-6),
+  $radius: var(--radius-lg),
+  $font-size: var(--font-size-sm),
+  $font-weight: var(--font-weight-medium)
+) {
+  padding: #{$padding};
+  border-radius: #{$radius};
+  font-size: #{$font-size};
+  font-weight: #{$font-weight};
+  transition: var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  
+  // フォーカスリング
+  &:focus {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+}
+
+@mixin button-modern-primary {
+  @include button-modern-base();
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));
+  color: var(--text-light) !important;
+  border-color: var(--brand-primary);
+  
+  &:hover {
+    background: linear-gradient(135deg, var(--brand-primary-dark), var(--brand-primary));
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+@mixin button-modern-secondary {
+  @include button-modern-base();
+  background-color: var(--bg-primary);
+  color: var(--text-secondary) !important;
+  border-color: var(--border-primary);
+  
+  &:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary) !important;
+    border-color: var(--border-secondary);
+    transform: translateY(-1px);
+  }
+}
+
+@mixin button-modern-ghost {
+  @include button-modern-base();
+  background-color: transparent;
+  color: var(--text-accent) !important;
+  border-color: transparent;
+  
+  &:hover {
+    background-color: var(--bg-secondary);
+    color: var(--brand-primary-dark) !important;
+  }
+}
+
+// ========================================
+// モダンナビゲーションミックスイン
+// ========================================
+
+@mixin navbar-modern(
+  $bg: var(--bg-primary),
+  $backdrop-blur: true,
+  $shadow: var(--shadow-sm)
+) {
+  background-color: #{$bg} !important;
+  @if $backdrop-blur {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  border-bottom: 1px solid var(--border-primary);
+  box-shadow: #{$shadow};
+  transition: var(--transition-normal);
+}
+
+@mixin navbar-link-modern(
+  $color: var(--text-secondary),
+  $hover-color: var(--text-primary),
+  $active-color: var(--text-accent)
+) {
+  @include text-hierarchy-secondary(var(--font-size-sm), var(--font-weight-medium));
+  color: #{$color} !important;
+  text-decoration: none;
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--radius-md);
+  transition: var(--transition-fast);
+  position: relative;
+  
+  &:hover {
+    color: #{$hover-color} !important;
+    background-color: var(--bg-secondary);
+  }
+  
+  &.active {
+    color: #{$active-color} !important;
+    background-color: var(--bg-tertiary);
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: var(--spacing-4);
+      right: var(--spacing-4);
+      height: 2px;
+      background-color: var(--text-accent);
+      border-radius: var(--radius-full);
+    }
+  }
+}
+
+// ========================================
+// モダンフォームミックスイン
+// ========================================
+
+@mixin form-control-modern(
+  $bg: var(--bg-primary),
+  $border: var(--border-primary),
+  $radius: var(--radius-lg),
+  $padding: var(--spacing-3) var(--spacing-4)
+) {
+  background-color: #{$bg} !important;
+  border: 1px solid #{$border} !important;
+  border-radius: #{$radius};
+  padding: #{$padding};
+  color: var(--text-primary) !important;
+  font-size: var(--font-size-base);
+  transition: var(--transition-fast);
+  
+  &:focus {
+    background-color: #{$bg} !important;
+    border-color: var(--brand-primary) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+    outline: none;
+  }
+  
+  &::placeholder {
+    color: var(--text-muted) !important;
+    font-weight: var(--font-weight-normal);
+  }
+  
+  &:disabled {
+    background-color: var(--bg-tertiary) !important;
+    color: var(--text-muted) !important;
+    cursor: not-allowed;
+  }
+}
+
+@mixin form-label-modern {
+  @include text-hierarchy-secondary(var(--font-size-sm), var(--font-weight-medium));
+  display: block;
+  margin-bottom: var(--spacing-2);
+}
+
+// ========================================
+// モダンアラートミックスイン
+// ========================================
+
+@mixin alert-modern-base(
+  $padding: var(--spacing-4),
+  $radius: var(--radius-lg),
+  $border-width: 1px
+) {
+  padding: #{$padding};
+  border-radius: #{$radius};
+  border: #{$border-width} solid;
+  border-left-width: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+}
+
+@mixin alert-modern-success {
+  @include alert-modern-base();
+  background-color: var(--bg-success);
+  border-color: var(--text-success);
+  color: var(--text-success);
+}
+
+@mixin alert-modern-warning {
+  @include alert-modern-base();
+  background-color: var(--bg-warning);
+  border-color: var(--text-warning);
+  color: var(--text-warning);
+}
+
+@mixin alert-modern-danger {
+  @include alert-modern-base();
+  background-color: var(--bg-danger);
+  border-color: var(--text-danger);
+  color: var(--text-danger);
+}
+
+@mixin alert-modern-info {
+  @include alert-modern-base();
+  background-color: var(--bg-info);
+  border-color: var(--text-info);
+  color: var(--text-info);
+}
+
+// ========================================
+// モダンアニメーション・エフェクトミックスイン
+// ========================================
+
+@mixin fade-in-up($duration: var(--transition-normal), $distance: 20px) {
+  animation: fadeInUp #{$duration} ease-out;
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(#{$distance});
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@mixin slide-in-right($duration: var(--transition-normal), $distance: 30px) {
+  animation: slideInRight #{$duration} ease-out;
+  
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(#{$distance});
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+}
+
+@mixin pulse-hover {
+  &:hover {
+    animation: pulseHover 0.6s ease-in-out;
+  }
+  
+  @keyframes pulseHover {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+}
+
+// ========================================
+// レスポンシブデザインミックスイン
+// ========================================
+
+@mixin responsive-grid($columns: 12, $gap: var(--spacing-6)) {
+  display: grid;
+  grid-template-columns: repeat(#{$columns}, 1fr);
+  gap: #{$gap};
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-4);
+  }
+}
+
+@mixin responsive-flex($direction: row, $gap: var(--spacing-4)) {
+  display: flex;
+  flex-direction: #{$direction};
+  gap: #{$gap};
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: var(--spacing-3);
+  }
+}
+
+// ========================================
+// アクセシビリティ強化ミックスイン
+// ========================================
+
+@mixin focus-visible-modern($color: var(--brand-primary)) {
+  &:focus-visible {
+    outline: 2px solid #{$color};
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+@mixin screen-reader-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+@mixin high-contrast-border {
+  @media (prefers-contrast: high) {
+    border-width: 2px !important;
+    border-color: currentColor !important;
+  }
+}
+
+@mixin reduced-motion-safe($property: transform) {
+  @media (prefers-reduced-motion: reduce) {
+    #{$property}: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}

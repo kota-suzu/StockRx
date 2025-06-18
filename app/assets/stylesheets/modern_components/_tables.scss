@@ -1,0 +1,433 @@
+// ============================================
+// モダンテーブルコンポーネント
+// ============================================
+// Clean, readable table design with modern aesthetics
+
+// テーブルコンテナ
+.table-container-modern {
+  background: var(--bg-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-light);
+}
+
+// ベーステーブルスタイル
+.table-modern {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-base);
+  
+  // ヘッダー
+  thead {
+    background: #ffffff;  // 純白に変更（より明るく）
+    border-bottom: 2px solid var(--border-default);
+    
+    th {
+      padding: var(--space-4) var(--space-6);
+      text-align: left;
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+      white-space: nowrap;
+      position: relative;
+      
+      // ソート可能なカラム
+      &.sortable {
+        cursor: pointer;
+        user-select: none;
+        padding-right: var(--space-10);
+        
+        &:hover {
+          background: rgba(248, 250, 252, 0.8);  // 薄いホバー効果
+        }
+        
+        &::after {
+          content: '';
+          position: absolute;
+          right: var(--space-4);
+          top: 50%;
+          transform: translateY(-50%);
+          width: 0;
+          height: 0;
+          border-left: 4px solid transparent;
+          border-right: 4px solid transparent;
+          border-bottom: 4px solid var(--text-muted);
+          opacity: 0.5;
+        }
+        
+        &.sorted-asc::after {
+          border-bottom: none;
+          border-top: 4px solid var(--text-accent);
+          opacity: 1;
+        }
+        
+        &.sorted-desc::after {
+          border-bottom-color: var(--text-accent);
+          opacity: 1;
+        }
+      }
+      
+      // 右寄せ（数値用）
+      &.text-right {
+        text-align: right;
+      }
+      
+      // 中央寄せ
+      &.text-center {
+        text-align: center;
+      }
+    }
+  }
+  
+  // ボディ
+  tbody {
+    tr {
+      border-bottom: 1px solid var(--border-light);
+      transition: background-color var(--transition-fast);
+      
+      // ホバー効果
+      &:hover {
+        background-color: rgba(241, 245, 249, 0.5);  // より明るいホバー効果
+      }
+      
+      // 選択状態
+      &.selected {
+        background-color: var(--bg-selected);
+      }
+      
+      // 最終行
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+    
+    td {
+      padding: var(--space-4) var(--space-6);
+      color: var(--text-secondary);
+      vertical-align: middle;
+      
+      // 右寄せ（数値用）
+      &.text-right {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      
+      // 中央寄せ
+      &.text-center {
+        text-align: center;
+      }
+      
+      // 強調テキスト
+      &.text-strong {
+        color: var(--text-primary);
+        font-weight: var(--font-medium);
+      }
+      
+      // ステータスバッジ
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        padding: var(--space-1) var(--space-3);
+        font-size: var(--text-xs);
+        font-weight: var(--font-medium);
+        border-radius: var(--radius-full);
+        
+        &.badge-success {
+          background: rgba(34, 197, 94, 0.08);  // より薄く（0.1→0.08）
+          color: var(--text-success);
+        }
+        
+        &.badge-warning {
+          background: rgba(245, 158, 11, 0.08);  // より薄く（0.1→0.08）
+          color: var(--text-warning);
+        }
+        
+        &.badge-danger {
+          background: rgba(239, 68, 68, 0.08);  // より薄く（0.1→0.08）
+          color: var(--text-error);
+        }
+        
+        &.badge-info {
+          background: rgba(59, 130, 246, 0.08);  // より薄く
+          color: var(--text-accent);
+        }
+      }
+    }
+  }
+  
+  // フッター
+  tfoot {
+    background: #ffffff;  // 純白に変更（より明るく）
+    border-top: 2px solid var(--border-default);
+    
+    td {
+      padding: var(--space-4) var(--space-6);
+      font-weight: var(--font-semibold);
+      color: var(--text-primary);
+    }
+  }
+}
+
+// 縞模様テーブル
+.table-striped {
+  tbody tr:nth-child(odd) {
+    background-color: rgba(248, 250, 252, 0.3);  // さらに薄く（0.5→0.3）
+  }
+}
+
+// コンパクトテーブル
+.table-compact {
+  thead th,
+  tbody td,
+  tfoot td {
+    padding: var(--space-3) var(--space-4);
+  }
+  
+  font-size: var(--text-sm);
+}
+
+// ボーダーレステーブル
+.table-borderless {
+  thead {
+    border-bottom: none;
+    
+    th {
+      border-bottom: 2px solid var(--border-default);
+    }
+  }
+  
+  tbody tr {
+    border-bottom: none;
+  }
+}
+
+// 固定ヘッダーテーブル
+.table-fixed-header {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-10);
+    background: var(--bg-surface);
+    box-shadow: 0 1px 0 var(--border-default);
+  }
+  
+  tbody {
+    overflow-y: auto;
+    flex: 1;
+  }
+}
+
+// レスポンシブテーブル
+.table-responsive-modern {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  
+  .table-modern {
+    min-width: 600px;
+  }
+  
+  // スクロールインジケーター
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    pointer-events: none;
+    z-index: var(--z-10);
+  }
+  
+  &::before {
+    left: 0;
+    background: linear-gradient(to right, var(--bg-surface), transparent);
+  }
+  
+  &::after {
+    right: 0;
+    background: linear-gradient(to left, var(--bg-surface), transparent);
+  }
+}
+
+// テーブル内アクション
+.table-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  
+  .btn-table-action {
+    padding: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    
+    &:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+    
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--text-accent);
+    }
+  }
+}
+
+// チェックボックス付きテーブル
+.table-checkbox {
+  tbody tr {
+    cursor: pointer;
+    
+    &:hover {
+      background-color: var(--bg-hover);
+    }
+    
+    &.selected {
+      background-color: var(--bg-selected);
+      
+      td {
+        color: var(--text-primary);
+      }
+    }
+  }
+  
+  .checkbox-cell {
+    width: 40px;
+    padding: var(--space-3);
+    text-align: center;
+    
+    input[type="checkbox"] {
+      cursor: pointer;
+    }
+  }
+}
+
+// 空状態
+.table-empty {
+  padding: var(--space-16) var(--space-6);
+  text-align: center;
+  
+  .empty-icon {
+    font-size: var(--text-5xl);
+    color: var(--text-muted);
+    margin-bottom: var(--space-4);
+  }
+  
+  .empty-title {
+    font-size: var(--text-lg);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+  
+  .empty-description {
+    color: var(--text-secondary);
+    font-size: var(--text-base);
+  }
+}
+
+// モバイル用カードビュー
+@media (max-width: $breakpoint-md) {
+  .table-mobile-cards {
+    .table-modern {
+      display: block;
+      
+      thead {
+        display: none;
+      }
+      
+      tbody {
+        display: block;
+        
+        tr {
+          display: block;
+          margin-bottom: var(--space-4);
+          padding: var(--space-4);
+          background: var(--bg-surface);
+          border: 1px solid var(--border-light);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-sm);
+          
+          &:hover {
+            box-shadow: var(--shadow-md);
+          }
+        }
+        
+        td {
+          display: flex;
+          justify-content: space-between;
+          padding: var(--space-2) 0;
+          border-bottom: 1px solid var(--border-light);
+          
+          &:last-child {
+            border-bottom: none;
+          }
+          
+          &::before {
+            content: attr(data-label);
+            font-weight: var(--font-medium);
+            color: var(--text-primary);
+            margin-right: var(--space-4);
+          }
+          
+          &.table-actions {
+            justify-content: flex-end;
+            
+            &::before {
+              display: none;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// 印刷対応
+@media print {
+  .table-container-modern {
+    box-shadow: none;
+    border: 1px solid #000;
+  }
+  
+  .table-modern {
+    font-size: 10pt;
+    
+    thead {
+      background: #f0f0f0;
+      
+      th {
+        font-weight: bold;
+        border-bottom: 2px solid #000;
+      }
+    }
+    
+    tbody tr {
+      &:hover {
+        background: none;
+      }
+      
+      &:nth-child(odd) {
+        background: #f8f8f8;
+      }
+    }
+  }
+}
+
+// TODO: ダークモード対応
+// - 背景色の調整
+// - ボーダー色の調整
+// - ホバー効果の最適化
+
+// TODO: テーブルヘッダーをより明確に区別する方法を検討
+// - 微妙なグラデーション背景
+// - フォントサイズの差別化
+// - アイコンの活用

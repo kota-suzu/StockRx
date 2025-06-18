@@ -1,0 +1,372 @@
+// ============================================
+// StockRx Store Modern UI System
+// ============================================
+// 店舗画面用モダンUIスタイル統合ファイル
+// 2024年最新のUIトレンドを反映
+
+// ============================================
+// Core Design Tokens
+// ============================================
+@import "modern/tokens";
+
+// ============================================
+// Modern Components
+// ============================================
+@import "modern_components/cards";
+@import "modern_components/buttons";
+@import "modern_components/forms";
+@import "modern_components/tables";
+
+// ============================================
+// Store Layout Overrides
+// ============================================
+
+// ベースレイアウト調整
+body.store-layout {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: var(--leading-normal);
+  
+  // スムーズスクロール
+  scroll-behavior: smooth;
+}
+
+// メインコンテナ
+.container,
+.container-fluid {
+  &.main-content {
+    padding-top: var(--space-8);
+    padding-bottom: var(--space-8);
+  }
+}
+
+// ページヘッダー
+.page-header-modern {
+  margin-bottom: var(--space-8);
+  
+  h1 {
+    font-size: var(--text-3xl);
+    font-weight: var(--font-bold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+  
+  .breadcrumb-modern {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+    
+    a {
+      color: var(--text-accent);
+      text-decoration: none;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+    
+    .separator {
+      color: var(--text-muted);
+    }
+  }
+}
+
+// ============================================
+// Store Specific Styles
+// ============================================
+
+// ダッシュボードグリッド
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+// 在庫管理テーブル
+.inventory-section {
+  .filters-row {
+    display: flex;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+    flex-wrap: wrap;
+    
+    @media (max-width: $breakpoint-md) {
+      flex-direction: column;
+    }
+  }
+  
+  .search-box {
+    flex: 1;
+    min-width: 250px;
+  }
+  
+  .filter-select {
+    min-width: 150px;
+  }
+}
+
+// アラートセクション
+.alerts-section {
+  margin-bottom: var(--space-8);
+  
+  .alert-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-4);
+  }
+}
+
+// プロファイルカード
+.profile-section {
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    margin-bottom: var(--space-8);
+    
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: var(--radius-full);
+      background: var(--bg-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-2xl);
+      font-weight: var(--font-bold);
+      color: var(--text-accent);
+    }
+    
+    .profile-info {
+      h2 {
+        font-size: var(--text-2xl);
+        font-weight: var(--font-semibold);
+        color: var(--text-primary);
+        margin-bottom: var(--space-1);
+      }
+      
+      p {
+        color: var(--text-secondary);
+        margin: 0;
+      }
+    }
+  }
+}
+
+// ============================================
+// Navigation Enhancements
+// ============================================
+
+.navbar-store {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  
+  .navbar-brand {
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    
+    &:hover {
+      color: var(--text-accent);
+    }
+  }
+  
+  .nav-link {
+    color: var(--text-secondary);
+    font-weight: var(--font-medium);
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+    
+    &:hover {
+      color: var(--text-primary);
+      background: var(--bg-hover);
+    }
+    
+    &.active {
+      color: var(--text-accent);
+      background: var(--bg-accent);
+    }
+  }
+  
+  .dropdown-menu {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: var(--space-2);
+    
+    .dropdown-item {
+      border-radius: var(--radius-md);
+      padding: var(--space-2) var(--space-4);
+      
+      &:hover {
+        background: var(--bg-hover);
+      }
+    }
+  }
+}
+
+// ============================================
+// Utility Overrides
+// ============================================
+
+// テキストユーティリティ
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+// 背景ユーティリティ
+.bg-light {
+  background-color: var(--bg-section) !important;
+}
+
+.bg-white {
+  background-color: var(--bg-surface) !important;
+}
+
+// ボーダーユーティリティ
+.border {
+  border-color: var(--border-light) !important;
+}
+
+// 影ユーティリティ
+.shadow {
+  box-shadow: var(--shadow-default) !important;
+}
+
+.shadow-sm {
+  box-shadow: var(--shadow-sm) !important;
+}
+
+.shadow-lg {
+  box-shadow: var(--shadow-lg) !important;
+}
+
+// ============================================
+// Animation Classes
+// ============================================
+
+.fade-in {
+  animation: fadeIn var(--transition-slow) ease-out;
+}
+
+.slide-in-right {
+  animation: slideInRight var(--transition-slow) ease-out;
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+// ============================================
+// Loading States
+// ============================================
+
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-hover) 25%, var(--bg-section) 50%, var(--bg-hover) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+// ============================================
+// Empty States
+// ============================================
+
+.empty-state {
+  padding: var(--space-16) var(--space-6);
+  text-align: center;
+  
+  .empty-icon {
+    font-size: var(--text-5xl);
+    color: var(--text-muted);
+    margin-bottom: var(--space-6);
+  }
+  
+  .empty-title {
+    font-size: var(--text-xl);
+    font-weight: var(--font-semibold);
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+  }
+  
+  .empty-description {
+    color: var(--text-secondary);
+    margin-bottom: var(--space-6);
+  }
+}
+
+// ============================================
+// Mobile Optimizations
+// ============================================
+
+@media (max-width: $breakpoint-md) {
+  body.store-layout {
+    font-size: var(--text-base);
+  }
+  
+  .page-header-modern h1 {
+    font-size: var(--text-2xl);
+  }
+  
+  .container,
+  .container-fluid {
+    &.main-content {
+      padding-top: var(--space-6);
+      padding-bottom: var(--space-6);
+    }
+  }
+  
+  // タッチターゲット最適化
+  .btn-modern,
+  .form-control-modern,
+  .nav-link {
+    min-height: 44px; // iOS推奨タッチサイズ
+  }
+}
+
+// ============================================
+// Print Styles
+// ============================================
+
+@media print {
+  body.store-layout {
+    background: white;
+    color: black;
+  }
+  
+  .navbar-store,
+  .btn-modern,
+  .empty-state {
+    display: none !important;
+  }
+  
+  .card-modern,
+  .table-container-modern {
+    box-shadow: none;
+    border: 1px solid #000;
+    page-break-inside: avoid;
+  }
+}
+
+// TODO: ダークモード実装
+// - CSS変数の切り替え
+// - メディアクエリ対応
+// - ユーザー設定の保存

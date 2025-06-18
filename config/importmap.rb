@@ -6,6 +6,10 @@ pin "@hotwired/stimulus", to: "stimulus.min.js", preload: true
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js", preload: true
 pin_all_from "app/javascript/controllers", under: "controllers"
 
+# 認証画面専用JavaScript - インラインスクリプト外部化
+# CLAUDE.md準拠: CSP対応とメンテナンス性向上
+pin "authentication", to: "authentication.js", preload: true
+
 # Bootstrap 5 JavaScript for interactive components
 # CLAUDE.md準拠: メタ認知的アプローチ - Bootstrap JSが必要な理由を明確化
 # 必要理由: collapse, dropdown, tooltip等のインタラクティブ機能のため

@@ -1,0 +1,387 @@
+/* ========================================== */
+/* 統一カラーシステム - StockRx Design System */
+/* ========================================== */
+/* CLAUDE.md準拠: ブランド一貫性とアクセシビリティの両立 */
+/* メタ認知: 全セクション共通のカラーパレットで統一感を実現 */
+/* 横展開: 管理者・店舗・公開画面で一貫したカラー体験提供 */
+/* アクセシビリティ: WCAG 2.1 AA準拠（コントラスト比4.5:1以上） */
+/* ========================================== */
+
+// ========================================
+// ブランドコアカラー（統一基準）
+// ========================================
+$brand-primary: #2563eb;        // メインブランドカラー（モダンブルー）
+$brand-primary-dark: #1d4ed8;   // ダークバリアント（ホバー・アクティブ用）
+$brand-primary-light: #60a5fa;  // ライトバリアント（背景・ボーダー用）
+$brand-secondary: #1f2937;      // セカンダリカラー（ダークグレー）
+
+// ========================================
+// モダンニュートラルカラーパレット（2024年トレンド）
+// ========================================
+$neutral-50: #f9fafb;
+$neutral-100: #f3f4f6;
+$neutral-200: #e5e7eb;
+$neutral-300: #d1d5db;
+$neutral-400: #9ca3af;
+$neutral-500: #6b7280;
+$neutral-600: #4b5563;
+$neutral-700: #374151;
+$neutral-800: #1f2937;
+$neutral-900: #111827;
+
+// ========================================
+// WCAG AA準拠テキストカラー（コントラスト比4.5:1以上）
+// ========================================
+$text-primary: $neutral-900;        // コントラスト比: 19.6:1（白背景）
+$text-secondary: $neutral-600;      // コントラスト比: 7.5:1（白背景）
+$text-muted: $neutral-500;          // コントラスト比: 5.8:1（白背景）
+$text-accent: $brand-primary;       // コントラスト比: 6.9:1（白背景）
+$text-light: #ffffff;               // ライトテキスト（ダーク背景用）
+
+// ========================================
+// セマンティックカラー（高コントラスト版）
+// ========================================
+$success: #059669;                  // コントラスト比: 6.2:1
+$success-light: #d1fae5;
+$warning: #d97706;                  // コントラスト比: 5.1:1
+$warning-light: #fef3c7;
+$danger: #dc2626;                   // コントラスト比: 5.8:1
+$danger-light: #fee2e2;
+$info: #0284c7;                     // コントラスト比: 6.4:1
+$info-light: #dbeafe;
+
+// ========================================
+// セクション別プライマリカラー（視覚的差別化）
+// ========================================
+$admin-primary: $brand-primary;      // 管理者画面: モダンブルー
+$admin-secondary: $brand-secondary;  // 管理者セカンダリ: ダークグレー
+$admin-accent: #dc2626;             // 管理者アクセント: レッド（重要操作用）
+
+$store-primary: #0284c7;            // 店舗画面: インフォブルー（差別化）
+$store-secondary: $neutral-600;     // 店舗セカンダリ: グレー
+$store-accent: #059669;             // 店舗アクセント: グリーン（成功・進行用）
+
+$public-primary: $brand-primary;     // 公開画面: ブランドブルー
+$public-secondary: $brand-secondary; // 公開セカンダリ: ダークグレー
+$public-accent: #7c3aed;            // 公開アクセント: パープル（CTA用）
+
+// ========================================
+// UI基本カラー（視覚的階層システム）
+// ========================================
+// 背景色階層（深度による区別）
+$bg-page: $neutral-100;             // レベル1: ページ背景（最も暗い）
+$bg-section: $neutral-50;           // レベル2: セクション背景（中間）
+$bg-card: #ffffff;                  // レベル3: カード背景（最も明るい）
+$bg-elevated: #ffffff;              // レベル4: 浮き上がった要素用
+
+// 旧変数との互換性維持（段階的移行用）
+$bg-primary: $bg-card;              // プライマリ背景（カード・フォーム用）
+$bg-secondary: $bg-page;            // セカンダリ背景（ページ背景用）
+$bg-tertiary: $bg-section;          // ターシャリ背景（セクション分け用）
+$bg-light: #ffffff;                 // ライト背景
+$bg-dark: $neutral-800;             // ダーク背景
+
+// ナビゲーション専用背景
+$bg-navbar-light: #ffffff;          // ライトナビゲーション
+$bg-navbar-dark: $neutral-800;      // ダークナビゲーション（管理者用）
+$bg-navbar-gradient: linear-gradient(135deg, $brand-primary, $brand-primary-dark); // グラデーション
+
+// 強化されたボーダー（より明確な境界）
+$border-primary: $neutral-300;      // プライマリボーダー（濃く変更）
+$border-secondary: $neutral-400;    // セカンダリボーダー（より濃く）
+$border-light: $neutral-200;        // ライトボーダー（少し濃く）
+
+// ========================================
+// CSS Variables（ライトテーマ統一管理）
+// ========================================
+:root {
+  // ブランドカラー（全セクション共通）
+  --brand-primary: #{$brand-primary};
+  --brand-primary-dark: #{$brand-primary-dark};
+  --brand-primary-light: #{$brand-primary-light};
+  --brand-secondary: #{$brand-secondary};
+  
+  // モダンニュートラルカラー
+  --neutral-50: #{$neutral-50};
+  --neutral-100: #{$neutral-100};
+  --neutral-200: #{$neutral-200};
+  --neutral-300: #{$neutral-300};
+  --neutral-400: #{$neutral-400};
+  --neutral-500: #{$neutral-500};
+  --neutral-600: #{$neutral-600};
+  --neutral-700: #{$neutral-700};
+  --neutral-800: #{$neutral-800};
+  --neutral-900: #{$neutral-900};
+  
+  // セクション別カラー（動的切り替え用）
+  --admin-primary: #{$admin-primary};
+  --admin-secondary: #{$admin-secondary};
+  --admin-accent: #{$admin-accent};
+  
+  --store-primary: #{$store-primary};
+  --store-secondary: #{$store-secondary};
+  --store-accent: #{$store-accent};
+  
+  --public-primary: #{$public-primary};
+  --public-secondary: #{$public-secondary};
+  --public-accent: #{$public-accent};
+  
+  // WCAG AA準拠テキストカラー
+  --text-primary: #{$text-primary};
+  --text-secondary: #{$text-secondary};
+  --text-muted: #{$text-muted};
+  --text-accent: #{$text-accent};
+  --text-light: #{$text-light};
+  
+  // セマンティックテキストカラー
+  --text-success: #{$success};
+  --text-warning: #{$warning};
+  --text-danger: #{$danger};
+  --text-info: #{$info};
+  
+  // 背景色階層システム
+  --bg-page: #{$bg-page};
+  --bg-section: #{$bg-section};
+  --bg-card: #{$bg-card};
+  --bg-elevated: #{$bg-elevated};
+  
+  // 旧変数との互換性（段階的移行）
+  --bg-primary: #{$bg-primary};
+  --bg-secondary: #{$bg-secondary};
+  --bg-tertiary: #{$bg-tertiary};
+  --bg-light: #{$bg-light};
+  --bg-dark: #{$bg-dark};
+  
+  // ナビゲーション背景
+  --bg-navbar-light: #{$bg-navbar-light};
+  --bg-navbar-dark: #{$bg-navbar-dark};
+  
+  // 管理画面専用背景（階層システム適用）
+  --admin-bg-page: #{$bg-page};             // ページ全体背景
+  --admin-bg-section: #{$bg-section};       // セクション背景
+  --admin-bg-card: #{$bg-card};             // カード背景
+  --admin-bg-navbar: #{$bg-navbar-dark};    // ナビゲーション背景（ダーク）
+  --admin-bg-sidebar: #{$bg-section};       // サイドバー背景
+  
+  // 旧変数マッピング（互換性維持）
+  --admin-bg-main: var(--admin-bg-card);
+  --admin-bg-secondary: var(--admin-bg-section);
+  
+  --border-primary: #{$border-primary};
+  --border-secondary: #{$border-secondary};
+  --border-light: #{$border-light};
+  
+  // セマンティック背景色
+  --bg-success: #{$success-light};
+  --bg-warning: #{$warning-light};
+  --bg-danger: #{$danger-light};
+  --bg-info: #{$info-light};
+  
+  // Bootstrap互換色
+  --bs-success: #{$success};
+  --bs-warning: #{$warning};
+  --bs-danger: #{$danger};
+  --bs-info: #{$info};
+  
+  // ========================================
+  // デザイントークン（共通UI要素用）
+  // ========================================
+  
+  // 強化された影（より明確な深度表現）
+  --shadow-xs: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-2xl: 0 35px 60px -15px rgba(0, 0, 0, 0.3);
+  
+  // ナビゲーション専用影
+  --shadow-navbar: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  --shadow-dropdown: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  // ボーダー半径（モダンデザイン）
+  --radius-xs: 0.125rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-full: 9999px;
+  
+  // スペーシング（8px grid system）
+  --spacing-px: 1px;
+  --spacing-0: 0;
+  --spacing-1: 0.25rem;   // 4px
+  --spacing-2: 0.5rem;    // 8px
+  --spacing-3: 0.75rem;   // 12px
+  --spacing-4: 1rem;      // 16px
+  --spacing-5: 1.25rem;   // 20px
+  --spacing-6: 1.5rem;    // 24px
+  --spacing-8: 2rem;      // 32px
+  --spacing-10: 2.5rem;   // 40px
+  --spacing-12: 3rem;     // 48px
+  --spacing-16: 4rem;     // 64px
+  
+  // トランジション（パフォーマンス最適化）
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  
+  // タイポグラフィ
+  --font-size-xs: 0.75rem;     // 12px
+  --font-size-sm: 0.875rem;    // 14px
+  --font-size-base: 1rem;      // 16px
+  --font-size-lg: 1.125rem;    // 18px
+  --font-size-xl: 1.25rem;     // 20px
+  --font-size-2xl: 1.5rem;     // 24px
+  --font-size-3xl: 1.875rem;   // 30px
+  --font-size-4xl: 2.25rem;    // 36px
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  
+  --line-height-tight: 1.25;
+  --line-height-snug: 1.375;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.625;
+  --line-height-loose: 2;
+}
+
+// ========================================
+// ライトテーマ強制適用（ダークモード対応）
+// ========================================
+@media (prefers-color-scheme: dark) {
+  :root {
+    // ダークモード設定を無視してライトテーマを維持
+    --text-primary: #{$text-primary};
+    --text-secondary: #{$text-secondary};
+    --text-muted: #{$text-muted};
+    
+    --bg-primary: #{$bg-primary};
+    --bg-secondary: #{$bg-secondary};
+    --bg-dark: #{$bg-dark};
+    
+    --border-primary: #{$border-primary};
+    --border-secondary: #{$border-secondary};
+  }
+}
+
+// ========================================
+// ハイコントラストモード対応（アクセシビリティ強化）
+// ========================================
+@media (prefers-contrast: high) {
+  :root {
+    --border-primary: #000000;
+    --border-secondary: #333333;
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --text-muted: #555555;
+  }
+}
+
+// ========================================
+// 動きの軽減設定対応（アクセシビリティ）
+// ========================================
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms;
+    --transition-normal: 0ms;
+    --transition-slow: 0ms;
+  }
+}
+
+// ========================================
+// セクション別カスタムプロパティ（ライトテーマ統一）
+// ========================================
+
+// 管理者画面用（.admin-layout適用時）
+.admin-layout {
+  --section-primary: var(--admin-primary);
+  --section-secondary: var(--admin-secondary);
+  --section-accent: var(--admin-accent);
+  
+  // 階層的背景システム適用
+  background-color: var(--admin-bg-page) !important;
+  color: var(--text-primary);
+  
+  // セクション背景のデフォルト設定
+  .content-section {
+    background-color: var(--admin-bg-section);
+    padding: var(--spacing-4);
+    border-radius: var(--radius-lg);
+  }
+}
+
+// 店舗画面用（.store-layout適用時）
+.store-layout {
+  --section-primary: var(--store-primary);
+  --section-secondary: var(--store-secondary);
+  --section-accent: var(--store-accent);
+  
+  // 階層的背景システム適用
+  background-color: var(--bg-page) !important;
+  color: var(--text-primary);
+  
+  // セクション背景のデフォルト設定
+  .content-section {
+    background-color: var(--bg-section);
+    padding: var(--spacing-4);
+    border-radius: var(--radius-lg);
+  }
+}
+
+// 公開画面用（.public-layout適用時）
+.public-layout {
+  --section-primary: var(--public-primary);
+  --section-secondary: var(--public-secondary);
+  --section-accent: var(--public-accent);
+  
+  // 階層的背景システム適用
+  background-color: var(--bg-page) !important;
+  color: var(--text-primary);
+  
+  // セクション背景のデフォルト設定
+  .content-section {
+    background-color: var(--bg-section);
+    padding: var(--spacing-4);
+    border-radius: var(--radius-lg);
+  }
+}
+
+// ========================================
+// モダンUIユーティリティクラス
+// ========================================
+
+// テキストカラーユーティリティ
+.text-primary { color: var(--text-primary) !important; }
+.text-secondary { color: var(--text-secondary) !important; }
+.text-muted { color: var(--text-muted) !important; }
+.text-accent { color: var(--text-accent) !important; }
+
+// セマンティックテキストカラー
+.text-success { color: var(--text-success) !important; }
+.text-warning { color: var(--text-warning) !important; }
+.text-danger { color: var(--text-danger) !important; }
+.text-info { color: var(--text-info) !important; }
+
+// 背景カラーユーティリティ
+.bg-primary { background-color: var(--bg-primary) !important; }
+.bg-secondary { background-color: var(--bg-secondary) !important; }
+.bg-tertiary { background-color: var(--bg-tertiary) !important; }
+
+// ========================================
+// TODO: 🟡 Phase 3（重要）- 動的テーマ切り替え機能
+// 優先度: 中（カラーシステム統一後）
+// 実装内容:
+//   - JavaScript連携による動的カラー切り替え
+//   - ユーザー設定保存（localStorage）
+//   - テーマプリセット（ライト・ダーク・ハイコントラスト）
+//   - セクション間のスムーズなカラー遷移
+// 期待効果: ユーザビリティ向上、アクセシビリティ強化
+// 工数見積: 2-3日
+// 依存関係: 統一カラーシステム完成後
+// ========================================

@@ -200,13 +200,23 @@
 
 // Enhanced Table Styles
 .admin-table {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  
   .table {
+    margin-bottom: 0;
+    
     thead {
       th {
-        border-bottom: 2px solid var(--admin-border-color);
+        background-color: #ffffff;  // 純白に変更（より明るく）
+        border-bottom: 2px solid var(--border-primary);
         font-weight: 600;
-        color: var(--admin-dark);
+        color: var(--text-primary);
         vertical-align: middle;
+        padding: var(--spacing-3) var(--spacing-4);
         
         i {
           color: var(--admin-primary);
@@ -217,10 +227,16 @@
     tbody {
       tr {
         transition: all 0.15s ease-in-out;
+        border-bottom: 1px solid var(--border-light);
+        
+        // 縞模様
+        &:nth-child(odd) {
+          background-color: rgba(248, 250, 252, 0.3);  // より薄く
+        }
         
         &:hover {
-          background-color: rgba(var(--admin-primary), 0.05);
-          transform: scale(1.001);
+          background-color: rgba(241, 245, 249, 0.5);  // より明るいホバー
+          box-shadow: inset 0 0 0 2px var(--admin-primary-light);
         }
         
         &.table-warning {
@@ -238,7 +254,8 @@
       
       td {
         vertical-align: middle;
-        border-color: var(--admin-border-color);
+        border: none;
+        padding: var(--spacing-3) var(--spacing-4);
       }
     }
   }

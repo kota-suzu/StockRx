@@ -1,0 +1,404 @@
+/* ========================================== */
+/* カードコンポーネント統合スタイル */
+/* ========================================== */
+/* CLAUDE.md準拠: 統一されたカードデザインシステム */
+/* メタ認知: application.scss、bootstrap_enhancements.scss、admin_controllers.scssの重複解消 */
+/* 横展開: 全セクション（管理者・店舗・公開）で一貫したカード体験 */
+/* ========================================== */
+
+@import '../variables';
+@import '../mixins';
+
+// ========================================
+// ベースカードクラス（全カードの基盤）
+// ========================================
+
+.card {
+  @include card-base();
+  @include card-hover-effect();
+  @include smooth-transition();
+  @include high-contrast-support();
+  
+  // 強化された影とボーダー
+  box-shadow: var(--shadow-md) !important;
+  border: 1px solid var(--border-primary) !important;
+  background-color: var(--bg-card) !important;
+  
+  // ホバー時の強化効果
+  &:hover {
+    box-shadow: var(--shadow-lg) !important;
+    transform: translateY(-2px);
+    border-color: var(--border-secondary);
+  }
+  
+  // カードボディの統一スタイル
+  .card-body {
+    background-color: transparent !important;
+    color: var(--text-primary) !important;
+    padding: var(--spacing-lg);
+  }
+  
+  // カードヘッダーの統一スタイル
+  .card-header {
+    @include card-header();
+    
+    // セマンティック色バリアント
+    &.bg-primary {
+      @include card-header(var(--section-primary), var(--text-light), transparent);
+    }
+    
+    &.bg-warning {
+      @include card-header(var(--bs-warning), var(--text-primary), darken(#ffc107, 10%));
+    }
+    
+    &.bg-danger {
+      @include card-header(var(--bs-danger), var(--text-light), darken(#dc3545, 10%));
+    }
+    
+    &.bg-success {
+      @include card-header(var(--bs-success), var(--text-light), darken(#28a745, 10%));
+    }
+    
+    &.bg-info {
+      @include card-header(var(--bs-info), var(--text-light), darken(#17a2b8, 10%));
+    }
+  }
+  
+  // カードフッターの統一スタイル
+  .card-footer {
+    background-color: var(--bg-section) !important;  // セクションレベル背景
+    border-top: 1px solid var(--border-primary) !important;
+    padding: var(--spacing-md) var(--spacing-lg);
+    color: var(--text-secondary);
+  }
+}
+
+// ========================================
+// カードバリアント（特定用途向け）
+// ========================================
+
+// ダッシュボード用統計カード
+.dashboard-card {
+  @include card-base();
+  @include card-hover-effect(translateY(-4px), var(--shadow-xl));
+  @include smooth-transition();
+  
+  cursor: pointer;
+  border-left: 4px solid var(--section-primary);
+  box-shadow: var(--shadow-md);
+  background-color: var(--bg-card);
+  
+  &:hover {
+    box-shadow: var(--shadow-xl);
+    transform: translateY(-4px);
+  }
+  
+  .card-body {
+    padding: var(--spacing-lg);
+    
+    .card-title {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .card-value {
+      color: var(--text-primary);
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: var(--spacing-xs);
+    }
+    
+    .card-change {
+      font-size: 0.875rem;
+      font-weight: 500;
+      
+      &.positive {
+        color: var(--bs-success);
+      }
+      
+      &.negative {
+        color: var(--bs-danger);
+      }
+      
+      &.neutral {
+        color: var(--text-muted);
+      }
+    }
+  }
+  
+  // アイコンラッパー
+  .icon-wrapper {
+    @include icon-wrapper(50px);
+    float: right;
+    margin-top: -10px;
+  }
+}
+
+// モダンカード（bootstrap_enhancements.scssから統合）
+.card-modern {
+  @include card-base(var(--bg-card), var(--shadow-lg), var(--radius-2xl));
+  @include card-hover-effect(translateY(-3px), var(--shadow-xl));
+  
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+  
+  &:hover {
+    box-shadow: var(--shadow-xl);
+    border-color: var(--border-primary);
+  }
+  
+  .card-header {
+    background: linear-gradient(135deg, var(--section-primary), var(--section-secondary));
+    color: var(--text-light);
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    border: none;
+  }
+}
+
+// 管理者専用カード（admin_controllers.scssから統合）
+.admin-card {
+  @include card-base();
+  @include card-hover-effect();
+  
+  border-left: 3px solid var(--admin-accent);
+  box-shadow: var(--shadow-md);
+  background-color: var(--bg-card);
+  
+  &:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+  
+  .card-header {
+    background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary));
+    color: var(--text-light);
+    border-bottom: none;
+  }
+  
+  // 管理者カード用アクションボタン
+  .admin-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    justify-content: flex-end;
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-secondary);
+    margin-top: var(--spacing-md);
+  }
+}
+
+// アラートカード（重要な情報表示用）
+.alert-card {
+  @include card-base();
+  @include alert-base();
+  
+  border-left-width: 4px;
+  border-left-style: solid;
+  
+  &.alert-warning {
+    @include alert-variant(#fff3cd, #856404, var(--bs-warning));
+  }
+  
+  &.alert-danger {
+    @include alert-variant(#f8d7da, #721c24, var(--bs-danger));
+  }
+  
+  &.alert-success {
+    @include alert-variant(#d1edff, #0c5460, var(--bs-success));
+  }
+  
+  &.alert-info {
+    @include alert-variant(#d1ecf1, #0c5460, var(--bs-info));
+  }
+}
+
+// ========================================
+// 特殊用途カード
+// ========================================
+
+// 在庫アラートカード（低在庫・期限切れ警告用）
+.inventory-alert-card {
+  @include card-base();
+  @include card-hover-effect();
+  
+  border-left: 4px solid var(--bs-warning);
+  
+  &.critical {
+    border-left-color: var(--bs-danger);
+    
+    .card-header {
+      background-color: var(--bs-danger);
+      color: var(--text-light);
+    }
+  }
+  
+  &.warning {
+    border-left-color: var(--bs-warning);
+    
+    .card-header {
+      background-color: var(--bs-warning);
+      color: var(--text-primary);
+    }
+  }
+}
+
+// プロファイルカード（ユーザー情報表示用）
+.profile-card {
+  @include card-base();
+  @include card-hover-effect();
+  
+  text-align: center;
+  
+  .profile-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin: 0 auto var(--spacing-md);
+    background: linear-gradient(135deg, var(--section-primary), var(--section-secondary));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-light);
+    font-size: 2rem;
+    font-weight: 600;
+  }
+  
+  .profile-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+  }
+  
+  .profile-role {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-md);
+  }
+}
+
+// ========================================
+// レスポンシブ対応
+// ========================================
+
+@media (max-width: 767.98px) {
+  .card {
+    margin-bottom: var(--spacing-md);
+    
+    .card-header {
+      padding: var(--spacing-md);
+      
+      h1, h2, h3, h4, h5, h6 {
+        font-size: 1rem;
+        margin-bottom: 0;
+      }
+    }
+    
+    .card-body {
+      padding: var(--spacing-md);
+    }
+  }
+  
+  .dashboard-card {
+    .icon-wrapper {
+      display: none; // モバイルでアイコン非表示
+    }
+    
+    .card-value {
+      font-size: 1.5rem;
+    }
+  }
+  
+  .admin-card {
+    .admin-actions {
+      flex-direction: column;
+      
+      .btn {
+        margin-bottom: var(--spacing-xs);
+      }
+    }
+  }
+}
+
+@media (max-width: 575.98px) {
+  .dashboard-card {
+    .card-body {
+      padding: var(--spacing-md);
+    }
+    
+    .card-title {
+      font-size: 0.75rem;
+    }
+    
+    .card-value {
+      font-size: 1.25rem;
+    }
+  }
+}
+
+// ========================================
+// アニメーション強化
+// ========================================
+
+.card {
+  @include reduced-motion-support();
+  
+  // カード内要素のスタガードアニメーション
+  &.animate-in {
+    .card-header {
+      @include fade-in-animation(0.5s, 0s);
+    }
+    
+    .card-body > * {
+      @include fade-in-animation(0.5s, 0.1s);
+    }
+    
+    .card-footer {
+      @include fade-in-animation(0.5s, 0.2s);
+    }
+  }
+}
+
+// ========================================
+// プリント対応
+// ========================================
+
+@media print {
+  .card {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+    
+    .card-header {
+      background: #f5f5f5 !important;
+      color: #000 !important;
+    }
+    
+    .icon-wrapper {
+      display: none !important;
+    }
+  }
+  
+  .dashboard-card {
+    .card-change {
+      color: #000 !important;
+    }
+  }
+}
+
+// ========================================
+// TODO: 🟡 Phase 3（重要）- 高度なカード機能
+// 優先度: 中（基本カードシステム安定後）
+// 実装内容:
+//   - カードフリップアニメーション（詳細表示）
+//   - カードドラッグ&ドロップ機能（ダッシュボード配置）
+//   - カード内スケルトンローディング
+//   - インタラクティブカードホバー効果
+// 期待効果: ユーザー体験向上、ダッシュボードカスタマイズ
+// 工数見積: 3-4日
+// 依存関係: JavaScript連携、バックエンドカスタマイズAPI
+// ========================================

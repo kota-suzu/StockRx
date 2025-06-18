@@ -84,15 +84,17 @@
 
 /* カードコンポーネント改善 */
 .card-modern {
-  border: none;
+  border: 1px solid var(--border-primary);
   border-radius: var(--bs-border-radius-xl);
-  box-shadow: var(--bs-box-shadow);
+  box-shadow: var(--shadow-md);
+  background-color: var(--bg-card);
   transition: all 0.3s ease;
 }
 
 .card-modern:hover {
-  box-shadow: var(--bs-box-shadow-hover);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
+  border-color: var(--border-secondary);
 }
 
 .card-header-gradient {
@@ -171,24 +173,117 @@
   background-color: var(--bs-success-bg-subtle);
 }
 
-/* ナビゲーション改善 */
+/* ナビゲーション改善（視認性向上） */
 .navbar-admin {
-  background: linear-gradient(135deg, var(--bs-admin-primary), var(--bs-admin-secondary)) !important;
-  box-shadow: var(--bs-box-shadow);
-}
-
-.navbar-admin .navbar-nav .nav-link {
-  color: rgba(255, 255, 255, 0.9) !important;
-  transition: all 0.3s ease;
-  border-radius: var(--bs-border-radius);
-  margin: 0 0.25rem;
-  padding: 0.5rem 1rem !important;
-}
-
-.navbar-admin .navbar-nav .nav-link:hover,
-.navbar-admin .navbar-nav .nav-link.active {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: white !important;
+  background: var(--bg-navbar-dark) !important;  // ダーク背景でメリハリ
+  border-bottom: 1px solid var(--border-secondary);
+  box-shadow: var(--shadow-navbar);
+  
+  .navbar-brand {
+    color: var(--text-light) !important;  // ダーク背景に対応
+    font-weight: var(--font-weight-bold);
+    
+    &:hover, &:focus {
+      color: var(--brand-primary-light) !important;
+    }
+  }
+  
+  .nav-link {
+    color: rgba(255, 255, 255, 0.85) !important;  // ダーク背景用の色
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    padding: var(--spacing-2) var(--spacing-4);
+    border-radius: var(--radius-md);
+    transition: var(--transition-fast);
+    position: relative;
+    
+    &:hover {
+      color: var(--text-light) !important;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    &:focus {
+      color: var(--text-light) !important;
+      background-color: rgba(255, 255, 255, 0.1);
+      outline: 2px solid var(--brand-primary-light);
+      outline-offset: 2px;
+    }
+    
+    &.active {
+      color: var(--text-light) !important;
+      background-color: rgba(255, 255, 255, 0.15);
+      
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: var(--spacing-4);
+        right: var(--spacing-4);
+        height: 2px;
+        background-color: var(--brand-primary-light);
+        border-radius: var(--radius-full);
+      }
+    }
+    
+    i {
+      color: var(--brand-primary-light);
+    }
+  }
+  
+  .dropdown-menu {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-dropdown);
+    
+    .dropdown-item {
+      color: var(--text-secondary);
+      padding: var(--spacing-2) var(--spacing-4);
+      border-radius: var(--radius-md);
+      margin: 0.125rem 0.5rem;
+      transition: var(--transition-fast);
+      
+      &:hover, &:focus {
+        color: var(--text-primary) !important;
+        background-color: var(--bg-secondary);
+      }
+      
+      &:active {
+        background-color: var(--bg-tertiary);
+      }
+      
+      i {
+        width: 1.25rem;
+        text-align: center;
+      }
+    }
+    
+    .dropdown-divider {
+      border-color: var(--border-primary);
+      margin: var(--spacing-2) 0;
+    }
+    
+    .dropdown-header {
+      color: var(--text-muted);
+      font-size: var(--font-size-xs);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+  }
+  
+  .navbar-toggler {
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    
+    &:focus {
+      box-shadow: 0 0 0 2px var(--brand-primary);
+    }
+    
+    .navbar-toggler-icon {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.85%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");  // 白色アイコン
+    }
+  }
 }
 
 /* Offcanvas改善（モバイルメニュー） */
@@ -468,3 +563,81 @@
 /*   - Unused CSS削除 */
 /*   - CSS Modules検討 */
 /* 期待効果: ページ読み込み速度向上、バンドルサイズ削減 */
+
+/* ========================================
+   レスポンシブナビゲーション
+   ========================================*/
+
+@media (max-width: 991.98px) {
+  .navbar-admin {
+    .nav-link {
+      padding: var(--spacing-3) var(--spacing-4);
+      margin: 0.125rem 0;
+      
+      &.active::after {
+        display: none;
+      }
+      
+      &.active {
+        border-left: 3px solid var(--text-accent);
+        padding-left: calc(var(--spacing-4) - 3px);
+      }
+    }
+    
+    .dropdown-menu {
+      border: none;
+      box-shadow: none;
+      background-color: var(--bg-secondary);
+      margin-left: var(--spacing-4);
+      
+      .dropdown-item {
+        font-size: var(--font-size-sm);
+        padding: var(--spacing-2) var(--spacing-3);
+      }
+    }
+  }
+}
+
+// ========================================
+// アクセシビリティ強化
+// ========================================
+
+.navbar-admin {
+  // 高コントラストモード対応
+  @media (prefers-contrast: high) {
+    .nav-link {
+      border: 1px solid transparent;
+      
+      &:hover, &:focus {
+        border-color: var(--text-primary);
+      }
+      
+      &.active {
+        border-color: var(--text-accent);
+      }
+    }
+  }
+  
+  // 動きの軽減設定対応
+  @media (prefers-reduced-motion: reduce) {
+    .nav-link {
+      transition: none;
+    }
+    
+    .dropdown-menu {
+      transition: none;
+    }
+  }
+  
+  // フォーカス表示の改善
+  .nav-link:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+  
+  .dropdown-item:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 1px;
+  }
+}
