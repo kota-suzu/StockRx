@@ -95,7 +95,7 @@ end
 # 認証
 gem "devise", "~> 4.9"            # Rails 7.1 / Hotwire 対応版
 gem "devise-security", "~> 0.18"  # パスワード期限、強度検証機能など
-gem "devise-i18n", "~> 1.12"      # 日本語対応
+gem "devise-i18n", "~> 1.14"      # 日本語対応
 
 # OAuth認証（ソーシャルログイン）
 gem "omniauth", "~> 2.1"          # OAuth認証フレームワーク
