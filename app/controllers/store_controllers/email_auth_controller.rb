@@ -128,7 +128,28 @@ module StoreControllers
     def verify_form
       redirect_to store_selection_path and return unless @store
 
-      @temp_password_verification = TempPasswordVerification.new(store_id: @store.id)
+      # CLAUDE.md準拠: セッションからメールアドレスを取得
+      # メタ認知: ユーザーの再入力を不要にしてUX向上
+      # セキュリティ: セッション有効期限チェックで安全性確保
+      # 横展開: 他の多段階認証でも同様のセッション管理パターン
+      email = session[:temp_password_email]
+      expires_at = session[:temp_password_email_expires_at]
+
+      # セッション有効期限チェック
+      if email.blank? || expires_at.blank? || Time.current.to_i > expires_at
+        # セッション期限切れまたは無効な場合
+        session.delete(:temp_password_email)
+        session.delete(:temp_password_email_expires_at)
+        redirect_to store_email_auth_path(store_slug: @store.slug),
+                    alert: "セッションの有効期限が切れました。もう一度メールアドレスを入力してください。"
+        return
+      end
+
+      @temp_password_verification = TempPasswordVerification.new(
+        store_id: @store.id,
+        email: email
+      )
+      @masked_email = mask_email(email)
     end
 
     # 一時パスワード検証・ログイン処理
@@ -215,6 +236,13 @@ module StoreControllers
 
     def respond_to_request_success(email)
       masked_email = mask_email(email)
+
+      # CLAUDE.md準拠: セッションにメールアドレスを保存してUX向上
+      # メタ認知: 一時パスワード検証画面で再入力不要にする
+      # セキュリティ: セッションに保存することで安全に情報を保持
+      # 横展開: 他の多段階認証フローでも同様のパターン適用可能
+      session[:temp_password_email] = email
+      session[:temp_password_email_expires_at] = 30.minutes.from_now.to_i
 
       respond_to do |format|
         format.html do

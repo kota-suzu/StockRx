@@ -1,318 +1,239 @@
-<%#
-  EmailAuth - 一時パスワード検証フォーム
-  ============================================================================
-  CLAUDE.md準拠: セキュリティ重視・ユーザビリティ配慮
-  
-  用途:
-  - 受信した一時パスワードでのログイン
-  - セキュアな検証プロセス実装
-  - ユーザーフレンドリーなエラーハンドリング
-  
-  デザイン思想:
-  - パスワード入力の視認性向上
-  - セキュリティ警告の適切な配置
-  - アクセシビリティ対応
-  ============================================================================
-%>
+<% content_for :title, "パスコード入力" %>
 
-<% content_for :title, t('email_auth.titles.verify_form') %>
+<style>
+  /* モダンなグラデーション背景 */
+  .gradient-bg {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  /* カード影効果 */
+  .card-shadow {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  /* パスコード入力フィールド */
+  .passcode-input {
+    font-size: 2rem;
+    letter-spacing: 1rem;
+    text-align: center;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  }
+  
+  /* アニメーション */
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+  
+  /* フォーカス時のグロー効果 */
+  .glow-focus:focus {
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.4);
+  }
+  
+  /* エラーメッセージ */
+  .error-message {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+</style>
 
-<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-  <div class="sm:mx-auto sm:w-full sm:max-w-md">
-    <!-- ヘッダー部分 -->
-    <div class="text-center">
-      <div class="mb-4">
-        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-          <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 7.89a2 2 0 002.83 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-          </svg>
-        </div>
+<div class="min-h-screen gradient-bg flex items-center justify-center px-4 py-12">
+  <div class="max-w-md w-full animate-slide-up">
+    <!-- ロゴとタイトル -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
+        <i class="bi bi-shield-lock text-3xl text-purple-600"></i>
       </div>
-      <h1 class="text-3xl font-bold text-gray-900 mb-2">
-        🏪 <%= @store.name %>
-      </h1>
-      <h2 class="text-xl font-semibold text-gray-700 mb-2">
-        <%= t('email_auth.titles.verify_form') %>
-      </h2>
-      <p class="text-sm text-gray-600 mb-6">
-        メールで受信した一時パスワードを入力してください
-      </p>
+      <h1 class="text-3xl font-bold text-white mb-2">StockRx</h1>
+      <p class="text-purple-200"><%= @store.name %></p>
     </div>
 
-    <!-- メインフォーム -->
-    <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+    <!-- メインカード -->
+    <div class="bg-white rounded-2xl card-shadow p-8">
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+          <i class="bi bi-envelope-check text-2xl text-green-600"></i>
+        </div>
+        <h2 class="text-2xl font-semibold text-gray-800 mb-2">パスコードを入力</h2>
+        <p class="text-gray-600">
+          メールで受信した6桁のパスコードを入力してください
+        </p>
+      </div>
+
       <%= form_with model: @temp_password_verification,
                     url: store_verify_temp_password_path(store_slug: @store.slug),
                     local: true,
+                    id: "passcode-verify-form",
                     class: "space-y-6" do |form| %>
         
-        <!-- メールアドレス入力 -->
-        <div>
-          <%= form.label :email, t('email_auth.labels.email'), 
-                         class: "block text-sm font-medium text-gray-700" %>
-          <div class="mt-1">
-            <%= form.email_field :email,
-                                 placeholder: "your-email@example.com",
-                                 required: true,
-                                 autofocus: true,
-                                 autocomplete: "email",
-                                 value: params[:email],
-                                 class: "appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" %>
-          </div>
+        <!-- メールアドレス表示（読み取り専用） -->
+        <div class="bg-gray-50 rounded-lg p-4 mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            <i class="bi bi-envelope"></i>
+            送信先メールアドレス
+          </label>
+          <p class="text-gray-900 font-medium">
+            <%= @masked_email %>
+          </p>
+          <%= form.hidden_field :email, value: @temp_password_verification.email %>
         </div>
 
-        <!-- 一時パスワード入力 -->
+        <!-- パスコード入力 -->
         <div>
-          <%= form.label :temp_password, t('email_auth.labels.temp_password'), 
-                         class: "block text-sm font-medium text-gray-700" %>
-          <div class="mt-1 relative">
-            <%= form.password_field :temp_password,
-                                    placeholder: "受信した一時パスワードを入力",
-                                    required: true,
-                                    autocomplete: "off",
-                                    maxlength: 50,
-                                    id: "temp_password_field",
-                                    class: "appearance-none block w-full px-3 py-2 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono" %>
-            
-            <!-- パスワード表示トグルボタン -->
-            <button type="button" 
-                    id="toggle_password_visibility"
-                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                    aria-label="パスワードを表示/非表示">
-              <svg id="eye_open" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-              </svg>
-              <svg id="eye_closed" class="h-5 w-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L12 12m0 0l6.122 6.122M12 12L3 3m9 9l9 9"></path>
-              </svg>
-            </button>
-          </div>
-          <p class="mt-1 text-xs text-gray-500">
-            一時パスワードは大文字小文字を区別します
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="bi bi-shield-lock"></i>
+            6桁のパスコード
+          </label>
+          <%= form.text_field :temp_password,
+                              placeholder: "······",
+                              required: true,
+                              autocomplete: "one-time-code",
+                              maxlength: 6,
+                              pattern: "[0-9]{6}",
+                              inputmode: "numeric",
+                              id: "temp_password_field",
+                              class: "w-full px-4 py-4 rounded-lg border-2 border-gray-300 focus:border-purple-500 focus:outline-none glow-focus transition-all duration-200 passcode-input" %>
+          <p class="mt-2 text-xs text-gray-500">
+            <i class="bi bi-info-circle"></i>
+            パスコードは15分間有効です
           </p>
         </div>
 
-        <!-- 店舗情報（隠しフィールド） -->
+        <!-- 隠しフィールド -->
         <%= form.hidden_field :store_id, value: @store.id %>
         <%= form.hidden_field :store_slug, value: @store.slug %>
 
-        <!-- ヘルプテキスト -->
-        <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
-          <div class="flex">
-            <div class="flex-shrink-0">
-              <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-              </svg>
-            </div>
-            <div class="ml-3">
-              <p class="text-sm text-blue-700">
-                <%= simple_format(t('email_auth.help.verify_form')) %>
-              </p>
-            </div>
-          </div>
-        </div>
-
         <!-- ログインボタン -->
         <div>
-          <%= form.submit t('email_auth.buttons.verify_and_login'),
-                          class: "w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out" %>
+          <%= form.submit "ログイン",
+                          id: "submit-passcode",
+                          class: "w-full bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-green-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 cursor-pointer" %>
         </div>
 
-        <!-- 戻るリンク -->
-        <div class="flex items-center justify-between">
-          <%= link_to "パスワードを再発行",
-                      store_email_auth_path(store_slug: @store.slug),
-                      class: "text-sm text-blue-600 hover:text-blue-500 font-medium" %>
-          <%= link_to t('email_auth.buttons.back_to_store_selection'),
-                      store_selection_path,
-                      class: "text-sm text-gray-600 hover:text-gray-500" %>
+        <!-- リンク -->
+        <div class="flex items-center justify-between text-sm">
+          <%= link_to new_store_user_session_path(store_slug: @store.slug),
+                      class: "text-purple-600 hover:text-purple-700 font-medium" do %>
+            <i class="bi bi-arrow-left"></i>
+            パスコードを再送信
+          <% end %>
+          <%= link_to store_selection_path,
+                      class: "text-gray-600 hover:text-gray-700" do %>
+            <i class="bi bi-shop"></i>
+            別の店舗を選択
+          <% end %>
         </div>
       <% end %>
-    </div>
 
-    <!-- セキュリティ警告 -->
-    <div class="mt-6 bg-amber-50 border border-amber-200 rounded-md p-4">
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <svg class="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-          </svg>
-        </div>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-amber-800">
-            重要なセキュリティ情報
-          </h3>
-          <div class="mt-1 text-sm text-amber-700">
-            <p><%= t('email_auth.security.one_time_use') %></p>
-            <p class="mt-1"><%= t('email_auth.security.change_password_recommended') %></p>
+      <!-- セキュリティ情報 -->
+      <div class="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <i class="bi bi-shield-exclamation text-amber-600 text-xl"></i>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-amber-800">セキュリティ情報</h3>
+            <div class="mt-1 text-sm text-amber-700">
+              <ul class="list-disc list-inside space-y-1">
+                <li>パスコードは1回限り使用可能です</li>
+                <li>5回間違えるとロックされます</li>
+                <li>不審なアクセスを検知した場合は管理者にご連絡ください</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- トラブルシューティング -->
-    <div class="mt-6">
-      <details class="bg-white border border-gray-200 rounded-lg">
-        <summary class="px-4 py-3 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50">
-          <%= t('email_auth.troubleshooting.title') %>
-        </summary>
-        <div class="px-4 pb-4 pt-2 border-t border-gray-100">
-          <ul class="text-sm text-gray-600 space-y-1">
-            <% t('email_auth.troubleshooting.steps').each do |step| %>
-              <li class="flex items-start">
-                <span class="inline-block w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                <%= step %>
-              </li>
-            <% end %>
-          </ul>
-          
-          <!-- 追加のトラブルシューティング -->
-          <div class="mt-4 pt-3 border-t border-gray-200">
-            <h4 class="text-sm font-medium text-gray-800 mb-2">ログインできない場合：</h4>
-            <ul class="text-sm text-gray-600 space-y-1">
-              <li class="flex items-start">
-                <span class="inline-block w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                パスワードを正確にコピー＆ペーストしてください
-              </li>
-              <li class="flex items-start">
-                <span class="inline-block w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                一時パスワードの有効期限（30分）が切れていないか確認してください
-              </li>
-              <li class="flex items-start">
-                <span class="inline-block w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                既に使用済みの一時パスワードではないか確認してください
-              </li>
-            </ul>
-          </div>
-        </div>
-      </details>
+    <!-- セキュアな接続表示 -->
+    <div class="mt-8 text-center">
+      <div class="inline-flex items-center text-white/80 text-sm">
+        <i class="bi bi-shield-check mr-2"></i>
+        <span>安全な接続で保護されています</span>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- JavaScript for enhanced UX -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const form = document.querySelector('form');
-  const submitButton = form.querySelector('input[type="submit"]');
-  const emailField = form.querySelector('input[type="email"]');
-  const passwordField = document.getElementById('temp_password_field');
-  const toggleButton = document.getElementById('toggle_password_visibility');
-  const eyeOpen = document.getElementById('eye_open');
-  const eyeClosed = document.getElementById('eye_closed');
+  const form = document.getElementById('passcode-verify-form');
+  const submitButton = document.getElementById('submit-passcode');
+  const passcodeField = document.getElementById('temp_password_field');
   
-  // Password visibility toggle
-  toggleButton.addEventListener('click', function() {
-    if (passwordField.type === 'password') {
-      passwordField.type = 'text';
-      eyeOpen.classList.add('hidden');
-      eyeClosed.classList.remove('hidden');
-    } else {
-      passwordField.type = 'password';
-      eyeOpen.classList.remove('hidden');
-      eyeClosed.classList.add('hidden');
-    }
-  });
-  
-  // Form submission handling
-  form.addEventListener('submit', function(e) {
-    const email = emailField.value.trim();
-    const password = passwordField.value.trim();
+  // パスコード入力の自動フォーマット
+  if (passcodeField) {
+    passcodeField.addEventListener('input', function(e) {
+      // 数字以外を削除
+      this.value = this.value.replace(/[^0-9]/g, '');
+      
+      // 6桁入力完了時の視覚フィードバック
+      if (this.value.length === 6) {
+        this.classList.add('border-green-500');
+        this.classList.remove('border-gray-300');
+      } else {
+        this.classList.remove('border-green-500');
+        this.classList.add('border-gray-300');
+      }
+    });
     
-    if (!email) {
+    // ペースト時の処理
+    passcodeField.addEventListener('paste', function(e) {
       e.preventDefault();
-      alert('<%= t("email_auth.validations.email.blank") %>');
-      emailField.focus();
-      return false;
-    }
+      const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+      const numbers = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
+      this.value = numbers;
+      
+      // トリガーinputイベント
+      const event = new Event('input', { bubbles: true });
+      this.dispatchEvent(event);
+    });
     
-    if (!password) {
-      e.preventDefault();
-      alert('<%= t("email_auth.validations.temp_password.blank") %>');
-      passwordField.focus();
-      return false;
-    }
-    
-    // Disable submit button to prevent double submission
-    submitButton.disabled = true;
-    submitButton.value = 'ログイン中...';
-    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
-  });
-  
-  // Email validation feedback
-  emailField.addEventListener('blur', function() {
-    const email = this.value.trim();
-    if (email && !isValidEmail(email)) {
-      this.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
-      showValidationMessage(this, '<%= t("email_auth.validations.email.invalid") %>');
-    } else {
-      this.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
-      hideValidationMessage(this);
-    }
-  });
-  
-  // Password field enhancements
-  passwordField.addEventListener('paste', function(e) {
-    // Allow paste but remove any whitespace
-    setTimeout(() => {
-      this.value = this.value.trim();
-    }, 0);
-  });
-  
-  function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    // フォーカス時に全選択
+    passcodeField.addEventListener('focus', function() {
+      this.select();
+    });
   }
   
-  function showValidationMessage(field, message) {
-    hideValidationMessage(field);
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'mt-1 text-sm text-red-600 validation-error';
-    errorDiv.textContent = message;
-    field.parentNode.appendChild(errorDiv);
-  }
-  
-  function hideValidationMessage(field) {
-    const existingError = field.parentNode.querySelector('.validation-error');
-    if (existingError) {
-      existingError.remove();
-    }
+  // フォーム送信時の処理
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      const email = form.querySelector('input[type="email"]').value.trim();
+      const passcode = passcodeField.value.trim();
+      
+      if (!email) {
+        e.preventDefault();
+        alert('メールアドレスを入力してください');
+        return false;
+      }
+      
+      if (passcode.length !== 6) {
+        e.preventDefault();
+        alert('6桁のパスコードを入力してください');
+        passcodeField.focus();
+        return false;
+      }
+      
+      // 送信ボタンを無効化
+      submitButton.disabled = true;
+      submitButton.value = 'ログイン中...';
+      submitButton.classList.add('opacity-70', 'cursor-not-allowed');
+    });
   }
 });
 </script>
-
-<style>
-/* Additional responsive styles */
-@media (max-width: 640px) {
-  .min-h-screen {
-    min-height: 100vh;
-    padding: 1rem;
-  }
-}
-
-/* Focus improvements for accessibility */
-button:focus,
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
-
-/* Password field styling */
-#temp_password_field {
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  letter-spacing: 0.1em;
-}
-
-/* Loading state animation */
-.opacity-50 {
-  transition: opacity 0.2s ease-in-out;
-}
-
-/* Toggle button hover effect */
-#toggle_password_visibility:hover {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-radius: 4px;
-}
-</style>
