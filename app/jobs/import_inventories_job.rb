@@ -1,21 +1,21 @@
 # frozen_string_literal: true
 
 # ============================================
-# 在庫CSVインポートジョブ（無効化済み）
+# 在庫CSVインポートジョブ
 # ============================================
-# 注意: このジョブは全在庫変更履歴のインポート機能削除に伴い無効化されています
+# CLAUDE.md準拠: セキュリティファーストな非同期CSVインポート
 # 
 # 機能:
 #   - 大量の在庫データをCSVファイルから非同期でインポート
 #   - Sidekiqによる3回自動リトライ機能
 #   - リアルタイム進捗通知（ActionCable経由）
 #   - 包括的なセキュリティ検証とエラーハンドリング
+#   - CsvImportable concernとの統合
 #
 # 使用例:
-#   ImportInventoriesJob.perform_later(file_path, admin.id)
+#   ImportInventoriesJob.perform_later(file_path, admin_id, import_options)
 #
-# TODO: インポート機能が不要のため削除予定
-# class ImportInventoriesJob < ApplicationJob
+class ImportInventoriesJob < ApplicationJob
   # ============================================
   # セキュリティ設定
   # ============================================
@@ -63,13 +63,15 @@
   #
   # @param file_path [String] インポートするCSVファイルのパス
   # @param admin_id [Integer] 実行管理者のID
+  # @param import_options [Hash] インポートオプション
   # @param job_id [String, nil] ジョブ識別子（省略時は自動生成）
   # @return [Hash] インポート結果（valid_count, invalid_records）
   # @raise [StandardError] ファイル検証エラー、インポートエラー
   #
-  def perform(file_path, admin_id, job_id = nil)
+  def perform(file_path, admin_id, import_options = {}, job_id = nil)
     @file_path = file_path
     @admin_id = admin_id
+    @import_options = import_options || {}
     @job_id = job_id || generate_job_id
     @start_time = Time.current
 
@@ -274,8 +276,17 @@
   def execute_csv_import
     log_import_start
 
-    # バッチ処理でCSVをインポート
-    result = Inventory.import_from_csv(@file_path, batch_size: IMPORT_BATCH_SIZE) do |progress|
+    # CLAUDE.md準拠: CsvImportableとの統合
+    # メタ認知: 既存のConcernを活用して一貫性を保つ
+    csv_options = {
+      batch_size: IMPORT_BATCH_SIZE,
+      skip_invalid: @import_options[:skip_invalid] || false,
+      update_existing: @import_options[:update_existing] || false,
+      unique_key: @import_options[:unique_key] || "name"
+    }
+
+    # バッチ処理でCSVをインポート（進捗報告付き）
+    result = Inventory.import_from_csv(@file_path, csv_options) do |progress|
       # 進捗更新（PROGRESS_REPORT_INTERVAL%ごとに通知）
       if progress % PROGRESS_REPORT_INTERVAL == 0
         update_import_progress(progress)

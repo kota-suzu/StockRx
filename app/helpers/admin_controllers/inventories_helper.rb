@@ -112,6 +112,66 @@ module AdminControllers::InventoriesHelper
     end
   end
 
+  # CSVヘッダーの説明を返す
+  # @param header [String] ヘッダー名
+  # @return [String] ヘッダーの説明
+  def header_description(header)
+    case header.to_s
+    when "name"
+      "商品名（必須・文字列）"
+    when "quantity"
+      "在庫数量（必須・数値）"
+    when "price"
+      "販売価格（必須・数値）"
+    when "status"
+      "ステータス（active/archived）"
+    when "category"
+      "カテゴリ（任意・文字列）"
+    when "barcode"
+      "バーコード（任意・文字列）"
+    when "description"
+      "商品説明（任意・文字列）"
+    else
+      "データ項目"
+    end
+  end
+
+  # CSVインポートのファイルサイズを人間に読みやすい形式で表示
+  # @param size_in_bytes [Integer] バイトサイズ
+  # @return [String] 人間に読みやすいサイズ表示
+  def humanize_file_size(size_in_bytes)
+    return "0 B" if size_in_bytes.nil? || size_in_bytes.zero?
+    
+    units = %w[B KB MB GB]
+    size = size_in_bytes.to_f
+    unit_index = 0
+    
+    while size >= 1024 && unit_index < units.length - 1
+      size /= 1024
+      unit_index += 1
+    end
+    
+    "#{size.round(1)} #{units[unit_index]}"
+  end
+
+  # インポート進行状況のステータスアイコンを返す
+  # @param status [String] インポートステータス
+  # @return [String] Bootstrap Iconクラス
+  def import_status_icon(status)
+    case status.to_s
+    when "pending"
+      "bi bi-clock text-warning"
+    when "processing", "running"
+      "bi bi-arrow-repeat text-primary"
+    when "completed", "success"
+      "bi bi-check-circle text-success"
+    when "failed", "error"
+      "bi bi-x-circle text-danger"
+    else
+      "bi bi-question-circle text-muted"
+    end
+  end
+
   # TODO: 以下の機能実装が必要
   # - ロットの一括操作機能（期限切れロットの一括削除など）
   # - 在庫アラート設定の表示・管理機能
