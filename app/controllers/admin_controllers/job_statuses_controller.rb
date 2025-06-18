@@ -4,6 +4,11 @@ module AdminControllers
   # ジョブのステータスを返すAPIコントローラー
   # CLAUDE.md準拠: CSVインポートジョブのリアルタイム進捗追跡
   class JobStatusesController < BaseController
+    # セキュリティ機能最適化: read-onlyアクションのみのため監査スキップ
+    # メタ認知: ジョブステータス取得は機密データ操作ではないため
+    # 横展開: 他の読み取り専用APIコントローラーでも同様の考慮が必要
+    skip_around_action :audit_sensitive_data_access
+    
     before_action :authenticate_admin!
 
     # GET /admin/job_status/:id

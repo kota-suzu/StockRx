@@ -65,8 +65,11 @@
                 </h5>
                 <p class="text-muted mb-0">
                   <small>
-                    <% if @transfer.inventory&.jan_code.present? %>
-                      JAN: <%= @transfer.inventory.jan_code %> |
+                    <% # TODO: JANコード機能実装時に復活予定 %>
+                    <% # - マイグレーション: jan_codeカラム追加 %>
+                    <% # - Inventoryモデル: jan_codeバリデーション追加 %>
+                    <% if @transfer.inventory&.sku.present? %>
+                      SKU: <%= @transfer.inventory.sku %> |
                     <% end %>
                     申請者: <%= @transfer.requested_by&.display_name %>
                   </small>
