@@ -158,7 +158,10 @@ module StoreControllers
 
     # パラメータから店舗を設定
     def set_store_from_params
-      store_slug = params[:store_slug] || params[:store_user]&.dig(:store_slug)
+      # クエリパラメータ、フォームパラメータの両方から取得を試みる
+      store_slug = params[:store_slug] || 
+                   params.dig(:store_user, :store_slug) ||
+                   request.query_parameters[:store_slug]
 
       if store_slug.present?
         @store = Store.active.find_by(slug: store_slug)
@@ -166,6 +169,10 @@ module StoreControllers
           redirect_to store_selection_path,
                       alert: I18n.t("errors.messages.store_not_found")
         end
+      else
+        # store_slugが指定されていない場合もログインフォームは表示する
+        # （一時パスワード機能は使えないが、通常ログインは可能）
+        Rails.logger.warn "Store slug not provided for login page"
       end
     end
 

@@ -90,7 +90,8 @@
 
   <!-- 一時パスワードログインタブ -->
   <div class="tab-pane fade" id="email-auth-login" role="tabpanel" aria-labelledby="email-auth-tab">
-    <%= form_with url: store_request_temp_password_path(store_slug: @store.slug), local: true do |f| %>
+    <% if @store %>
+      <%= form_with url: store_request_temp_password_path(store_slug: @store.slug), local: true do |f| %>
       <!-- Step 1: メールアドレス入力 -->
       <div id="email-auth-step1">
         <div class="mb-3">
@@ -119,7 +120,8 @@
 
     <!-- Step 2: 一時パスワード入力（送信後に表示） -->
     <div id="email-auth-step2" style="display: none;">
-      <%= form_with url: store_verify_temp_password_path(store_slug: @store.slug), local: true do |f| %>
+      <% if @store %>
+        <%= form_with url: store_verify_temp_password_path(store_slug: @store.slug), local: true do |f| %>
         <%= f.hidden_field :email, id: "verify-email" %>
         
         <div class="alert alert-success" role="alert">
@@ -156,8 +158,15 @@
             一時パスワードを再送信
           </a>
         </div>
+        <% end %>
       <% end %>
     </div>
+    <% else %>
+      <div class="alert alert-warning" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>
+        店舗が選択されていません。<a href="<%= store_selection_path %>">店舗を選択</a>してください。
+      </div>
+    <% end %>
   </div>
 </div>
 
@@ -187,33 +196,59 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('Store login page loaded');
+  
   // タブ切り替えによるセキュリティ情報の更新
   const passwordTab = document.getElementById('password-tab');
   const emailAuthTab = document.getElementById('email-auth-tab');
   const passwordInfo = document.getElementById('password-security-info');
   const tempPasswordInfo = document.getElementById('temp-password-security-info');
   
-  passwordTab.addEventListener('click', function() {
-    passwordInfo.style.display = 'block';
-    tempPasswordInfo.style.display = 'none';
-  });
-  
-  emailAuthTab.addEventListener('click', function() {
-    passwordInfo.style.display = 'none';
-    tempPasswordInfo.style.display = 'block';
-  });
+  if (passwordTab && emailAuthTab && passwordInfo && tempPasswordInfo) {
+    passwordTab.addEventListener('click', function() {
+      console.log('Password tab clicked');
+      passwordInfo.style.display = 'block';
+      tempPasswordInfo.style.display = 'none';
+    });
+    
+    emailAuthTab.addEventListener('click', function() {
+      console.log('Email auth tab clicked');
+      passwordInfo.style.display = 'none';
+      tempPasswordInfo.style.display = 'block';
+    });
+  } else {
+    console.error('Tab elements not found:', {
+      passwordTab: !!passwordTab,
+      emailAuthTab: !!emailAuthTab,
+      passwordInfo: !!passwordInfo,
+      tempPasswordInfo: !!tempPasswordInfo
+    });
+  }
   
   // 一時パスワード送信後のUI切り替え
   const emailAuthForm = document.querySelector('#email-auth-step1 form');
   if (emailAuthForm) {
+    console.log('Email auth form found:', emailAuthForm.action);
+    
     emailAuthForm.addEventListener('submit', function(e) {
       e.preventDefault();
-      const email = emailAuthForm.querySelector('input[type="email"]').value;
+      console.log('Form submit prevented');
+      
+      const emailInput = emailAuthForm.querySelector('input[type="email"]');
+      if (!emailInput) {
+        console.error('Email input not found');
+        alert('メールアドレス入力欄が見つかりません。');
+        return;
+      }
+      
+      const email = emailInput.value;
+      console.log('Email:', email);
       
       // フォームデータを準備
       const formData = new FormData(emailAuthForm);
       
       // Ajax送信
+      console.log('Sending request to:', emailAuthForm.action);
       fetch(emailAuthForm.action, {
         method: 'POST',
         body: formData,
@@ -221,31 +256,43 @@ document.addEventListener('DOMContentLoaded', function() {
           'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
         }
       })
-      .then(response => response.json())
+      .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+      })
       .then(data => {
+        console.log('Response data:', data);
         if (data.success) {
           // Step 2を表示
           document.getElementById('email-auth-step1').style.display = 'none';
           document.getElementById('email-auth-step2').style.display = 'block';
-          document.getElementById('verify-email').value = email;
+          
+          const verifyEmailInput = document.getElementById('verify-email');
+          if (verifyEmailInput) {
+            verifyEmailInput.value = email;
+          }
           
           // メッセージ更新
           const alertDiv = document.querySelector('#email-auth-step2 .alert');
-          alertDiv.innerHTML = `
-            <i class="bi bi-check-circle me-2"></i>
-            ${email} に一時パスワードを送信しました。<br>
-            メールをご確認ください。
-          `;
+          if (alertDiv) {
+            alertDiv.innerHTML = `
+              <i class="bi bi-check-circle me-2"></i>
+              ${email} に一時パスワードを送信しました。<br>
+              メールをご確認ください。
+            `;
+          }
         } else {
           // エラー表示
           alert(data.message || 'エラーが発生しました。もう一度お試しください。');
         }
       })
       .catch(error => {
-        console.error('Error:', error);
+        console.error('Fetch error:', error);
         alert('通信エラーが発生しました。もう一度お試しください。');
       });
     });
+  } else {
+    console.log('Email auth form not found - store might not be selected');
   }
   
   // 再送信リンク
