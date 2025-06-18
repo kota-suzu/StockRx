@@ -241,12 +241,39 @@
     <%# ベストプラクティス: turbo:loadイベント使用（Turbo環境での推奨） %>
     <script>
       document.addEventListener('turbo:load', function() {
+        // 🔧 強制的にBootstrap Dropdownを初期化（CLAUDE.md準拠緊急修正）
+        // メタ認知: application.jsの初期化が効いていない場合の確実なフォールバック
+        console.log('🔧 Store layout: Forcing Bootstrap dropdown initialization...');
+        
+        // ドロップダウン要素を再初期化
+        const dropdownElements = document.querySelectorAll('.dropdown-toggle');
+        dropdownElements.forEach(function(element) {
+          try {
+            // 既存インスタンスがあれば破棄
+            const existingInstance = bootstrap.Dropdown.getInstance(element);
+            if (existingInstance) {
+              existingInstance.dispose();
+            }
+            
+            // 新規インスタンス作成
+            new bootstrap.Dropdown(element);
+            console.log('✅ Dropdown initialized:', element.id || 'unnamed');
+          } catch (error) {
+            console.error('❌ Dropdown initialization failed:', error);
+          }
+        });
+        
         // フラッシュメッセージが存在する場合は5秒後に自動的に消す
         const alerts = document.querySelectorAll('.alert');
         alerts.forEach(function(alert) {
           setTimeout(function() {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
+            try {
+              const bsAlert = new bootstrap.Alert(alert);
+              bsAlert.close();
+            } catch (error) {
+              // エラーハンドリング
+              alert.style.display = 'none';
+            }
           }, 5000);
         });
       });
