@@ -5,6 +5,7 @@ module AdminControllers
   # 全ての管理者向けコントローラはこのクラスを継承する
   class BaseController < ApplicationController
     include ErrorHandlers
+    include AdminAuthorization  # 🔒 権限チェック機能の統一
 
     # AdminControllers用ヘルパーのインクルード
     helper AdminControllers::ApplicationHelper
