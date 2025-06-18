@@ -187,8 +187,11 @@ class TempPassword < ApplicationRecord
     cleanup_count
   end
 
-  # セキュアパスワード生成
-  def self.generate_secure_password(length: 8)
+  # セキュアパスコード生成
+  # メタ認知: 6桁に変更 - 業界標準（Google, Microsoft等）でUX向上
+  # セキュリティ: 15分有効期限で100万通りの組み合わせは十分
+  # 横展開: 他の認証システムでも6桁が標準
+  def self.generate_secure_password(length: 6)
     # 数字のみ（入力しやすさ重視）
     Array.new(length) { rand(10) }.join
   end
