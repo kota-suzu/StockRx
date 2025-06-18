@@ -422,10 +422,10 @@ module AdminControllers
             outgoing_completed: outgoing_completed.size,
             incoming_completed: incoming_completed.size,
             net_flow: incoming_completed.size - outgoing_completed.size,
-            approval_rate: calculate_approval_rate_from_array(outgoing_transfers),
-            avg_processing_time: calculate_average_completion_time_from_array(outgoing_completed),
-            most_transferred_items: calculate_most_transferred_items_from_array(outgoing_transfers + incoming_transfers),
-            efficiency_score: calculate_store_efficiency_from_arrays(outgoing_transfers, incoming_transfers)
+            approval_rate: calculate_approval_rate_from_array(outgoing_transfers) || 0.0,
+            avg_processing_time: calculate_average_completion_time_from_array(outgoing_completed) || 0.0,
+            most_transferred_items: calculate_most_transferred_items_from_array(outgoing_transfers + incoming_transfers) || [],
+            efficiency_score: calculate_store_efficiency_from_arrays(outgoing_transfers, incoming_transfers) || 0.0
           }
         }
       end

@@ -21,14 +21,14 @@
     </div>
   <% end %>
 
-  <%# フォーム入力フィールド %>
+  <%# Bootstrap 5レスポンシブフォーム（モバイルファースト） %>
   <div class="row g-3">
     <%# 商品名 %>
     <div class="col-12">
-      <%= form.label :name, "商品名", class: "form-label" %>
+      <%= form.label :name, "商品名", class: "form-label fw-medium" %>
       <div class="input-group">
-        <span class="input-group-text">
-          <i class="fas fa-tag"></i>
+        <span class="input-group-text bg-light">
+          <i class="bi bi-tag"></i>
         </span>
         <%= form.text_field :name, 
                            class: "form-control #{'is-invalid' if inventory.errors[:name].any?}",
@@ -41,13 +41,13 @@
           </div>
         <% end %>
       </div>
-      <div id="nameHelp" class="form-text">
-        商品を識別するための名前を入力してください（必須）
+      <div id="nameHelp" class="form-text small">
+        <i class="bi bi-info-circle me-1"></i>商品を識別するための名前を入力してください（必須）
       </div>
     </div>
 
-    <%# ステータス %>
-    <div class="col-md-6">
+    <%# ステータス（モバイル：12、タブレット以上：6） %>
+    <div class="col-12 col-md-6">
       <%= form.label :status, "ステータス", class: "form-label" %>
       <%= form.select :status, 
                      Inventory::STATUSES.map { |k, _| [t("inventories.status.#{k}"), k] }, 

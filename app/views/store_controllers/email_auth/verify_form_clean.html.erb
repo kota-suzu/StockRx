@@ -1,29 +1,35 @@
 <% content_for :title, "パスコード入力" %>
 
 <style>
-  /* モダンなグラデーション背景 */
+  /* Bootstrap 5ベースのモダンなスタイル定義 */
+  :root {
+    --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --focus-ring-color: rgba(102, 126, 234, 0.4);
+  }
+  
   .gradient-bg {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--gradient-primary);
   }
   
-  /* カード影効果 */
-  .card-shadow {
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  .card-custom-shadow {
+    box-shadow: 0 1.25rem 1.5625rem -0.3125rem rgba(0, 0, 0, 0.1), 0 0.625rem 0.625rem -0.3125rem rgba(0, 0, 0, 0.04);
   }
   
-  /* パスコード入力フィールド */
   .passcode-input {
     font-size: 2rem;
     letter-spacing: 1rem;
     text-align: center;
-    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    font-family: var(--bs-font-monospace);
   }
   
-  /* アニメーション */
+  .glow-focus:focus {
+    box-shadow: 0 0 0 0.1875rem var(--focus-ring-color);
+  }
+  
   @keyframes slideUp {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(1.25rem);
     }
     to {
       opacity: 1;
@@ -34,130 +40,133 @@
   .animate-slide-up {
     animation: slideUp 0.5s ease-out;
   }
-  
-  /* フォーカス時のグロー効果 */
-  .glow-focus:focus {
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.4);
-  }
 </style>
 
-<div class="min-h-screen gradient-bg flex items-center justify-center px-4 py-12">
-  <div class="max-w-md w-full animate-slide-up">
-    
-    <!-- ロゴとタイトル -->
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
-        <i class="bi bi-shield-lock text-3xl text-purple-600"></i>
-      </div>
-      <h1 class="text-3xl font-bold text-white mb-2">StockRx</h1>
-      <p class="text-purple-200"><%= @store.name %></p>
-    </div>
-
-    <!-- メインカード -->
-    <div class="bg-white rounded-2xl card-shadow p-8">
-      
-      <!-- ヘッダー -->
-      <div class="text-center mb-6">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-          <i class="bi bi-envelope-check text-2xl text-green-600"></i>
-        </div>
-        <h2 class="text-2xl font-semibold text-gray-800 mb-2">パスコードを入力</h2>
-        <p class="text-gray-600">メールで受信した6桁のパスコードを入力してください</p>
-      </div>
-
-      <!-- フォーム -->
-      <%= form_with model: @temp_password_verification,
-                    url: store_verify_temp_password_path(store_slug: @store.slug),
-                    local: true,
-                    id: "passcode-verify-form",
-                    class: "space-y-6" do |form| %>
+<div class="min-vh-100 gradient-bg d-flex align-items-center justify-content-center px-4 py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5 animate-slide-up">
         
-        <!-- メールアドレス表示 -->
-        <div class="bg-gray-50 rounded-lg p-4">
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            <i class="bi bi-envelope"></i>
-            送信先メールアドレス
-          </label>
-          <p class="text-gray-900 font-medium"><%= @masked_email %></p>
-          <%= form.hidden_field :email, value: @temp_password_verification.email %>
-        </div>
-
-        <!-- パスコード入力 -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            <i class="bi bi-shield-lock"></i>
-            6桁のパスコード
-          </label>
-          <%= form.text_field :temp_password,
-                              placeholder: "······",
-                              required: true,
-                              autocomplete: "one-time-code",
-                              maxlength: 6,
-                              pattern: "[0-9]{6}",
-                              inputmode: "numeric",
-                              id: "temp_password_field",
-                              class: "w-full px-4 py-4 rounded-lg border-2 border-gray-300 focus:border-purple-500 focus:outline-none glow-focus transition-all duration-200 passcode-input" %>
-          <p class="mt-2 text-xs text-gray-500">
-            <i class="bi bi-info-circle"></i>
-            パスコードは15分間有効です
-          </p>
-        </div>
-
-        <!-- 隠しフィールド -->
-        <%= form.hidden_field :store_id, value: @store.id %>
-        <%= form.hidden_field :store_slug, value: @store.slug %>
-
-        <!-- ログインボタン -->
-        <div>
-          <%= form.submit "ログイン",
-                          id: "submit-passcode",
-                          class: "w-full bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold py-3 px-6 rounded-lg hover:from-green-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 cursor-pointer" %>
-        </div>
-
-        <!-- リンク -->
-        <div class="flex items-center justify-between text-sm">
-          <%= link_to new_store_user_session_path(store_slug: @store.slug),
-                      class: "text-purple-600 hover:text-purple-700 font-medium" do %>
-            <i class="bi bi-arrow-left"></i>
-            パスコードを再送信
-          <% end %>
-          <%= link_to store_selection_path,
-                      class: "text-gray-600 hover:text-gray-700" do %>
-            <i class="bi bi-shop"></i>
-            別の店舗を選択
-          <% end %>
-        </div>
-      <% end %>
-
-      <!-- セキュリティ情報 -->
-      <div class="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
-        <div class="flex">
-          <div class="flex-shrink-0">
-            <i class="bi bi-shield-exclamation text-amber-600 text-xl"></i>
+        <!-- ロゴとタイトル -->
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-circle shadow mb-3" style="width: 5rem; height: 5rem;">
+            <i class="bi bi-shield-lock fs-1 text-primary"></i>
           </div>
-          <div class="ml-3">
-            <h3 class="text-sm font-medium text-amber-800">セキュリティ情報</h3>
-            <div class="mt-1 text-sm text-amber-700">
-              <ul class="list-disc list-inside space-y-1">
-                <li>パスコードは1回限り使用可能です</li>
-                <li>5回間違えるとロックされます</li>
-                <li>不審なアクセスを検知した場合は管理者にご連絡ください</li>
-              </ul>
+          <h1 class="h2 fw-bold text-white mb-2">StockRx</h1>
+          <p class="text-white-50"><%= @store.name %></p>
+        </div>
+
+        <!-- メインカード -->
+        <div class="card border-0 rounded-3 card-custom-shadow">
+          <div class="card-body p-4 p-md-5">
+            
+            <!-- ヘッダー -->
+            <div class="text-center mb-4">
+              <div class="d-inline-flex align-items-center justify-content-center bg-success-subtle rounded-circle mb-3" style="width: 4rem; height: 4rem;">
+                <i class="bi bi-envelope-check fs-2 text-success"></i>
+              </div>
+              <h2 class="h3 fw-semibold text-dark mb-2">パスコードを入力</h2>
+              <p class="text-muted">メールで受信した6桁のパスコードを入力してください</p>
             </div>
+
+            <!-- フォーム -->
+            <%= form_with model: @temp_password_verification,
+                          url: store_verify_temp_password_path(store_slug: @store.slug),
+                          local: true,
+                          id: "passcode-verify-form",
+                          class: "needs-validation",
+                          novalidate: true do |form| %>
+              
+              <!-- メールアドレス表示 -->
+              <div class="bg-light rounded p-3 mb-4">
+                <label class="form-label fw-medium text-dark small mb-1">
+                  <i class="bi bi-envelope me-1"></i>
+                  送信先メールアドレス
+                </label>
+                <p class="text-dark fw-medium mb-0"><%= @masked_email %></p>
+                <%= form.hidden_field :email, value: @temp_password_verification.email %>
+              </div>
+
+              <!-- パスコード入力 -->
+              <div class="mb-4">
+                <label class="form-label fw-medium text-dark mb-2">
+                  <i class="bi bi-shield-lock me-1"></i>
+                  6桁のパスコード
+                </label>
+                <%= form.text_field :temp_password,
+                                    placeholder: "······",
+                                    required: true,
+                                    autocomplete: "one-time-code",
+                                    maxlength: 6,
+                                    pattern: "[0-9]{6}",
+                                    inputmode: "numeric",
+                                    id: "temp_password_field",
+                                    class: "form-control form-control-lg glow-focus passcode-input border-2" %>
+                <div class="form-text">
+                  <i class="bi bi-info-circle me-1"></i>
+                  パスコードは15分間有効です
+                </div>
+              </div>
+
+              
+              <!-- 隠しフィールド -->
+              <%= form.hidden_field :store_id, value: @store.id %>
+              <%= form.hidden_field :store_slug, value: @store.slug %>
+
+              <!-- ログインボタン -->
+              <div class="d-grid mb-3">
+                <%= form.submit "ログイン",
+                                id: "submit-passcode",
+                                class: "btn btn-success btn-lg fw-semibold py-3",
+                                data: { disable_with: "ログイン中..." } %>
+              </div>
+
+              <!-- リンク -->
+              <div class="d-flex justify-content-between align-items-center">
+                <%= link_to new_store_user_session_path(store_slug: @store.slug),
+                            class: "text-decoration-none fw-medium text-primary" do %>
+                  <i class="bi bi-arrow-left me-1"></i>
+                  パスコードを再送信
+                <% end %>
+                <%= link_to store_selection_path,
+                            class: "text-decoration-none text-muted" do %>
+                  <i class="bi bi-shop me-1"></i>
+                  別の店舗を選択
+                <% end %>
+              </div>
+            <% end %>
+
+            
+            <!-- セキュリティ情報 -->
+            <div class="alert alert-warning border-0 mt-4">
+              <div class="d-flex">
+                <div class="flex-shrink-0">
+                  <i class="bi bi-shield-exclamation text-warning fs-5"></i>
+                </div>
+                <div class="ms-3">
+                  <h6 class="fw-medium text-warning-emphasis">セキュリティ情報</h6>
+                  <ul class="list-unstyled mb-0 small text-warning-emphasis">
+                    <li class="mb-1">• パスコードは1回限り使用可能です</li>
+                    <li class="mb-1">• 5回間違えるとロックされます</li>
+                    <li class="mb-0">• 不審なアクセスを検知した場合は管理者にご連絡ください</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
           </div>
         </div>
-      </div>
-      
-    </div>
 
-    <!-- セキュアな接続表示 -->
-    <div class="mt-8 text-center">
-      <div class="inline-flex items-center text-white/80 text-sm">
-        <i class="bi bi-shield-check mr-2"></i>
-        <span>安全な接続で保護されています</span>
+        <!-- セキュアな接続表示 -->
+        <div class="text-center mt-4">
+          <div class="d-inline-flex align-items-center text-white-50 small">
+            <i class="bi bi-shield-check me-2"></i>
+            <span>安全な接続で保護されています</span>
+          </div>
+        </div>
+        
       </div>
     </div>
-    
   </div>
 </div>
 
@@ -167,19 +176,31 @@ document.addEventListener('DOMContentLoaded', function() {
   const submitButton = document.getElementById('submit-passcode');
   const passcodeField = document.getElementById('temp_password_field');
   
+  // Bootstrap 5のフォームバリデーション
+  if (form) {
+    form.addEventListener('submit', function(event) {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    });
+  }
+  
   // パスコード入力の自動フォーマット
   if (passcodeField) {
     passcodeField.addEventListener('input', function(e) {
       // 数字以外を削除
       this.value = this.value.replace(/[^0-9]/g, '');
       
-      // 6桁入力完了時の視覚フィードバック
+      // 6桁入力完了時の視覚フィードバック（Bootstrap 5クラス使用）
       if (this.value.length === 6) {
-        this.classList.add('border-green-500');
-        this.classList.remove('border-gray-300');
+        this.classList.add('border-success');
+        this.classList.remove('border-2');
+        this.classList.add('is-valid');
       } else {
-        this.classList.remove('border-green-500');
-        this.classList.add('border-gray-300');
+        this.classList.remove('border-success', 'is-valid');
+        this.classList.add('border-2');
       }
     });
     
@@ -222,10 +243,10 @@ document.addEventListener('DOMContentLoaded', function() {
         return false;
       }
       
-      // 送信ボタンを無効化
+      // 送信ボタンを無効化（Bootstrap 5クラス使用）
       submitButton.disabled = true;
-      submitButton.value = 'ログイン中...';
-      submitButton.classList.add('opacity-70', 'cursor-not-allowed');
+      submitButton.textContent = 'ログイン中...';
+      submitButton.classList.add('disabled');
     });
   }
 });

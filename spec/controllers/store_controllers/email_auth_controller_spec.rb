@@ -77,7 +77,7 @@ RSpec.describe StoreControllers::EmailAuthController, type: :controller do
           .and_return({ success: true })
         allow(email_auth_service).to receive(:rate_limit_check)
           .and_return(true)
-        allow(email_auth_service).to receive(:increment_rate_limit_counter)
+        allow(email_auth_service).to receive(:record_authentication_attempt).and_return(true)
       end
 
       it 'calls EmailAuthService' do
@@ -105,7 +105,7 @@ RSpec.describe StoreControllers::EmailAuthController, type: :controller do
       it 'increments rate limit counter' do
         post :request_temp_password, params: valid_params
 
-        expect(email_auth_service).to have_received(:increment_rate_limit_counter)
+        expect(email_auth_service).to have_received(:record_authentication_attempt)
           .with(store_user.email, request.remote_ip)
       end
     end
@@ -215,7 +215,7 @@ RSpec.describe StoreControllers::EmailAuthController, type: :controller do
           .and_return({ success: true })
         allow(email_auth_service).to receive(:rate_limit_check)
           .and_return(true)
-        allow(email_auth_service).to receive(:increment_rate_limit_counter)
+        allow(email_auth_service).to receive(:record_authentication_attempt).and_return(true)
       end
 
       it 'returns JSON success response' do
@@ -343,7 +343,7 @@ RSpec.describe StoreControllers::EmailAuthController, type: :controller do
       before do
         allow(email_auth_service).to receive(:authenticate_with_temp_password)
           .and_return({ success: false, error: 'Invalid password' })
-        allow(email_auth_service).to receive(:increment_rate_limit_counter)
+        allow(email_auth_service).to receive(:record_authentication_attempt).and_return(true)
       end
 
       it 'renders verification form with error' do
@@ -357,7 +357,7 @@ RSpec.describe StoreControllers::EmailAuthController, type: :controller do
       it 'increments rate limit counter' do
         post :verify_temp_password, params: valid_params
 
-        expect(email_auth_service).to have_received(:increment_rate_limit_counter)
+        expect(email_auth_service).to have_received(:record_authentication_attempt)
           .with(store_user.email, request.remote_ip)
       end
 
@@ -381,7 +381,7 @@ RSpec.describe StoreControllers::EmailAuthController, type: :controller do
       end
 
       before do
-        allow(email_auth_service).to receive(:increment_rate_limit_counter)
+        allow(email_auth_service).to receive(:record_authentication_attempt).and_return(true)
       end
 
       it 'renders error without calling authentication service' do
@@ -396,7 +396,7 @@ RSpec.describe StoreControllers::EmailAuthController, type: :controller do
       it 'increments rate limit counter' do
         post :verify_temp_password, params: invalid_params
 
-        expect(email_auth_service).to have_received(:increment_rate_limit_counter)
+        expect(email_auth_service).to have_received(:record_authentication_attempt)
           .with('nonexistent@example.com', request.remote_ip)
       end
     end

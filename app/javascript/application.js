@@ -74,6 +74,38 @@ function setupManualDropdown() {
 function initializeBootstrapComponents() {
   console.log('🔧 Initializing Bootstrap components...');
   
+  // タブの初期化（メタ認知: ログイン画面のタブ機能に必須）
+  const tabElements = document.querySelectorAll('[data-bs-toggle="tab"]');
+  if (tabElements.length > 0) {
+    console.log(`📍 Found ${tabElements.length} tab elements`);
+    
+    tabElements.forEach((element, index) => {
+      try {
+        // 既存インスタンスの重複防止（Turbo互換性）
+        const existingInstance = bootstrap.Tab.getInstance(element);
+        if (existingInstance) {
+          existingInstance.dispose();
+        }
+        
+        // 新しいタブインスタンス作成
+        const tab = new bootstrap.Tab(element);
+        console.log(`✅ Tab ${index + 1} initialized: ${element.id || 'unnamed'}`);
+        
+        // デバッグ: パスコードタブ特定
+        if (element.id === 'passcode-tab') {
+          console.log('🎯 Passcode tab initialized successfully');
+        }
+        
+      } catch (error) {
+        console.error(`❌ Tab ${index + 1} initialization failed:`, error);
+        // フォールバック設定（確実なタブ機能確保）
+        setupManualTabForElement(element);
+      }
+    });
+  } else {
+    console.log('ℹ️ No tab elements found on this page');
+  }
+  
   // ドロップダウンの初期化（メタ認知: ログアウト機能に必須）
   const dropdownElements = document.querySelectorAll('.dropdown-toggle');
   if (dropdownElements.length > 0) {
@@ -103,7 +135,7 @@ function initializeBootstrapComponents() {
       }
     });
   } else {
-    console.warn('⚠️ No dropdown elements found');
+    console.log('ℹ️ No dropdown elements found on this page');
   }
   
   // ツールチップの初期化
@@ -111,6 +143,10 @@ function initializeBootstrapComponents() {
   if (tooltipElements.length > 0) {
     tooltipElements.forEach(element => {
       try {
+        const existingInstance = bootstrap.Tooltip.getInstance(element);
+        if (existingInstance) {
+          existingInstance.dispose();
+        }
         new bootstrap.Tooltip(element);
       } catch (error) {
         console.error('Tooltip initialization failed:', error);
@@ -124,6 +160,10 @@ function initializeBootstrapComponents() {
   if (popoverElements.length > 0) {
     popoverElements.forEach(element => {
       try {
+        const existingInstance = bootstrap.Popover.getInstance(element);
+        if (existingInstance) {
+          existingInstance.dispose();
+        }
         new bootstrap.Popover(element);
       } catch (error) {
         console.error('Popover initialization failed:', error);
@@ -141,6 +181,60 @@ function initializeBootstrapComponents() {
   //   - Toast通知システム（成功・エラーメッセージ表示）
   //   - Offcanvas対応（モバイル向けサイドメニュー）
   // 横展開: 管理者画面・店舗画面で統一的なUI体験
+}
+
+// 個別要素用の手動タブ設定（フォールバック）
+// CLAUDE.md準拠: 確実なフォールバック機能でタブ機能保証
+function setupManualTabForElement(tabElement) {
+  console.log('🔧 Setting up manual tab for:', tabElement.id || 'unnamed');
+  
+  tabElement.addEventListener('click', function(e) {
+    e.preventDefault();
+    handleTabToggle(this);
+  });
+  
+  // キーボードアクセシビリティ
+  tabElement.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleTabToggle(this);
+    }
+  });
+}
+
+// タブトグル処理の共通化
+function handleTabToggle(tabElement) {
+  const targetSelector = tabElement.getAttribute('data-bs-target') || tabElement.getAttribute('href');
+  const targetPane = document.querySelector(targetSelector);
+  
+  if (!targetPane) {
+    console.error('Tab target not found:', targetSelector);
+    return;
+  }
+  
+  // 同一グループの全タブを非アクティブ化
+  const tabContainer = tabElement.closest('.nav-tabs');
+  if (tabContainer) {
+    tabContainer.querySelectorAll('.nav-link').forEach(tab => {
+      tab.classList.remove('active');
+      tab.setAttribute('aria-selected', 'false');
+    });
+    
+    // 対応するタブパネルも非アクティブ化
+    const allPanes = document.querySelectorAll('.tab-pane');
+    allPanes.forEach(pane => {
+      pane.classList.remove('show', 'active');
+    });
+  }
+  
+  // 選択されたタブをアクティブ化
+  tabElement.classList.add('active');
+  tabElement.setAttribute('aria-selected', 'true');
+  
+  // 対応するタブパネルをアクティブ化
+  targetPane.classList.add('show', 'active');
+  
+  console.log(`👆 Manual tab activated: ${tabElement.id || 'unnamed'} -> ${targetSelector}`);
 }
 
 // 個別要素用の手動ドロップダウン設定
@@ -198,14 +292,34 @@ function handleDropdownToggle(toggle) {
       
       // ログアウト機能特定ログ
       if (toggle.id === 'userDropdown') {
-        console.log('🎯 User dropdown (logout) opened via manual fallback');
+        console.log('🚪 Logout dropdown opened successfully');
       }
     } else {
-      toggle.setAttribute('aria-expanded', 'false');
       console.log(`👆 Manual dropdown closed: ${toggle.id || 'unnamed'}`);
     }
+  } else {
+    console.error('Dropdown menu not found for toggle:', toggle.id || 'unnamed');
   }
 }
+
+// TODO: 🔴 Phase 2（必須）- タブ機能フォールバック強化
+// 優先度: 高（基本機能）
+// 実装内容:
+//   - ✅ Bootstrap Tab初期化追加完了
+//   - ⏳ キーボードナビゲーション強化（矢印キー対応）
+//   - ⏳ ARIA属性の完全対応
+//   - ⏳ アニメーション効果の追加
+// 横展開: 全ての認証画面で統一的なタブ動作
+// 期待効果: パスコードログイン機能の確実な動作保証
+
+// TODO: 🟡 Phase 3（改善）- ログイン体験向上
+// 優先度: 中（ユーザー体験）
+// 実装内容:
+//   - パスコード自動フォーカス機能
+//   - フォーム送信状態の視覚的フィードバック
+//   - エラーメッセージの改善
+//   - ローディングインジケーター追加
+// 期待効果: ユーザビリティ向上、操作ミス防止
 
 // デバッグ用コンソールメッセージ
 console.log("✅ Application JavaScript loaded successfully");

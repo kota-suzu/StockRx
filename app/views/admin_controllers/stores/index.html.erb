@@ -38,7 +38,7 @@
           <div class="icon-md mb-2 mx-auto bg-admin-primary-subtle text-admin-primary rounded-circle d-flex align-items-center justify-content-center">
             <i class="bi bi-shop" aria-hidden="true"></i>
           </div>
-          <h4 class="fw-bold text-admin-primary"><%= @stats[:total_stores] %></h4>
+          <h4 class="fw-bold text-admin-primary"><%= @stats[:total_stores] || 0 %></h4>
           <p class="text-muted small mb-0">総店舗数</p>
         </div>
       </div>
@@ -49,7 +49,7 @@
           <div class="icon-md mb-2 mx-auto bg-info-subtle text-info rounded-circle d-flex align-items-center justify-content-center">
             <i class="bi bi-boxes" aria-hidden="true"></i>
           </div>
-          <h4 class="fw-bold text-info"><%= number_with_delimiter(@stats[:total_inventories]) %></h4>
+          <h4 class="fw-bold text-info"><%= number_with_delimiter(@stats[:total_inventories] || 0) %></h4>
           <p class="text-muted small mb-0">総在庫アイテム</p>
         </div>
       </div>
@@ -60,7 +60,7 @@
           <div class="icon-md mb-2 mx-auto bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center">
             <i class="bi bi-currency-yen" aria-hidden="true"></i>
           </div>
-          <h4 class="fw-bold text-success">¥<%= number_with_delimiter(@stats[:total_inventory_value]) %></h4>
+          <h4 class="fw-bold text-success">¥<%= number_with_delimiter(@stats[:total_inventory_value] || 0) %></h4>
           <p class="text-muted small mb-0">総在庫価値</p>
         </div>
       </div>
@@ -71,7 +71,7 @@
           <div class="icon-md mb-2 mx-auto bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center">
             <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
           </div>
-          <h4 class="fw-bold text-warning"><%= @stats[:low_stock_stores] %></h4>
+          <h4 class="fw-bold text-warning"><%= @stats[:low_stock_stores] || 0 %></h4>
           <p class="text-muted small mb-0">低在庫店舗</p>
         </div>
       </div>

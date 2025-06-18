@@ -51,34 +51,38 @@
             <span class="badge bg-primary-subtle text-primary">アクティブ</span>
           </div>
           <h3 class="display-6 fw-bold text-primary mb-1" data-bs-toggle="tooltip" data-bs-placement="top" title="システムに登録されている全商品数">
-            <%= number_with_delimiter(@stats[:total_inventories]) %>
+            <%= number_with_delimiter(@stats[:total_inventories] || 0) %>
           </h3>
           <p class="text-muted mb-2 fw-medium">総商品数</p>
           <div class="progress" style="height: 6px;">
-            <% active_percentage = @stats[:total_inventories] > 0 ? (@stats[:active_inventories].to_f / @stats[:total_inventories] * 100).round(1) : 0 %>
+            <% total_inventories = @stats[:total_inventories] || 0 %>
+            <% active_inventories = @stats[:active_inventories] || 0 %>
+            <% active_percentage = total_inventories > 0 ? (active_inventories.to_f / total_inventories * 100).round(1) : 0 %>
             <div class="progress-bar bg-primary" style="width: <%= active_percentage %>%" title="アクティブ: <%= active_percentage %>%"></div>
           </div>
-          <small class="text-muted mt-1 d-block">アクティブ: <%= @stats[:active_inventories] %>件</small>
+          <small class="text-muted mt-1 d-block">アクティブ: <%= active_inventories %>件</small>
         </div>
       </div>
     </div>
 
     <%# 在庫アラート %>
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100 <%= @stats[:low_stock_count] > 0 ? 'border-warning' : '' %>">
+      <div class="dashboard-card border-0 shadow-sm h-100 <%= (@stats[:low_stock_count] || 0) > 0 ? 'border-warning' : '' %>">
         <div class="card-body p-4 text-center">
           <div class="d-flex justify-content-between align-items-start mb-3">
             <div class="icon-lg text-warning bg-warning-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-exclamation-triangle"></i></div>
-            <span class="badge <%= @stats[:low_stock_count] > 0 ? 'bg-warning text-dark' : 'bg-success' %>">
-              <%= @stats[:low_stock_count] > 0 ? '要注意' : '正常' %>
+            <% low_stock_count = @stats[:low_stock_count] || 0 %>
+            <span class="badge <%= low_stock_count > 0 ? 'bg-warning text-dark' : 'bg-success' %>">
+              <%= low_stock_count > 0 ? '要注意' : '正常' %>
             </span>
           </div>
           <h3 class="display-6 fw-bold text-warning mb-1" data-bs-toggle="tooltip" data-bs-placement="top" title="在庫が低下している商品数">
-            <%= number_with_delimiter(@stats[:low_stock_count]) %>
+            <%= number_with_delimiter(low_stock_count) %>
           </h3>
           <p class="text-muted mb-2 fw-medium">在庫アラート</p>
           <div class="progress" style="height: 6px;">
-            <% alert_percentage = @stats[:total_inventories] > 0 ? (@stats[:low_stock_count].to_f / @stats[:total_inventories] * 100).round(1) : 0 %>
+            <% total_inventories = @stats[:total_inventories] || 0 %>
+            <% alert_percentage = total_inventories > 0 ? (low_stock_count.to_f / total_inventories * 100).round(1) : 0 %>
             <div class="progress-bar bg-warning" style="width: <%= [alert_percentage, 100].min %>%" title="アラート率: <%= alert_percentage %>%"></div>
           </div>
           <small class="text-muted mt-1 d-block">アラート率: <%= alert_percentage %>%</small>
@@ -95,11 +99,11 @@
             <span class="badge bg-info-subtle text-info">総額</span>
           </div>
           <h3 class="display-6 fw-bold text-info mb-1" data-bs-toggle="tooltip" data-bs-placement="top" title="全在庫の総金額（数量×単価）">
-            ¥<%= number_with_delimiter(@stats[:total_inventory_value]) %>
+            ¥<%= number_with_delimiter(@stats[:total_inventory_value] || 0) %>
           </h3>
           <p class="text-muted mb-2 fw-medium">総在庫金額</p>
           <div class="small text-muted">
-            平均単価: ¥<%= number_with_delimiter(@stats[:average_inventory_value]) %>
+            平均単価: ¥<%= number_with_delimiter(@stats[:average_inventory_value] || 0) %>
           </div>
         </div>
       </div>
@@ -114,11 +118,11 @@
             <span class="badge bg-success-subtle text-success">今日</span>
           </div>
           <h3 class="display-6 fw-bold text-success mb-1" data-bs-toggle="tooltip" data-bs-placement="top" title="今日実行された在庫操作数">
-            <%= number_with_delimiter(@stats[:today_operations]) %>
+            <%= number_with_delimiter(@stats[:today_operations] || 0) %>
           </h3>
           <p class="text-muted mb-2 fw-medium">本日の操作</p>
           <div class="small text-muted">
-            週間: <%= @stats[:weekly_operations] %>件 | 月間: <%= @stats[:monthly_operations] %>件
+            週間: <%= number_with_delimiter(@stats[:weekly_operations] || 0) %>件 | 月間: <%= number_with_delimiter(@stats[:monthly_operations] || 0) %>件
           </div>
         </div>
       </div>
@@ -138,7 +142,7 @@
       <div class="dashboard-card border-0 shadow-sm h-100">
         <div class="card-body p-4 text-center">
           <div class="icon-lg text-secondary bg-secondary-subtle rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 50px; height: 50px;"><i class="bi bi-layers"></i></div>
-          <h4 class="fw-bold text-secondary mb-1"><%= number_with_delimiter(@stats[:total_batches]) %></h4>
+          <h4 class="fw-bold text-secondary mb-1"><%= number_with_delimiter(@stats[:total_batches] || 0) %></h4>
           <p class="text-muted mb-0">総ロット数</p>
         </div>
       </div>

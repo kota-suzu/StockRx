@@ -264,6 +264,33 @@ class EmailAuthService
     true
   end
 
+  # 認証試行記録（外部公開用）
+  # CLAUDE.md準拠: 適切なカプセル化によるセキュリティ機能提供
+  # メタ認知: privateメソッドへの適切なpublicインターフェース
+  # 横展開: 他のサービスクラスでも同様のパターン適用
+  def record_authentication_attempt(email, ip_address)
+    return unless config.rate_limit_enabled
+
+    begin
+      increment_rate_limit_counter(email, ip_address)
+      
+      log_security_event(
+        "authentication_attempt_recorded",
+        nil,
+        {
+          email: email,
+          ip_address: ip_address,
+          recorded_at: Time.current
+        }
+      )
+      
+      true
+    rescue => e
+      Rails.logger.error "[EmailAuthService] Failed to record authentication attempt: #{e.message}"
+      false
+    end
+  end
+
   # レート制限カウンター増加
   def increment_rate_limit_counter(email, ip_address)
     return unless config.rate_limit_enabled

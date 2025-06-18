@@ -52,7 +52,7 @@
             <div class="card-body text-center">
               <h6 class="text-primary mb-2">総申請件数</h6>
               <h2 class="mb-1 text-primary">
-                <%= number_with_delimiter(@analytics[:total_requests]) %>
+                <%= number_with_delimiter(@analytics[:total_requests] || 0) %>
               </h2>
               <small class="text-muted">件</small>
             </div>
@@ -64,7 +64,7 @@
             <div class="card-body text-center">
               <h6 class="text-success mb-2">承認率</h6>
               <h2 class="mb-1 text-success">
-                <%= number_with_precision(@analytics[:approval_rate], precision: 1) %>
+                <%= number_with_precision(@analytics[:approval_rate] || 0, precision: 1) %>
               </h2>
               <small class="text-muted">%</small>
             </div>
@@ -76,7 +76,7 @@
             <div class="card-body text-center">
               <h6 class="text-info mb-2">平均処理時間</h6>
               <h2 class="mb-1 text-info">
-                <%= number_with_precision(@analytics[:average_processing_time], precision: 1) %>
+                <%= number_with_precision(@analytics[:average_processing_time] || 0, precision: 1) %>
               </h2>
               <small class="text-muted">時間</small>
             </div>
@@ -88,7 +88,7 @@
             <div class="card-body text-center">
               <h6 class="text-warning mb-2">平均移動数量</h6>
               <h2 class="mb-1 text-warning">
-                <%= number_with_delimiter(@analytics[:average_quantity].round) %>
+                <%= number_with_delimiter((@analytics[:average_quantity] || 0).round) %>
               </h2>
               <small class="text-muted">個</small>
             </div>
@@ -128,11 +128,20 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <% @trend_data[:daily_requests].keys.last(5).each do |date| %>
+                        <% if @trend_data&.dig(:daily_requests)&.keys&.any? %>
+                          <% @trend_data[:daily_requests].keys.last(5).each do |date| %>
+                            <tr>
+                              <td><%= l(date, format: :short) %></td>
+                              <td><%= @trend_data[:daily_requests][date] || 0 %></td>
+                              <td><%= @trend_data[:daily_completions][date] || 0 %></td>
+                            </tr>
+                          <% end %>
+                        <% else %>
                           <tr>
-                            <td><%= l(date, format: :short) %></td>
-                            <td><%= @trend_data[:daily_requests][date] || 0 %></td>
-                            <td><%= @trend_data[:daily_completions][date] || 0 %></td>
+                            <td colspan="3" class="text-center text-muted">
+                              <i class="bi bi-info-circle me-1"></i>
+                              データがありません
+                            </td>
                           </tr>
                         <% end %>
                       </tbody>
@@ -189,8 +198,9 @@
                           <% end %>
                         </td>
                         <td class="text-end">
-                          <% if stats[:average_processing_time] > 0 %>
-                            <%= number_with_precision(stats[:average_processing_time], precision: 1) %>h
+                          <% processing_time = stats[:average_processing_time] || 0 %>
+                          <% if processing_time > 0 %>
+                            <%= number_with_precision(processing_time, precision: 1) %>h
                           <% else %>
                             <span class="text-muted">-</span>
                           <% end %>
@@ -249,7 +259,8 @@
                   <span class="fw-bold"><%= count %></span>
                 </div>
                 <div class="progress mb-3" style="height: 5px;">
-                  <% percentage = (count.to_f / @analytics[:total_requests] * 100) %>
+                  <% total_requests = @analytics[:total_requests] || 1 %>
+                  <% percentage = total_requests > 0 ? (count.to_f / total_requests * 100) : 0 %>
                   <div class="progress-bar 
                        <%= status == 'completed' ? 'bg-success' : 
                            status == 'pending' ? 'bg-warning' : 
@@ -285,7 +296,8 @@
                   <span class="fw-bold"><%= count %></span>
                 </div>
                 <div class="progress mb-3" style="height: 5px;">
-                  <% percentage = (count.to_f / @analytics[:total_requests] * 100) %>
+                  <% total_requests = @analytics[:total_requests] || 1 %>
+                  <% percentage = total_requests > 0 ? (count.to_f / total_requests * 100) : 0 %>
                   <div class="progress-bar 
                        <%= priority == 'emergency' ? 'bg-danger' : 
                            priority == 'urgent' ? 'bg-warning' : 'bg-secondary' %>" 

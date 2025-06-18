@@ -2,7 +2,7 @@
   EmailAuth - 一時パスワードリクエストフォーム
   ============================================================================
   CLAUDE.md準拠: レスポンシブデザイン・ユーザビリティ重視
-  Phase 4: UI統一化対応
+  Phase 4: UI統一化対応 - Bootstrap 5ベース
   
   用途:
   - パスワード忘れ時の一時パスワード発行
@@ -20,7 +20,7 @@
 <% content_for :title, "パスワードリセット" %>
 
 <style>
-  /* 共通スタイル定義（ログイン画面と統一） */
+  /* 共通スタイル定義（Bootstrap 5ベース） */
   :root {
     --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --success-color: #10b981;
@@ -33,12 +33,11 @@
     min-height: 100vh;
   }
   
-  .card-shadow {
+  .card-custom-shadow {
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   }
   
-  .form-input {
-    width: 100%;
+  .form-input-custom {
     padding: 0.75rem 1rem;
     border: 1px solid #d1d5db;
     border-radius: 0.5rem;
@@ -46,15 +45,13 @@
     transition: all 0.2s ease;
   }
   
-  .form-input:focus {
+  .form-input-custom:focus {
     outline: none;
     border-color: #7c3aed;
     box-shadow: 0 0 0 3px var(--focus-ring);
   }
   
-  .btn-primary {
-    width: 100%;
-    padding: 0.75rem 1.5rem;
+  .btn-gradient-primary {
     background: linear-gradient(to right, #7c3aed, #ec4899);
     color: white;
     font-weight: 600;
@@ -64,12 +61,13 @@
     transition: all 0.2s ease;
   }
   
-  .btn-primary:hover {
+  .btn-gradient-primary:hover {
+    color: white;
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
   }
   
-  .btn-primary:disabled {
+  .btn-gradient-primary:disabled {
     opacity: 0.7;
     cursor: not-allowed;
     transform: none;
@@ -91,202 +89,139 @@
   }
 </style>
 
-<div class="gradient-bg flex items-center justify-center px-4 py-12">
-  <div class="max-w-md w-full animate-slide-up">
-    <!-- ロゴとタイトル -->
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
-        <i class="bi bi-envelope-open text-3xl text-purple-600"></i>
-      </div>
-      <h1 class="text-3xl font-bold text-white mb-2">StockRx</h1>
-      <p class="text-purple-200"><%= @store.name %></p>
-    </div>
-
-    <!-- メインカード -->
-    <div class="bg-white rounded-2xl card-shadow overflow-hidden">
-      <div class="p-8">
-        <!-- ヘッダー -->
-        <div class="text-center mb-6">
-          <h2 class="text-2xl font-semibold text-gray-800 mb-2">パスワードリセット</h2>
-          <p class="text-gray-600">登録メールアドレスにパスコードを送信します</p>
+<div class="gradient-bg d-flex align-items-center justify-content-center px-4 py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5 animate-slide-up">
+        <!-- ロゴとタイトル -->
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-circle shadow mb-3" style="width: 80px; height: 80px;">
+            <i class="bi bi-envelope-open fs-1 text-primary"></i>
+          </div>
+          <h1 class="h2 fw-bold text-white mb-2">StockRx</h1>
+          <p class="text-white-50"><%= @store.name %></p>
         </div>
-        
-        <%= form_with model: @email_auth_request, 
-                      url: store_request_temp_password_path(store_slug: @store.slug),
-                      local: true,
-                      class: "space-y-5" do |form| %>
-          
-          <!-- メールアドレス入力 -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="bi bi-envelope me-1"></i>
-              メールアドレス
-            </label>
-            <%= form.email_field :email, 
-                                 placeholder: "email@example.com",
-                                 required: true,
-                                 autofocus: true,
-                                 autocomplete: "email",
-                                 class: "form-input" %>
-          </div>
 
-          <!-- 店舗情報（隠しフィールド） -->
-          <%= form.hidden_field :store_id, value: @store.id %>
-          <%= form.hidden_field :store_slug, value: @store.slug %>
-          
-          <!-- ヘルプテキスト -->
-          <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div class="flex">
-              <div class="flex-shrink-0">
-                <i class="bi bi-info-circle text-blue-500"></i>
-              </div>
-              <div class="ml-3">
-                <p class="text-sm text-blue-700">
-                  登録されているメールアドレスに6桁のパスコードを送信します。<br>
-                  パスコードは15分間有効です。
-                </p>
-              </div>
+        <!-- メインカード -->
+        <div class="card border-0 rounded-3 card-custom-shadow">
+          <div class="card-body p-4 p-md-5">
+            <!-- ヘッダー -->
+            <div class="text-center mb-4">
+              <h2 class="h3 fw-semibold text-dark mb-2">パスワードリセット</h2>
+              <p class="text-muted">登録メールアドレスにパスコードを送信します</p>
             </div>
+            
+            <%= form_with model: @email_auth_request, 
+                          url: store_request_temp_password_path(store_slug: @store.slug),
+                          local: true,
+                          class: "needs-validation",
+                          novalidate: true do |form| %>
+              
+              <!-- メールアドレス入力 -->
+              <div class="mb-3">
+                <label class="form-label fw-medium text-dark">
+                  <i class="bi bi-envelope me-1"></i>
+                  メールアドレス
+                </label>
+                <%= form.email_field :email, 
+                                     placeholder: "email@example.com",
+                                     required: true,
+                                     autofocus: true,
+                                     autocomplete: "email",
+                                     class: "form-control form-input-custom" %>
+              </div>
+
+              <!-- 店舗情報（隠しフィールド） -->
+              <%= form.hidden_field :store_id, value: @store.id %>
+              <%= form.hidden_field :store_slug, value: @store.slug %>
+              
+              <!-- ヘルプテキスト -->
+              <div class="alert alert-info border-0 mb-4">
+                <div class="d-flex">
+                  <div class="flex-shrink-0">
+                    <i class="bi bi-info-circle text-info"></i>
+                  </div>
+                  <div class="ms-3">
+                    <p class="mb-0 small text-info-emphasis">
+                      登録されているメールアドレスに6桁のパスコードを送信します。<br>
+                      パスコードは15分間有効です。
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 送信ボタン -->
+              <div class="d-grid mb-3">
+                <%= form.submit "パスコードを送信",
+                                class: "btn btn-gradient-primary py-3",
+                                data: { disable_with: "送信中..." } %>
+              </div>
+              
+              <!-- 戻るリンク -->
+              <div class="text-center">
+                <%= link_to new_store_user_session_path(store_slug: @store.slug),
+                            class: "text-decoration-none fw-medium" do %>
+                  <i class="bi bi-arrow-left me-1"></i>
+                  ログイン画面に戻る
+                <% end %>
+              </div>
+            <% end %>
           </div>
           
-          <!-- 送信ボタン -->
-          <div>
-            <%= form.submit "パスコードを送信",
-                            class: "btn-primary",
-                            data: { disable_with: "送信中..." } %>
-          </div>
-          
-          <!-- 戻るリンク -->
-          <div class="mt-6 text-center space-y-2">
-            <p>
-              <%= link_to new_store_user_session_path(store_slug: @store.slug),
-                          class: "text-sm text-purple-600 hover:text-purple-700 font-medium" do %>
-                <i class="bi bi-arrow-left me-1"></i>
-                ログイン画面に戻る
+          <!-- フッター -->
+          <div class="card-footer bg-light text-center border-0">
+            <p class="mb-0 small text-muted">
+              <%= link_to store_selection_path, class: "text-decoration-none fw-medium" do %>
+                <i class="bi bi-shop me-1"></i>
+                別の店舗を選択
               <% end %>
             </p>
           </div>
-        <% end %>
-      </div>
-      
-      <!-- フッター -->
-      <div class="bg-gray-50 px-8 py-4 text-center">
-        <p class="text-sm text-gray-600">
-          <%= link_to store_selection_path, class: "text-purple-600 hover:text-purple-700 font-medium" do %>
-            <i class="bi bi-shop me-1"></i>
-            別の店舗を選択
-          <% end %>
-        </p>
-      </div>
-    </div>
+        </div>
 
-    
-    <!-- セキュリティ情報 -->
-    <div class="mt-8 text-center">
-      <div class="inline-flex items-center text-white/80 text-sm">
-        <i class="bi bi-shield-check mr-2"></i>
-        <span>安全な接続で保護されています</span>
-      </div>
-    </div>
-    
-    <!-- セキュリティ注意事項 -->
-    <div class="mt-4 mx-auto max-w-sm">
-      <div class="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-white/90 text-xs">
-        <div class="flex items-start">
-          <i class="bi bi-exclamation-triangle-fill me-2 text-yellow-300"></i>
-          <div>
-            <p class="font-medium mb-1">セキュリティのご注意</p>
-            <ul class="space-y-1 text-white/80">
-              <li>• パスコードは他人に教えないでください</li>
-              <li>• 15分以内に入力してください</li>
-              <li>• 不審なメールにご注意ください</li>
-            </ul>
+        <!-- セキュリティ情報 -->
+        <div class="text-center mt-4">
+          <div class="d-inline-flex align-items-center text-white-50 small">
+            <i class="bi bi-shield-check me-2"></i>
+            <span>安全な接続で保護されています</span>
+          </div>
+        </div>
+        
+        <!-- セキュリティ注意事項 -->
+        <div class="mt-3">
+          <div class="card bg-white bg-opacity-10 border-0 text-white">
+            <div class="card-body p-3">
+              <div class="d-flex">
+                <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+                <div>
+                  <p class="fw-medium mb-1 small">セキュリティのご注意</p>
+                  <ul class="list-unstyled mb-0 small text-white-75">
+                    <li class="mb-1">• パスコードは他人に教えないでください</li>
+                    <li class="mb-1">• 送信されたパスコードは15分で無効になります</li>
+                    <li class="mb-0">• 不審な活動を発見した場合は管理者にご連絡ください</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-            セキュリティについて
-          </h3>
-          <p class="mt-1 text-sm text-yellow-700">
-            <%= t('email_auth.security.one_time_use') %><br>
-            <%= t('email_auth.security.change_password_recommended') %>
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- トラブルシューティング -->
-    <div class="mt-6">
-      <details class="bg-white border border-gray-200 rounded-lg">
-        <summary class="px-4 py-3 text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-50">
-          <%= t('email_auth.troubleshooting.title') %>
-        </summary>
-        <div class="px-4 pb-4 pt-2 border-t border-gray-100">
-          <ul class="text-sm text-gray-600 space-y-1">
-            <% t('email_auth.troubleshooting.steps').each do |step| %>
-              <li class="flex items-start">
-                <span class="inline-block w-2 h-2 bg-gray-400 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                <%= step %>
-              </li>
-            <% end %>
-          </ul>
-        </div>
-      </details>
     </div>
   </div>
 </div>
 
-<!-- JavaScript for enhanced UX -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  const form = document.querySelector('form');
-  const submitButton = form.querySelector('input[type="submit"]');
-  const emailField = form.querySelector('input[type="email"]');
-  
-  // Form submission handling
-  form.addEventListener('submit', function(e) {
-    if (!emailField.value.trim()) {
-      e.preventDefault();
-      alert('<%= t("email_auth.validations.email.blank") %>');
-      emailField.focus();
-      return false;
-    }
-    
-    // Disable submit button to prevent double submission
-    submitButton.disabled = true;
-    submitButton.value = '送信中...';
-    submitButton.classList.add('opacity-50', 'cursor-not-allowed');
-  });
-  
-  // Email validation feedback
-  emailField.addEventListener('blur', function() {
-    const email = this.value.trim();
-    if (email && !isValidEmail(email)) {
-      this.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
-      showValidationMessage(this, '<%= t("email_auth.validations.email.invalid") %>');
-    } else {
-      this.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
-      hideValidationMessage(this);
-    }
-  });
-  
-  function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
-  
-  function showValidationMessage(field, message) {
-    hideValidationMessage(field);
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'mt-1 text-sm text-red-600 validation-error';
-    errorDiv.textContent = message;
-    field.parentNode.appendChild(errorDiv);
-  }
-  
-  function hideValidationMessage(field) {
-    const existingError = field.parentNode.querySelector('.validation-error');
-    if (existingError) {
-      existingError.remove();
-    }
+  // Bootstrap 5のフォームバリデーション
+  const form = document.querySelector('.needs-validation');
+  if (form) {
+    form.addEventListener('submit', function(event) {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    });
   }
 });
 </script>

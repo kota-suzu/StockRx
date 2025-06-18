@@ -1,0 +1,470 @@
+/* ============================================ */
+/* Bootstrap 5 Enhancements - StockRx */
+/* ============================================ */
+/* CLAUDE.md準拠: Bootstrap 5の新機能活用とレスポンシブ最適化 */
+/* メタ認知: モバイルファーストアプローチでユーザー体験向上 */
+/* 横展開: 全プロジェクトでの統一されたデザインパターン */
+/* ============================================ */
+
+/* Bootstrap 5 CSS Variables活用 */
+:root {
+  /* カスタムカラーパレット（Bootstrap 5拡張） */
+  --bs-admin-primary: #667eea;
+  --bs-admin-secondary: #764ba2;
+  --bs-admin-accent: #f093fb;
+  
+  /* カスタムスペーシング */
+  --bs-spacing-xs: 0.25rem;
+  --bs-spacing-sm: 0.5rem;
+  --bs-spacing-md: 1rem;
+  --bs-spacing-lg: 1.5rem;
+  --bs-spacing-xl: 3rem;
+  
+  /* カスタムシャドウ */
+  --bs-box-shadow-subtle: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --bs-box-shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  
+  /* カスタムボーダー半径 */
+  --bs-border-radius-xl: 1rem;
+  --bs-border-radius-xxl: 1.5rem;
+}
+
+/* Bootstrap 5新機能：ユーティリティクラス拡張 */
+.w-auto { width: auto !important; }
+.h-auto { height: auto !important; }
+.min-vw-100 { min-width: 100vw !important; }
+.min-vh-50 { min-height: 50vh !important; }
+.min-vh-75 { min-height: 75vh !important; }
+
+/* ガター（間隔）システム拡張 */
+.g-xs { gap: var(--bs-spacing-xs) !important; }
+.g-sm { gap: var(--bs-spacing-sm) !important; }
+.g-lg { gap: var(--bs-spacing-lg) !important; }
+.g-xl { gap: var(--bs-spacing-xl) !important; }
+
+/* Bootstrap 5新機能：Position utilityクラス拡張 */
+.position-sticky-top { 
+  position: sticky !important; 
+  top: 0 !important; 
+  z-index: 1020; 
+}
+
+/* モバイルファーストレスポンシブ改善 */
+.mobile-full-width {
+  width: 100% !important;
+}
+
+@media (min-width: 768px) {
+  .mobile-full-width {
+    width: auto !important;
+  }
+}
+
+/* テーブルレスポンシブ改善 */
+.table-responsive-custom {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive-custom .table {
+  min-width: 600px;
+}
+
+@media (max-width: 767.98px) {
+  .table-responsive-custom .table {
+    font-size: 0.875rem;
+  }
+  
+  .table-responsive-custom .table th,
+  .table-responsive-custom .table td {
+    padding: 0.5rem 0.25rem;
+    white-space: nowrap;
+  }
+}
+
+/* カードコンポーネント改善 */
+.card-modern {
+  border: none;
+  border-radius: var(--bs-border-radius-xl);
+  box-shadow: var(--bs-box-shadow);
+  transition: all 0.3s ease;
+}
+
+.card-modern:hover {
+  box-shadow: var(--bs-box-shadow-hover);
+  transform: translateY(-2px);
+}
+
+.card-header-gradient {
+  background: linear-gradient(135deg, var(--bs-primary), var(--bs-info));
+  color: white;
+  border-radius: var(--bs-border-radius) var(--bs-border-radius) 0 0;
+}
+
+/* ボタンコンポーネント拡張 */
+.btn-gradient-primary {
+  background: linear-gradient(135deg, var(--bs-admin-primary), var(--bs-admin-secondary));
+  border: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.btn-gradient-primary:hover {
+  background: linear-gradient(135deg, var(--bs-admin-secondary), var(--bs-admin-primary));
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: var(--bs-box-shadow-lg);
+}
+
+.btn-floating {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  box-shadow: var(--bs-box-shadow-lg);
+  z-index: 1030;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* フォームコンポーネント改善 */
+.form-floating-custom .form-control,
+.form-floating-custom .form-select {
+  border-radius: var(--bs-border-radius-lg);
+  border: 2px solid var(--bs-border-color);
+  transition: all 0.3s ease;
+}
+
+.form-floating-custom .form-control:focus,
+.form-floating-custom .form-select:focus {
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+}
+
+/* アラートコンポーネント改善 */
+.alert-modern {
+  border: none;
+  border-radius: var(--bs-border-radius-lg);
+  border-left: 4px solid;
+}
+
+.alert-modern.alert-primary {
+  border-left-color: var(--bs-primary);
+  background-color: var(--bs-primary-bg-subtle);
+}
+
+.alert-modern.alert-danger {
+  border-left-color: var(--bs-danger);
+  background-color: var(--bs-danger-bg-subtle);
+}
+
+.alert-modern.alert-warning {
+  border-left-color: var(--bs-warning);
+  background-color: var(--bs-warning-bg-subtle);
+}
+
+.alert-modern.alert-success {
+  border-left-color: var(--bs-success);
+  background-color: var(--bs-success-bg-subtle);
+}
+
+/* ナビゲーション改善 */
+.navbar-admin {
+  background: linear-gradient(135deg, var(--bs-admin-primary), var(--bs-admin-secondary)) !important;
+  box-shadow: var(--bs-box-shadow);
+}
+
+.navbar-admin .navbar-nav .nav-link {
+  color: rgba(255, 255, 255, 0.9) !important;
+  transition: all 0.3s ease;
+  border-radius: var(--bs-border-radius);
+  margin: 0 0.25rem;
+  padding: 0.5rem 1rem !important;
+}
+
+.navbar-admin .navbar-nav .nav-link:hover,
+.navbar-admin .navbar-nav .nav-link.active {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white !important;
+}
+
+/* Offcanvas改善（モバイルメニュー） */
+.offcanvas-modern {
+  border-radius: var(--bs-border-radius-xl) 0 0 var(--bs-border-radius-xl);
+  box-shadow: var(--bs-box-shadow-lg);
+}
+
+.offcanvas-modern .offcanvas-header {
+  background: var(--bs-gradient);
+  color: white;
+}
+
+.offcanvas-modern .offcanvas-body {
+  padding: 1.5rem;
+}
+
+/* スピナー・ローディング改善 */
+.spinner-custom {
+  width: 2rem;
+  height: 2rem;
+  border: 0.25em solid var(--bs-primary-bg-subtle);
+  border-right-color: var(--bs-primary);
+  border-radius: 50%;
+  animation: spinner-border 0.75s linear infinite;
+}
+
+/* プログレスバー改善 */
+.progress-modern {
+  height: 1rem;
+  border-radius: var(--bs-border-radius-lg);
+  background-color: var(--bs-gray-200);
+  overflow: hidden;
+}
+
+.progress-modern .progress-bar {
+  border-radius: var(--bs-border-radius-lg);
+  transition: width 0.6s ease;
+}
+
+/* ツールチップ・ポップオーバー改善 */
+.tooltip-custom {
+  font-size: 0.875rem;
+  border-radius: var(--bs-border-radius);
+  box-shadow: var(--bs-box-shadow);
+}
+
+/* タブナビゲーション改善 */
+.nav-tabs-modern {
+  border-bottom: 2px solid var(--bs-border-color);
+}
+
+.nav-tabs-modern .nav-link {
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--bs-secondary);
+  font-weight: 500;
+  padding: 1rem 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.nav-tabs-modern .nav-link:hover {
+  border-bottom-color: var(--bs-primary-border-subtle);
+  color: var(--bs-primary);
+}
+
+.nav-tabs-modern .nav-link.active {
+  border-bottom-color: var(--bs-primary);
+  color: var(--bs-primary);
+  background-color: transparent;
+}
+
+/* バッジ改善 */
+.badge-modern {
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--bs-border-radius-pill);
+  padding: 0.5em 0.75em;
+}
+
+/* リストグループ改善 */
+.list-group-modern .list-group-item {
+  border: none;
+  border-bottom: 1px solid var(--bs-border-color);
+  padding: 1rem 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.list-group-modern .list-group-item:hover {
+  background-color: var(--bs-light);
+  transform: translateX(0.5rem);
+}
+
+.list-group-modern .list-group-item:last-child {
+  border-bottom: none;
+}
+
+/* ドロップダウン改善 */
+.dropdown-menu-modern {
+  border: none;
+  border-radius: var(--bs-border-radius-lg);
+  box-shadow: var(--bs-box-shadow-lg);
+  padding: 0.5rem;
+}
+
+.dropdown-menu-modern .dropdown-item {
+  border-radius: var(--bs-border-radius);
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.dropdown-menu-modern .dropdown-item:hover {
+  background-color: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary);
+}
+
+/* アニメーション改善 */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+/* モバイル専用クラス */
+@media (max-width: 767.98px) {
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  .mobile-mb-3 {
+    margin-bottom: 1rem !important;
+  }
+  
+  .mobile-p-2 {
+    padding: 0.5rem !important;
+  }
+}
+
+/* タブレット専用クラス */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .tablet-hidden {
+    display: none !important;
+  }
+}
+
+/* デスクトップ専用クラス */
+@media (min-width: 992px) {
+  .desktop-only {
+    display: block !important;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* ダークモード対応（Bootstrap 5.3+） */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bs-body-bg: #1a1a1a;
+    --bs-body-color: #ffffff;
+    --bs-border-color: #404040;
+  }
+  
+  .card-modern {
+    background-color: #2a2a2a;
+    border-color: #404040;
+  }
+  
+  .table {
+    --bs-table-bg: #2a2a2a;
+    --bs-table-color: #ffffff;
+  }
+}
+
+/* プリント対応 */
+@media print {
+  .print-hidden {
+    display: none !important;
+  }
+  
+  .card {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+  }
+  
+  .btn {
+    border: 1px solid #000 !important;
+  }
+}
+
+/* アクセシビリティ改善 */
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.focus-ring {
+  outline: 2px solid var(--bs-primary) !important;
+  outline-offset: 2px !important;
+}
+
+/* ハイコントラストモード対応 */
+@media (prefers-contrast: high) {
+  .btn {
+    border-width: 2px !important;
+  }
+  
+  .card {
+    border-width: 2px !important;
+  }
+  
+  .alert {
+    border-width: 2px !important;
+  }
+}
+
+/* 動きを減らす設定対応 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* TODO: 🟡 Phase 3（重要）- より高度なBootstrap 5機能活用 */
+/* 優先度: 中（ユーザー体験向上） */
+/* 実装内容: */
+/*   - Container Queries活用 */
+/*   - CSS Grid統合 */
+/*   - Advanced Color Utilities */
+/*   - Position Utilities拡張 */
+/* 期待効果: より柔軟なレスポンシブデザイン、モダンUI実現 */
+
+/* TODO: 🟢 Phase 4（推奨）- パフォーマンス最適化 */
+/* 優先度: 中（パフォーマンス向上） */
+/* 実装内容: */
+/*   - Critical CSS最適化 */
+/*   - Unused CSS削除 */
+/*   - CSS Modules検討 */
+/* 期待効果: ページ読み込み速度向上、バンドルサイズ削減 */

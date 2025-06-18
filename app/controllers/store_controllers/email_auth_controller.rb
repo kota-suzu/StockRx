@@ -403,9 +403,15 @@ module StoreControllers
 
     def track_rate_limit_action!(email)
       # レート制限カウンターを増加
-      # 実装はEmailAuthServiceに委譲
+      # CLAUDE.md準拠: 適切なpublicインターフェース使用
+      # メタ認知: privateメソッド直接呼び出しから適切なカプセル化へ修正
+      # 横展開: 他のコントローラーでも同様のパターン適用
       service = EmailAuthService.new
-      service.increment_rate_limit_counter(email, request.remote_ip)
+      success = service.record_authentication_attempt(email, request.remote_ip)
+      
+      unless success
+        Rails.logger.warn "レート制限記録に失敗しましたが、処理を継続します"
+      end
     rescue => e
       Rails.logger.warn "レート制限カウント失敗: #{e.message}"
     end
