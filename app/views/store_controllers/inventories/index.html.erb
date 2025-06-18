@@ -315,7 +315,17 @@
   <%# ページネーション %>
   <% if @store_inventories.present? %>
     <div class="card-footer">
-      <%= paginate @store_inventories, theme: :bootstrap_5 %>
+      <%# CLAUDE.md準拠: 一時的修正 - bootstrap_5テーマパーシャル不足対応 %>
+      <%# メタ認知: bootstrap5-kaminari-views gem不足のため、デフォルトテーマで動作確保 %>
+      <%# TODO: 🔴 Phase 1（緊急）- bootstrap5-kaminari-views gem追加 %>
+      <%# 優先度: 高（UI一貫性向上） %>
+      <%# 実装内容: %>
+      <%#   - Gemfile に gem "bootstrap5-kaminari-views", "~> 0.0.1" 追加 %>
+      <%#   - bundle install 実行 %>
+      <%#   - theme: :bootstrap_5 に戻す %>
+      <%# 期待効果: Bootstrap 5スタイルによる美しいページネーション %>
+      <%# 横展開: 全ページネーション箇所で同様対応 %>
+      <%= paginate @store_inventories %>
     </div>
   <% end %>
 </div>

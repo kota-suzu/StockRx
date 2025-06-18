@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_18_031102) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_18_031633) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -107,6 +107,26 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_031102) do
     t.index ["expires_on"], name: "index_batches_on_expires_on"
     t.index ["inventory_id", "lot_code"], name: "uniq_inventory_lot", unique: true
     t.index ["inventory_id"], name: "index_batches_on_inventory_id"
+  end
+
+  create_table "compliance_audit_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.string "event_type", null: false, comment: "イベントタイプ（data_access, login_attempt等）"
+    t.string "user_type"
+    t.bigint "user_id", comment: "実行ユーザー（admin/store_user、システム処理の場合はnull）"
+    t.string "compliance_standard", null: false, comment: "コンプライアンス標準（PCI_DSS, GDPR等）"
+    t.string "severity", null: false, comment: "重要度レベル（low, medium, high, critical）"
+    t.text "encrypted_details", null: false, comment: "暗号化された詳細情報"
+    t.string "immutable_hash", null: false, comment: "改ざん防止用ハッシュ値"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["compliance_standard", "severity"], name: "index_compliance_audit_logs_on_standard_severity"
+    t.index ["compliance_standard"], name: "index_compliance_audit_logs_on_compliance_standard"
+    t.index ["created_at"], name: "index_compliance_audit_logs_on_created_at"
+    t.index ["event_type", "created_at"], name: "index_compliance_audit_logs_on_event_type_created_at"
+    t.index ["event_type"], name: "index_compliance_audit_logs_on_event_type"
+    t.index ["severity", "compliance_standard", "created_at"], name: "index_compliance_audit_logs_critical_events"
+    t.index ["severity"], name: "index_compliance_audit_logs_on_severity"
+    t.index ["user_type", "user_id"], name: "index_compliance_audit_logs_on_user"
   end
 
   create_table "identities", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
