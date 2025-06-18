@@ -606,12 +606,186 @@ document.addEventListener('DOMContentLoaded', function() {
     // 進捗エリアを表示
     progressArea.classList.remove('d-none');
     
-    // TODO: 🔴 Phase 6（重要）- ActionCable統合による進捗表示
-    // 優先度: 高（UX向上）
-    // 実装内容: リアルタイム進捗更新、WebSocket接続、エラー通知
-    // 効果: ユーザー体験向上、処理状況の可視化
+    // ActionCable統合による進捗表示
+    setupActionCableConnection();
   });
   
+  // ============================================
+  // ActionCable統合機能
+  // ============================================
+  
+  function setupActionCableConnection() {
+    // ActionCableがロードされているかチェック
+    if (typeof App === 'undefined' || !App.cable) {
+      console.warn('ActionCable not available. Real-time updates disabled.');
+      return;
+    }
+
+    // ImportProgressChannelに接続
+    const subscription = App.cable.subscriptions.create("ImportProgressChannel", {
+      connected() {
+        console.log('📡 Import progress channel connected');
+        showAlert('リアルタイム進捗表示を開始しました。', 'info');
+      },
+
+      disconnected() {
+        console.log('📡 Import progress channel disconnected');
+        showAlert('リアルタイム進捗表示が切断されました。', 'warning');
+      },
+
+      received(data) {
+        console.log('📨 Progress update received:', data);
+        handleProgressUpdate(data);
+      },
+
+      error(error) {
+        console.error('❌ Import progress channel error:', error);
+        showAlert('進捗表示でエラーが発生しました。', 'danger');
+      }
+    });
+
+    // ページ離脱時にクリーンアップ
+    window.addEventListener('beforeunload', () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    });
+  }
+
+  function handleProgressUpdate(data) {
+    const progressArea = document.getElementById('import-progress');
+    const messagesArea = document.getElementById('import-messages');
+    
+    if (!progressArea || !messagesArea) {
+      console.warn('Progress display elements not found');
+      return;
+    }
+
+    switch (data.status) {
+      case 'progress':
+        updateProgressBar(data);
+        updateProgressMessage(data);
+        break;
+      case 'completed':
+        handleImportCompletion(data);
+        break;
+      case 'error':
+        handleImportError(data);
+        break;
+      default:
+        console.log('Unknown progress status:', data.status);
+    }
+  }
+
+  function updateProgressBar(data) {
+    let progressBar = document.querySelector('#import-progress .progress-bar');
+    
+    if (!progressBar) {
+      // プログレスバーが存在しない場合は作成
+      const progressHtml = `
+        <div class="progress mb-3" style="height: 25px;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+               role="progressbar" style="width: 0%">
+            <span class="progress-text">0%</span>
+          </div>
+        </div>
+      `;
+      document.getElementById('import-progress').innerHTML = progressHtml;
+      progressBar = document.querySelector('.progress-bar');
+    }
+
+    const percentage = Math.min(Math.max(data.progress || 0, 0), 100);
+    progressBar.style.width = `${percentage}%`;
+    progressBar.setAttribute('aria-valuenow', percentage);
+    
+    const progressText = progressBar.querySelector('.progress-text');
+    if (progressText) {
+      progressText.textContent = `${percentage.toFixed(1)}%`;
+    }
+
+    // 処理済み/総数の表示
+    if (data.processed && data.total) {
+      const statusText = ` (${data.processed}/${data.total})`;
+      if (progressText) {
+        progressText.textContent += statusText;
+      }
+    }
+  }
+
+  function updateProgressMessage(data) {
+    const message = data.message || data.current_item || 'CSVデータを処理中...';
+    const timestamp = new Date().toLocaleTimeString();
+    
+    const messageHtml = `
+      <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="bi bi-info-circle me-2"></i>
+        <strong>${timestamp}:</strong> ${escapeHtml(message)}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    `;
+    
+    document.getElementById('import-messages').innerHTML = messageHtml;
+  }
+
+  function handleImportCompletion(data) {
+    const result = data.result || {};
+    const successMessage = `
+      インポートが完了しました！<br>
+      <strong>処理件数:</strong> ${result.processed || 0}件<br>
+      <strong>成功:</strong> ${result.successful || 0}件<br>
+      <strong>失敗:</strong> ${result.failed || 0}件
+    `;
+
+    showAlert(successMessage, 'success');
+    
+    // プログレスバーを100%に設定
+    updateProgressBar({ progress: 100 });
+    
+    // フォームを再有効化
+    const submitButton = document.getElementById('submit-button');
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.innerHTML = '<i class="bi bi-upload me-2"></i>インポート開始';
+    }
+
+    // エラーがある場合は詳細表示
+    if (result.errors && result.errors.length > 0) {
+      const errorList = result.errors.slice(0, 5).map(err => `• ${err}`).join('<br>');
+      const errorMessage = `<strong>エラー詳細:</strong><br>${errorList}`;
+      if (result.errors.length > 5) {
+        errorMessage += `<br><em>...他 ${result.errors.length - 5} 件のエラー</em>`;
+      }
+      
+      setTimeout(() => {
+        showAlert(errorMessage, 'warning');
+      }, 2000);
+    }
+  }
+
+  function handleImportError(data) {
+    const errorMessage = data.message || 'インポート中にエラーが発生しました。';
+    const details = data.details || {};
+    
+    let fullMessage = `<strong>エラー:</strong> ${escapeHtml(errorMessage)}`;
+    
+    if (details.line_number) {
+      fullMessage += `<br><strong>行番号:</strong> ${details.line_number}`;
+    }
+    
+    if (details.error_type) {
+      fullMessage += `<br><strong>エラータイプ:</strong> ${details.error_type}`;
+    }
+
+    showAlert(fullMessage, 'danger');
+    
+    // フォームを再有効化
+    const submitButton = document.getElementById('submit-button');
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.innerHTML = '<i class="bi bi-upload me-2"></i>インポート開始';
+    }
+  }
+
   // TODO: 🟡 Phase 6（推奨）- ドラッグ&ドロップ機能実装
   // 優先度: 中（UX改善）
   // 実装内容: ファイルドロップエリア、視覚的フィードバック

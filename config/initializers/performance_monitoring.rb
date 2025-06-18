@@ -102,17 +102,47 @@ module PerformanceMonitoring
     end
   end
 
-  # SQLクエリ数監視
+  # SQLクエリ数監視強化版
   class QueryMonitor
-    QUERY_COUNT_THRESHOLD = 10 # クエリ数閾値
+    QUERY_COUNT_THRESHOLDS = {
+      # アクション別クエリ数閾値（Phase 3最適化後の基準値）
+      "GET /admin" => 5,                        # ダッシュボード（Counter Cache最適化済み）
+      "GET /admin/stores" => 3,                 # 店舗一覧（Counter Cache活用）
+      "GET /admin/stores/:id" => 6,             # 店舗詳細（includes最適化済み）
+      "GET /admin/inventories" => 8,            # 在庫一覧（includes最適化済み）
+      "GET /admin/inventories/:id" => 4,        # 在庫詳細（条件分岐最適化済み）
+      "GET /admin/inter_store_transfers" => 10, # 移動一覧（複雑JOIN許容）
+      "POST /admin/inventories" => 15,          # 在庫作成（履歴・監査ログ含む）
+      "PUT /admin/inventories/:id" => 12,       # 在庫更新（履歴・監査ログ含む）
+      default: 20                               # その他のエンドポイント
+    }.freeze
 
-    def self.monitor_request(&block)
+    def self.monitor_request(endpoint = nil, &block)
       query_count = 0
+      slow_queries = []
+      n_plus_one_detected = false
       start_time = Time.current
 
-      # ActiveRecordのクエリイベントを監視
-      subscription = ActiveSupport::Notifications.subscribe("sql.active_record") do |*args|
-        query_count += 1 unless args.last[:name] == "CACHE"
+      # ActiveRecordのクエリイベントを監視（詳細版）
+      subscription = ActiveSupport::Notifications.subscribe("sql.active_record") do |name, start, finish, id, payload|
+        next if payload[:name] == "CACHE"
+        
+        query_count += 1
+        query_duration = (finish - start) * 1000
+
+        # スロークエリ検出（50ms以上）
+        if query_duration > 50
+          slow_queries << {
+            sql: payload[:sql].truncate(200),
+            duration: query_duration.round(2),
+            binds: payload[:binds]&.map(&:value)&.first(3) # セキュリティ考慮で先頭3つのみ
+          }
+        end
+
+        # N+1クエリパターン検出
+        if payload[:sql] =~ /SELECT.*WHERE.*IN \(/i && query_count > 5
+          n_plus_one_detected = true
+        end
       end
 
       result = yield
@@ -120,27 +150,82 @@ module PerformanceMonitoring
       ActiveSupport::Notifications.unsubscribe(subscription)
 
       end_time = Time.current
-      duration = (end_time - start_time) * 1000 # milliseconds
+      duration = (end_time - start_time) * 1000
 
-      # 閾値チェック
-      if query_count > QUERY_COUNT_THRESHOLD
-        Rails.logger.warn "⚠️ High query count detected: #{query_count} queries (threshold: #{QUERY_COUNT_THRESHOLD})"
+      # 動的閾値設定
+      threshold = determine_query_threshold(endpoint)
+
+      # 閾値チェックと詳細ログ
+      if query_count > threshold
+        Rails.logger.warn "⚠️ HIGH QUERY COUNT DETECTED:"
+        Rails.logger.warn "   Endpoint: #{endpoint || 'unknown'}"
+        Rails.logger.warn "   Queries: #{query_count} (threshold: #{threshold})"
         Rails.logger.warn "   Duration: #{duration.round(2)}ms"
+        Rails.logger.warn "   N+1 suspected: #{n_plus_one_detected ? 'YES' : 'NO'}"
+
+        # スロークエリ詳細
+        if slow_queries.any?
+          Rails.logger.warn "   Slow queries (>50ms):"
+          slow_queries.each_with_index do |query, idx|
+            Rails.logger.warn "     #{idx + 1}. #{query[:sql]} (#{query[:duration]}ms)"
+            Rails.logger.warn "        Binds: #{query[:binds]}" if query[:binds]&.any?
+          end
+        end
 
         # スタックトレース（開発環境のみ）
         if Rails.env.development?
-          Rails.logger.warn "   Caller: #{caller[0..2].join("\n   ")}"
+          Rails.logger.warn "   Call stack:"
+          caller[0..3].each_with_index do |line, idx|
+            Rails.logger.warn "     #{idx + 1}. #{line}"
+          end
+        end
+
+        # Counter Cache整合性チェック提案
+        if query_count > 15 && endpoint&.include?("/admin/")
+          Rails.logger.warn "   💡 Suggestion: Check counter cache integrity for this endpoint"
         end
       end
 
-      # 統計ログ
-      Rails.logger.info "📊 SQL: #{query_count} queries, #{duration.round(2)}ms"
+      # パフォーマンス統計ログ
+      status_icon = query_count <= threshold ? "✅" : "⚠️"
+      Rails.logger.info "#{status_icon} SQL Performance: #{query_count}q/#{duration.round(2)}ms (#{endpoint || 'unknown'})"
+
+      # N+1警告
+      if n_plus_one_detected
+        Rails.logger.warn "🔍 Potential N+1 query detected in #{endpoint}"
+      end
 
       {
         result: result,
         query_count: query_count,
-        duration: duration
+        duration: duration,
+        threshold: threshold,
+        within_threshold: query_count <= threshold,
+        slow_queries: slow_queries,
+        n_plus_one_detected: n_plus_one_detected
       }
+    end
+
+    def self.determine_query_threshold(endpoint)
+      return QUERY_COUNT_THRESHOLDS[:default] unless endpoint
+
+      # エンドポイントの正規化とマッチング
+      normalized_endpoint = normalize_endpoint(endpoint)
+      
+      QUERY_COUNT_THRESHOLDS.each do |pattern, threshold|
+        next if pattern == :default
+        
+        if normalized_endpoint.match?(Regexp.new(pattern.gsub("/:id", "/\\d+")))
+          return threshold
+        end
+      end
+
+      QUERY_COUNT_THRESHOLDS[:default]
+    end
+
+    def self.normalize_endpoint(endpoint)
+      # パラメータを正規化（/admin/inventories/123 → /admin/inventories/:id）
+      endpoint.gsub(/\/\d+(?=\/|$)/, "/:id")
     end
   end
 
@@ -258,8 +343,11 @@ class PerformanceMonitoringMiddleware
     # 静的ファイルは監視対象外
     return @app.call(env) if static_file_request?(request)
 
-    # パフォーマンス監視実行
-    monitoring_result = PerformanceMonitoring::QueryMonitor.monitor_request do
+    # エンドポイント識別子作成
+    endpoint = "#{request.request_method} #{request.path}"
+
+    # パフォーマンス監視実行（エンドポイント情報付き）
+    monitoring_result = PerformanceMonitoring::QueryMonitor.monitor_request(endpoint) do
       PerformanceMonitoring::ResponseTimeBenchmark.benchmark_endpoint(
         request.request_method,
         request.path
