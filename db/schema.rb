@@ -109,7 +109,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_031633) do
     t.index ["inventory_id"], name: "index_batches_on_inventory_id"
   end
 
-  create_table "compliance_audit_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+  create_table "compliance_audit_logs", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
     t.string "event_type", null: false, comment: "イベントタイプ（data_access, login_attempt等）"
     t.string "user_type"
     t.bigint "user_id", comment: "実行ユーザー（admin/store_user、システム処理の場合はnull）"
