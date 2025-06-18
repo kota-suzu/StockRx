@@ -20,6 +20,14 @@ class RateLimiter
       period: 1.hour,
       block_duration: 1.hour
     },
+    # メール認証（パスコード送信）
+    # メタ認知: EmailAuthServiceの設定と整合性を保つ（3回/時間、10回/日）
+    # 横展開: password_resetと同様のセキュリティレベル
+    email_auth: {
+      limit: 3,
+      period: 1.hour,
+      block_duration: 1.hour
+    },
     # API呼び出し
     api: {
       limit: 100,

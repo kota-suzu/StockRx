@@ -81,6 +81,8 @@ module RateLimitable
       "ログイン試行回数が上限に達しました。#{minutes}分後に再度お試しください。"
     when :password_reset
       "パスワードリセット要求が多すぎます。#{minutes}分後に再度お試しください。"
+    when :email_auth
+      "パスコード送信回数が上限に達しました。#{minutes}分後に再度お試しください。"
     when :api
       "API呼び出し回数が上限に達しました。#{minutes}分後に再度お試しください。"
     when :transfer_request

@@ -19,19 +19,19 @@ module StoreControllers
   # ============================================================================
   class EmailAuthController < BaseController
     include RateLimitable
-    
+
     # 認証チェックをスキップ（認証前の操作のため）
     skip_before_action :authenticate_store_user!
     skip_before_action :ensure_store_active
-    
+
     # 店舗の事前確認
     before_action :set_store_from_params
-    before_action :check_store_active, except: [:request_temp_password]
-    before_action :validate_rate_limits, only: [:request_temp_password, :verify_temp_password]
-    
+    before_action :check_store_active, except: [ :request_temp_password ]
+    before_action :validate_rate_limits, only: [ :request_temp_password, :verify_temp_password ]
+
     # CSRFトークン検証をスキップ（APIモード対応）
-    skip_before_action :verify_authenticity_token, only: [:request_temp_password, :verify_temp_password], if: :json_request?
-    
+    skip_before_action :verify_authenticity_token, only: [ :request_temp_password, :verify_temp_password ], if: :json_request?
+
     # レイアウト設定
     layout "store_auth"
 
@@ -43,7 +43,7 @@ module StoreControllers
     def new
       # 店舗が指定されていない場合は店舗選択画面へ
       redirect_to store_selection_path and return unless @store
-      
+
       @email_auth_request = EmailAuthRequest.new(store_id: @store.id)
     end
 
@@ -51,7 +51,7 @@ module StoreControllers
     def request_temp_password
       unless @store
         respond_to_request_error(
-          "店舗が選択されていません", 
+          "店舗が選択されていません",
           :store_selection_required
         )
         return
@@ -59,7 +59,7 @@ module StoreControllers
 
       # パラメータ検証（複数の形式に対応）
       email = params[:email] || params.dig(:email_auth_request, :email)
-      
+
       unless email.present?
         respond_to_request_error(
           "メールアドレスを入力してください",
@@ -70,7 +70,7 @@ module StoreControllers
 
       # ユーザー存在確認
       store_user = StoreUser.find_by(email: email, store_id: @store.id)
-      
+
       unless store_user
         # セキュリティ: 存在しないユーザーでも同じレスポンスを返す（列挙攻撃対策）
         respond_to_request_success(email)
@@ -111,7 +111,7 @@ module StoreControllers
           else
             "一時パスワードの生成に失敗しました。もう一度お試しください。"
           end
-          
+
           respond_to_request_error(error_message, :generation_failed)
         end
 
@@ -127,7 +127,7 @@ module StoreControllers
     # 一時パスワード検証フォーム表示
     def verify_form
       redirect_to store_selection_path and return unless @store
-      
+
       @temp_password_verification = TempPasswordVerification.new(store_id: @store.id)
     end
 
@@ -144,7 +144,7 @@ module StoreControllers
       # パラメータ検証（複数の形式に対応）
       email = params[:email] || params.dig(:temp_password_verification, :email)
       temp_password = params[:temp_password] || params.dig(:temp_password_verification, :temp_password)
-      
+
       unless email.present? && temp_password.present?
         respond_to_verification_error(
           "メールアドレスと一時パスワードを入力してください",
@@ -155,7 +155,7 @@ module StoreControllers
 
       # ユーザー存在確認
       store_user = StoreUser.find_by(email: email, store_id: @store.id)
-      
+
       unless store_user
         track_rate_limit_action!(email) # 失敗時レート制限カウント
         respond_to_verification_error(
@@ -183,7 +183,7 @@ module StoreControllers
           sign_in_store_user(store_user, result[:temp_password])
         else
           track_rate_limit_action!(email) # 失敗時レート制限カウント
-          
+
           error_message = case result[:reason]
           when "expired"
             "一時パスワードの有効期限が切れました。再度送信してください。"
@@ -194,7 +194,7 @@ module StoreControllers
           else
             "メールアドレスまたは一時パスワードが正しくありません"
           end
-          
+
           respond_to_verification_error(error_message, :invalid_credentials)
         end
 
@@ -215,7 +215,7 @@ module StoreControllers
 
     def respond_to_request_success(email)
       masked_email = mask_email(email)
-      
+
       respond_to do |format|
         format.html do
           redirect_to store_verify_temp_password_form_path(store_slug: @store.slug),
@@ -289,7 +289,7 @@ module StoreControllers
     def sign_in_store_user(store_user, temp_password)
       # Deviseのsign_inメソッドを使用
       sign_in(store_user, scope: :store_user)
-      
+
       # セッション情報設定
       session[:current_store_id] = store_user.store_id
       session[:signed_in_at] = Time.current
@@ -298,7 +298,7 @@ module StoreControllers
 
       # ログイン履歴記録
       log_temp_password_login(store_user, temp_password)
-      
+
       # TODO: 🟡 Phase 2重要 - 一時パスワードログイン後の強制パスワード変更
       # 優先度: 中（セキュリティ要件）
       # 実装内容:
@@ -315,8 +315,8 @@ module StoreControllers
     # ============================================
 
     def set_store_from_params
-      store_slug = params[:store_slug] || 
-                   params.dig(:email_auth_request, :store_slug) || 
+      store_slug = params[:store_slug] ||
+                   params.dig(:email_auth_request, :store_slug) ||
                    params.dig(:temp_password_verification, :store_slug)
 
       if store_slug.present?
@@ -343,7 +343,7 @@ module StoreControllers
 
     def validate_rate_limits
       email = extract_email_from_params
-      
+
       if email.present? && rate_limit_exceeded?(email)
         respond_to do |format|
           format.html do
@@ -386,7 +386,7 @@ module StoreControllers
     # ============================================
 
     def rate_limited_actions
-      [:request_temp_password, :verify_temp_password]
+      [ :request_temp_password, :verify_temp_password ]
     end
 
     def rate_limit_key_type
@@ -403,8 +403,8 @@ module StoreControllers
     # ============================================
 
     def extract_email_from_params
-      params.dig(:email_auth_request, :email) || 
-      params.dig(:temp_password_verification, :email) || 
+      params.dig(:email_auth_request, :email) ||
+      params.dig(:temp_password_verification, :email) ||
       params[:email]
     end
 
@@ -415,9 +415,9 @@ module StoreControllers
     def mask_email(email)
       return "[NO_EMAIL]" if email.blank?
       return "[INVALID_EMAIL]" unless email.include?("@")
-      
+
       local, domain = email.split("@", 2)
-      
+
       case local.length
       when 1
         "#{local.first}***@#{domain}"
