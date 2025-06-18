@@ -20,11 +20,31 @@ module StoreControllers
 
     # 在庫一覧
     def index
-      # CLAUDE.md準拠: ransack代替実装でセキュリティとパフォーマンスを両立
-      # メタ認知: AdvancedSearchQueryパターンと一貫性を保つ
-      base_scope = current_store.store_inventories
-                               .joins(:inventory)
-                               .includes(inventory: :batches)
+      # 🔧 CLAUDE.md準拠: 認証状態に応じたアクセス制御
+      # メタ認知: 公開アクセスと認証アクセスの適切な分離
+      # セキュリティ: 機密情報は認証後のみ表示
+      
+      if store_user_signed_in? && current_store
+        # 認証済み: 店舗スコープでの詳細情報
+        # 🔧 パフォーマンス最適化: index画面ではbatches情報不要
+        # CLAUDE.md準拠: 必要最小限の関連データのみ読み込み
+        # メタ認知: 一覧表示ではバッチ詳細まで表示しないため除去
+        base_scope = current_store.store_inventories
+                                 .joins(:inventory)
+                                 .includes(:inventory)
+        @authenticated_access = true
+      else
+        # 公開アクセス: 基本情報のみ（価格等の機密情報除く）
+        # TODO: 🟡 Phase 2（重要）- 公開用の店舗選択機能実装
+        # 優先度: 中（ユーザビリティ向上）
+        # 実装内容: URLパラメータまたはセッションによる店舗指定
+        # 暫定: 全店舗の在庫を表示（実際の運用では店舗指定が必要）
+        # 🔧 パフォーマンス最適化: 公開アクセスでもbatches情報不要
+        base_scope = StoreInventory.joins(:inventory, :store)
+                                  .includes(:inventory, :store)
+                                  .where(stores: { active: true })
+        @authenticated_access = false
+      end
 
       # 検索条件の適用（ransackの代替）
       @q = apply_search_filters(base_scope, params[:q] || {})
@@ -36,17 +56,34 @@ module StoreControllers
       # フィルタリング用のデータ
       load_filter_data
 
-      # 統計情報
-      load_statistics
+      # 統計情報（認証済みの場合のみ詳細表示）
+      load_statistics if @authenticated_access
     end
 
     # 在庫詳細
     def show
+      # 🔧 パフォーマンス最適化: 不要なeager loading削除
+      # CLAUDE.md準拠: Bullet警告解消 - includes(inventory: :batches)の重複解消
+      # メタ認知: ビューで@batchesを別途取得するため、事前読み込み不要
+      # 理由: inventory情報のみアクセスするため、inventoryのみinclude
+      # TODO: 🟡 Phase 3（重要）- パフォーマンス監視体制の確立
+      # 優先度: 中（継続的改善）
+      # 実装内容:
+      #   - Bullet gem警告の自動検出・通知システム
+      #   - SQL実行時間のモニタリング（NewRelic/DataDog）
+      #   - N+1クエリパターンの文書化と予防策
+      #   - レスポンス時間SLO設定（95percentile < 200ms）
+      # 期待効果: 継続的なパフォーマンス改善とユーザー体験向上
       @store_inventory = current_store.store_inventories
-                                     .includes(inventory: :batches)
+                                     .includes(:inventory)
                                      .find_by!(inventory: @inventory)
 
       # バッチ情報（正しいアソシエーション経由でアクセス）
+      # TODO: 🟡 Phase 3（重要）- バッチ表示の高速化
+      # 優先度: 中（ユーザー体験向上）
+      # 現状: ページネーション済みだが、N+1の可能性
+      # 改善案: inventory.batches経由よりもBatch.where(inventory: @inventory)
+      # 期待効果: さらなるクエリ最適化とレスポンス向上
       @batches = @inventory.batches
                           .order(expires_on: :asc)
                           .page(params[:batch_page])
@@ -107,10 +144,28 @@ module StoreControllers
       #   - バックフィル: 既存データへのカテゴリ自動割り当て
       # 期待効果: 正確なカテゴリ分析、将来的な商品管理機能拡張
 
+      # 🔧 CLAUDE.md準拠: 認証状態に応じたデータソース選択
+      # メタ認知: 公開アクセス時はcurrent_storeがnilのため条件分岐必要
+      # セキュリティ: 公開時は基本情報のみ、認証時は詳細情報
+      if @authenticated_access && current_store
+        # 認証済み: 店舗スコープでの詳細情報
+        inventories = current_store.inventories.select(:id, :name)
+        manufacturer_scope = current_store.inventories
+      else
+        # 公開アクセス: 全店舗のアクティブ在庫から基本情報のみ
+        inventories = Inventory.joins(:store_inventories)
+                              .joins("JOIN stores ON store_inventories.store_id = stores.id")
+                              .where("stores.active = 1")
+                              .select(:id, :name)
+                              .distinct
+        manufacturer_scope = Inventory.joins(:store_inventories)
+                                    .joins("JOIN stores ON store_inventories.store_id = stores.id")
+                                    .where("stores.active = 1")
+      end
+
       # 暫定実装: 商品名パターンによるカテゴリ推定
       # CLAUDE.md準拠: スキーマ不一致問題の解決（category不存在）
       # 横展開: dashboard_controller.rbと同様のパターンマッチング手法活用
-      inventories = current_store.inventories.select(:id, :name)
       @categories = inventories.map { |inv| categorize_by_name(inv.name) }
                                .uniq
                                .compact
@@ -119,7 +174,7 @@ module StoreControllers
       # ✅ Phase 1（完了）- manufacturerカラム追加完了
       # マイグレーション実行済み: AddMissingColumnsToInventories
       # カラム追加: sku, manufacturer, unit
-      @manufacturers = current_store.inventories
+      @manufacturers = manufacturer_scope
                                    .distinct
                                    .pluck(:manufacturer)
                                    .compact

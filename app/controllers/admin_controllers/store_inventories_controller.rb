@@ -20,9 +20,12 @@ module AdminControllers
     def index
       # N+1クエリ対策（CLAUDE.md: パフォーマンス最適化）
       # CLAUDE.md準拠: ransack代替実装でセキュリティとパフォーマンスを両立
+      # 🔧 パフォーマンス最適化: 管理者一覧画面でもbatches情報は不要
+      # メタ認知: 一覧表示では在庫数量・価格等の基本情報のみ必要
+      # 横展開: 店舗画面のindex最適化と同様のパターン適用
       base_scope = @store.store_inventories
                          .joins(:inventory)
-                         .includes(inventory: :batches)
+                         .includes(:inventory)
 
       # 検索条件の適用（ransackの代替）
       @q = apply_search_filters(base_scope, params[:q] || {})
