@@ -1,0 +1,342 @@
+<%# CLAUDE.md準拠: 店舗間移動申請フォーム %>
+<%# メタ認知: 店舗間連携の効率化と在庫最適化を実現 %>
+<%# セキュリティ: CSRF保護、認証チェック、適切なvalidation %>
+<%# ユーザビリティ: 直感的操作とエラーハンドリング %>
+
+<% content_for :title, "在庫移動申請" %>
+
+<%# ブレッドクラム %>
+<% content_for :breadcrumbs do %>
+  <li class="breadcrumb-item">
+    <%= link_to "在庫管理", "/store/inventories" %>
+  </li>
+  <li class="breadcrumb-item">
+    <%= link_to @inventory.name, store_inventory_path(@inventory) %>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">移動申請</li>
+<% end %>
+
+<div class="container-fluid">
+  <%# ページヘッダー %>
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+      <h1 class="h3 mb-1">
+        <i class="bi bi-arrow-left-right me-2 text-info"></i>店舗間移動申請
+      </h1>
+      <p class="text-muted mb-0">
+        他店舗への在庫移動を申請します
+      </p>
+    </div>
+    
+    <div class="d-flex gap-2">
+      <%= link_to store_inventory_path(@inventory), 
+                  class: "btn btn-outline-secondary",
+                  title: "在庫詳細に戻る" do %>
+        <i class="bi bi-arrow-left me-1"></i>戻る
+      <% end %>
+    </div>
+  </div>
+
+  <div class="row">
+    <%# メインフォーム %>
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-plus-circle me-2"></i>移動申請フォーム
+          </h5>
+        </div>
+        
+        <div class="card-body">
+          <%# 対象商品情報表示 %>
+          <div class="alert alert-light border mb-4">
+            <div class="row">
+              <div class="col-md-8">
+                <h6 class="mb-2">
+                  <i class="bi bi-box me-2"></i>移動対象商品
+                </h6>
+                <div class="d-flex align-items-center">
+                  <span class="badge bg-primary me-2">ID: <%= @inventory.id %></span>
+                  <strong class="me-3"><%= @inventory.name %></strong>
+                  <% if @inventory.sku.present? %>
+                    <span class="text-muted">SKU: <%= @inventory.sku %></span>
+                  <% end %>
+                </div>
+              </div>
+              <div class="col-md-4 text-md-end">
+                <div class="text-muted small">現在在庫数</div>
+                <div class="fs-4 fw-bold text-success">
+                  <%= number_with_delimiter(@store_inventory.quantity) %> 個
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <%# 移動申請フォーム %>
+          <%= form_with url: request_transfer_store_inventory_path(@inventory), 
+                        method: :post,
+                        local: true,
+                        html: { 
+                          class: "needs-validation",
+                          novalidate: true,
+                          data: { 
+                            turbo: false,
+                            confirm: false
+                          }
+                        } do |form| %>
+            
+            <div class="row">
+              <%# 移動先店舗選択 %>
+              <div class="col-md-6 mb-3">
+                <%= form.label "transfer[destination_store_id]", "移動先店舗", 
+                              class: "form-label fw-bold" %>
+                <span class="text-danger">*</span>
+                <%= form.select "transfer[destination_store_id]", 
+                              options_from_collection_for_select(@other_stores, :id, :name),
+                              { prompt: "移動先店舗を選択してください" },
+                              { 
+                                class: "form-select",
+                                required: true,
+                                "aria-describedby": "destination_store_help"
+                              } %>
+                <div id="destination_store_help" class="form-text">
+                  在庫を移動する先の店舗を選択してください
+                </div>
+                <div class="invalid-feedback">
+                  移動先店舗を選択してください
+                </div>
+              </div>
+
+              <%# 移動数量入力 %>
+              <div class="col-md-6 mb-3">
+                <%= form.label "transfer[quantity]", "移動数量", 
+                              class: "form-label fw-bold" %>
+                <span class="text-danger">*</span>
+                <div class="input-group">
+                  <%= form.number_field "transfer[quantity]", 
+                                      class: "form-control",
+                                      min: 1,
+                                      max: @store_inventory.quantity,
+                                      step: 1,
+                                      required: true,
+                                      placeholder: "移動する数量",
+                                      "aria-describedby": "quantity_help quantity_addon" %>
+                  <span class="input-group-text" id="quantity_addon">個</span>
+                </div>
+                <div id="quantity_help" class="form-text">
+                  移動可能数量: 1 ～ <%= number_with_delimiter(@store_inventory.quantity) %> 個
+                </div>
+                <div class="invalid-feedback">
+                  1個以上、<%= @store_inventory.quantity %>個以下で入力してください
+                </div>
+              </div>
+            </div>
+
+            <%# 移動理由選択 %>
+            <div class="mb-3">
+              <%= form.label "transfer[reason]", "移動理由", 
+                            class: "form-label fw-bold" %>
+              <span class="text-danger">*</span>
+              <%= form.select "transfer[reason]", 
+                            options_for_select([
+                              ["顧客要求対応", "customer_request"],
+                              ["在庫バランス調整", "stock_balancing"],
+                              ["期限切れ対策", "expiry_prevention"],
+                              ["店舗閉店対応", "store_closure"],
+                              ["緊急補充", "emergency_supply"],
+                              ["その他", "other"]
+                            ]),
+                            { prompt: "移動理由を選択してください" },
+                            { 
+                              class: "form-select",
+                              required: true,
+                              "aria-describedby": "reason_help"
+                            } %>
+              <div id="reason_help" class="form-text">
+                移動の理由を選択してください（承認判断の参考になります）
+              </div>
+              <div class="invalid-feedback">
+                移動理由を選択してください
+              </div>
+            </div>
+
+            <%# 備考入力 %>
+            <div class="mb-4">
+              <%= form.label "transfer[notes]", "備考・詳細", 
+                            class: "form-label fw-bold" %>
+              <%= form.text_area "transfer[notes]", 
+                                class: "form-control",
+                                rows: 3,
+                                placeholder: "移動の詳細や特記事項があれば記入してください（任意）",
+                                "aria-describedby": "notes_help",
+                                maxlength: 500 %>
+              <div id="notes_help" class="form-text">
+                移動の詳細説明や注意事項など（500文字以内、任意）
+              </div>
+            </div>
+
+            <%# 注意事項表示 %>
+            <div class="alert alert-warning">
+              <h6 class="alert-heading">
+                <i class="bi bi-exclamation-triangle me-2"></i>移動申請について
+              </h6>
+              <ul class="mb-0 small">
+                <li>移動申請は移動先店舗の承認が必要です</li>
+                <li>承認までの間、在庫数は変更されません</li>
+                <li>緊急の場合は移動先店舗に直接連絡することをお勧めします</li>
+                <li>申請後のキャンセルは移動元店舗でのみ可能です</li>
+              </ul>
+            </div>
+
+            <%# 送信ボタン %>
+            <div class="d-flex justify-content-end gap-2">
+              <%= link_to store_inventory_path(@inventory), 
+                          class: "btn btn-outline-secondary" do %>
+                <i class="bi bi-x-lg me-1"></i>キャンセル
+              <% end %>
+              
+              <%= form.submit "移動申請を送信", 
+                            class: "btn btn-info",
+                            data: { 
+                              confirm: "移動申請を送信しますか？\n\n申請内容を確認してください。",
+                              disable_with: "送信中..." 
+                            } %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <%# サイドバー - 移動先店舗情報と移動履歴 %>
+    <div class="col-lg-4">
+      <%# 移動先店舗一覧 %>
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="bi bi-building me-2"></i>移動可能店舗 
+            <span class="badge bg-secondary ms-1"><%= @other_stores.count %></span>
+          </h6>
+        </div>
+        <div class="card-body">
+          <% if @other_stores.any? %>
+            <% @other_stores.each do |store| %>
+              <div class="d-flex align-items-center mb-2 p-2 border rounded">
+                <div class="flex-grow-1">
+                  <div class="fw-bold"><%= store.name %></div>
+                  <div class="text-muted small">
+                    <i class="bi bi-geo-alt me-1"></i>
+                    <%= store.store_type_text %>
+                  </div>
+                </div>
+                <div class="text-end">
+                  <span class="badge bg-success">稼働中</span>
+                </div>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="text-center text-muted py-3">
+              <i class="bi bi-building display-6 mb-2"></i>
+              <p class="mb-0">移動可能な店舗がありません</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%# 移動履歴 %>
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="bi bi-clock-history me-2"></i>移動履歴
+            <span class="badge bg-secondary ms-1"><%= @transfer_history.count %></span>
+          </h6>
+        </div>
+        <div class="card-body">
+          <% if @transfer_history.any? %>
+            <% @transfer_history.each do |transfer| %>
+              <div class="border-bottom pb-2 mb-2">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <div class="small">
+                      <strong><%= transfer.source_store.name %></strong>
+                      <i class="bi bi-arrow-right mx-1"></i>
+                      <strong><%= transfer.destination_store.name %></strong>
+                    </div>
+                    <div class="text-muted small">
+                      <%= transfer.quantity %>個 - <%= transfer.reason %>
+                    </div>
+                  </div>
+                  <div class="text-end">
+                    <span class="badge bg-<%= transfer.status == 'pending' ? 'warning' : 'success' %> small">
+                      <%= transfer.status == 'pending' ? '承認待ち' : '完了' %>
+                    </span>
+                    <div class="text-muted small">
+                      <%= transfer.created_at.strftime("%m/%d") %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="text-center text-muted py-3">
+              <i class="bi bi-clock-history display-6 mb-2"></i>
+              <p class="mb-0">移動履歴がありません</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# Bootstrap Validation JavaScript %>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // CLAUDE.md準拠: フォームバリデーション強化
+  // メタ認知: ユーザビリティとデータ品質の向上
+  // セキュリティ: クライアントサイドvalidationによる基本チェック
+  
+  const form = document.querySelector('.needs-validation');
+  const quantityInput = document.querySelector('[name="transfer[quantity]"]');
+  const maxQuantity = <%= @store_inventory.quantity %>;
+  
+  if (form) {
+    form.addEventListener('submit', function(event) {
+      const quantity = parseInt(quantityInput.value);
+      
+      // 数量チェック
+      if (quantity > maxQuantity) {
+        event.preventDefault();
+        event.stopPropagation();
+        quantityInput.setCustomValidity(`移動数量は${maxQuantity}個以下で入力してください`);
+      } else if (quantity < 1) {
+        event.preventDefault();
+        event.stopPropagation();
+        quantityInput.setCustomValidity('移動数量は1個以上で入力してください');
+      } else {
+        quantityInput.setCustomValidity('');
+      }
+      
+      // Bootstrap validation
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      
+      form.classList.add('was-validated');
+    });
+    
+    // 数量入力時のリアルタイムチェック
+    quantityInput.addEventListener('input', function() {
+      const quantity = parseInt(this.value);
+      
+      if (quantity > maxQuantity) {
+        this.setCustomValidity(`移動数量は${maxQuantity}個以下で入力してください`);
+      } else if (quantity < 1) {
+        this.setCustomValidity('移動数量は1個以上で入力してください');
+      } else {
+        this.setCustomValidity('');
+      }
+    });
+  }
+});
+</script>

@@ -1,0 +1,409 @@
+<%# CLAUDE.md準拠: 在庫調整フォーム %>
+<%# メタ認知: 正確な在庫管理と棚卸し業務の効率化を実現 %>
+<%# セキュリティ: CSRF保護、認証チェック、適切なvalidation %>
+<%# ユーザビリティ: 直感的操作とエラーハンドリング %>
+
+<% content_for :title, "在庫調整" %>
+
+<%# ブレッドクラム %>
+<% content_for :breadcrumbs do %>
+  <li class="breadcrumb-item">
+    <%= link_to "在庫管理", "/store/inventories" %>
+  </li>
+  <li class="breadcrumb-item">
+    <%= link_to @inventory.name, store_inventory_path(@inventory) %>
+  </li>
+  <li class="breadcrumb-item active" aria-current="page">在庫調整</li>
+<% end %>
+
+<div class="container-fluid">
+  <%# ページヘッダー %>
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+      <h1 class="h3 mb-1">
+        <i class="bi bi-pencil me-2 text-warning"></i>在庫調整
+      </h1>
+      <p class="text-muted mb-0">
+        実在庫と帳簿在庫の調整を行います
+      </p>
+    </div>
+    
+    <div class="d-flex gap-2">
+      <%= link_to store_inventory_path(@inventory), 
+                  class: "btn btn-outline-secondary",
+                  title: "在庫詳細に戻る" do %>
+        <i class="bi bi-arrow-left me-1"></i>戻る
+      <% end %>
+    </div>
+  </div>
+
+  <div class="row">
+    <%# メインフォーム %>
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header bg-warning text-dark">
+          <h5 class="card-title mb-0">
+            <i class="bi bi-clipboard-check me-2"></i>在庫調整フォーム
+          </h5>
+        </div>
+        
+        <div class="card-body">
+          <%# 対象商品情報表示 %>
+          <div class="alert alert-light border mb-4">
+            <div class="row">
+              <div class="col-md-6">
+                <h6 class="mb-2">
+                  <i class="bi bi-box me-2"></i>調整対象商品
+                </h6>
+                <div class="d-flex align-items-center">
+                  <span class="badge bg-primary me-2">ID: <%= @inventory.id %></span>
+                  <strong class="me-3"><%= @inventory.name %></strong>
+                  <% if @inventory.sku.present? %>
+                    <span class="text-muted">SKU: <%= @inventory.sku %></span>
+                  <% end %>
+                </div>
+              </div>
+              <div class="col-md-3 text-center">
+                <div class="text-muted small">現在帳簿在庫</div>
+                <div class="fs-4 fw-bold text-info">
+                  <%= number_with_delimiter(@store_inventory.quantity) %> 個
+                </div>
+              </div>
+              <div class="col-md-3 text-center">
+                <div class="text-muted small">安全在庫レベル</div>
+                <div class="fs-5 fw-bold text-secondary">
+                  <%= number_with_delimiter(@store_inventory.safety_stock_level) %> 個
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <%# 在庫調整フォーム %>
+          <%= form_with url: adjust_store_inventory_path(@inventory), 
+                        method: :patch,
+                        local: true,
+                        html: { 
+                          class: "needs-validation",
+                          novalidate: true,
+                          data: { 
+                            turbo: false,
+                            confirm: false
+                          }
+                        } do |form| %>
+            
+            <div class="row">
+              <%# 調整後在庫数入力 %>
+              <div class="col-md-6 mb-3">
+                <%= form.label "adjustment[new_quantity]", "調整後在庫数", 
+                              class: "form-label fw-bold" %>
+                <span class="text-danger">*</span>
+                <div class="input-group">
+                  <%= form.number_field "adjustment[new_quantity]", 
+                                      class: "form-control fs-5",
+                                      min: 0,
+                                      step: 1,
+                                      required: true,
+                                      placeholder: "実在庫数を入力",
+                                      value: @store_inventory.quantity,
+                                      "aria-describedby": "new_quantity_help quantity_addon",
+                                      id: "new_quantity_input" %>
+                  <span class="input-group-text" id="quantity_addon">個</span>
+                </div>
+                <div id="new_quantity_help" class="form-text">
+                  実際に確認した在庫数を入力してください
+                </div>
+                <div class="invalid-feedback">
+                  0個以上の数値を入力してください
+                </div>
+              </div>
+
+              <%# 調整差分表示 %>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-bold">調整差分</label>
+                <div class="input-group">
+                  <input type="text" 
+                         class="form-control fs-5 text-center" 
+                         id="difference_display" 
+                         readonly 
+                         value="0 個"
+                         style="background-color: #f8f9fa;">
+                  <span class="input-group-text">
+                    <i class="bi bi-arrow-up-down"></i>
+                  </span>
+                </div>
+                <div class="form-text">
+                  <span class="text-success">プラス: 在庫増加</span> / 
+                  <span class="text-danger">マイナス: 在庫減少</span>
+                </div>
+              </div>
+            </div>
+
+            <%# 調整理由選択 %>
+            <div class="mb-3">
+              <%= form.label "adjustment[reason]", "調整理由", 
+                            class: "form-label fw-bold" %>
+              <span class="text-danger">*</span>
+              <%= form.select "adjustment[reason]", 
+                            options_for_select([
+                              ["棚卸しによる調整", "stocktaking"],
+                              ["破損・紛失", "damage_loss"],
+                              ["期限切れ廃棄", "expiry_disposal"],
+                              ["返品・交換", "return_exchange"],
+                              ["計算ミス修正", "calculation_error"],
+                              ["システム調整", "system_adjustment"],
+                              ["その他", "other"]
+                            ]),
+                            { prompt: "調整理由を選択してください" },
+                            { 
+                              class: "form-select",
+                              required: true,
+                              "aria-describedby": "reason_help"
+                            } %>
+              <div id="reason_help" class="form-text">
+                在庫調整の理由を選択してください（監査証跡として記録されます）
+              </div>
+              <div class="invalid-feedback">
+                調整理由を選択してください
+              </div>
+            </div>
+
+            <%# 備考入力 %>
+            <div class="mb-4">
+              <%= form.label "adjustment[notes]", "備考・詳細", 
+                            class: "form-label fw-bold" %>
+              <%= form.text_area "adjustment[notes]", 
+                                class: "form-control",
+                                rows: 3,
+                                placeholder: "調整の詳細や特記事項があれば記入してください（任意）",
+                                "aria-describedby": "notes_help",
+                                maxlength: 500 %>
+              <div id="notes_help" class="form-text">
+                調整の詳細説明や発見した問題など（500文字以内、任意）
+              </div>
+            </div>
+
+            <%# 警告・注意事項 %>
+            <div class="alert alert-warning">
+              <h6 class="alert-heading">
+                <i class="bi bi-exclamation-triangle me-2"></i>在庫調整について
+              </h6>
+              <ul class="mb-0 small">
+                <li>在庫調整は即座にシステムに反映されます</li>
+                <li>調整履歴は監査証跡として永続的に記録されます</li>
+                <li>大幅な調整の場合は、管理者への報告を推奨します</li>
+                <li>調整後の取り消しはできませんのでご注意ください</li>
+              </ul>
+            </div>
+
+            <%# 確認表示エリア（調整差分が大きい場合） %>
+            <div id="large_adjustment_warning" class="alert alert-danger d-none">
+              <h6 class="alert-heading">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>大幅な在庫調整
+              </h6>
+              <p class="mb-0">
+                <strong>50個以上の調整</strong>です。調整内容を再度確認してください。<br>
+                必要に応じて管理者に報告することをお勧めします。
+              </p>
+            </div>
+
+            <%# 送信ボタン %>
+            <div class="d-flex justify-content-end gap-2">
+              <%= link_to store_inventory_path(@inventory), 
+                          class: "btn btn-outline-secondary" do %>
+                <i class="bi bi-x-lg me-1"></i>キャンセル
+              <% end %>
+              
+              <%= form.submit "在庫調整を実行", 
+                            class: "btn btn-warning",
+                            id: "submit_button",
+                            data: { 
+                              disable_with: "調整中..." 
+                            } %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <%# サイドバー - 調整履歴と注意事項 %>
+    <div class="col-lg-4">
+      <%# 在庫状況サマリー %>
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="bi bi-graph-up me-2"></i>在庫状況
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-6">
+              <div class="text-muted small">単価</div>
+              <div class="fs-5 fw-bold text-success">
+                ¥<%= number_with_delimiter(@inventory.price) %>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="text-muted small">在庫価値</div>
+              <div class="fs-5 fw-bold text-info">
+                ¥<%= number_with_delimiter(@store_inventory.quantity * @inventory.price) %>
+              </div>
+            </div>
+          </div>
+          
+          <hr class="my-3">
+          
+          <div class="text-center">
+            <div class="text-muted small">在庫レベル</div>
+            <% badge_info = stock_level_badge(@store_inventory) %>
+            <span class="<%= badge_info[:class] %> fs-6 px-3 py-2">
+              <%= badge_info[:text] %>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <%# 調整履歴 %>
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="bi bi-clock-history me-2"></i>調整履歴
+            <span class="badge bg-secondary ms-1"><%= @adjustment_history.count %></span>
+          </h6>
+        </div>
+        <div class="card-body">
+          <% if @adjustment_history.any? %>
+            <% @adjustment_history.each do |log| %>
+              <div class="border-bottom pb-2 mb-2">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="flex-grow-1">
+                    <div class="small">
+                      <span class="fw-bold 
+                        <%= log.quantity_change >= 0 ? 'text-success' : 'text-danger' %>">
+                        <%= log.quantity_change >= 0 ? '+' : '' %><%= log.quantity_change %>個
+                      </span>
+                    </div>
+                    <div class="text-muted small">
+                      <%= log.reason %>
+                    </div>
+                  </div>
+                  <div class="text-end">
+                    <div class="text-muted small">
+                      <%= log.performed_at.strftime("%m/%d %H:%M") %>
+                    </div>
+                  </div>
+                </div>
+                <% if log.notes.present? %>
+                  <div class="text-muted small mt-1">
+                    <%= truncate(log.notes, length: 50) %>
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+          <% else %>
+            <div class="text-center text-muted py-3">
+              <i class="bi bi-clock-history display-6 mb-2"></i>
+              <p class="mb-0">調整履歴がありません</p>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# JavaScript for real-time calculations and validation %>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // CLAUDE.md準拠: リアルタイム計算とバリデーション
+  // メタ認知: ユーザビリティと正確性の向上
+  // セキュリティ: クライアントサイドvalidationによる基本チェック
+  
+  const form = document.querySelector('.needs-validation');
+  const newQuantityInput = document.getElementById('new_quantity_input');
+  const differenceDisplay = document.getElementById('difference_display');
+  const largeAdjustmentWarning = document.getElementById('large_adjustment_warning');
+  const submitButton = document.getElementById('submit_button');
+  const currentQuantity = <%= @store_inventory.quantity %>;
+  
+  // 差分計算とリアルタイム表示
+  function updateDifference() {
+    const newQuantity = parseInt(newQuantityInput.value) || 0;
+    const difference = newQuantity - currentQuantity;
+    
+    // 差分表示の更新
+    let displayText = '';
+    let displayClass = '';
+    
+    if (difference > 0) {
+      displayText = `+${difference} 個 (増加)`;
+      displayClass = 'text-success bg-success bg-opacity-10';
+    } else if (difference < 0) {
+      displayText = `${difference} 個 (減少)`;
+      displayClass = 'text-danger bg-danger bg-opacity-10';
+    } else {
+      displayText = '0 個 (変更なし)';
+      displayClass = 'text-muted bg-light';
+    }
+    
+    differenceDisplay.value = displayText;
+    differenceDisplay.className = `form-control fs-5 text-center ${displayClass}`;
+    
+    // 大幅調整の警告表示
+    if (Math.abs(difference) >= 50) {
+      largeAdjustmentWarning.classList.remove('d-none');
+      submitButton.className = 'btn btn-danger';
+      submitButton.textContent = '大幅調整を実行';
+    } else {
+      largeAdjustmentWarning.classList.add('d-none');
+      submitButton.className = 'btn btn-warning';
+      submitButton.textContent = '在庫調整を実行';
+    }
+  }
+  
+  // 入力時のリアルタイム更新
+  newQuantityInput.addEventListener('input', updateDifference);
+  
+  // フォーム送信時のバリデーション
+  if (form) {
+    form.addEventListener('submit', function(event) {
+      const newQuantity = parseInt(newQuantityInput.value);
+      const difference = newQuantity - currentQuantity;
+      
+      // 基本バリデーション
+      if (newQuantity < 0) {
+        event.preventDefault();
+        event.stopPropagation();
+        newQuantityInput.setCustomValidity('在庫数は0個以上で入力してください');
+      } else {
+        newQuantityInput.setCustomValidity('');
+      }
+      
+      // Bootstrap validation
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      } else {
+        // 確認ダイアログ
+        let confirmMessage = '在庫調整を実行しますか？\n\n';
+        confirmMessage += `現在: ${currentQuantity}個\n`;
+        confirmMessage += `調整後: ${newQuantity}個\n`;
+        confirmMessage += `差分: ${difference >= 0 ? '+' : ''}${difference}個\n\n`;
+        
+        if (Math.abs(difference) >= 50) {
+          confirmMessage += '⚠️ 大幅な調整です。内容を再度確認してください。';
+        }
+        
+        if (!confirm(confirmMessage)) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }
+      
+      form.classList.add('was-validated');
+    });
+  }
+  
+  // 初期差分計算
+  updateDifference();
+});
+</script>
