@@ -256,6 +256,213 @@ RSpec.describe Inventory, type: :model do
     end
   end
 
+  # ============================================
+  # Multi-Store機能のテスト（カバレッジ向上）
+  # ============================================
+
+  describe 'multi-store functionality' do
+    let(:inventory) { create(:inventory) }
+    let(:store1) { create(:store) }
+    let(:store2) { create(:store) }
+    let(:store3) { create(:store) }
+
+    before do
+      # 各店舗での在庫設定
+      create(:store_inventory, inventory: inventory, store: store1, quantity: 100, reserved_quantity: 10, safety_stock_level: 20)
+      create(:store_inventory, inventory: inventory, store: store2, quantity: 50, reserved_quantity: 5, safety_stock_level: 15)
+      create(:store_inventory, inventory: inventory, store: store3, quantity: 10, reserved_quantity: 0, safety_stock_level: 25)
+    end
+
+    describe '#total_quantity_across_stores' do
+      it '全店舗での総在庫数を正しく計算すること' do
+        expect(inventory.total_quantity_across_stores).to eq(160) # 100 + 50 + 10
+      end
+    end
+
+    describe '#total_available_quantity_across_stores' do
+      it '全店舗での利用可能在庫数を正しく計算すること' do
+        expect(inventory.total_available_quantity_across_stores).to eq(145) # (100-10) + (50-5) + (10-0)
+      end
+    end
+
+    describe '#quantity_at_store' do
+      it '特定店舗での在庫数を正しく取得すること' do
+        expect(inventory.quantity_at_store(store1)).to eq(100)
+        expect(inventory.quantity_at_store(store2)).to eq(50)
+      end
+
+      it '在庫がない店舗では0を返すこと' do
+        new_store = create(:store)
+        expect(inventory.quantity_at_store(new_store)).to eq(0)
+      end
+    end
+
+    describe '#available_quantity_at_store' do
+      it '特定店舗での利用可能在庫数を正しく計算すること' do
+        expect(inventory.available_quantity_at_store(store1)).to eq(90) # 100 - 10
+        expect(inventory.available_quantity_at_store(store2)).to eq(45) # 50 - 5
+      end
+
+      it 'StoreInventoryが存在しない場合は0を返すこと' do
+        new_store = create(:store)
+        expect(inventory.available_quantity_at_store(new_store)).to eq(0)
+      end
+    end
+
+    describe '#stores_with_stock' do
+      it '在庫を持つ店舗のリストを取得すること' do
+        stores_with_stock = inventory.stores_with_stock
+        expect(stores_with_stock).to include(store1, store2, store3)
+        expect(stores_with_stock.count).to eq(3)
+      end
+
+      it '在庫がない店舗は含まれないこと' do
+        # store3の在庫を0にする
+        inventory.store_inventories.find_by(store: store3).update!(quantity: 0)
+
+        stores_with_stock = inventory.stores_with_stock
+        expect(stores_with_stock).to include(store1, store2)
+        expect(stores_with_stock).not_to include(store3)
+      end
+    end
+
+    describe '#stores_with_low_stock' do
+      it '低在庫の店舗のリストを取得すること' do
+        # store3は quantity=10, safety_stock_level=25 なので低在庫
+        low_stock_stores = inventory.stores_with_low_stock
+        expect(low_stock_stores).to include(store3)
+        expect(low_stock_stores).not_to include(store1, store2)
+      end
+    end
+
+    describe '#transfer_suggestions' do
+      let(:target_store) { create(:store) }
+      let(:required_quantity) { 30 }
+
+      it '在庫移動の提案候補を正しく生成すること' do
+        suggestions = inventory.transfer_suggestions(target_store, required_quantity)
+
+        # store1: available=90, store2: available=45, store3: available=10
+        # required_quantity=30なので、store1とstore2が候補
+        expect(suggestions.length).to eq(3)
+
+        store1_suggestion = suggestions.find { |s| s[:store] == store1 }
+        expect(store1_suggestion[:available_quantity]).to eq(90)
+        expect(store1_suggestion[:can_fulfill]).to be true
+
+        store2_suggestion = suggestions.find { |s| s[:store] == store2 }
+        expect(store2_suggestion[:available_quantity]).to eq(45)
+        expect(store2_suggestion[:can_fulfill]).to be true
+
+        store3_suggestion = suggestions.find { |s| s[:store] == store3 }
+        expect(store3_suggestion[:available_quantity]).to eq(10)
+        expect(store3_suggestion[:can_fulfill]).to be false
+      end
+
+      it 'ターゲット店舗は候補から除外されること' do
+        suggestions = inventory.transfer_suggestions(store1, required_quantity)
+
+        expect(suggestions.map { |s| s[:store] }).not_to include(store1)
+        expect(suggestions.map { |s| s[:store] }).to include(store2, store3)
+      end
+
+      it '在庫量の多い順に並んでいること' do
+        suggestions = inventory.transfer_suggestions(target_store, 5)
+        store_quantities = suggestions.map { |s| s[:available_quantity] }
+
+        expect(store_quantities).to eq(store_quantities.sort.reverse)
+      end
+    end
+  end
+
+  # ============================================
+  # アソシエーション強化テスト（カバレッジ向上）
+  # ============================================
+
+  describe 'associations (extended)' do
+    it { is_expected.to have_many(:store_inventories).dependent(:destroy) }
+    it { is_expected.to have_many(:stores).through(:store_inventories) }
+    it { is_expected.to have_many(:inter_store_transfers).dependent(:destroy) }
+
+    context 'データ整合性テスト' do
+      let(:inventory) { create(:inventory) }
+      let(:store) { create(:store) }
+
+      it 'inventoryが削除されるとstore_inventoriesも削除されること' do
+        store_inventory = create(:store_inventory, inventory: inventory, store: store)
+
+        expect { inventory.destroy! }.to change { StoreInventory.count }.by(-1)
+        expect(StoreInventory.find_by(id: store_inventory.id)).to be_nil
+      end
+
+      it 'inventoryが削除されるとinter_store_transfersも削除されること' do
+        transfer = create(:inter_store_transfer, inventory: inventory)
+
+        expect { inventory.destroy! }.to change { InterStoreTransfer.count }.by(-1)
+        expect(InterStoreTransfer.find_by(id: transfer.id)).to be_nil
+      end
+    end
+  end
+
+  # ============================================
+  # パフォーマンステスト（カバレッジ向上）
+  # ============================================
+
+  describe 'performance' do
+    let(:inventory) { create(:inventory) }
+
+    it '大量店舗での集計が効率的に動作すること' do
+      # 50店舗作成
+      stores = create_list(:store, 20) # CI環境を考慮して数を減らす
+      stores.each_with_index do |store, index|
+        create(:store_inventory, inventory: inventory, store: store, quantity: index * 10)
+      end
+
+      expect {
+        inventory.total_quantity_across_stores
+        inventory.total_available_quantity_across_stores
+        inventory.stores_with_stock.count
+      }.to perform_under(100).ms
+    end
+  end
+
+  # ============================================
+  # エッジケースのテスト（カバレッジ向上）
+  # ============================================
+
+  describe 'edge cases' do
+    let(:inventory) { create(:inventory) }
+
+    context '店舗在庫が存在しない場合' do
+      it '総在庫数が0であること' do
+        expect(inventory.total_quantity_across_stores).to eq(0)
+        expect(inventory.total_available_quantity_across_stores).to eq(0)
+      end
+
+      it '店舗リストが空であること' do
+        expect(inventory.stores_with_stock).to be_empty
+        expect(inventory.stores_with_low_stock).to be_empty
+      end
+    end
+
+    context 'reserved_quantityがquantityより大きい場合' do
+      let(:store) { create(:store) }
+
+      before do
+        create(:store_inventory,
+               inventory: inventory,
+               store: store,
+               quantity: 10,
+               reserved_quantity: 15)
+      end
+
+      it '利用可能在庫がマイナスになること' do
+        expect(inventory.available_quantity_at_store(store)).to eq(-5)
+        expect(inventory.total_available_quantity_across_stores).to eq(-5)
+      end
+    end
+  end
+
   # TODO: ShipmentManagement統合テストの拡張
   # 1. 複雑なシナリオテスト
   #    - 複数出荷・入荷の同時処理テスト

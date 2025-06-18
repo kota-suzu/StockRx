@@ -127,7 +127,7 @@ RSpec.describe StoreControllers::ProfilesController, type: :controller do
           role: "admin", # 不正なパラメータ
           admin: true    # 不正なパラメータ
         }
-        
+
         patch :update, params: { store_user: unauthorized_params }
         store_user.reload
         expect(store_user.name).to eq("新しい名前")
@@ -147,7 +147,7 @@ RSpec.describe StoreControllers::ProfilesController, type: :controller do
     it "assigns password expiration info" do
       get :change_password
       expect(assigns(:password_expires_in)).to be_present
-      expect(assigns(:must_change)).to be_in([true, false])
+      expect(assigns(:must_change)).to be_in([ true, false ])
     end
 
     context "when password is expired" do
@@ -167,7 +167,7 @@ RSpec.describe StoreControllers::ProfilesController, type: :controller do
   describe "PATCH #update_password" do
     let(:current_password) { "Password1234!" }
     let(:new_password) { "NewPassword1234!" }
-    
+
     let(:valid_password_params) do
       {
         current_password: current_password,
@@ -188,7 +188,7 @@ RSpec.describe StoreControllers::ProfilesController, type: :controller do
       let(:test_user) do
         create(:store_user, store: store, password: current_password, password_confirmation: current_password)
       end
-      
+
       before do
         sign_in test_user
         allow(controller).to receive(:current_store).and_return(store)
@@ -234,7 +234,7 @@ RSpec.describe StoreControllers::ProfilesController, type: :controller do
   # ヘルパーメソッドのテスト（ビューから確認）
   describe "helper methods" do
     render_views
-    
+
     describe "#password_strength_class" do
       # メタ認知: helper_methodはビューで確認するのがベストプラクティス
       it "renders appropriate classes in view" do
@@ -246,7 +246,7 @@ RSpec.describe StoreControllers::ProfilesController, type: :controller do
 
     describe "#format_ip_address" do
       let(:user_with_ip) do
-        create(:store_user, :with_login_history, 
+        create(:store_user, :with_login_history,
                store: store,
                current_sign_in_ip: "192.168.1.100")
       end
@@ -285,7 +285,7 @@ end
 # ============================================
 # 1. 🔴 機能テスト (Feature Specs)
 #    - プロフィール編集の完全なフロー
-#    - パスワード変更の完全なフロー  
+#    - パスワード変更の完全なフロー
 #    - エラーケースのUI確認
 #
 # 2. 🟡 ビューテスト (View Specs)

@@ -549,3 +549,92 @@
 #     end
 #   end
 # end
+
+# 在庫数範囲フィルターのテスト（新規追加）
+RSpec.describe AdvancedSearchQuery, "在庫数範囲フィルター" do
+  let!(:inventory_low) { create(:inventory, name: "Low Stock Item", quantity: 5, price: 1000) }
+  let!(:inventory_medium) { create(:inventory, name: "Medium Stock Item", quantity: 50, price: 2000) }
+  let!(:inventory_high) { create(:inventory, name: "High Stock Item", quantity: 200, price: 3000) }
+  let!(:inventory_zero) { create(:inventory, name: "Out of Stock Item", quantity: 0, price: 500) }
+
+  describe "#in_range" do
+    context "在庫数の範囲指定" do
+      it "最小在庫数のみ指定した場合、それ以上の在庫数の商品を返す" do
+        results = described_class.build
+                               .in_range("quantity", 10, nil)
+                               .results
+        
+        expect(results).to include(inventory_medium, inventory_high)
+        expect(results).not_to include(inventory_low, inventory_zero)
+      end
+
+      it "最大在庫数のみ指定した場合、それ以下の在庫数の商品を返す" do
+        results = described_class.build
+                               .in_range("quantity", nil, 100)
+                               .results
+        
+        expect(results).to include(inventory_low, inventory_medium, inventory_zero)
+        expect(results).not_to include(inventory_high)
+      end
+
+      it "最小・最大両方を指定した場合、その範囲内の在庫数の商品を返す" do
+        results = described_class.build
+                               .in_range("quantity", 10, 100)
+                               .results
+        
+        expect(results).to include(inventory_medium)
+        expect(results).not_to include(inventory_low, inventory_high, inventory_zero)
+      end
+
+      it "0を含む範囲を指定した場合、在庫切れ商品も含む" do
+        results = described_class.build
+                               .in_range("quantity", 0, 50)
+                               .results
+        
+        expect(results).to include(inventory_low, inventory_medium, inventory_zero)
+        expect(results).not_to include(inventory_high)
+      end
+    end
+
+    context "他の検索条件との組み合わせ" do
+      it "キーワード検索と在庫数範囲を組み合わせて使用できる" do
+        results = described_class.build
+                               .search_keywords("Stock", fields: [:name])
+                               .in_range("quantity", 10, 100)
+                               .results
+        
+        expect(results).to include(inventory_medium)
+        expect(results).not_to include(inventory_low, inventory_high, inventory_zero)
+      end
+
+      it "価格範囲と在庫数範囲を組み合わせて使用できる" do
+        results = described_class.build
+                               .in_range("price", 1000, 2500)
+                               .in_range("quantity", 5, 100)
+                               .results
+        
+        expect(results).to include(inventory_low, inventory_medium)
+        expect(results).not_to include(inventory_high, inventory_zero)
+      end
+    end
+
+    context "エッジケース" do
+      it "最小値と最大値が同じ場合、その値と一致する商品のみを返す" do
+        results = described_class.build
+                               .in_range("quantity", 50, 50)
+                               .results
+        
+        expect(results).to include(inventory_medium)
+        expect(results).not_to include(inventory_low, inventory_high, inventory_zero)
+      end
+
+      it "範囲外の値を指定した場合、該当する商品がない" do
+        results = described_class.build
+                               .in_range("quantity", 300, 500)
+                               .results
+        
+        expect(results).to be_empty
+      end
+    end
+  end
+end

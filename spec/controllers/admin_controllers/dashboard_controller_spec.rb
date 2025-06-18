@@ -42,6 +42,103 @@ RSpec.describe AdminControllers::DashboardController, type: :controller do
         get :index
         expect(assigns(:recent_logs)).to be_present
       end
+
+      # カバレッジ向上: 詳細な統計データテスト
+      context 'with test data' do
+        let!(:store1) { create(:store) }
+        let!(:store2) { create(:store) }
+        let!(:inventory1) { create(:inventory, name: 'アスピリン錠', price: 100) }
+        let!(:inventory2) { create(:inventory, name: '血圧計', price: 5000) }
+        let!(:inventory3) { create(:inventory, name: 'ガーゼ', price: 50) }
+
+        before do
+          # 店舗在庫設定（低在庫商品を含む）
+          create(:store_inventory, store: store1, inventory: inventory1, quantity: 100, safety_stock_level: 20)
+          create(:store_inventory, store: store1, inventory: inventory2, quantity: 5, safety_stock_level: 10) # 低在庫
+          create(:store_inventory, store: store2, inventory: inventory3, quantity: 200, safety_stock_level: 50)
+        end
+
+        it '正確な統計データを計算すること' do
+          get :index
+          stats = assigns(:stats)
+
+          expect(stats[:total_inventories]).to eq(3)
+          expect(stats[:low_stock_count]).to eq(1) # inventory2のみ低在庫
+          expect(stats[:total_inventory_value]).to eq(inventory1.price + inventory2.price + inventory3.price)
+        end
+
+        it '在庫アラートを適切に識別すること' do
+          get :index
+          stats = assigns(:stats)
+
+          # 低在庫商品が正しくカウントされていることを確認
+          expect(stats[:low_stock_items]).to be_present
+          low_stock_names = stats[:low_stock_items].map { |item| item[:name] }
+          expect(low_stock_names).to include('血圧計')
+          expect(low_stock_names).not_to include('アスピリン錠', 'ガーゼ')
+        end
+      end
+
+      # カバレッジ向上: パフォーマンステスト
+      context 'performance considerations' do
+        before do
+          # 大量データ作成（テスト環境を考慮して数を制限）
+          stores = create_list(:store, 5)
+          inventories = create_list(:inventory, 20)
+
+          stores.each do |store|
+            inventories.each do |inventory|
+              create(:store_inventory, store: store, inventory: inventory, quantity: rand(0..100))
+            end
+          end
+        end
+
+        it 'ダッシュボード読み込みが効率的に動作すること' do
+          expect {
+            get :index
+          }.to perform_under(500).ms
+        end
+
+        it 'N+1クエリが発生しないこと' do
+          expect {
+            get :index
+          }.not_to exceed_query_limit(10)
+        end
+      end
+
+      # カバレッジ向上: エラーハンドリング
+      context 'error handling' do
+        it 'データベースエラー時でも適切に処理すること' do
+          # ActiveRecord::StatementInvalidをシミュレート
+          allow(Inventory).to receive(:count).and_raise(ActiveRecord::StatementInvalid.new('Database error'))
+
+          expect {
+            get :index
+          }.not_to raise_error
+
+          expect(response).to be_successful
+          stats = assigns(:stats)
+          expect(stats[:total_inventories]).to eq(0) # フォールバック値
+        end
+      end
+
+      # カバレッジ向上: レスポンス形式テスト
+      context 'response formats' do
+        it 'JSON形式で統計データを返すこと' do
+          get :index, format: :json
+
+          expect(response).to be_successful
+          expect(response.content_type).to include('application/json')
+
+          json_response = JSON.parse(response.body)
+          expect(json_response).to include('stats')
+          expect(json_response['stats']).to include(
+            'total_inventories',
+            'low_stock_count',
+            'total_inventory_value'
+          )
+        end
+      end
     end
 
     context "without authentication" do
@@ -60,7 +157,7 @@ RSpec.describe AdminControllers::DashboardController, type: :controller do
       # コールバックがスキップされていることを確認
       callbacks = controller.class._process_action_callbacks
       audit_callbacks = callbacks.select { |cb| cb.filter == :audit_sensitive_data_access }
-      
+
       # DashboardControllerではskip_around_actionが適用されているため
       # audit_sensitive_data_accessコールバックは実行されない
       expect(audit_callbacks).to be_empty

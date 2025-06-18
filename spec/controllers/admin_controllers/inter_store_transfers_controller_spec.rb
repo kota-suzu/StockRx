@@ -25,7 +25,7 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
       it "assigns analytics data with correct structure" do
         get :analytics
-        
+
         expect(assigns(:analytics)).to be_present
         expect(assigns(:store_analytics)).to be_an(Array)
         expect(assigns(:trend_data)).to be_present
@@ -35,12 +35,12 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
       it "handles store_analytics as array structure for view compatibility" do
         # 店舗とサンプルデータを作成
         create_list(:store, 3)
-        
+
         get :analytics
-        
+
         store_analytics = assigns(:store_analytics)
         expect(store_analytics).to be_an(Array)
-        
+
         if store_analytics.any?
           store_data = store_analytics.first
           expect(store_data).to have_key(:store)
@@ -69,14 +69,14 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
       context "with transfer data" do
         before do
           # テスト用の移動データを作成
-          @transfer1 = create(:inter_store_transfer, 
+          @transfer1 = create(:inter_store_transfer,
                              source_store: source_store,
                              destination_store: destination_store,
                              inventory: inventory,
                              status: :completed,
                              requested_at: 15.days.ago,
                              completed_at: 14.days.ago)
-          
+
           @transfer2 = create(:inter_store_transfer,
                              source_store: destination_store,
                              destination_store: source_store,
@@ -87,16 +87,16 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
         it "calculates store analytics correctly" do
           get :analytics
-          
+
           store_analytics = assigns(:store_analytics)
           expect(store_analytics).not_to be_empty
-          
+
           # 各店舗のデータが正しい構造を持つことを確認
           store_analytics.each do |store_data|
             expect(store_data[:store]).to be_a(Store)
             stats = store_data[:stats]
-            
-            expect(stats).to include(:outgoing_count, :incoming_count, 
+
+            expect(stats).to include(:outgoing_count, :incoming_count,
                                    :outgoing_completed, :incoming_completed,
                                    :net_flow, :approval_rate, :efficiency_score)
             expect(stats[:outgoing_count]).to be_a(Integer)
@@ -125,7 +125,7 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
       it "handles errors gracefully and provides fallback data" do
         get :analytics
-        
+
         expect(response).to be_successful
         expect(assigns(:analytics)).to eq({})
         expect(assigns(:store_analytics)).to eq([])
@@ -142,7 +142,7 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
       context "with stores and transfers" do
         before do
           @stores = create_list(:store, 2)
-          @transfers = create_list(:inter_store_transfer, 3, 
+          @transfers = create_list(:inter_store_transfer, 3,
                                   source_store: @stores.first,
                                   destination_store: @stores.last,
                                   requested_at: 15.days.ago)
@@ -150,10 +150,10 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
         it "returns array structure suitable for view" do
           analytics = controller.send(:calculate_store_transfer_analytics, period)
-          
+
           expect(analytics).to be_an(Array)
           expect(analytics.length).to eq(Store.active.count)
-          
+
           analytics.each do |store_data|
             expect(store_data).to have_key(:store)
             expect(store_data).to have_key(:stats)
@@ -167,15 +167,15 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
     describe "#calculate_store_efficiency" do
       it "calculates efficiency score correctly" do
         # モックデータでのテスト
-        outgoing = double("outgoing_transfers", 
-                         count: 10, 
+        outgoing = double("outgoing_transfers",
+                         count: 10,
                          where: double(count: 8))
-        incoming = double("incoming_transfers", 
-                         count: 5, 
+        incoming = double("incoming_transfers",
+                         count: 5,
                          where: double(count: 4))
 
         efficiency = controller.send(:calculate_store_efficiency, outgoing, incoming)
-        
+
         expect(efficiency).to be_a(Numeric)
         expect(efficiency).to be_between(0, 100)
       end
@@ -203,11 +203,11 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
       describe "#calculate_store_efficiency_from_arrays" do
         it "calculates efficiency from transfer arrays" do
-          outgoing = [sample_transfers[0], sample_transfers[1]]
-          incoming = [sample_transfers[2]]
+          outgoing = [ sample_transfers[0], sample_transfers[1] ]
+          incoming = [ sample_transfers[2] ]
 
           efficiency = controller.send(:calculate_store_efficiency_from_arrays, outgoing, incoming)
-          
+
           expect(efficiency).to be_a(Numeric)
           expect(efficiency).to be_between(0, 100)
         end
@@ -221,7 +221,7 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
       describe "#calculate_approval_rate_from_array" do
         it "calculates approval rate from transfer array" do
           rate = controller.send(:calculate_approval_rate_from_array, sample_transfers)
-          
+
           expect(rate).to be_a(Numeric)
           expect(rate).to be_between(0, 100)
           # 3件中2件がapproved/completed
@@ -244,15 +244,15 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
         it "calculates average completion time from transfer array" do
           avg_time = controller.send(:calculate_average_completion_time_from_array, completed_transfers)
-          
+
           expect(avg_time).to be_a(Numeric)
           expect(avg_time).to be > 0
         end
 
         it "handles transfers without completion time" do
-          invalid_transfers = [double("transfer", completed_at: nil, requested_at: 1.day.ago)]
+          invalid_transfers = [ double("transfer", completed_at: nil, requested_at: 1.day.ago) ]
           avg_time = controller.send(:calculate_average_completion_time_from_array, invalid_transfers)
-          
+
           expect(avg_time).to eq(0)
         end
 
@@ -276,10 +276,10 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
         it "returns most transferred items from transfer array" do
           result = controller.send(:calculate_most_transferred_items_from_array, transfers_with_items)
-          
+
           expect(result).to be_an(Array)
           expect(result.length).to be <= 3
-          
+
           if result.any?
             top_item = result.first
             expect(top_item).to have_key(:inventory)
@@ -298,7 +298,7 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
   # TODO: 🟡 Phase 3（中）- 統合テスト強化
   # 優先度: 中（基本機能は動作確認済み）
-  # 実装内容: 
+  # 実装内容:
   #   - 大量データでのパフォーマンステスト
   #   - エッジケース（空データ、異常値）のテスト
   #   - セキュリティテスト（権限チェック）
@@ -329,10 +329,10 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
   describe "routing helpers validation" do
     it "edit_admin_inter_store_transfer_path exists and generates correct path" do
       transfer = create(:inter_store_transfer, source_store: source_store, destination_store: destination_store, inventory: inventory)
-      
+
       # ルーティングヘルパーの存在確認
       expect(controller.helpers).to respond_to(:edit_admin_inter_store_transfer_path)
-      
+
       # 正しいパス生成確認
       path = controller.helpers.edit_admin_inter_store_transfer_path(transfer)
       expect(path).to eq("/admin/transfers/#{transfer.id}/edit")
@@ -340,13 +340,13 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
     it "all inter_store_transfer routing helpers are available" do
       transfer = create(:inter_store_transfer, source_store: source_store, destination_store: destination_store, inventory: inventory)
-      
+
       helpers = controller.helpers
       expect(helpers).to respond_to(:admin_inter_store_transfers_path)
       expect(helpers).to respond_to(:admin_inter_store_transfer_path)
       expect(helpers).to respond_to(:new_admin_inter_store_transfer_path)
       expect(helpers).to respond_to(:edit_admin_inter_store_transfer_path)
-      
+
       # パス生成テスト
       expect(helpers.admin_inter_store_transfers_path).to eq("/admin/transfers")
       expect(helpers.admin_inter_store_transfer_path(transfer)).to eq("/admin/transfers/#{transfer.id}")

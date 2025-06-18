@@ -380,18 +380,232 @@ RSpec.describe EmailAuthService do
   end
 
   # ============================================
-  # セキュリティ機能テスト
+  # セキュリティ機能テスト（重要な新機能）
   # ============================================
 
-  describe "security features" do
-    describe "rate limiting" do
-      # TODO: 🟡 Phase 2重要 - Redis統合時の詳細テスト
-      it "TODO: implements comprehensive rate limiting tests with Redis"
+  describe "rate limiting functionality" do
+    let(:email) { store_user.email }
+    let(:ip_address) { '192.168.1.100' }
+
+    describe "#rate_limit_check" do
+      context "when rate limiting is enabled" do
+        before { service.config.rate_limit_enabled = true }
+
+        it "returns true when no previous attempts" do
+          result = service.rate_limit_check(email, ip_address)
+          expect(result).to be true
+        end
+
+        it "returns false when hourly limit exceeded" do
+          # 時間別制限を超過させる
+          allow(service).to receive(:get_rate_limit_count).and_return(5)
+
+          result = service.rate_limit_check(email, ip_address)
+          expect(result).to be false
+        end
+
+        it "checks all three rate limit types (hourly, daily, IP)" do
+          expect(service).to receive(:get_rate_limit_count).exactly(3).times.and_return(0)
+          service.rate_limit_check(email, ip_address)
+        end
+      end
+
+      context "when rate limiting is disabled" do
+        before { service.config.rate_limit_enabled = false }
+
+        it "always returns true" do
+          result = service.rate_limit_check(email, ip_address)
+          expect(result).to be true
+        end
+
+        it "does not check rate limit counts" do
+          expect(service).not_to receive(:get_rate_limit_count)
+          service.rate_limit_check(email, ip_address)
+        end
+      end
+    end
+
+    describe "#record_authentication_attempt" do
+      context "when rate limiting is enabled" do
+        before { service.config.rate_limit_enabled = true }
+
+        it "increments rate limit counter successfully" do
+          expect(service).to receive(:increment_rate_limit_counter).with(email, ip_address)
+
+          result = service.record_authentication_attempt(email, ip_address)
+          expect(result).to be true
+        end
+
+        it "logs security event on successful recording" do
+          allow(service).to receive(:increment_rate_limit_counter)
+          expect(service).to receive(:log_security_event).with(
+            'authentication_attempt_recorded',
+            nil,
+            hash_including(email: email, ip_address: ip_address)
+          )
+
+          service.record_authentication_attempt(email, ip_address)
+        end
+
+        it "handles errors gracefully and returns false" do
+          allow(service).to receive(:increment_rate_limit_counter).and_raise(StandardError, 'Redis error')
+
+          result = service.record_authentication_attempt(email, ip_address)
+          expect(result).to be false
+        end
+
+        it "logs error when increment fails" do
+          allow(service).to receive(:increment_rate_limit_counter).and_raise(StandardError, 'Redis error')
+          expect(Rails.logger).to receive(:error).with(/Failed to record authentication attempt/)
+
+          service.record_authentication_attempt(email, ip_address)
+        end
+      end
+
+      context "when rate limiting is disabled" do
+        before { service.config.rate_limit_enabled = false }
+
+        it "returns immediately without processing" do
+          expect(service).not_to receive(:increment_rate_limit_counter)
+
+          result = service.record_authentication_attempt(email, ip_address)
+          expect(result).to be_nil
+        end
+      end
+    end
+
+    describe "#increment_rate_limit_counter" do
+      let(:email) { store_user.email }
+      let(:ip_address) { '192.168.1.100' }
+
+      context "when rate limiting is enabled" do
+        before { service.config.rate_limit_enabled = true }
+
+        it "increments all three counter types" do
+          expect(service).to receive(:redis_increment_with_expiry).exactly(3).times
+
+          service.send(:increment_rate_limit_counter, email, ip_address)
+        end
+
+        it "uses correct key patterns" do
+          expect(service).to receive(:redis_increment_with_expiry).with(
+            /email_auth_service:hourly:#{email}/, 1.hour
+          )
+          expect(service).to receive(:redis_increment_with_expiry).with(
+            /email_auth_service:daily:#{email}/, 1.day
+          )
+          expect(service).to receive(:redis_increment_with_expiry).with(
+            /email_auth_service:rate_limit:#{email}:#{ip_address}/, 1.hour
+          )
+
+          service.send(:increment_rate_limit_counter, email, ip_address)
+        end
+      end
+
+      context "when rate limiting is disabled" do
+        before { service.config.rate_limit_enabled = false }
+
+        it "returns immediately without processing" do
+          expect(service).not_to receive(:redis_increment_with_expiry)
+
+          service.send(:increment_rate_limit_counter, email, ip_address)
+        end
+      end
+    end
+
+    describe "Redis integration (memory-based implementation)" do
+      describe "#redis_increment_with_expiry" do
+        let(:test_key) { 'test_key' }
+        let(:expiry_time) { 1.hour }
+
+        it "initializes counter for new key" do
+          result = service.send(:redis_increment_with_expiry, test_key, expiry_time)
+          expect(result).to eq(1)
+        end
+
+        it "increments existing counter" do
+          service.send(:redis_increment_with_expiry, test_key, expiry_time)
+          result = service.send(:redis_increment_with_expiry, test_key, expiry_time)
+          expect(result).to eq(2)
+        end
+
+        it "resets expired counter" do
+          # 初回設定
+          service.send(:redis_increment_with_expiry, test_key, 0.seconds)
+
+          # 時間を進める（期限切れをシミュレート）
+          allow(Time).to receive(:current).and_return(Time.current + 1.hour)
+
+          result = service.send(:redis_increment_with_expiry, test_key, expiry_time)
+          expect(result).to eq(1)
+        end
+      end
+
+      describe "#get_rate_limit_count" do
+        let(:test_key) { 'test_key' }
+
+        it "returns 0 for non-existent key" do
+          result = service.send(:get_rate_limit_count, test_key)
+          expect(result).to eq(0)
+        end
+
+        it "returns current count for existing key" do
+          service.send(:redis_increment_with_expiry, test_key, 1.hour)
+          service.send(:redis_increment_with_expiry, test_key, 1.hour)
+
+          result = service.send(:get_rate_limit_count, test_key)
+          expect(result).to eq(2)
+        end
+
+        it "returns 0 for expired key" do
+          service.send(:redis_increment_with_expiry, test_key, 0.seconds)
+
+          # 時間を進める
+          allow(Time).to receive(:current).and_return(Time.current + 1.hour)
+
+          result = service.send(:get_rate_limit_count, test_key)
+          expect(result).to eq(0)
+        end
+      end
     end
 
     describe "audit logging" do
-      # TODO: 🔴 Phase 1緊急 - SecurityComplianceManager統合時の詳細テスト
-      it "TODO: implements security compliance audit logging tests"
+      let(:test_metadata) { { test_key: 'test_value', ip_address: '192.168.1.100' } }
+
+      context "when security monitoring is enabled" do
+        before { service.config.security_monitoring_enabled = true }
+
+        it "logs structured security event" do
+          expect(Rails.logger).to receive(:info) do |log_data|
+            parsed_data = JSON.parse(log_data)
+            expect(parsed_data['event']).to eq('email_auth_test_event')
+            expect(parsed_data['service']).to eq('EmailAuthService')
+            expect(parsed_data['user_id']).to eq(store_user.id)
+            expect(parsed_data['user_email']).to eq(store_user.email)
+            expect(parsed_data['test_key']).to eq('test_value')
+          end
+
+          service.send(:log_security_event, 'test_event', store_user, test_metadata)
+        end
+
+        it "handles logging errors gracefully" do
+          allow(Rails.logger).to receive(:info).and_raise(StandardError, 'Logging error')
+          expect(Rails.logger).to receive(:error).with(/Security logging failed/)
+
+          expect {
+            service.send(:log_security_event, 'test_event', store_user, test_metadata)
+          }.not_to raise_error
+        end
+      end
+
+      context "when security monitoring is disabled" do
+        before { service.config.security_monitoring_enabled = false }
+
+        it "does not log events" do
+          expect(Rails.logger).not_to receive(:info)
+          service.send(:log_security_event, 'test_event', store_user, test_metadata)
+        end
+      end
     end
 
     describe "timing attack protection" do

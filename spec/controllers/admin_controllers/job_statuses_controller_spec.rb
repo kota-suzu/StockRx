@@ -39,10 +39,10 @@ RSpec.describe AdminControllers::JobStatusesController, type: :controller do
 
         it "returns job status as JSON" do
           get :show, params: { id: job_id }, format: :json
-          
+
           expect(response).to be_successful
           expect(response.content_type).to eq('application/json; charset=utf-8')
-          
+
           json_response = JSON.parse(response.body)
           expect(json_response).to include(
             'status' => 'running',
@@ -61,9 +61,9 @@ RSpec.describe AdminControllers::JobStatusesController, type: :controller do
 
         it "returns not found status" do
           get :show, params: { id: job_id }, format: :json
-          
+
           expect(response).to have_http_status(:not_found)
-          
+
           json_response = JSON.parse(response.body)
           expect(json_response).to include('error' => 'Job not found')
         end
@@ -78,9 +78,9 @@ RSpec.describe AdminControllers::JobStatusesController, type: :controller do
 
         it "returns internal server error with proper error handling" do
           get :show, params: { id: job_id }, format: :json
-          
+
           expect(response).to have_http_status(:internal_server_error)
-          
+
           json_response = JSON.parse(response.body)
           expect(json_response).to include('error')
         end
@@ -111,7 +111,7 @@ RSpec.describe AdminControllers::JobStatusesController, type: :controller do
       # コールバックがスキップされていることを確認
       callbacks = controller.class._process_action_callbacks
       audit_callbacks = callbacks.select { |cb| cb.filter == :audit_sensitive_data_access }
-      
+
       # JobStatusesControllerではskip_around_actionが適用されているため
       # audit_sensitive_data_accessコールバックは実行されない
       expect(audit_callbacks).to be_empty
@@ -121,7 +121,7 @@ RSpec.describe AdminControllers::JobStatusesController, type: :controller do
       # 認証が必要であることを確認
       callbacks = controller.class._process_action_callbacks
       auth_callbacks = callbacks.select { |cb| cb.filter == :authenticate_admin! }
-      
+
       expect(auth_callbacks).not_to be_empty
     end
   end
