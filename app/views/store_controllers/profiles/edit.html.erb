@@ -19,21 +19,32 @@
         <%# メタ認知: form_withのURL指定はroutesの定義に従う %>
         <%# 横展開: change_password.html.erbと同様のフォームパターンを適用 %>
         <%# ベストプラクティス: Strong Parametersと整合するフィールド定義 %>
-        <%= form_with model: @user, url: store_profile_path, method: :patch do |f| %>
-          <%# エラー表示 %>
+        <%= form_with model: @user, url: store_profile_path, method: :patch, local: true, class: "needs-validation", novalidate: true do |f| %>
+          <%# エラー表示 - 横展開: 他フォームで使用される詳細エラー表示パターン %>
           <% if @user.errors.any? %>
-            <div class="alert alert-danger">
-              <ul class="mb-0">
-                <% @user.errors.full_messages.each do |message| %>
-                  <li><%= message %></li>
-                <% end %>
-              </ul>
+            <div class="alert alert-danger" role="alert">
+              <div class="d-flex align-items-start">
+                <div class="flex-shrink-0">
+                  <i class="fas fa-exclamation-triangle fa-lg me-3"></i>
+                </div>
+                <div>
+                  <h4 class="alert-heading h6 mb-2">
+                    入力内容にエラーがあります（<%= @user.errors.count %>件）
+                  </h4>
+                  <ul class="mb-0 small">
+                    <% @user.errors.full_messages.each do |message| %>
+                      <li><%= message %></li>
+                    <% end %>
+                  </ul>
+                </div>
+              </div>
             </div>
           <% end %>
           
           <%# 氏名 %>
           <div class="mb-3">
-            <%= f.label :name, class: "form-label required" %>
+            <%= f.label :name, "氏名", class: "form-label" %>
+            <span class="text-danger">*</span>
             <%= f.text_field :name, 
                             class: "form-control",
                             required: true,
@@ -46,7 +57,8 @@
           
           <%# メールアドレス %>
           <div class="mb-3">
-            <%= f.label :email, class: "form-label required" %>
+            <%= f.label :email, "メールアドレス", class: "form-label" %>
+            <span class="text-danger">*</span>
             <%= f.email_field :email, 
                              class: "form-control",
                              required: true,
@@ -114,7 +126,11 @@
                 <i class="fas fa-key me-1"></i>
                 パスワード変更
               <% end %>
-              <%= f.submit "変更を保存", class: "btn btn-primary" %>
+              <%= f.submit "変更を保存", 
+                          class: "btn btn-primary",
+                          data: { 
+                            disable_with: "保存中..."
+                          } %>
             </div>
           </div>
         <% end %>
@@ -144,3 +160,41 @@
 <%# TODO: 🟢 Phase 6 - プロフィール画像アップロード機能 %>
 <%# メタ認知: Active Storageを使用した画像アップロード実装予定 %>
 <%# 横展開: 他の画像アップロード機能（在庫画像等）と統一的な実装 %>
+
+<script>
+  // フォームバリデーション - 横展開: 他フォームと統一的な実装
+  document.addEventListener('DOMContentLoaded', function() {
+    'use strict';
+    
+    // Bootstrap Validation
+    const forms = document.querySelectorAll('.needs-validation');
+    
+    Array.prototype.slice.call(forms).forEach(function(form) {
+      form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        
+        form.classList.add('was-validated');
+      }, false);
+    });
+    
+    // メールアドレス変更時の確認 - メタ認知: 重要な変更には確認を求める
+    const emailField = document.getElementById('store_user_email');
+    const originalEmail = emailField ? emailField.defaultValue : '';
+    
+    const form = document.querySelector('form');
+    if (form && emailField) {
+      form.addEventListener('submit', function(event) {
+        if (emailField.value !== originalEmail) {
+          const confirmed = confirm('メールアドレスを変更すると、次回ログイン時は新しいメールアドレスでログインする必要があります。\n\n変更してもよろしいですか？');
+          if (!confirmed) {
+            event.preventDefault();
+            return false;
+          }
+        }
+      });
+    }
+  });
+</script>
