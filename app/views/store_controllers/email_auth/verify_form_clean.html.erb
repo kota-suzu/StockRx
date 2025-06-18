@@ -147,6 +147,7 @@
           </div>
         </div>
       </div>
+      
     </div>
 
     <!-- セキュアな接続表示 -->
@@ -156,6 +157,7 @@
         <span>安全な接続で保護されています</span>
       </div>
     </div>
+    
   </div>
 </div>
 
@@ -188,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const numbers = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
       this.value = numbers;
       
-      // トリガーinputイベント
+      // inputイベントをトリガー
       const event = new Event('input', { bubbles: true });
       this.dispatchEvent(event);
     });
