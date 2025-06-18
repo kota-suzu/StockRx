@@ -589,7 +589,7 @@ class ReportPdfGenerator
     # CLAUDE.md準拠: 前月比計算実装
     # メタ認知: 実際のデータがある場合は前月データとの比較を実装
     previous_value = metric[:previous_value] || metric[:value] * 0.95  # 暫定実装: 5%減と仮定
-    
+
     change_percentage = if metric[:value] && previous_value && previous_value > 0
       ((metric[:value] - previous_value) / previous_value * 100).round(1)
     else
@@ -625,35 +625,35 @@ class ReportPdfGenerator
     begin
       # メタデータ設定
       set_pdf_metadata
-      
+
       # 標準コンテンツ生成
       create_header
       create_executive_summary
       create_key_metrics
       create_risk_analysis
-      
+
       # 新規追加：詳細テーブル
       @document.start_new_page
       create_low_stock_alert_table
       create_expired_items_detail_table
-      
+
       # 新規追加：グラフプレースホルダー
       @document.start_new_page
       create_inventory_trend_graph
       create_category_pie_chart
-      
+
       create_recommendations
       create_footer
-      
+
       # ページ番号追加
       add_page_numbers
-      
+
       # ブックマーク追加
       add_bookmarks
-      
+
       # 品質検証
       validation_results = validate_generated_pdf
-      
+
       {
         success: true,
         pdf_data: @document.render,
@@ -680,15 +680,15 @@ class ReportPdfGenerator
 
     # グラフエリアの枠線
     @document.stroke_color "CCCCCC"
-    @document.stroke_rectangle [0, @document.cursor], @document.bounds.width, 200
-    
-    @document.bounding_box([10, @document.cursor - 10], width: @document.bounds.width - 20, height: 180) do
+    @document.stroke_rectangle [ 0, @document.cursor ], @document.bounds.width, 200
+
+    @document.bounding_box([ 10, @document.cursor - 10 ], width: @document.bounds.width - 20, height: 180) do
       @document.font "Helvetica", style: :italic, size: 10
       @document.fill_color "999999"
       @document.text "在庫推移グラフ", align: :center, valign: :center
       @document.move_down 10
       @document.text "（将来的にgruff gemで実装予定）", align: :center, size: 8
-      
+
       # サンプルデータ表示
       if @report_data[:trend_data]
         @document.move_down 20
@@ -698,7 +698,7 @@ class ReportPdfGenerator
         end
       end
     end
-    
+
     @document.move_down 220
   end
 
@@ -710,28 +710,28 @@ class ReportPdfGenerator
 
     # 円グラフエリアの枠線
     @document.stroke_color "CCCCCC"
-    @document.stroke_rectangle [0, @document.cursor], @document.bounds.width / 2 - 10, 150
-    
+    @document.stroke_rectangle [ 0, @document.cursor ], @document.bounds.width / 2 - 10, 150
+
     # カテゴリテーブル
     if @report_data[:category_breakdown]
       category_data = [
-        ["カテゴリ", "商品数", "構成比"]
+        [ "カテゴリ", "商品数", "構成比" ]
       ]
-      
+
       total_items = @report_data[:category_breakdown].values.sum
       @report_data[:category_breakdown].each do |category, count|
         percentage = (count.to_f / total_items * 100).round(1)
-        category_data << [category, format_number(count), "#{percentage}%"]
+        category_data << [ category, format_number(count), "#{percentage}%" ]
       end
 
-      @document.bounding_box([@document.bounds.width / 2 + 10, @document.cursor], 
+      @document.bounding_box([ @document.bounds.width / 2 + 10, @document.cursor ],
                            width: @document.bounds.width / 2 - 10, height: 150) do
         @document.table(category_data,
           header: true,
           width: @document.bounds.width / 2 - 20,
           cell_style: {
             size: FONTS[:small][:size],
-            padding: [3, 5],
+            padding: [ 3, 5 ],
             border_width: 0.5,
             border_color: "DDDDDD"
           }
@@ -743,7 +743,7 @@ class ReportPdfGenerator
         end
       end
     end
-    
+
     @document.move_down 170
   end
 
@@ -756,18 +756,18 @@ class ReportPdfGenerator
 
     if @report_data[:low_stock_items]&.any?
       table_data = [
-        ["商品名", "現在庫", "安全在庫", "不足数", "推定損失"]
+        [ "商品名", "現在庫", "安全在庫", "不足数", "推定損失" ]
       ]
-      
+
       @report_data[:low_stock_items].first(15).each do |item|
         shortage = (item[:safety_stock] || 0) - (item[:current_stock] || 0)
         estimated_loss = shortage * (item[:price] || 0)
-        
+
         table_data << [
           item[:name] || "Unknown",
           format_number(item[:current_stock] || 0),
           format_number(item[:safety_stock] || 0),
-          format_number([shortage, 0].max),
+          format_number([ shortage, 0 ].max),
           format_currency(estimated_loss)
         ]
       end
@@ -777,7 +777,7 @@ class ReportPdfGenerator
         width: @document.bounds.width,
         cell_style: {
           size: FONTS[:small][:size],
-          padding: [4, 6],
+          padding: [ 4, 6 ],
           border_width: 0.5,
           border_color: "DDDDDD"
         }
@@ -787,7 +787,7 @@ class ReportPdfGenerator
           text_color: "92400E",
           font_style: :bold
         )
-        
+
         # 不足数列を強調
         column(3).style do |cell|
           if cell.row > 0 && cell.content.to_i > 0
@@ -799,7 +799,7 @@ class ReportPdfGenerator
     else
       @document.text "在庫不足の商品はありません。", size: FONTS[:body][:size], color: "6B7280"
     end
-    
+
     @document.move_down 20
   end
 
@@ -811,9 +811,9 @@ class ReportPdfGenerator
 
     if @report_data[:expired_items]&.any?
       table_data = [
-        ["商品名", "ロット番号", "期限日", "数量", "損失額", "処理状況"]
+        [ "商品名", "ロット番号", "期限日", "数量", "損失額", "処理状況" ]
       ]
-      
+
       @report_data[:expired_items].first(10).each do |item|
         table_data << [
           item[:name] || "Unknown",
@@ -830,7 +830,7 @@ class ReportPdfGenerator
         width: @document.bounds.width,
         cell_style: {
           size: FONTS[:small][:size],
-          padding: [4, 6],
+          padding: [ 4, 6 ],
           border_width: 0.5,
           border_color: "DDDDDD"
         }
@@ -840,7 +840,7 @@ class ReportPdfGenerator
           text_color: "991B1B",
           font_style: :bold
         )
-        
+
         # 処理状況列の色分け
         column(-1).style do |cell|
           if cell.row > 0
@@ -861,7 +861,7 @@ class ReportPdfGenerator
     else
       @document.text "期限切れ商品はありません。", size: FONTS[:body][:size], color: "6B7280"
     end
-    
+
     @document.move_down 20
   end
 
@@ -880,7 +880,7 @@ class ReportPdfGenerator
   # ページ番号追加
   def add_page_numbers
     @document.number_pages "Page <page> of <total>", {
-      at: [@document.bounds.right - 100, 0],
+      at: [ @document.bounds.right - 100, 0 ],
       width: 100,
       align: :right,
       size: 9,
@@ -917,7 +917,7 @@ class ReportPdfGenerator
 
     # コンテンツ検証
     validate_content_completeness(validation_results)
-    
+
     # 品質スコア計算
     validation_results[:quality_score] = calculate_quality_score(validation_results)
 
@@ -940,17 +940,17 @@ class ReportPdfGenerator
 
   def calculate_quality_score(validation_results)
     score = 100
-    
+
     # 減点項目
     score -= validation_results[:errors].count * 20
     score -= validation_results[:warnings].count * 5
-    
+
     # 加点項目
     score += 10 if validation_results[:metadata][:has_metadata]
     score += 10 if validation_results[:metadata][:has_bookmarks]
     score += 10 if validation_results[:metadata][:page_count].between?(2, 10)
-    
-    [score, 0].max
+
+    [ score, 0 ].max
   end
 
   # ヘルパーメソッド

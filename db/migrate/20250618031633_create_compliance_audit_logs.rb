@@ -16,11 +16,11 @@ class CreateComplianceAuditLogs < ActiveRecord::Migration[8.0]
     add_index :compliance_audit_logs, :compliance_standard, name: "index_compliance_audit_logs_on_compliance_standard"
     add_index :compliance_audit_logs, :severity, name: "index_compliance_audit_logs_on_severity"
     add_index :compliance_audit_logs, :created_at, name: "index_compliance_audit_logs_on_created_at"
-    add_index :compliance_audit_logs, [:compliance_standard, :severity], name: "index_compliance_audit_logs_on_standard_severity"
-    add_index :compliance_audit_logs, [:event_type, :created_at], name: "index_compliance_audit_logs_on_event_type_created_at"
-    
+    add_index :compliance_audit_logs, [ :compliance_standard, :severity ], name: "index_compliance_audit_logs_on_standard_severity"
+    add_index :compliance_audit_logs, [ :event_type, :created_at ], name: "index_compliance_audit_logs_on_event_type_created_at"
+
     # 重要イベント用の複合インデックス
-    add_index :compliance_audit_logs, [:severity, :compliance_standard, :created_at], 
+    add_index :compliance_audit_logs, [ :severity, :compliance_standard, :created_at ],
               where: "severity IN ('high', 'critical')",
               name: "index_compliance_audit_logs_critical_events"
   end

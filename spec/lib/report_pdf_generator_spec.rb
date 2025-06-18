@@ -477,11 +477,11 @@ RSpec.describe ReportPdfGenerator, type: :lib do
 
     describe 'PdfQualityValidator統合' do
       let(:validator) { PdfQualityValidator.new }
-      
+
       it 'PDF品質検証機能が統合されていること' do
         enhanced_result = generator.generate_enhanced
         validation_result = validator.validate_pdf_data(enhanced_result[:pdf_data])
-        
+
         expect(validation_result[:valid]).to be true
         expect(validation_result[:overall_score]).to be > 0
       end

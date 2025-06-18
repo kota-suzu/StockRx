@@ -6,7 +6,7 @@ require 'rails_helper'
 # ComplianceAuditLog モデルテスト
 # ============================================================================
 # CLAUDE.md準拠: Phase 1 セキュリティ機能強化
-# 
+#
 # 目的:
 #   - コンプライアンス監査ログ機能の包括的テスト
 #   - PCI DSS、GDPR準拠機能の検証
@@ -19,11 +19,10 @@ require 'rails_helper'
 # ============================================================================
 
 RSpec.describe ComplianceAuditLog, type: :model do
-  
   # ============================================================================
   # ファクトリとテストデータ
   # ============================================================================
-  
+
   let(:admin_user) { create(:admin, :headquarters_admin) }
   let(:store_user) { create(:store_user) }
   let(:valid_attributes) do

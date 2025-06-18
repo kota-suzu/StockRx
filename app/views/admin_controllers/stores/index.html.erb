@@ -230,59 +230,85 @@
                         <% end %>
                       </td>
                       <td class="text-center pe-4" style="min-width: 260px;">
-                        <div class="action-buttons-group d-flex justify-content-center gap-1" role="group" aria-label="店舗操作">
-                          <%# 詳細ボタン %>
+                        <%# CLAUDE.md準拠: 店舗側UIとの統一 - レスポンシブ対応とアクセシビリティ向上 %>
+                        <%# メタ認知: 管理者業務の効率化と直感的操作の実現 %>
+                        <%# 横展開: 店舗側index.html.erbと同様のUIパターン適用 %>
+                        
+                        <%# モバイル表示: 縦並びで文言付き %>
+                        <div class="btn-group-vertical btn-group-sm d-md-none" role="group" aria-label="店舗操作（モバイル）">
                           <%= link_to admin_store_path(store), 
-                                     class: "btn btn-primary btn-sm action-btn detail-btn",
-                                     title: "詳細表示",
-                                     data: { 
-                                       bs_toggle: "tooltip",
-                                       bs_placement: "top"
-                                     },
+                                     class: "btn btn-outline-primary btn-sm d-flex align-items-center",
+                                     title: "#{store.name}の詳細情報を確認",
+                                     data: { bs_toggle: "tooltip", bs_placement: "left" },
                                      "aria-label": "#{store.name}の詳細を表示" do %>
-                            <i class="bi bi-eye" aria-hidden="true"></i>
-                            <span class="btn-text d-none d-lg-inline ms-1">詳細</span>
+                            <i class="bi bi-eye me-1" aria-hidden="true"></i>詳細
                           <% end %>
                           
-                          <%# ダッシュボードボタン %>
                           <%= link_to dashboard_admin_store_path(store),
-                                     class: "btn btn-info btn-sm action-btn dashboard-btn",
-                                     title: "ダッシュボード",
-                                     data: { 
-                                       bs_toggle: "tooltip",
-                                       bs_placement: "top"
-                                     },
+                                     class: "btn btn-outline-info btn-sm d-flex align-items-center",
+                                     title: "#{store.name}のダッシュボードと分析データ",
+                                     data: { bs_toggle: "tooltip", bs_placement: "left" },
                                      "aria-label": "#{store.name}のダッシュボードを表示" do %>
-                            <i class="bi bi-graph-up" aria-hidden="true"></i>
-                            <span class="btn-text d-none d-lg-inline ms-1">分析</span>
+                            <i class="bi bi-graph-up me-1" aria-hidden="true"></i>分析
                           <% end %>
                           
-                          <%# 編集ボタン（権限チェック） %>
                           <% if current_admin.can_manage_store?(store) %>
                             <%= link_to edit_admin_store_path(store),
-                                       class: "btn btn-warning btn-sm action-btn edit-btn",
-                                       title: "編集",
-                                       data: { 
-                                         bs_toggle: "tooltip",
-                                         bs_placement: "top"
-                                       },
+                                       class: "btn btn-outline-warning btn-sm d-flex align-items-center",
+                                       title: "#{store.name}の設定を編集",
+                                       data: { bs_toggle: "tooltip", bs_placement: "left" },
                                        "aria-label": "#{store.name}を編集" do %>
-                              <i class="bi bi-pencil" aria-hidden="true"></i>
-                              <span class="btn-text d-none d-lg-inline ms-1">編集</span>
+                              <i class="bi bi-pencil me-1" aria-hidden="true"></i>編集
                             <% end %>
                           <% end %>
                           
-                          <%# 在庫一覧ボタン（管理者用詳細版） %>
                           <%= link_to admin_store_inventories_path(store),
-                                     class: "btn btn-success btn-sm action-btn inventory-btn",
-                                     title: "在庫一覧",
-                                     data: { 
-                                       bs_toggle: "tooltip",
-                                       bs_placement: "top"
-                                     },
+                                     class: "btn btn-outline-success btn-sm d-flex align-items-center",
+                                     title: "#{store.name}の在庫一覧と管理",
+                                     data: { bs_toggle: "tooltip", bs_placement: "left" },
                                      "aria-label": "#{store.name}の在庫一覧を表示" do %>
-                            <i class="bi bi-boxes" aria-hidden="true"></i>
-                            <span class="btn-text d-none d-lg-inline ms-1">在庫</span>
+                            <i class="bi bi-boxes me-1" aria-hidden="true"></i>在庫
+                          <% end %>
+                        </div>
+                        
+                        <%# デスクトップ表示: 横並びで効率的配置 %>
+                        <div class="btn-group d-none d-md-flex" role="group" aria-label="店舗操作（デスクトップ）">
+                          <%= link_to admin_store_path(store), 
+                                     class: "btn btn-outline-primary btn-sm d-flex align-items-center",
+                                     title: "#{store.name}の詳細情報を確認",
+                                     data: { bs_toggle: "tooltip", bs_placement: "top" },
+                                     "aria-label": "#{store.name}の詳細を表示" do %>
+                            <i class="bi bi-eye me-1" aria-hidden="true"></i>
+                            <span class="d-none d-lg-inline">詳細</span>
+                          <% end %>
+                          
+                          <%= link_to dashboard_admin_store_path(store),
+                                     class: "btn btn-outline-info btn-sm d-flex align-items-center",
+                                     title: "#{store.name}のダッシュボードと分析データ",
+                                     data: { bs_toggle: "tooltip", bs_placement: "top" },
+                                     "aria-label": "#{store.name}のダッシュボードを表示" do %>
+                            <i class="bi bi-graph-up me-1" aria-hidden="true"></i>
+                            <span class="d-none d-lg-inline">分析</span>
+                          <% end %>
+                          
+                          <% if current_admin.can_manage_store?(store) %>
+                            <%= link_to edit_admin_store_path(store),
+                                       class: "btn btn-outline-warning btn-sm d-flex align-items-center",
+                                       title: "#{store.name}の設定を編集",
+                                       data: { bs_toggle: "tooltip", bs_placement: "top" },
+                                       "aria-label": "#{store.name}を編集" do %>
+                              <i class="bi bi-pencil me-1" aria-hidden="true"></i>
+                              <span class="d-none d-lg-inline">編集</span>
+                            <% end %>
+                          <% end %>
+                          
+                          <%= link_to admin_store_inventories_path(store),
+                                     class: "btn btn-outline-success btn-sm d-flex align-items-center",
+                                     title: "#{store.name}の在庫一覧と管理",
+                                     data: { bs_toggle: "tooltip", bs_placement: "top" },
+                                     "aria-label": "#{store.name}の在庫一覧を表示" do %>
+                            <i class="bi bi-boxes me-1" aria-hidden="true"></i>
+                            <span class="d-none d-lg-inline">在庫</span>
                           <% end %>
                         </div>
                       </td>

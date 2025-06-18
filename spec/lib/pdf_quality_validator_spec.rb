@@ -9,7 +9,7 @@ RSpec.describe PdfQualityValidator do
   describe '#initialize' do
     it 'initializes with default validation results' do
       validator = described_class.new
-      
+
       expect(validator.instance_variable_get(:@validation_results)).to include(
         valid: true,
         errors: [],
@@ -28,7 +28,7 @@ RSpec.describe PdfQualityValidator do
       it 'returns validation results' do
         validator = described_class.new
         result = validator.validate_pdf_data(sample_pdf_data)
-        
+
         expect(result).to be_a(Hash)
         expect(result[:valid]).to be true
         expect(result[:metadata][:pdf_version]).to eq('1.4')
@@ -40,7 +40,7 @@ RSpec.describe PdfQualityValidator do
       it 'raises InvalidPdfError' do
         validator = described_class.new
         result = validator.validate_pdf_data(invalid_data)
-        
+
         expect(result[:valid]).to be false
         expect(result[:errors]).to include(match(/有効なPDFデータではありません/))
       end
@@ -50,7 +50,7 @@ RSpec.describe PdfQualityValidator do
       it 'returns invalid result' do
         validator = described_class.new
         result = validator.validate_pdf_data('')
-        
+
         expect(result[:valid]).to be false
         expect(result[:errors]).to include('PDFデータが空です')
       end
@@ -61,9 +61,9 @@ RSpec.describe PdfQualityValidator do
     it 'generates comprehensive quality report' do
       validator = described_class.new
       validator.validate_pdf_data(sample_pdf_data)
-      
+
       report = validator.generate_quality_report
-      
+
       expect(report).to include(:summary, :details, :scores, :metadata, :recommendations)
       expect(report[:summary]).to include(:valid, :score, :grade, :timestamp)
       expect(report[:summary][:grade]).to match(/[A-F]/)
@@ -104,11 +104,11 @@ RSpec.describe PdfQualityValidator do
     context 'when PDF processing fails' do
       it 'handles errors gracefully' do
         validator = described_class.new
-        
+
         # 異常なデータでテスト
         malformed_data = "%PDF-1.4\nmalformed content"
         result = validator.validate_pdf_data(malformed_data)
-        
+
         expect(result).to be_a(Hash)
         expect(result[:overall_score]).to be >= 0
       end

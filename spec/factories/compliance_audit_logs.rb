@@ -4,7 +4,7 @@
 # ComplianceAuditLog FactoryBot定義
 # ============================================================================
 # CLAUDE.md準拠: Phase 1 セキュリティ機能強化
-# 
+#
 # 目的:
 #   - テスト用ComplianceAuditLogデータの生成
 #   - 様々なシナリオに対応したファクトリ
@@ -21,11 +21,11 @@ FactoryBot.define do
     # ============================================================================
     # 基本属性
     # ============================================================================
-    
+
     event_type { 'data_access' }
     compliance_standard { 'PCI_DSS' }
     severity { 'medium' }
-    
+
     # 暗号化された詳細情報（テスト用）
     encrypted_details do
       # テスト環境では実際の暗号化の代わりにBase64エンコードを使用
@@ -38,14 +38,14 @@ FactoryBot.define do
       }
       Base64.strict_encode64(sample_details.to_json)
     end
-    
+
     # 改ざん防止用ハッシュ（テスト用）
     immutable_hash { Digest::SHA256.hexdigest("test_hash_#{SecureRandom.hex(16)}") }
 
     # ============================================================================
     # 関連付け
     # ============================================================================
-    
+
     # ポリモーフィック関連: デフォルトでAdminユーザー
     association :user, factory: :admin
 
@@ -57,7 +57,7 @@ FactoryBot.define do
     trait :pci_dss do
       compliance_standard { 'PCI_DSS' }
       event_type { 'card_data_access' }
-      
+
       encrypted_details do
         details = {
           action: 'credit_card_processing',
@@ -72,12 +72,12 @@ FactoryBot.define do
     trait :gdpr do
       compliance_standard { 'GDPR' }
       event_type { 'personal_data_access' }
-      
+
       encrypted_details do
         details = {
           action: 'personal_data_export',
           data_subject_id: Faker::Number.number(digits: 6),
-          data_categories: ['name', 'email', 'address'],
+          data_categories: [ 'name', 'email', 'address' ],
           legal_basis: 'legitimate_interest'
         }
         Base64.strict_encode64(details.to_json)
@@ -87,7 +87,7 @@ FactoryBot.define do
     trait :sox do
       compliance_standard { 'SOX' }
       event_type { 'financial_data_access' }
-      
+
       encrypted_details do
         details = {
           action: 'financial_report_generation',
@@ -102,7 +102,7 @@ FactoryBot.define do
     trait :hipaa do
       compliance_standard { 'HIPAA' }
       event_type { 'health_data_access' }
-      
+
       encrypted_details do
         details = {
           action: 'patient_record_access',
@@ -117,7 +117,7 @@ FactoryBot.define do
     trait :iso27001 do
       compliance_standard { 'ISO27001' }
       event_type { 'security_event' }
-      
+
       encrypted_details do
         details = {
           action: 'security_policy_update',
@@ -148,7 +148,7 @@ FactoryBot.define do
     trait :critical_severity do
       severity { 'critical' }
       event_type { 'data_breach' }
-      
+
       encrypted_details do
         details = {
           action: 'security_incident',
@@ -171,22 +171,22 @@ FactoryBot.define do
     end
 
     trait :headquarters_admin do
-      association :user, factory: [:admin, :headquarters_admin]
+      association :user, factory: [ :admin, :headquarters_admin ]
     end
 
     trait :store_manager do
-      association :user, factory: [:admin, :store_manager]
+      association :user, factory: [ :admin, :store_manager ]
     end
 
     trait :system_operation do
       user { nil }
       event_type { 'system_maintenance' }
-      
+
       encrypted_details do
         details = {
           action: 'automated_cleanup',
           system_component: 'log_rotation',
-          affected_tables: ['audit_logs', 'inventory_logs'],
+          affected_tables: [ 'audit_logs', 'inventory_logs' ],
           execution_time: Time.current.iso8601
         }
         Base64.strict_encode64(details.to_json)
@@ -197,7 +197,7 @@ FactoryBot.define do
     trait :login_attempt do
       event_type { 'login_attempt' }
       severity { 'medium' }
-      
+
       encrypted_details do
         details = {
           action: 'authentication_attempt',
@@ -214,13 +214,13 @@ FactoryBot.define do
       event_type { 'data_breach' }
       severity { 'critical' }
       compliance_standard { 'GDPR' }
-      
+
       encrypted_details do
         details = {
           action: 'security_incident',
           incident_id: Faker::Alphanumeric.alphanumeric(number: 12),
           breach_type: 'unauthorized_access',
-          affected_data_types: ['email', 'name', 'phone'],
+          affected_data_types: [ 'email', 'name', 'phone' ],
           discovered_at: Time.current.iso8601,
           reported_to_authority: false
         }
@@ -231,7 +231,7 @@ FactoryBot.define do
     trait :compliance_violation do
       event_type { 'compliance_violation' }
       severity { 'high' }
-      
+
       encrypted_details do
         details = {
           action: 'policy_violation',
@@ -294,7 +294,7 @@ FactoryBot.define do
       gdpr
       medium_severity
       store_manager
-      
+
       event_type { 'personal_data_processing' }
     end
 
@@ -302,7 +302,7 @@ FactoryBot.define do
     trait :system_admin_event do
       system_operation
       low_severity
-      
+
       compliance_standard { 'ISO27001' }
       event_type { 'system_configuration_change' }
     end
@@ -311,7 +311,7 @@ FactoryBot.define do
     trait :security_incident do
       critical_severity
       headquarters_admin
-      
+
       event_type { 'security_incident' }
       compliance_standard { %w[PCI_DSS GDPR ISO27001].sample }
     end

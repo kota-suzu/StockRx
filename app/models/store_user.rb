@@ -29,13 +29,19 @@ class StoreUser < ApplicationRecord
   # アソシエーション
   # ============================================
   belongs_to :store
-  
+
   # 監査ログ関連
   # CLAUDE.md準拠: ベストプラクティス - ポリモーフィック関連による柔軟な監査ログ管理
   # メタ認知: ComplianceAuditLogのuser関連付けがポリモーフィックなので、
   # 　　　　　StoreUserからも as: :user で関連付け可能
   # 横展開: Adminモデルと同様の関連付けパターン適用
   has_many :compliance_audit_logs, as: :user, dependent: :restrict_with_error
+
+  # 一時パスワード関連（メール認証機能）
+  # CLAUDE.md準拠: セキュリティ機能統合、カスケード削除による整合性保証
+  # メタ認知: 店舗ユーザー削除時に一時パスワードも安全に削除
+  # 横展開: 他の認証関連モデルと同様のdependent設定
+  has_many :temp_passwords, dependent: :destroy
 
   # ============================================
   # バリデーション

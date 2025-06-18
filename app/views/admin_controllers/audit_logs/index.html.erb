@@ -175,17 +175,16 @@
                       <td><%= truncate(log.message, length: 50) %></td>
                       <td><small><%= log.ip_address %></small></td>
                       <td class="text-center" style="min-width: 120px;">
-                        <div class="action-buttons-group d-flex justify-content-center">
+                        <%# CLAUDE.md準拠: 横展開修正 - 店舗側・他Admin画面との統一 %>
+                        <%# メタ認知: 監査ログ確認の効率化と操作性向上 %>
+                        <div class="btn-group" role="group" aria-label="監査ログ操作">
                           <%= link_to admin_audit_log_path(log), 
-                                      class: "btn btn-primary btn-sm action-btn detail-btn",
-                                      title: "詳細表示",
-                                      data: { 
-                                        bs_toggle: "tooltip",
-                                        bs_placement: "top"
-                                      },
+                                      class: "btn btn-outline-primary btn-sm d-flex align-items-center",
+                                      title: "監査ログの詳細情報と関連データを確認",
+                                      data: { bs_toggle: "tooltip", bs_placement: "top" },
                                       "aria-label": "監査ログ詳細を表示" do %>
-                            <i class="bi bi-eye" aria-hidden="true"></i>
-                            <span class="btn-text d-none d-lg-inline ms-1">詳細</span>
+                            <i class="bi bi-eye me-1" aria-hidden="true"></i>
+                            <span class="d-none d-lg-inline">詳細</span>
                           <% end %>
                         </div>
                       </td>

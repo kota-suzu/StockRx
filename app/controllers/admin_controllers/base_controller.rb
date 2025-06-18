@@ -37,10 +37,10 @@ module AdminControllers
     # - GDPR準拠の個人情報保護機能統合
     # - タイミング攻撃対策の自動適用
     # - 包括的な監査ログ記録機能
-    
+
     # 機密データアクセス時の監査ログ記録を設定
     audit_sensitive_access :show, :edit, :update, :destroy
-    
+
     # TODO: 将来的な機能拡張
     # - 管理者権限レベルによるアクセス制御（role-based authorization）
     # - 共通エラーハンドリング機能の実装

@@ -41,6 +41,26 @@ Rails.application.routes.draw do
   get "stores", to: "store_controllers/store_selection#index", as: :store_selection
   get "stores/:slug", to: "store_controllers/store_selection#show", as: :store_login_page
 
+  # ============================================
+  # Email Authentication Routes（一時パスワード認証）
+  # ============================================
+  # CLAUDE.md準拠: 店舗別認証システムとの統合
+  # 用途: パスワード忘れ・初回ログイン時の一時パスワード認証
+  # セキュリティ: レート制限・ブルートフォース対策統合
+  
+  # 店舗別の一時パスワード認証ルート（店舗スコープ付き）
+  # パス例: /stores/:store_slug/auth/email, /stores/:store_slug/auth/email/verify
+  scope :stores do
+    scope ":store_slug", store_slug: /[a-zA-Z0-9\-_]+/ do
+      scope :auth, module: :store_controllers do
+        get "email", to: "email_auth#new", as: :store_email_auth
+        post "email/request", to: "email_auth#request_temp_password", as: :store_request_temp_password
+        get "email/verify", to: "email_auth#verify_form", as: :store_verify_temp_password_form
+        post "email/verify", to: "email_auth#verify_temp_password", as: :store_verify_temp_password
+      end
+    end
+  end
+
   # 店舗別公開在庫一覧（認証不要）
   # CLAUDE.md準拠: メタ認知的設計 - 公開情報は限定的、詳細は認証エリア
   # TODO: Phase 2 - アクセス制御の段階的強化
@@ -81,6 +101,26 @@ Rails.application.routes.draw do
     resources :inventories, only: [ :index, :show ] do
       collection do
         get :search  # 在庫検索（認証不要）
+      end
+      
+      # 🔧 CLAUDE.md準拠: 調整・移動機能の追加
+      # メタ認知: 認証済みユーザー向けの在庫操作機能
+      # セキュリティ: コントローラー側で認証チェック実装
+      # ベストプラクティス: member アクションで個別在庫への操作
+      member do
+        # TODO: 🟡 Phase 3（重要）- 在庫調整機能実装
+        # 優先度: 高（店舗業務効率化）
+        # 実装内容: 実在庫数と帳簿在庫数の調整、棚卸し対応
+        # セキュリティ: 認証済みstore_userのみアクセス可能
+        patch :adjust           # 在庫調整（数量変更）
+        get :adjust_form        # 在庫調整フォーム表示
+        
+        # TODO: 🟡 Phase 3（重要）- 店舗間移動申請機能実装
+        # 優先度: 高（店舗連携強化）
+        # 実装内容: 他店舗への在庫移動申請・承認ワークフロー
+        # セキュリティ: 認証済みstore_userのみアクセス可能
+        post :request_transfer  # 移動申請作成
+        get :request_transfer_form  # 移動申請フォーム表示
       end
     end
   end

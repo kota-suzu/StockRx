@@ -467,6 +467,22 @@
                 }
               }
             });
+            
+            // 🔧 CLAUDE.md準拠: Bootstrap Tooltip初期化 - Admin画面でのUIアクセシビリティ向上
+            // メタ認知: 管理者アクションボタンのツールチップでユーザビリティ改善
+            // 横展開: 店舗画面と同様のツールチップ体験を管理者画面でも提供
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            if (tooltipTriggerList.length > 0) {
+              const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
+                try {
+                  return new bootstrap.Tooltip(tooltipTriggerEl);
+                } catch (e) {
+                  console.error('Admin Tooltip initialization failed:', e);
+                  return null;
+                }
+              });
+              console.log(`✅ Admin: Initialized ${tooltipList.filter(t => t !== null).length} tooltips`);
+            }
           }
         }, 100);
       });

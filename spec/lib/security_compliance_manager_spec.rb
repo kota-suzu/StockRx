@@ -53,7 +53,7 @@ RSpec.describe SecurityComplianceManager do
     it 'encrypts and decrypts data successfully' do
       encrypted = manager.encrypt_sensitive_data(test_data)
       decrypted = manager.decrypt_sensitive_data(encrypted)
-      
+
       expect(encrypted).not_to eq(test_data)
       expect(decrypted).to eq(test_data)
       expect(encrypted).to match(/^[A-Za-z0-9+\/]+=*$/) # Base64 format
@@ -62,12 +62,12 @@ RSpec.describe SecurityComplianceManager do
     it 'uses different encryption keys for different contexts' do
       encrypted1 = manager.encrypt_sensitive_data(test_data, context: 'card_data')
       encrypted2 = manager.encrypt_sensitive_data(test_data, context: 'personal_data')
-      
+
       expect(encrypted1).not_to eq(encrypted2)
-      
+
       decrypted1 = manager.decrypt_sensitive_data(encrypted1, context: 'card_data')
       decrypted2 = manager.decrypt_sensitive_data(encrypted2, context: 'personal_data')
-      
+
       expect(decrypted1).to eq(test_data)
       expect(decrypted2).to eq(test_data)
     end
@@ -90,10 +90,10 @@ RSpec.describe SecurityComplianceManager do
 
     it 'anonymizes personal data successfully' do
       result = manager.anonymize_personal_data(user)
-      
+
       expect(result[:success]).to be true
       expect(result[:anonymized_fields]).to include('name', 'email')
-      
+
       user.reload
       expect(user.name).not_to eq('Test User')
       expect(user.email).not_to eq('test@example.com')
@@ -103,7 +103,7 @@ RSpec.describe SecurityComplianceManager do
 
     it 'returns error for nil user' do
       result = manager.anonymize_personal_data(nil)
-      
+
       expect(result[:success]).to be false
       expect(result[:error]).to eq('ユーザーが見つかりません')
     end
@@ -153,14 +153,14 @@ RSpec.describe SecurityComplianceManager do
     it 'takes consistent time regardless of input' do
       # タイミング攻撃対策のテスト（実行時間の一貫性）
       times = []
-      
+
       10.times do
         start_time = Time.current
         manager.secure_compare('test_string', 'different_string')
         end_time = Time.current
         times << (end_time - start_time)
       end
-      
+
       # 実行時間のばらつきが小さいことを確認
       avg_time = times.sum / times.length
       times.each do |time|
@@ -174,7 +174,7 @@ RSpec.describe SecurityComplianceManager do
       start_time = Time.current
       manager.apply_authentication_delay(3, 'test_user')
       end_time = Time.current
-      
+
       # 3回目の試行では3秒の遅延が適用される
       expect(end_time - start_time).to be >= 3.0
       expect(end_time - start_time).to be < 3.2 # 多少のマージン
@@ -184,7 +184,7 @@ RSpec.describe SecurityComplianceManager do
       start_time = Time.current
       manager.apply_authentication_delay(1, 'test_user')
       end_time = Time.current
-      
+
       expect(end_time - start_time).to be < 0.1
     end
   end
@@ -210,7 +210,7 @@ RSpec.describe SecurityComplianceManager do
       5.times do
         manager.within_rate_limit?(action, identifier)
       end
-      
+
       # 制限を超えた場合はfalseを返す
       result = manager.within_rate_limit?(action, identifier)
       expect(result).to be false
@@ -234,7 +234,7 @@ RSpec.describe SecurityComplianceManager do
           }
         )
       }.to change(ComplianceAuditLog, :count).by(1)
-      
+
       log = ComplianceAuditLog.last
       expect(log.event_type).to eq('card_data_access')
       expect(log.compliance_standard).to eq('PCI_DSS')
@@ -249,12 +249,12 @@ RSpec.describe SecurityComplianceManager do
           'data_anonymization',
           admin_user,
           {
-            anonymized_fields: ['name', 'email'],
+            anonymized_fields: [ 'name', 'email' ],
             reason: 'user_request'
           }
         )
       }.to change(ComplianceAuditLog, :count).by(1)
-      
+
       log = ComplianceAuditLog.last
       expect(log.event_type).to eq('data_anonymization')
       expect(log.compliance_standard).to eq('GDPR')
@@ -264,7 +264,7 @@ RSpec.describe SecurityComplianceManager do
 
   describe '#process_data_deletion_request' do
     let(:user_with_logs) { create(:admin) }
-    
+
     before do
       # テスト用の在庫ログを作成
       create_list(:inventory_log, 3, admin: user_with_logs)
@@ -272,14 +272,14 @@ RSpec.describe SecurityComplianceManager do
 
     it 'processes data deletion request successfully' do
       result = manager.process_data_deletion_request(user_with_logs)
-      
+
       expect(result[:success]).to be true
       expect(result[:summary]).to include(:user_id, :request_type, :deleted_records)
     end
 
     it 'returns error for nil user' do
       result = manager.process_data_deletion_request(nil)
-      
+
       expect(result[:success]).to be false
       expect(result[:error]).to eq('ユーザーが見つかりません')
     end
@@ -296,7 +296,7 @@ RSpec.describe SecurityComplianceManager do
     it 'handles encryption errors gracefully' do
       # OpenSSLエラーをシミュレート
       allow(OpenSSL::Cipher).to receive(:new).and_raise(OpenSSL::Cipher::CipherError.new("Test error"))
-      
+
       expect {
         manager.encrypt_sensitive_data('test data')
       }.to raise_error(SecurityComplianceManager::EncryptionError, '暗号化に失敗しました')

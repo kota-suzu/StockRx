@@ -4,7 +4,7 @@
 # ComplianceAuditLog - コンプライアンス監査ログモデル
 # ============================================================================
 # CLAUDE.md準拠: セキュリティ機能強化
-# 
+#
 # 目的:
 #   - PCI DSS、GDPR等のコンプライアンス監査証跡管理
 #   - セキュリティイベントの追跡と分析
@@ -26,31 +26,31 @@ class ComplianceAuditLog < ApplicationRecord
   # バリデーション
   # ============================================================================
   validates :event_type, presence: true
-  validates :compliance_standard, presence: true, 
-            inclusion: { in: %w[PCI_DSS GDPR SOX HIPAA ISO27001], 
+  validates :compliance_standard, presence: true,
+            inclusion: { in: %w[PCI_DSS GDPR SOX HIPAA ISO27001],
                         message: "は有効なコンプライアンス標準である必要があります" }
   validates :severity, presence: true,
             inclusion: { in: %w[low medium high critical],
                         message: "は有効な重要度レベルである必要があります" }
   validates :encrypted_details, presence: true
-  
+
   # ============================================================================
   # エニューム
   # ============================================================================
   # Rails 8対応: 位置引数による enum 定義
   enum :compliance_standard, {
-    pci_dss: 'PCI_DSS',
-    gdpr: 'GDPR', 
-    sox: 'SOX',
-    hipaa: 'HIPAA',
-    iso27001: 'ISO27001'
+    pci_dss: "PCI_DSS",
+    gdpr: "GDPR",
+    sox: "SOX",
+    hipaa: "HIPAA",
+    iso27001: "ISO27001"
   }
 
   enum :severity, {
-    low: 'low',
-    medium: 'medium', 
-    high: 'high',
-    critical: 'critical'
+    low: "low",
+    medium: "medium",
+    high: "high",
+    critical: "critical"
   }
 
   # ============================================================================
@@ -61,18 +61,18 @@ class ComplianceAuditLog < ApplicationRecord
   scope :by_severity, ->(severity) { where(severity: severity) }
   scope :by_event_type, ->(event_type) { where(event_type: event_type) }
   scope :within_period, ->(start_date, end_date) { where(created_at: start_date..end_date) }
-  scope :critical_events, -> { where(severity: ['high', 'critical']) }
+  scope :critical_events, -> { where(severity: [ "high", "critical" ]) }
 
   # 特定期間の重要イベント
-  scope :compliance_violations, -> { 
-    where(event_type: ['unauthorized_access', 'data_breach', 'compliance_violation']) 
+  scope :compliance_violations, -> {
+    where(event_type: [ "unauthorized_access", "data_breach", "compliance_violation" ])
   }
 
   # PCI DSS関連ログ
-  scope :pci_dss_events, -> { by_compliance_standard('PCI_DSS') }
-  
+  scope :pci_dss_events, -> { by_compliance_standard("PCI_DSS") }
+
   # GDPR関連ログ
-  scope :gdpr_events, -> { by_compliance_standard('GDPR') }
+  scope :gdpr_events, -> { by_compliance_standard("GDPR") }
 
   # ============================================================================
   # コールバック
@@ -89,12 +89,12 @@ class ComplianceAuditLog < ApplicationRecord
   # @return [Hash] 復号化された詳細情報
   def decrypted_details
     return {} if encrypted_details.blank?
-    
+
     begin
       security_manager = SecurityComplianceManager.instance
       decrypted_json = security_manager.decrypt_sensitive_data(
-        encrypted_details, 
-        context: 'audit_logs'
+        encrypted_details,
+        context: "audit_logs"
       )
       JSON.parse(decrypted_json)
     rescue => e
@@ -108,19 +108,19 @@ class ComplianceAuditLog < ApplicationRecord
   def safe_details
     details = decrypted_details
     return details if details.key?(:error)
-    
+
     # 機密情報をマスク
     security_manager = SecurityComplianceManager.instance
-    
-    if details['card_number']
-      details['card_number'] = security_manager.mask_credit_card(details['card_number'])
+
+    if details["card_number"]
+      details["card_number"] = security_manager.mask_credit_card(details["card_number"])
     end
-    
+
     # パスワード等の完全除去
-    details.delete('password')
-    details.delete('password_confirmation')
-    details.delete('access_token')
-    
+    details.delete("password")
+    details.delete("password_confirmation")
+    details.delete("access_token")
+
     details
   end
 
@@ -128,7 +128,7 @@ class ComplianceAuditLog < ApplicationRecord
   # @return [Boolean] 整合性が保たれているかどうか
   def integrity_verified?
     return false if immutable_hash.blank?
-    
+
     current_hash = calculate_integrity_hash
     secure_compare(immutable_hash, current_hash)
   end
@@ -144,7 +144,7 @@ class ComplianceAuditLog < ApplicationRecord
       severity: severity,
       user_id: user_id,
       user_role: user&.role,
-      verification_status: integrity_verified? ? 'verified' : 'compromised',
+      verification_status: integrity_verified? ? "verified" : "compromised",
       retention_expires_at: retention_expiry_date
     }
   end
@@ -153,11 +153,11 @@ class ComplianceAuditLog < ApplicationRecord
   # @return [Date] 保持期限日
   def retention_expiry_date
     case compliance_standard
-    when 'PCI_DSS'
+    when "PCI_DSS"
       created_at + 1.year
-    when 'GDPR'
+    when "GDPR"
       created_at + 2.years
-    when 'SOX'
+    when "SOX"
       created_at + 7.years
     else
       created_at + 1.year
@@ -183,13 +183,13 @@ class ComplianceAuditLog < ApplicationRecord
   # @return [ComplianceAuditLog] 作成された監査ログ
   def self.log_security_event(event_type, user, compliance_standard, severity, details = {})
     security_manager = SecurityComplianceManager.instance
-    
+
     # 詳細情報を暗号化
     encrypted_details = security_manager.encrypt_sensitive_data(
       details.to_json,
-      context: 'audit_logs'
+      context: "audit_logs"
     )
-    
+
     create!(
       event_type: event_type,
       user: user,
@@ -211,7 +211,7 @@ class ComplianceAuditLog < ApplicationRecord
     logs = by_compliance_standard(compliance_standard)
            .within_period(start_date, end_date)
            .includes(:user)
-    
+
     {
       compliance_standard: compliance_standard,
       report_period: {
@@ -240,22 +240,22 @@ class ComplianceAuditLog < ApplicationRecord
   # @param dry_run [Boolean] ドライランモードかどうか
   # @return [Hash] クリーンアップ結果
   def self.cleanup_expired_logs(dry_run: true)
-    expired_logs = where('created_at < ?', 1.year.ago)
-    
+    expired_logs = where("created_at < ?", 1.year.ago)
+
     result = {
       total_expired: expired_logs.count,
       by_compliance_standard: expired_logs.group(:compliance_standard).count,
       dry_run: dry_run
     }
-    
+
     unless dry_run
       # 実際のクリーンアップ実行
       deleted_count = expired_logs.delete_all
       result[:deleted_count] = deleted_count
-      
+
       Rails.logger.info "Cleaned up #{deleted_count} expired compliance audit logs"
     end
-    
+
     result
   end
 
@@ -264,10 +264,10 @@ class ComplianceAuditLog < ApplicationRecord
   # @return [Hash] チェック結果
   def self.verify_integrity_batch(limit: 1000)
     logs = recent.limit(limit)
-    
+
     verified_count = 0
     compromised_logs = []
-    
+
     logs.find_each do |log|
       if log.integrity_verified?
         verified_count += 1
@@ -275,7 +275,7 @@ class ComplianceAuditLog < ApplicationRecord
         compromised_logs << log.id
       end
     end
-    
+
     {
       total_checked: logs.count,
       verified_count: verified_count,
@@ -305,13 +305,13 @@ class ComplianceAuditLog < ApplicationRecord
       severity,
       encrypted_details,
       created_at&.to_f
-    ].compact.join('|')
-    
+    ].compact.join("|")
+
     Digest::SHA256.hexdigest(hash_input)
   end
 
   # 定数時間での文字列比較
-  # @param str1 [String] 比較文字列1  
+  # @param str1 [String] 比較文字列1
   # @param str2 [String] 比較文字列2
   # @return [Boolean] 比較結果
   def secure_compare(str1, str2)
@@ -321,7 +321,7 @@ class ComplianceAuditLog < ApplicationRecord
   # レコード変更の防止
   def prevent_modification
     return if new_record?
-    
+
     Rails.logger.warn "Attempt to modify immutable compliance audit log #{id}"
     errors.add(:base, "監査ログは変更できません")
     throw :abort

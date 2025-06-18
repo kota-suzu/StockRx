@@ -60,8 +60,8 @@ class MailDeliveryTester
     import_result = {
       valid_count: 150,
       invalid_records: [
-        { row: 5, errors: ["価格が不正です"] },
-        { row: 12, errors: ["商品名が空です"] }
+        { row: 5, errors: [ "価格が不正です" ] },
+        { row: 12, errors: [ "商品名が空です" ] }
       ]
     }
 
@@ -125,7 +125,7 @@ class MailDeliveryTester
 
   def create_sample_inventories(count, options = {})
     inventories = []
-    
+
     count.times do |i|
       inventory = {
         id: i + 1,
@@ -133,23 +133,23 @@ class MailDeliveryTester
         quantity: options[:quantity] || rand(1..10),
         price: rand(100..1000)
       }
-      
+
       if options[:expiring]
         inventory[:expires_on] = Date.current + rand(1..7).days
       elsif options[:expired]
         inventory[:expires_on] = Date.current - rand(1..30).days
       end
-      
+
       inventories << OpenStruct.new(inventory)
     end
-    
+
     inventories
   end
 
   def create_sample_report_file
     # 一時的なレポートファイルを作成
     temp_file = Rails.root.join("tmp", "sample_report_#{Time.current.strftime('%Y%m%d_%H%M%S')}.pdf")
-    
+
     File.write(temp_file, "Sample Report Content")
     temp_file.to_s
   end
@@ -170,7 +170,7 @@ class MailDeliveryTester
       performance_metrics: {
         average_turnover: 4.2,
         best_performing_category: "電子機器",
-        improvement_areas: ["在庫回転率", "期限管理"]
+        improvement_areas: [ "在庫回転率", "期限管理" ]
       }
     }
   end
@@ -184,20 +184,20 @@ class MailDeliveryTester
     when 'letter_opener'
       puts "🌐 Letter Opener: メールが自動でブラウザに表示されます"
       puts "📝 Letter Opener Web: http://localhost:3000/letter_opener"
-      
+
     when 'smtp'
       smtp_address = ENV.fetch('SMTP_ADDRESS', 'localhost')
       smtp_port = ENV.fetch('SMTP_PORT', '1025')
       web_port = smtp_port.to_i + 7000  # 通常 8025
-      
+
       puts "📨 SMTP サーバー: #{smtp_address}:#{smtp_port}"
       puts "🌐 Web UI (MailHog): http://localhost:#{web_port}"
       puts "🌐 Web UI (MailTrap): http://localhost:#{web_port}"
-      
+
     when 'test'
       puts "📝 テストモード: メールは送信されていません"
       puts "📊 ActionMailer::Base.deliveries で確認可能"
-      
+
     when 'log'
       puts "📝 ログモード: メール内容がログに出力されています"
       puts "📂 ログファイル: log/development.log"
@@ -214,4 +214,4 @@ end
 # スクリプト実行
 if __FILE__ == $0
   MailDeliveryTester.run
-end 
+end

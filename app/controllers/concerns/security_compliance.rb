@@ -4,7 +4,7 @@
 # SecurityCompliance - セキュリティコンプライアンス制御Concern
 # ============================================================================
 # CLAUDE.md準拠: セキュリティ機能強化
-# 
+#
 # 目的:
 #   - コントローラー横断でのセキュリティ制御統一
 #   - PCI DSS、GDPR準拠機能の一元化
@@ -24,10 +24,10 @@ module SecurityCompliance
     before_action :log_security_access
     before_action :apply_rate_limiting
     before_action :validate_security_headers
-    
+
     # タイミング攻撃対策のafter_action
     after_action :apply_timing_protection
-    
+
     # セキュリティマネージャーのインスタンス
     attr_reader :security_manager
   end
@@ -76,7 +76,7 @@ module SecurityCompliance
   # セキュリティアクセスログの記録
   def log_security_access
     initialize_security_manager
-    
+
     # 基本的なアクセス情報を記録
     security_details = {
       controller: controller_name,
@@ -87,7 +87,7 @@ module SecurityCompliance
       request_method: request.method,
       timestamp: Time.current.iso8601
     }
-    
+
     # 認証済みユーザーの場合は追加情報
     if current_user_for_security
       security_details.merge!(
@@ -96,14 +96,14 @@ module SecurityCompliance
         session_id: session.id
       )
     end
-    
+
     # 管理者エリアアクセスの場合は高重要度でログ記録
-    severity = controller_name.start_with?('admin_controllers') ? 'medium' : 'low'
-    
+    severity = controller_name.start_with?("admin_controllers") ? "medium" : "low"
+
     ComplianceAuditLog.log_security_event(
-      'controller_access',
+      "controller_access",
       current_user_for_security,
-      'PCI_DSS',
+      "PCI_DSS",
       severity,
       security_details
     )
@@ -112,20 +112,20 @@ module SecurityCompliance
   # レート制限の適用
   def apply_rate_limiting
     initialize_security_manager
-    
+
     identifier = current_user_for_security&.id || request.remote_ip
     action_key = "#{controller_name}##{action_name}"
-    
+
     unless @security_manager.within_rate_limit?(action_key, identifier)
-      log_security_violation('rate_limit_exceeded', {
+      log_security_violation("rate_limit_exceeded", {
         action: action_key,
-        identifier_type: current_user_for_security ? 'user' : 'ip'
+        identifier_type: current_user_for_security ? "user" : "ip"
       })
-      
-      render json: { 
-        error: 'レート制限を超過しました。しばらく時間をおいてからもう一度お試しください。' 
+
+      render json: {
+        error: "レート制限を超過しました。しばらく時間をおいてからもう一度お試しください。"
       }, status: :too_many_requests
-      return false
+      false
     end
   end
 
@@ -133,40 +133,40 @@ module SecurityCompliance
   def validate_security_headers
     # CSRF保護の確認
     unless request.get? || request.head? || verified_request?
-      log_security_violation('csrf_token_mismatch', {
+      log_security_violation("csrf_token_mismatch", {
         expected_token: form_authenticity_token,
-        provided_token: params[:authenticity_token] || request.headers['X-CSRF-Token']
+        provided_token: params[:authenticity_token] || request.headers["X-CSRF-Token"]
       })
-      
+
       respond_to do |format|
-        format.html { redirect_to root_path, alert: 'セキュリティ検証に失敗しました。' }
-        format.json { render json: { error: 'Invalid CSRF token' }, status: :forbidden }
+        format.html { redirect_to root_path, alert: "セキュリティ検証に失敗しました。" }
+        format.json { render json: { error: "Invalid CSRF token" }, status: :forbidden }
       end
-      return false
+      false
     end
   end
 
   # PCI DSS保護の実施
   def enforce_pci_dss_protection
     initialize_security_manager
-    
+
     # クレジットカード情報を含む可能性のあるパラメータをチェック
     sensitive_params = detect_card_data_params
-    
+
     if sensitive_params.any?
       # PCI DSS監査ログ記録
       @security_manager.log_pci_dss_event(
-        'sensitive_data_access',
+        "sensitive_data_access",
         current_user_for_security,
         {
           controller: controller_name,
           action: action_name,
           sensitive_params: sensitive_params.keys,
           ip_address: request.remote_ip,
-          result: 'access_granted'
+          result: "access_granted"
         }
       )
-      
+
       # パラメータの暗号化（必要に応じて）
       encrypt_sensitive_params(sensitive_params)
     end
@@ -175,10 +175,10 @@ module SecurityCompliance
   # GDPR保護の実施
   def enforce_gdpr_protection
     initialize_security_manager
-    
+
     # 個人データアクセスの記録
     @security_manager.log_gdpr_event(
-      'personal_data_access',
+      "personal_data_access",
       current_user_for_security,
       {
         controller: controller_name,
@@ -188,13 +188,13 @@ module SecurityCompliance
         ip_address: request.remote_ip
       }
     )
-    
+
     # GDPRオプトアウトユーザーのチェック
     if gdpr_opt_out_user?
-      render json: { 
-        error: 'GDPR規制により、このデータにアクセスできません。' 
+      render json: {
+        error: "GDPR規制により、このデータにアクセスできません。"
       }, status: :forbidden
-      return false
+      false
     end
   end
 
@@ -204,15 +204,15 @@ module SecurityCompliance
 
   # タイミング攻撃対策の適用
   def apply_timing_protection
-    return unless response.status.in?([401, 403, 422])
-    
+    return unless response.status.in?([ 401, 403, 422 ])
+
     initialize_security_manager
-    
+
     # 認証失敗時の遅延処理
     if response.status == 401
       apply_authentication_delay
     end
-    
+
     # レスポンス時間の正規化
     normalize_response_timing
   end
@@ -226,7 +226,7 @@ module SecurityCompliance
     start_time = Time.current
     access_granted = false
     error_occurred = false
-    
+
     begin
       yield
       access_granted = true
@@ -237,13 +237,13 @@ module SecurityCompliance
     ensure
       end_time = Time.current
       duration = (end_time - start_time) * 1000 # ミリ秒
-      
+
       # 詳細な監査ログ記録
       ComplianceAuditLog.log_security_event(
-        'sensitive_data_access_complete',
+        "sensitive_data_access_complete",
         current_user_for_security,
-        'PCI_DSS',
-        error_occurred ? 'high' : 'medium',
+        "PCI_DSS",
+        error_occurred ? "high" : "medium",
         {
           controller: controller_name,
           action: action_name,
@@ -274,19 +274,19 @@ module SecurityCompliance
       cvv: /cvv|cvc|security[_\-]?code/i,
       expiry: /expir|exp[_\-]?date|valid[_\-]?thru/i
     }
-    
+
     detected = {}
-    
+
     params.each do |key, value|
       next if value.blank?
-      
+
       sensitive_patterns.each do |type, pattern|
         if key.match?(pattern) || value.to_s.match?(/^\d{13,19}$/)
           detected[key] = type
         end
       end
     end
-    
+
     detected
   end
 
@@ -296,18 +296,18 @@ module SecurityCompliance
     sensitive_params.each do |key, type|
       original_value = params[key]
       next if original_value.blank?
-      
+
       # PCI DSS準拠の暗号化
       encrypted_value = @security_manager.encrypt_sensitive_data(
         original_value,
-        context: 'card_data'
+        context: "card_data"
       )
-      
+
       # パラメータを暗号化済みの値に置換
       params[key] = encrypted_value
-      
+
       # リクエストログから元の値を除外
-      request.filtered_parameters[key] = '[ENCRYPTED]'
+      request.filtered_parameters[key] = "[ENCRYPTED]"
     end
   end
 
@@ -316,11 +316,11 @@ module SecurityCompliance
   def determine_legal_basis
     case controller_name
     when /admin/
-      'legitimate_interest'
+      "legitimate_interest"
     when /store/
-      'contract_performance'
+      "contract_performance"
     else
-      'consent'
+      "consent"
     end
   end
 
@@ -328,11 +328,11 @@ module SecurityCompliance
   # @return [Hash] データ主体情報
   def determine_data_subject
     if params[:user_id]
-      { type: 'user', id: params[:user_id] }
-    elsif params[:id] && controller_name.include?('user')
-      { type: 'user', id: params[:id] }
+      { type: "user", id: params[:user_id] }
+    elsif params[:id] && controller_name.include?("user")
+      { type: "user", id: params[:id] }
     else
-      { type: 'unknown' }
+      { type: "unknown" }
     end
   end
 
@@ -347,7 +347,7 @@ module SecurityCompliance
   def apply_authentication_delay
     session[:auth_attempts] = (session[:auth_attempts] || 0) + 1
     identifier = current_user_for_security&.id || request.remote_ip
-    
+
     @security_manager.apply_authentication_delay(
       session[:auth_attempts],
       identifier
@@ -360,7 +360,7 @@ module SecurityCompliance
     # タイミング攻撃を防ぐため
     start_time = @_action_start_time || Time.current
     elapsed = Time.current - start_time
-    
+
     # 最小レスポンス時間を確保
     min_time = 0.1 # 100ms
     if elapsed < min_time
@@ -375,8 +375,8 @@ module SecurityCompliance
     ComplianceAuditLog.log_security_event(
       violation_type,
       current_user_for_security,
-      'PCI_DSS',
-      'high',
+      "PCI_DSS",
+      "high",
       details.merge(
         controller: controller_name,
         action: action_name,

@@ -6,7 +6,7 @@ require 'rails_helper'
 # ComplianceAuditLogsHelper テスト
 # ============================================================================
 # CLAUDE.md準拠: Phase 1 セキュリティ機能強化
-# 
+#
 # 目的:
 #   - コンプライアンス監査ログヘルパー機能のテスト
 #   - 表示フォーマット機能の検証
@@ -19,11 +19,10 @@ require 'rails_helper'
 # ============================================================================
 
 RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
-  
   # ============================================================================
   # テストデータ
   # ============================================================================
-  
+
   let(:admin_user) { create(:admin, :headquarters_admin, name: 'テスト管理者') }
   let(:store_user) { create(:store_user, name: 'テスト店舗ユーザー') }
   let(:compliance_log) { create(:compliance_audit_log, user: admin_user) }
@@ -112,7 +111,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
       })
 
       result = helper.safe_details_for_display(log_with_details)
-      
+
       expect(result).to include('タイムスタンプ')
       expect(result).to include('アクション')
       expect(result).to include('結果')
@@ -126,7 +125,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
 
     it 'handles errors gracefully' do
       allow(compliance_log).to receive(:safe_details).and_raise(StandardError.new('Test error'))
-      
+
       result = helper.safe_details_for_display(compliance_log)
       expect(result['エラー']).to eq('詳細情報の取得に失敗しました')
     end
@@ -137,7 +136,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
       it 'formats admin user with store info' do
         admin_with_store = create(:admin, :store_manager, name: 'テスト管理者')
         result = helper.format_user_for_display(admin_with_store)
-        
+
         expect(result).to include('テスト管理者')
         expect(result).to include(admin_with_store.store.name)
         expect(result).to include('店舗管理者')
@@ -146,7 +145,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
       it 'formats headquarters admin' do
         hq_admin = create(:admin, :headquarters_admin, name: '本部管理者', store: nil)
         result = helper.format_user_for_display(hq_admin)
-        
+
         expect(result).to include('本部管理者')
         expect(result).to include('(本部)')
         expect(result).to include('本部管理者')
@@ -156,7 +155,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
     context 'with StoreUser' do
       it 'formats store user correctly' do
         result = helper.format_user_for_display(store_user)
-        
+
         expect(result).to include('テスト店舗ユーザー')
         expect(result).to include(store_user.store.name)
         expect(result).to include('スタッフ') # デフォルトrole
@@ -188,7 +187,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
     it 'formats datetime with relative time' do
       log = create(:compliance_audit_log, created_at: 2.hours.ago)
       result = helper.format_audit_datetime(log)
-      
+
       expect(result).to include(log.created_at.strftime('%Y年%m月%d日 %H:%M:%S'))
       expect(result).to include('前')
     end
@@ -209,7 +208,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
     it 'shows days remaining for active logs' do
       log = create(:compliance_audit_log, :pci_dss)
       result = helper.format_retention_status(log)
-      
+
       expect(result).to include('まで')
       expect(result).to include('あと')
       expect(result).to include('日')
@@ -218,7 +217,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
     it 'shows expired status for old logs' do
       log = create(:compliance_audit_log, :expired_retention)
       result = helper.format_retention_status(log)
-      
+
       # content_tagを使用した結果をテスト
       expect(result).to include('期限切れ')
       expect(result).to include('text-danger')
@@ -242,7 +241,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
     it 'groups logs by compliance standard and severity' do
       logs = ComplianceAuditLog.all
       summary = helper.compliance_summary_by_standard(logs)
-      
+
       expect(summary['PCI_DSS'][:total]).to eq(2)
       expect(summary['PCI_DSS'][:by_severity]['high']).to eq(1)
       expect(summary['PCI_DSS'][:by_severity]['medium']).to eq(1)
@@ -258,7 +257,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
     it 'calculates severity statistics with percentages' do
       logs = ComplianceAuditLog.all
       stats = helper.severity_statistics(logs)
-      
+
       expect(stats['high'][:count]).to eq(3)
       expect(stats['high'][:percentage]).to eq(60.0)
       expect(stats['medium'][:count]).to eq(2)
@@ -278,7 +277,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
     it 'returns daily activity trend' do
       logs = ComplianceAuditLog.all
       trend = helper.activity_trend(logs, :daily)
-      
+
       expect(trend).to be_a(Hash)
       expect(trend.values.sum).to eq(5)
     end
@@ -286,14 +285,14 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
     it 'returns weekly activity trend' do
       logs = ComplianceAuditLog.all
       trend = helper.activity_trend(logs, :weekly)
-      
+
       expect(trend).to be_a(Hash)
     end
 
     it 'returns empty hash for unknown period' do
       logs = ComplianceAuditLog.all
       trend = helper.activity_trend(logs, :unknown)
-      
+
       expect(trend).to eq({})
     end
   end
@@ -306,50 +305,50 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
     it 'formats compliance standard condition' do
       params = { compliance_standard: 'PCI_DSS' }
       conditions = helper.format_search_conditions(params)
-      
+
       expect(conditions).to include('標準: PCI DSS (クレジットカード情報保護)')
     end
 
     it 'formats severity condition' do
       params = { severity: 'high' }
       conditions = helper.format_search_conditions(params)
-      
+
       expect(conditions).to include('重要度: 高')
     end
 
     it 'formats event type condition' do
       params = { event_type: 'data_access' }
       conditions = helper.format_search_conditions(params)
-      
+
       expect(conditions).to include('イベント: データアクセス')
     end
 
     it 'formats date range conditions' do
       params = { start_date: '2024-01-01', end_date: '2024-01-31' }
       conditions = helper.format_search_conditions(params)
-      
+
       expect(conditions).to include('期間: 2024-01-01 〜 2024-01-31')
     end
 
     it 'formats start date only' do
       params = { start_date: '2024-01-01' }
       conditions = helper.format_search_conditions(params)
-      
+
       expect(conditions).to include('開始日: 2024-01-01 以降')
     end
 
     it 'formats end date only' do
       params = { end_date: '2024-01-31' }
       conditions = helper.format_search_conditions(params)
-      
+
       expect(conditions).to include('終了日: 2024-01-31 以前')
     end
 
     it 'returns default when no conditions' do
       params = {}
       conditions = helper.format_search_conditions(params)
-      
-      expect(conditions).to eq(['すべて'])
+
+      expect(conditions).to eq([ 'すべて' ])
     end
 
     it 'combines multiple conditions' do
@@ -359,7 +358,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
         event_type: 'data_breach'
       }
       conditions = helper.format_search_conditions(params)
-      
+
       expect(conditions.length).to eq(3)
       expect(conditions).to include('標準: GDPR (EU一般データ保護規則)')
       expect(conditions).to include('重要度: 緊急')
@@ -376,7 +375,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
       it 'formats timestamp values' do
         details = { 'timestamp' => '2024-01-01T12:00:00Z' }
         log = double('Log', safe_details: details)
-        
+
         result = helper.safe_details_for_display(log)
         expect(result['タイムスタンプ']).to include('2024年01月01日')
       end
@@ -384,7 +383,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
       it 'formats result values' do
         details = { 'result' => 'success' }
         log = double('Log', safe_details: details)
-        
+
         result = helper.safe_details_for_display(log)
         expect(result['結果']).to eq('成功')
       end
@@ -392,7 +391,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
       it 'formats legal basis values' do
         details = { 'legal_basis' => 'legitimate_interest' }
         log = double('Log', safe_details: details)
-        
+
         result = helper.safe_details_for_display(log)
         expect(result['法的根拠']).to eq('正当な利益')
       end
@@ -408,7 +407,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
 
     it 'handles large datasets efficiently' do
       logs = ComplianceAuditLog.all
-      
+
       expect {
         helper.compliance_summary_by_standard(logs)
         helper.severity_statistics(logs)
@@ -424,7 +423,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
   describe 'error handling' do
     it 'handles malformed data gracefully' do
       malformed_log = double('Log', safe_details: nil)
-      
+
       expect {
         helper.safe_details_for_display(malformed_log)
       }.not_to raise_error
@@ -432,7 +431,7 @@ RSpec.describe AdminControllers::ComplianceAuditLogsHelper, type: :helper do
 
     it 'handles missing associations gracefully' do
       log_without_user = create(:compliance_audit_log, user: nil)
-      
+
       expect {
         helper.format_user_for_display(log_without_user.user)
       }.not_to raise_error
