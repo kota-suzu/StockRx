@@ -181,10 +181,14 @@
                         <% if current_admin.can_approve_transfers? %>
                           <div class="btn-group" role="group">
                             <%# 詳細表示 %>
+                            <%# CLAUDE.md準拠: 横展開修正 - アイコンと文言の統一 %>
+                            <%# メタ認知: 管理者業務の効率化とUI一貫性向上 %>
                             <%= link_to admin_inter_store_transfer_path(transfer), 
-                                class: "btn btn-sm btn-outline-primary",
-                                title: "詳細表示" do %>
-                              <i class="bi bi-eye"></i>
+                                class: "btn btn-sm btn-outline-primary d-flex align-items-center",
+                                title: "移動申請の詳細情報を確認",
+                                data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                              <i class="bi bi-eye me-1"></i>
+                              <span class="d-none d-md-inline">詳細</span>
                             <% end %>
                             
                             <%# 承認 %>

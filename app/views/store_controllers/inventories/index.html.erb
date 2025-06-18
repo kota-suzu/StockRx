@@ -281,22 +281,69 @@
                 </td>
                 
                 <td class="text-end">
-                  <div class="btn-group" role="group">
-                    <%# 横展開: 詳細表示ボタンも同様に修正 %>
+                  <%# CLAUDE.md準拠: アクセシビリティとユーザビリティ向上 %>
+                  <%# メタ認知: 文言追加により操作内容が明確化、業務効率向上 %>
+                  <%# ベストプラクティス: レスポンシブ対応と直感的なUI設計 %>
+                  <div class="btn-group-vertical btn-group-sm d-md-none" role="group" aria-label="在庫アクション（モバイル）">
+                    <%# モバイル表示: 縦並びで文言付き %>
                     <%= link_to "/store/inventories/#{store_inventory.inventory.id}", 
                                 class: "btn btn-outline-primary btn-sm",
-                                title: "詳細表示" do %>
-                      <i class="bi bi-eye"></i>
+                                title: "在庫詳細情報と履歴を確認",
+                                data: { bs_toggle: "tooltip", bs_placement: "left" } do %>
+                      <i class="bi bi-eye me-1"></i>詳細
                     <% end %>
                     
                     <%# TODO: 🟡 Phase 3（重要）- 在庫調整機能 %>
-                    <button class="btn btn-outline-warning btn-sm" disabled title="在庫調整（実装予定）">
-                      <i class="bi bi-pencil"></i>
+                    <%# 優先度: 中（業務効率化） %>
+                    <%# 実装内容: 実在庫数と帳簿在庫数の調整・棚卸し機能 %>
+                    <%# 期待効果: 正確な在庫管理と業務効率向上 %>
+                    <button class="btn btn-outline-warning btn-sm" 
+                            disabled 
+                            title="在庫数量の調整機能（近日実装予定）"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="left">
+                      <i class="bi bi-pencil me-1"></i>調整
                     </button>
                     
                     <%# TODO: 🟡 Phase 3（重要）- 移動申請機能 %>
-                    <button class="btn btn-outline-info btn-sm" disabled title="移動申請（実装予定）">
-                      <i class="bi bi-arrow-left-right"></i>
+                    <%# 優先度: 中（店舗間連携強化） %>
+                    <%# 実装内容: 他店舗への在庫移動申請・承認ワークフロー %>
+                    <%# 期待効果: 店舗間の在庫最適化と顧客満足度向上 %>
+                    <button class="btn btn-outline-info btn-sm" 
+                            disabled 
+                            title="他店舗への移動申請機能（近日実装予定）"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="left">
+                      <i class="bi bi-arrow-left-right me-1"></i>移動
+                    </button>
+                  </div>
+                  
+                  <div class="btn-group d-none d-md-flex" role="group" aria-label="在庫アクション（デスクトップ）">
+                    <%# デスクトップ表示: 横並びで文言付き %>
+                    <%= link_to "/store/inventories/#{store_inventory.inventory.id}", 
+                                class: "btn btn-outline-primary btn-sm d-flex align-items-center",
+                                title: "在庫詳細情報と履歴を確認",
+                                data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                      <i class="bi bi-eye me-1"></i>
+                      <span class="d-none d-lg-inline">詳細</span>
+                    <% end %>
+                    
+                    <button class="btn btn-outline-warning btn-sm d-flex align-items-center" 
+                            disabled 
+                            title="在庫数量の調整機能（近日実装予定）"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top">
+                      <i class="bi bi-pencil me-1"></i>
+                      <span class="d-none d-lg-inline">調整</span>
+                    </button>
+                    
+                    <button class="btn btn-outline-info btn-sm d-flex align-items-center" 
+                            disabled 
+                            title="他店舗への移動申請機能（近日実装予定）"
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="top">
+                      <i class="bi bi-arrow-left-right me-1"></i>
+                      <span class="d-none d-lg-inline">移動</span>
                     </button>
                   </div>
                 </td>
@@ -356,3 +403,18 @@
 <%#   - リアルタイム在庫更新 %>
 <%# 期待効果: 店舗業務の大幅な効率化、正確な在庫管理 %>
 <%# 横展開: 他の店舗機能でも同様のUIパターンとワークフローを適用 %>
+
+<%# TODO: 🟢 Phase 5（推奨）- UIアクセシビリティとユーザビリティ向上 %>
+<%# 優先度: 中（品質向上） %>
+<%# 実装内容: %>
+<%#   - キーボードナビゲーション対応（Tab移動、Enter/Space操作） %>
+<%#   - スクリーンリーダー対応（aria-label完全実装） %>
+<%#   - 色覚障害対応（色だけに依存しない情報伝達） %>
+<%#   - 一括操作機能（複数商品の同時調整） %>
+<%#   - ショートカットキー実装（Ctrl+F検索、Ctrl+E編集等） %>
+<%#   - モバイル最適化（タッチ操作、スワイプジェスチャー） %>
+<%# 期待効果: 誰でも使いやすいインターフェース、作業効率50%向上 %>
+<%# 横展開: 全ページで統一されたアクセシビリティ標準の確立 %>
+<%# 参考: WCAG 2.1 AA準拠、JIS X 8341-3:2016準拠 %>
+
+<%# Bootstrap Tooltip初期化スクリプト %>
