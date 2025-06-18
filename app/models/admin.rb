@@ -23,6 +23,13 @@ class Admin < ApplicationRecord
   has_many :requested_transfers, class_name: "InterStoreTransfer", foreign_key: "requested_by_id", dependent: :restrict_with_error
   has_many :approved_transfers, class_name: "InterStoreTransfer", foreign_key: "approved_by_id", dependent: :restrict_with_error
 
+  # 監査ログ関連
+  # CLAUDE.md準拠: ベストプラクティス - ポリモーフィック関連による柔軟な監査ログ管理
+  # メタ認知: ComplianceAuditLogのuser関連付けがポリモーフィックなので、
+  # 　　　　　Adminからも、StoreUserからも、as: :userで関連付け可能
+  # 横展開: StoreUserモデルでも同様の関連付けパターン適用
+  has_many :compliance_audit_logs, as: :user, dependent: :restrict_with_error
+
   # ============================================
   # enum定義
   # ============================================

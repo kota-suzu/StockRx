@@ -29,6 +29,13 @@ class StoreUser < ApplicationRecord
   # アソシエーション
   # ============================================
   belongs_to :store
+  
+  # 監査ログ関連
+  # CLAUDE.md準拠: ベストプラクティス - ポリモーフィック関連による柔軟な監査ログ管理
+  # メタ認知: ComplianceAuditLogのuser関連付けがポリモーフィックなので、
+  # 　　　　　StoreUserからも as: :user で関連付け可能
+  # 横展開: Adminモデルと同様の関連付けパターン適用
+  has_many :compliance_audit_logs, as: :user, dependent: :restrict_with_error
 
   # ============================================
   # バリデーション
