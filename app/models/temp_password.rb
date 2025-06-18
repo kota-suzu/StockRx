@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'bcrypt'
+
 # 🔐 店舗ログイン用一時パスワードモデル
 # セキュリティ機能: 暗号化・期限管理・ブルートフォース対策・監査ログ統合
 class TempPassword < ApplicationRecord

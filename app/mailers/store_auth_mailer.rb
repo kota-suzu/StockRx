@@ -46,17 +46,12 @@ class StoreAuthMailer < ApplicationMailer
     @time_until_expiry = temp_password.time_until_expiry
     
     # 店舗専用ログインURL生成
-    @login_url = store_user_session_url(
-      store_slug: @store.slug,
-      host: ENV.fetch('MAIL_HOST', 'localhost'),
-      port: ENV.fetch('MAIL_PORT', 3000),
-      protocol: Rails.env.production? ? 'https' : 'http'
-    )
+    @login_url = "#{Rails.env.production? ? 'https' : 'http'}://#{ENV.fetch('MAIL_HOST', 'localhost')}:#{ENV.fetch('MAIL_PORT', 3000)}/stores/#{@store.slug}/sign_in"
 
     # セキュリティメタデータ設定
     @security_metadata = {
       generated_at: temp_password.created_at,
-      expires_in_words: distance_of_time_in_words(@time_until_expiry),
+      expires_in_words: "#{@time_until_expiry / 60}分",
       store_name: @store.name,
       user_name: @store_user.name
     }

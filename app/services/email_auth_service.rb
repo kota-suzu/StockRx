@@ -179,25 +179,31 @@ class EmailAuthService
   # ============================================
 
   def deliver_temp_password_email(store_user, plain_password, temp_password)
-    # TODO: 🔴 Phase 1緊急 - AdminMailer統合
-    # 優先度: 緊急（メール認証機能完成のため）
-    # 実装内容:
-    #   - AdminMailer.temp_password_notification実装
-    #   - HTMLテンプレートデザイン（レスポンシブ対応）
-    #   - セキュリティヘッダー設定
-    # 横展開: AdminNotificationSetting統合
-    # 工数見積: 1日
-    # 依存関係: StoreAuthMailer（次のタスク）
-
-    # 暫定実装（開発環境確認用）
-    Rails.logger.info "📧 [EmailAuthService] Temp password email would be sent to #{store_user.email}"
-    Rails.logger.info "🔐 [EmailAuthService] Temp password: #{plain_password} (expires: #{temp_password.expires_at})"
-
-    {
-      success: true,
-      delivery_method: "development_log",
-      delivered_at: Time.current
-    }
+    # Phase 1: StoreAuthMailer統合完了
+    # CLAUDE.md準拠: メール送信と適切なエラーハンドリング
+    begin
+      Rails.logger.info "📧 [EmailAuthService] Sending temp password email to #{store_user.email}"
+      
+      # StoreAuthMailerを使用してメール送信
+      mail = StoreAuthMailer.temp_password_notification(store_user, plain_password, temp_password)
+      delivery_result = mail.deliver_now
+      
+      Rails.logger.info "✅ [EmailAuthService] Email sent successfully via #{ActionMailer::Base.delivery_method}"
+      
+      {
+        success: true,
+        delivery_method: ActionMailer::Base.delivery_method.to_s,
+        delivered_at: Time.current,
+        message_id: delivery_result.try(:message_id),
+        mail_object: delivery_result
+      }
+      
+    rescue => e
+      Rails.logger.error "❌ [EmailAuthService] Email delivery failed: #{e.message}"
+      Rails.logger.error e.backtrace.first(3).join("\n")
+      
+      raise EmailDeliveryError, "Failed to deliver temp password email: #{e.message}"
+    end
   end
 
   # ============================================

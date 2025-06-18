@@ -54,8 +54,6 @@ class ApplicationMailer < ActionMailer::Base
       event: "email_attempt",
       mailer: self.class.name,
       action: action_name,
-      to: mail.to,
-      subject: mail.subject,
       locale: I18n.locale,
       timestamp: Time.current.iso8601
     }.to_json)
@@ -67,11 +65,13 @@ class ApplicationMailer < ActionMailer::Base
       event: "email_sent",
       mailer: self.class.name,
       action: action_name,
-      to: mail.to,
+      to: mail.to&.first,
       subject: mail.subject,
       message_id: mail.message_id,
       timestamp: Time.current.iso8601
     }.to_json)
+  rescue => e
+    Rails.logger.error "Email logging failed: #{e.message}"
   end
 
   # TODO: 将来的な機能拡張

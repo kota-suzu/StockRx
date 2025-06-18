@@ -30,9 +30,25 @@ services:
       - CABLE_REDIS_URL=redis://redis:6379/1
       # Disable Bootsnap in development for easier debugging
       - DISABLE_BOOTSNAP=true
+      # ============================================
+      # Email Configuration (MailHog Integration)
+      # ============================================
+      # CLAUDE.md準拠: 環境変数による設定管理
+      # メタ認知: 開発環境でのメール送信テスト環境
+      - MAIL_DELIVERY_METHOD=smtp           # MailHog SMTP使用
+      - SMTP_ADDRESS=mailhog                # Docker内部ホスト名
+      - SMTP_PORT=1025                      # MailHog SMTP port
+      - SMTP_DOMAIN=localhost               # ドメイン設定
+      - MAIL_HOST=localhost                 # URL生成用ホスト
+      - MAIL_PORT=3000                      # URL生成用ポート
+      # 認証なし（MailHogは認証不要）
+      # - SMTP_USERNAME=                    # 空文字 = 認証なし
+      # - SMTP_PASSWORD=                    # 空文字 = 認証なし
     depends_on:
       db:
         condition: service_healthy
+      mailhog:
+        condition: service_healthy  # MailHog準備完了後に有効化
     networks:
       - app
     # TODO: 本番環境ではヘルスチェック追加
@@ -95,11 +111,24 @@ services:
       - CABLE_REDIS_URL=redis://redis:6379/1
       # Disable Bootsnap in development for easier debugging
       - DISABLE_BOOTSNAP=true
+      # ============================================
+      # Email Configuration (MailHog Integration)
+      # ============================================
+      # CLAUDE.md準拠: バックグラウンドジョブでのメール送信対応
+      # メタ認知: SidekiqでのEmailAuthService使用を考慮
+      - MAIL_DELIVERY_METHOD=smtp           # MailHog SMTP使用
+      - SMTP_ADDRESS=mailhog                # Docker内部ホスト名
+      - SMTP_PORT=1025                      # MailHog SMTP port
+      - SMTP_DOMAIN=localhost               # ドメイン設定
+      - MAIL_HOST=localhost                 # URL生成用ホスト
+      - MAIL_PORT=3000                      # URL生成用ポート
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_started
+      mailhog:
+        condition: service_healthy  # MailHog準備完了後に有効化
     networks:
       - app
     # TODO: 本番環境ではヘルスチェック追加
@@ -125,23 +154,40 @@ services:
     # TODO: バックアップローテーション機能の追加
 
   # ============================================
-  # Development Mail Server (Mailtrap)
+  # Development Mail Server (MailHog for Email Testing)
   # ============================================
-  mailtrap:
+  # CLAUDE.md準拠: 開発環境メール送信テスト用
+  # 用途: EmailAuthService + StoreAuthMailer のテスト環境
+  # アクセス: http://localhost:8025 (Web UI)
+  # SMTP: localhost:1025
+  mailhog:
     image: mailhog/mailhog:latest
-    container_name: stockrx_mailtrap
+    container_name: stockrx_mailhog
     ports:
-      - "1025:1025"  # SMTP port
-      - "8025:8025"  # Web UI port
+      - "1025:1025"  # SMTP port (Rails接続用)
+      - "8025:8025"  # Web UI port (メール確認用)
     environment:
-      - MH_STORAGE=memory
+      - MH_STORAGE=memory           # メモリ内保存（高速）
       - MH_UI_BIND_ADDR=0.0.0.0:8025
       - MH_API_BIND_ADDR=0.0.0.0:8025
+      - MH_HOSTNAME=stockrx-mailhog # ホスト名設定
     networks:
-      - stockrx_network
-    profiles:
-      - dev
+      - app  # 他サービスと同じネットワーク使用
+    # profiles削除 - 通常のdocker-compose upで起動
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    # TODO: 🟡 Phase 2（機能強化）- MailHog永続化オプション
+    # 優先度: 中（開発効率向上）
+    # 実装内容:
+    #   - MH_STORAGE=maildir + volumeマウント
+    #   - メール履歴の永続化
+    #   - 複数開発者間でのメール履歴共有
+    # volumes:
+    #   - mailhog_data:/maildir
 
 volumes:
   mysql_data:
