@@ -98,13 +98,14 @@ module SecurityCompliance
     end
 
     # 管理者エリアアクセスの場合は高重要度でログ記録
-    severity = controller_name.start_with?("admin_controllers") ? "medium" : "low"
+    # CLAUDE.md準拠: enumキーをシンボルで指定（Rails enumのベストプラクティス）
+    severity = controller_name.start_with?("admin_controllers") ? :medium : :low
 
     begin
       ComplianceAuditLog.log_security_event(
         "controller_access",
         current_user_for_security,
-        "PCI_DSS",
+        :pci_dss,  # 🛡️ セキュリティ対策: enumキーに変換
         severity,
         security_details
       )
@@ -258,8 +259,8 @@ module SecurityCompliance
       ComplianceAuditLog.log_security_event(
         "sensitive_data_access_complete",
         current_user_for_security,
-        "PCI_DSS",
-        error_occurred ? "high" : "medium",
+        :pci_dss,  # 🛡️ セキュリティ対策: enumキーに変換
+        error_occurred ? :high : :medium,  # enumキーに変換
         {
           controller: controller_name,
           action: action_name,
@@ -406,8 +407,8 @@ module SecurityCompliance
     ComplianceAuditLog.log_security_event(
       violation_type,
       current_user_for_security,
-      "PCI_DSS",
-      "high",
+      :pci_dss,  # 🛡️ セキュリティ対策: enumキーに変換
+      :high,     # enumキーに変換
       details.merge(
         controller: controller_name,
         action: action_name,

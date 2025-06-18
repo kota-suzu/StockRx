@@ -37,7 +37,8 @@ class ComplianceAuditLog < ApplicationRecord
   # ============================================================================
   # エニューム
   # ============================================================================
-  # Rails 8対応: 位置引数による enum 定義
+  # Rails 8対応: 位置引数でのenum定義（Rails 8.0の新構文）
+  # メタ認知: enumキーと値の整合性確保、Rails 8の新しい構文に対応
   enum :compliance_standard, {
     pci_dss: "PCI_DSS",
     gdpr: "GDPR",
@@ -61,7 +62,7 @@ class ComplianceAuditLog < ApplicationRecord
   scope :by_severity, ->(severity) { where(severity: severity) }
   scope :by_event_type, ->(event_type) { where(event_type: event_type) }
   scope :within_period, ->(start_date, end_date) { where(created_at: start_date..end_date) }
-  scope :critical_events, -> { where(severity: [ "high", "critical" ]) }
+  scope :critical_events, -> { where(severity: [ :high, :critical ]) }  # enumキーに変更
 
   # 特定期間の重要イベント
   scope :compliance_violations, -> {
@@ -69,10 +70,10 @@ class ComplianceAuditLog < ApplicationRecord
   }
 
   # PCI DSS関連ログ
-  scope :pci_dss_events, -> { by_compliance_standard("PCI_DSS") }
+  scope :pci_dss_events, -> { by_compliance_standard(:pci_dss) }  # enumキーに変更
 
   # GDPR関連ログ
-  scope :gdpr_events, -> { by_compliance_standard("GDPR") }
+  scope :gdpr_events, -> { by_compliance_standard(:gdpr) }  # enumキーに変更
 
   # ============================================================================
   # コールバック
@@ -152,12 +153,13 @@ class ComplianceAuditLog < ApplicationRecord
   # 保持期限日の計算
   # @return [Date] 保持期限日
   def retention_expiry_date
-    case compliance_standard
-    when "PCI_DSS"
+    # メタ認知: enumキーでの比較に変更
+    case compliance_standard.to_sym
+    when :pci_dss
       created_at + 1.year
-    when "GDPR"
+    when :gdpr
       created_at + 2.years
-    when "SOX"
+    when :sox
       created_at + 7.years
     else
       created_at + 1.year
@@ -227,7 +229,7 @@ class ComplianceAuditLog < ApplicationRecord
   end
 
   # コンプライアンスレポートの生成
-  # @param compliance_standard [String] コンプライアンス標準
+  # @param compliance_standard [String/Symbol] コンプライアンス標準
   # @param start_date [Date] 開始日
   # @param end_date [Date] 終了日
   # @return [Hash] レポートデータ
@@ -348,13 +350,13 @@ class ComplianceAuditLog < ApplicationRecord
 
     Rails.logger.warn "Attempt to modify immutable compliance audit log #{id}"
     errors.add(:base, "監査ログは変更できません")
-    throw :abort
+    throw(:abort)  # Rails 8: 明示的な括弧
   end
 
   # レコード削除の防止
   def prevent_deletion
     Rails.logger.warn "Attempt to delete compliance audit log #{id}"
     errors.add(:base, "監査ログは削除できません")
-    throw :abort
+    throw(:abort)  # Rails 8: 明示的な括弧
   end
 end
