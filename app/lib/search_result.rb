@@ -191,17 +191,18 @@ SearchResult = Struct.new(
     base_attributes = %w[id name status price quantity created_at updated_at]
 
     # 管理者の場合は追加属性を含める
-    # 注意: Adminモデルにはsuper_admin?メソッドがないため、将来の拡張で実装予定
+    # 🔒 セキュリティ修正: 現在のrole enumに基づく適切な権限チェック
+    # CLAUDE.md準拠: headquarters_adminを最高権限として使用
     if Current.admin.present?
-      # TODO: Adminモデルにsuper_admin?メソッドを追加した後に有効化
-      # if Current.admin.super_admin?
-      #   base_attributes + %w[cost internal_notes]
-      # else
-      #   base_attributes
-      # end
-      # 現在は管理者の場合もベーシック属性のみ
-      base_attributes
+      # 本部管理者の場合は機密属性も含める
+      if Current.admin.headquarters_admin?
+        base_attributes + %w[cost internal_notes supplier_info]
+      else
+        # 店舗スタッフは基本属性のみ
+        base_attributes
+      end
     else
+      # 未認証の場合は基本属性のみ
       base_attributes
     end
   end

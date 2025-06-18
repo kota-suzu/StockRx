@@ -60,9 +60,17 @@ class Admin < ApplicationRecord
   # 1. ユーザーモデルの実装（一般スタッフ向け）
   #    - Userモデルの作成と権限管理
   #    - 管理者によるユーザーアカウント管理機能
-  # 2. 管理者権限レベルの実装
-  #    - admin/super_admin権限区分の追加
+  # 2. 🔴 Phase 5（緊急）- 管理者権限レベルの拡張実装
+  #    - super_admin権限区分の追加（監査ログ・システム設定専用）
+  #    - admin権限区分の追加（本部管理者の細分化）
   #    - 画面アクセス制御の詳細化
+  #    優先度: 高（セキュリティ要件拡張）
+  #    実装内容:
+  #      - enum roleにsuper_admin, adminを追加
+  #      - super_admin?(), admin?()メソッドの自動生成活用
+  #      - 権限階層: super_admin > admin > headquarters_admin > store_manager > pharmacist > store_user
+  #    横展開: SearchResult, AuditLogsController等で権限チェック拡張
+  #    メタ認知: セキュリティレイヤーの階層化による最小権限原則の実現
   # 3. 2要素認証の導入
   #    - devise-two-factor gemを利用
   #    - QRコード生成とTOTPワンタイムパスワード
