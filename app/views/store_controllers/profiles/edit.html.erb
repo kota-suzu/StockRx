@@ -1,0 +1,146 @@
+<% content_for :title, "プロフィール編集" %>
+<% content_for :breadcrumbs do %>
+  <li class="breadcrumb-item">
+    <%= link_to "プロフィール", store_profile_path %>
+  </li>
+  <li class="breadcrumb-item active">編集</li>
+<% end %>
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-edit me-2"></i>
+          プロフィール編集
+        </h5>
+      </div>
+      <div class="card-body">
+        <%# メタ認知: form_withのURL指定はroutesの定義に従う %>
+        <%# 横展開: change_password.html.erbと同様のフォームパターンを適用 %>
+        <%# ベストプラクティス: Strong Parametersと整合するフィールド定義 %>
+        <%= form_with model: @user, url: store_profile_path, method: :patch do |f| %>
+          <%# エラー表示 %>
+          <% if @user.errors.any? %>
+            <div class="alert alert-danger">
+              <ul class="mb-0">
+                <% @user.errors.full_messages.each do |message| %>
+                  <li><%= message %></li>
+                <% end %>
+              </ul>
+            </div>
+          <% end %>
+          
+          <%# 氏名 %>
+          <div class="mb-3">
+            <%= f.label :name, class: "form-label required" %>
+            <%= f.text_field :name, 
+                            class: "form-control",
+                            required: true,
+                            placeholder: "例: 山田 太郎",
+                            autocomplete: "name" %>
+            <div class="form-text">
+              フルネームを入力してください
+            </div>
+          </div>
+          
+          <%# メールアドレス %>
+          <div class="mb-3">
+            <%= f.label :email, class: "form-label required" %>
+            <%= f.email_field :email, 
+                             class: "form-control",
+                             required: true,
+                             placeholder: "例: yamada@example.com",
+                             autocomplete: "email" %>
+            <div class="form-text">
+              <%# TODO: 🟡 Phase 5 - 管理者承認フロー実装時に条件分岐追加 %>
+              <%# メタ認知: 現在は管理者以外はメール変更可能、将来的に承認フロー追加 %>
+              <% if @user.manager? %>
+                <span class="text-warning">
+                  <i class="fas fa-exclamation-triangle me-1"></i>
+                  管理者のメールアドレス変更には特別な権限が必要です
+                </span>
+              <% else %>
+                有効なメールアドレスを入力してください
+              <% end %>
+            </div>
+          </div>
+          
+          <%# 従業員コード %>
+          <div class="mb-3">
+            <%= f.label :employee_code, "従業員コード", class: "form-label" %>
+            <%= f.text_field :employee_code, 
+                            class: "form-control",
+                            placeholder: "例: EMP001",
+                            autocomplete: "off" %>
+            <div class="form-text">
+              従業員番号や社員番号を入力してください（任意）
+            </div>
+          </div>
+          
+          <%# 読み取り専用情報の表示 %>
+          <hr class="my-4">
+          
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label text-muted">所属店舗</label>
+              <div class="form-control-plaintext">
+                <%= current_store.display_name %>
+                <span class="badge bg-secondary ms-1"><%= current_store.store_type_text %></span>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <label class="form-label text-muted">権限</label>
+              <div class="form-control-plaintext">
+                <% if @user.manager? %>
+                  <span class="badge bg-primary">店舗管理者</span>
+                <% else %>
+                  <span class="badge bg-secondary">スタッフ</span>
+                <% end %>
+              </div>
+            </div>
+          </div>
+          
+          <%# ボタン %>
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <%= link_to "キャンセル", store_profile_path, class: "btn btn-secondary" %>
+            </div>
+            <div>
+              <%# メタ認知: セキュリティ関連の操作は別画面で行うベストプラクティス %>
+              <%= link_to change_password_store_profile_path, 
+                          class: "btn btn-outline-warning me-2" do %>
+                <i class="fas fa-key me-1"></i>
+                パスワード変更
+              <% end %>
+              <%= f.submit "変更を保存", class: "btn btn-primary" %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+    
+    <%# 注意事項 %>
+    <div class="card mt-3">
+      <div class="card-body">
+        <h6 class="text-muted mb-3">
+          <i class="fas fa-info-circle me-1"></i>
+          ご注意
+        </h6>
+        <ul class="small mb-0">
+          <li>氏名・メールアドレスは必須項目です</li>
+          <li>メールアドレスを変更すると、次回ログイン時に新しいメールアドレスでログインする必要があります</li>
+          <li>従業員コードは任意入力です。社内管理用の番号を設定できます</li>
+          <%# TODO: 🟡 Phase 5 - 以下の機能追加時に表示 %>
+          <%# <li>管理者権限の変更は、システム管理者のみ可能です</li> %>
+          <%# <li>所属店舗の変更は、管理画面から行ってください</li> %>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# TODO: 🟢 Phase 6 - プロフィール画像アップロード機能 %>
+<%# メタ認知: Active Storageを使用した画像アップロード実装予定 %>
+<%# 横展開: 他の画像アップロード機能（在庫画像等）と統一的な実装 %>

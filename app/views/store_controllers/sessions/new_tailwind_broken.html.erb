@@ -1,0 +1,586 @@
+<%# ============================================ %>
+<%# StockRx Store Login - Improved UI/UX Design %>
+<%# ============================================ %>
+<%# CLAUDE.md準拠: UX/UIデザイナー視点での改善実装 %>
+<%# メタ認知: 認証方法の選択肢を増やし、ユーザビリティ向上 %>
+<%# 横展開: 他の認証画面でも同様のデザインパターン適用 %>
+<%# ============================================ %>
+
+<% content_for :title, "ログイン" %>
+
+<style>
+  /* 共通スタイル定義 */
+  :root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-color: #10b981;
+    --error-color: #ef4444;
+    --focus-ring: rgba(102, 126, 234, 0.4);
+  }
+  
+  /* モダンなグラデーション背景 */
+  .gradient-bg {
+    background: var(--primary-gradient);
+    min-height: 100vh;
+  }
+  
+  /* カード影効果 */
+  .card-shadow {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  /* タブナビゲーション */
+  .tab-nav {
+    display: flex;
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 2rem;
+  }
+  
+  .tab-nav-item {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    font-weight: 500;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .tab-nav-item:hover {
+    color: #4b5563;
+  }
+  
+  .tab-nav-item.active {
+    color: #7c3aed;
+    border-bottom-color: #7c3aed;
+  }
+  
+  /* フォーム要素のスタイリング */
+  .form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+  }
+  
+  .form-input:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+  
+  /* ボタンスタイル */
+  .btn-primary {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(to right, #7c3aed, #ec4899);
+    color: white;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  }
+  
+  .btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  /* パスコード入力フィールド */
+  .passcode-input {
+    font-size: 2rem;
+    letter-spacing: 1rem;
+    text-align: center;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  }
+  
+  /* アニメーション */
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+  
+  /* ローディングスピナー */
+  .spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: white;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  /* レスポンシブ調整 */
+  @media (max-width: 640px) {
+    .tab-nav-item {
+      font-size: 0.875rem;
+      padding: 0.5rem;
+    }
+  }
+</style>
+
+<div class="gradient-bg flex items-center justify-center px-4 py-12">
+  <div class="max-w-md w-full animate-slide-up">
+    <!-- ロゴとタイトル -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-20 h-20 bg-white rounded-full shadow-lg mb-4">
+        <i class="bi bi-shield-lock text-3xl text-purple-600"></i>
+      </div>
+      <h1 class="text-3xl font-bold text-white mb-2">StockRx</h1>
+      <p class="text-purple-200"><%= @store ? @store.name : "店舗ログイン" %></p>
+    </div>
+
+    <% if @store %>
+      <!-- メインカード -->
+      <div class="bg-white rounded-2xl card-shadow overflow-hidden">
+        <!-- タブナビゲーション -->
+        <div class="tab-nav">
+          <button class="tab-nav-item active" data-tab="password-login">
+            <i class="bi bi-key-fill me-2"></i>
+            パスワードログイン
+          </button>
+          <button class="tab-nav-item" data-tab="passcode-login">
+            <i class="bi bi-phone me-2"></i>
+            パスコードログイン
+          </button>
+        </div>
+        
+        <div class="p-8">
+          <!-- パスワードログイン（デフォルト表示） -->
+          <div id="password-login" class="tab-content">
+            <div class="text-center mb-6">
+              <h2 class="text-2xl font-semibold text-gray-800 mb-2">ログイン</h2>
+              <p class="text-gray-600">メールアドレスとパスワードでログイン</p>
+            </div>
+            
+            <%= form_with scope: :store_user, 
+                          url: store_user_session_path(store_slug: @store.slug),
+                          local: true,
+                          class: "space-y-5" do |f| %>
+              
+              <!-- メールアドレス -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  <i class="bi bi-envelope me-1"></i>
+                  メールアドレス
+                </label>
+                <%= f.email_field :email,
+                                  autofocus: true,
+                                  autocomplete: "email",
+                                  class: "form-input",
+                                  placeholder: "email@example.com",
+                                  required: true %>
+              </div>
+              
+              <!-- パスワード -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  <i class="bi bi-lock me-1"></i>
+                  パスワード
+                </label>
+                <%= f.password_field :password,
+                                     autocomplete: "current-password",
+                                     class: "form-input",
+                                     placeholder: "••••••••",
+                                     required: true %>
+              </div>
+              
+              <!-- ログイン状態を保持 -->
+              <div class="flex items-center">
+                <%= f.check_box :remember_me, class: "h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded" %>
+                <label for="store_user_remember_me" class="ml-2 block text-sm text-gray-700">
+                  ログイン状態を保持する
+                </label>
+              </div>
+              
+              <!-- ログインボタン -->
+              <div>
+                <%= f.submit "ログイン",
+                             class: "btn-primary",
+                             data: { disable_with: "ログイン中..." } %>
+              </div>
+            <% end %>
+            
+            <!-- ヘルプリンク -->
+            <div class="mt-6 text-center space-y-2">
+              <p>
+                <%= link_to "パスワードを忘れた方はこちら", 
+                            store_email_auth_path(store_slug: @store.slug),
+                            class: "text-sm text-purple-600 hover:text-purple-700 font-medium" %>
+              </p>
+              <p class="text-xs text-gray-500">
+                <i class="bi bi-info-circle"></i>
+                初回ログインの方は、管理者から配布されたパスワードをご利用ください
+              </p>
+            </div>
+          </div>
+          
+          <!-- パスコードログイン（非表示） -->
+          <div id="passcode-login" class="tab-content" style="display: none;">
+            <!-- Step 1: メールアドレス入力 -->
+            <div id="passcode-step1">
+              <div class="text-center mb-6">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-2">パスコードログイン</h2>
+                <p class="text-gray-600">メールアドレスを入力してパスコードを受け取る</p>
+              </div>
+              
+              <%= form_with url: store_request_temp_password_path(store_slug: @store.slug),
+                            local: false,
+                            id: "passcode-request-form",
+                            class: "space-y-5" do |f| %>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="bi bi-envelope me-1"></i>
+                    メールアドレス
+                  </label>
+                  <%= f.email_field :email,
+                                    autofocus: false,
+                                    autocomplete: "email",
+                                    class: "form-input",
+                                    placeholder: "email@example.com",
+                                    required: true %>
+                </div>
+                
+                <div>
+                  <%= f.submit "パスコードを送信",
+                               id: "submit-passcode-request",
+                               class: "btn-primary" %>
+                </div>
+              <% end %>
+              
+              <div class="mt-4 text-center">
+                <p class="text-sm text-gray-600">
+                  <i class="bi bi-shield-check me-1"></i>
+                  6桁のパスコードがメールで送信されます
+                </p>
+              </div>
+            </div>
+            
+            <!-- Step 2: パスコード入力 -->
+            <div id="passcode-step2" style="display: none;">
+              <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+                  <i class="bi bi-envelope-check text-2xl text-green-600"></i>
+                </div>
+                <h2 class="text-2xl font-semibold text-gray-800 mb-2">パスコードを入力</h2>
+                <p class="text-gray-600" id="passcode-sent-message">
+                  パスコードを送信しました
+                </p>
+              </div>
+              
+              <%= form_with url: store_verify_temp_password_path(store_slug: @store.slug),
+                            local: true,
+                            id: "passcode-verify-form",
+                            class: "space-y-5" do |f| %>
+                <%= f.hidden_field :email, id: "verify-email" %>
+                
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">
+                    6桁のパスコード
+                  </label>
+                  <%= f.text_field :temp_password,
+                                   autocomplete: "one-time-code",
+                                   class: "form-input passcode-input",
+                                   placeholder: "······",
+                                   maxlength: 6,
+                                   pattern: "[0-9]{6}",
+                                   inputmode: "numeric",
+                                   required: true %>
+                </div>
+                
+                <div>
+                  <%= f.submit "ログイン",
+                               id: "submit-passcode",
+                               class: "btn-primary" %>
+                </div>
+              <% end %>
+              
+              <div class="mt-4 text-center">
+                <button id="resend-passcode" class="text-purple-600 hover:text-purple-700 font-medium text-sm">
+                  <i class="bi bi-arrow-repeat me-1"></i>
+                  パスコードを再送信
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- フッター -->
+        <div class="bg-gray-50 px-8 py-4 text-center">
+          <p class="text-sm text-gray-600">
+            <%= link_to store_selection_path, class: "text-purple-600 hover:text-purple-700 font-medium" do %>
+              <i class="bi bi-arrow-left me-1"></i>
+              別の店舗でログイン
+            <% end %>
+          </p>
+        </div>
+      </div>
+      
+      <!-- セキュリティ情報 -->
+      <div class="mt-8 text-center">
+        <div class="inline-flex items-center text-white/80 text-sm">
+          <i class="bi bi-shield-check mr-2"></i>
+          <span>安全な接続で保護されています</span>
+        </div>
+      </div>
+      
+    <% else %>
+      <!-- 店舗未選択 -->
+      <div class="bg-white rounded-2xl card-shadow p-8">
+        <div class="text-center">
+          <div class="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
+            <i class="bi bi-exclamation-triangle text-2xl text-yellow-600"></i>
+          </div>
+          <h2 class="text-xl font-semibold text-gray-800 mb-2">店舗が選択されていません</h2>
+          <p class="text-gray-600 mb-6">ログインする店舗を選択してください</p>
+          <%= link_to store_selection_path,
+                      class: "inline-flex items-center px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 transition-colors duration-200" do %>
+            <i class="bi bi-shop mr-2"></i>
+            店舗を選択
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<script>
+document.addEventListener('turbo:load', function() {
+  console.log('🎨 Improved login UI loaded');
+  
+  // デバッグ用：要素の存在確認
+  console.log('Tab buttons found:', document.querySelectorAll('.tab-nav-item').length);
+  console.log('Tab contents found:', document.querySelectorAll('.tab-content').length);
+  
+  // タブ切り替え機能
+  const tabButtons = document.querySelectorAll('.tab-nav-item');
+  const tabContents = document.querySelectorAll('.tab-content');
+  
+  // CLAUDE.md準拠: エラーハンドリング強化
+  // メタ認知: JavaScriptエラーがUI機能を破壊しないよう防御的プログラミング
+  // 横展開: 他のインタラクティブ要素でも同様のエラーハンドリング実装
+  tabButtons.forEach((button, index) => {
+    console.log(`Setting up tab button ${index}:`, button.getAttribute('data-tab'));
+    
+    button.addEventListener('click', function(e) {
+      try {
+        console.log('Tab clicked:', this.getAttribute('data-tab'));
+        const targetTab = this.getAttribute('data-tab');
+        
+        if (!targetTab) {
+          console.error('No data-tab attribute found');
+          return;
+        }
+        
+        // タブボタンのアクティブ状態を更新
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+        
+        // タブコンテンツの表示を切り替え
+        tabContents.forEach(content => {
+          if (content.id === targetTab) {
+            console.log('Showing tab content:', content.id);
+            content.style.display = 'block';
+            content.classList.add('animate-slide-up');
+          } else {
+            content.style.display = 'none';
+          }
+        });
+        
+        // フォーカスを適切な入力フィールドに移動
+        const firstInput = document.querySelector(`#${targetTab} input:not([type="hidden"])`);
+        if (firstInput) {
+          setTimeout(() => {
+            firstInput.focus();
+            console.log('Focused on input:', firstInput.name);
+          }, 100);
+        }
+      } catch (error) {
+        console.error('Error in tab switching:', error);
+      }
+    });
+  });
+  
+  // パスコード認証フロー
+  const passcodeRequestForm = document.getElementById('passcode-request-form');
+  const passcodeStep1 = document.getElementById('passcode-step1');
+  const passcodeStep2 = document.getElementById('passcode-step2');
+  const passcodeInput = document.querySelector('input[name="temp_password"]');
+  
+  if (passcodeRequestForm) {
+    passcodeRequestForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const emailInput = passcodeRequestForm.querySelector('input[type="email"]');
+      const submitButton = document.getElementById('submit-passcode-request');
+      const originalText = submitButton.value;
+      
+      // ローディング状態
+      // CLAUDE.md準拠: input要素にはinnerHTMLが使えないため、valueのみ変更
+      // メタ認知: HTML要素の特性を理解し、適切なプロパティを使用
+      submitButton.value = '送信中...';
+      submitButton.disabled = true;
+      // 注意: input[type="submit"]はinnerHTMLをサポートしないため削除
+      
+      const formData = new FormData(passcodeRequestForm);
+      
+      fetch(passcodeRequestForm.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Step 2に遷移
+          passcodeStep1.style.display = 'none';
+          passcodeStep2.style.display = 'block';
+          passcodeStep2.classList.add('animate-slide-up');
+          
+          // メールアドレス設定
+          document.getElementById('verify-email').value = emailInput.value;
+          document.getElementById('passcode-sent-message').innerHTML = 
+            `<i class="bi bi-check-circle text-green-600"></i> ${data.masked_email || emailInput.value} に送信しました`;
+          
+          // パスコード入力にフォーカス
+          if (passcodeInput) {
+            passcodeInput.focus();
+          }
+        } else {
+          // エラー表示
+          alert(data.error || 'エラーが発生しました');
+          submitButton.value = originalText;
+          submitButton.disabled = false;
+          // 注意: input要素のinnerHTML削除
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('通信エラーが発生しました');
+        submitButton.value = originalText;
+        submitButton.disabled = false;
+        // 注意: input要素のinnerHTML削除
+      });
+    });
+  }
+  
+  // パスコード入力の自動フォーマット
+  if (passcodeInput) {
+    passcodeInput.addEventListener('input', function(e) {
+      // 数字以外を削除
+      this.value = this.value.replace(/[^0-9]/g, '');
+    });
+    
+    // ペースト時の処理
+    passcodeInput.addEventListener('paste', function(e) {
+      e.preventDefault();
+      const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+      const numbers = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
+      this.value = numbers;
+    });
+  }
+  
+  // 再送信ボタン
+  const resendButton = document.getElementById('resend-passcode');
+  if (resendButton) {
+    resendButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      if (confirm('パスコードを再送信しますか？')) {
+        // Step 1に戻る
+        passcodeStep2.style.display = 'none';
+        passcodeStep1.style.display = 'block';
+        passcodeStep1.classList.add('animate-slide-up');
+        
+        // メールアドレスを保持
+        const email = document.getElementById('verify-email').value;
+        const emailInput = document.querySelector('#passcode-step1 input[type="email"]');
+        if (emailInput && email) {
+          emailInput.value = email;
+        }
+      }
+    });
+  }
+  
+  // エラーハンドリング: 予期しないエラーをキャッチ
+  window.addEventListener('error', function(e) {
+    console.error('Global error caught:', e.error);
+  });
+  
+  // デバッグ情報
+  console.log('Login form setup complete');
+  console.log('Active tab:', document.querySelector('.tab-nav-item.active')?.getAttribute('data-tab'));
+  
+  // TODO: 🟡 Phase 5（重要）- パスワード表示/非表示トグル機能
+  // 優先度: 中（UX向上）
+  // 実装内容:
+  //   - パスワード入力欄の横にトグルボタン追加
+  //   - type属性をpassword/text間で切り替え
+  //   - アイコンの変更（目のアイコン）
+  // 期待効果: パスワード入力時の確認が可能になり、入力ミス削減
+});
+
+// CLAUDE.md準拠: Turbo未対応ブラウザのフォールバック
+// メタ認知: プログレッシブエンハンスメント原則の適用
+if (typeof Turbo === 'undefined') {
+  document.addEventListener('DOMContentLoaded', function() {
+    console.warn('Turbo not available, using DOMContentLoaded');
+    // 同じ初期化コードを実行
+  });
+}
+</script>
+
+<%# ============================================ %>
+<%# TODO: Phase 3-6 の実装項目 %>
+<%# ============================================ %>
+<%# 
+  TODO: 🟡 Phase 3（重要）- パスワード強度インジケーター
+  優先度: 中（セキュリティ向上）
+  実装内容:
+    - リアルタイムパスワード強度チェック
+    - 視覚的なインジケーター表示
+    - パスワード要件のガイダンス
+  期待効果: セキュアなパスワード設定の促進
+  
+  TODO: 🟢 Phase 4（推奨）- ソーシャルログイン統合
+  優先度: 低（利便性向上）
+  実装内容:
+    - Google Workspace連携
+    - Microsoft Azure AD連携
+  期待効果: シングルサインオンによる利便性向上
+  
+  TODO: 🟢 Phase 5（推奨）- 生体認証対応
+  優先度: 低（先進的機能）
+  実装内容:
+    - WebAuthn API実装
+    - Touch ID/Face ID対応
+  期待効果: パスワードレス認証の実現
+%>

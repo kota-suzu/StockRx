@@ -226,7 +226,7 @@ class SecurityComplianceManager
         event_type: action,
         user: user,
         encrypted_details: encrypted_entry,
-        compliance_standard: "PCI_DSS",
+        compliance_standard: :pci_dss,  # enumキーに変更（メタ認知：enumとの整合性確保）
         severity: determine_severity(action)
         # created_at は自動設定されるため削除（Rails 8対応）
       )
@@ -344,7 +344,7 @@ class SecurityComplianceManager
         event_type: action,
         user: user,
         encrypted_details: encrypt_sensitive_data(audit_entry.to_json, context: "audit_logs"),
-        compliance_standard: "GDPR",
+        compliance_standard: :gdpr,  # enumキーに変更（メタ認知：enumとの整合性確保）
         severity: determine_severity(action)
         # created_at は自動設定されるため削除（Rails 8対応）
       )

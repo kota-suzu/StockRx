@@ -100,13 +100,29 @@ module SecurityCompliance
     # 管理者エリアアクセスの場合は高重要度でログ記録
     severity = controller_name.start_with?("admin_controllers") ? "medium" : "low"
 
-    ComplianceAuditLog.log_security_event(
-      "controller_access",
-      current_user_for_security,
-      "PCI_DSS",
-      severity,
-      security_details
-    )
+    begin
+      ComplianceAuditLog.log_security_event(
+        "controller_access",
+        current_user_for_security,
+        "PCI_DSS",
+        severity,
+        security_details
+      )
+    rescue => e
+      # CLAUDE.md準拠: エラーハンドリング強化
+      # メタ認知: 監査ログの失敗でアプリケーションを停止させない
+      # 横展開: 他のログ記録箇所でも同様のエラーハンドリング必要
+      Rails.logger.error "Failed to create compliance audit log: #{e.message}"
+      Rails.logger.error e.backtrace.first(5).join("\n") if e.backtrace
+      
+      # TODO: 🔴 Phase 1（緊急）- 監査ログ失敗時の代替記録メカニズム
+      # 優先度: 高（コンプライアンス要件）
+      # 実装内容:
+      #   - ファイルベースの緊急ログ出力
+      #   - 失敗イベントのメトリクス送信
+      #   - 管理者への通知機能
+      # 期待効果: 監査証跡の完全性確保
+    end
   end
 
   # レート制限の適用

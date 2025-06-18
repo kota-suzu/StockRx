@@ -190,11 +190,35 @@ class ComplianceAuditLog < ApplicationRecord
       context: "audit_logs"
     )
 
+    # 文字列値をenumキーに変換
+    # CLAUDE.md準拠: メタ認知 - enumと文字列値の不整合解決
+    # 横展開: 他のenum使用箇所でも同様の変換が必要
+    standard_key = case compliance_standard
+    when "PCI_DSS", :pci_dss then :pci_dss
+    when "GDPR", :gdpr then :gdpr
+    when "SOX", :sox then :sox
+    when "HIPAA", :hipaa then :hipaa
+    when "ISO27001", :iso27001 then :iso27001
+    else
+      Rails.logger.error "Invalid compliance standard: #{compliance_standard}"
+      :pci_dss  # デフォルト値
+    end
+
+    severity_key = case severity.to_s
+    when "low", :low then :low
+    when "medium", :medium then :medium
+    when "high", :high then :high
+    when "critical", :critical then :critical
+    else
+      Rails.logger.error "Invalid severity: #{severity}"
+      :low  # デフォルト値
+    end
+
     create!(
       event_type: event_type,
       user: user,
-      compliance_standard: compliance_standard,
-      severity: severity,
+      compliance_standard: standard_key,
+      severity: severity_key,
       encrypted_details: encrypted_details
     )
   rescue => e
