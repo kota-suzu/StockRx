@@ -10,6 +10,11 @@ module AdminControllers
   class AuditLogsController < BaseController
     include AuditLogViewer
 
+    # CLAUDE.md準拠: セキュリティ機能最適化
+    # メタ認知: 監査ログは読み取り専用（コンプライアンス要件）のため編集・削除操作なし
+    # 横展開: 他の監査ログ系コントローラーでも同様の考慮が必要
+    skip_around_action :audit_sensitive_data_access
+
     # CLAUDE.md準拠: 管理者用ページネーション設定
     # メタ認知: 監査ログは管理者向け機能のため、標準的なページサイズを固定
     # 横展開: InventoryLogsControllerと同一パターンで一貫性確保

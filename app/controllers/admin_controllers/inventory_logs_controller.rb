@@ -7,6 +7,11 @@ module AdminControllers
   # 旧: /inventory_logs → 新: /admin/inventory_logs
   # ============================================
   class InventoryLogsController < BaseController
+    # CLAUDE.md準拠: セキュリティ機能最適化
+    # メタ認知: 在庫ログは読み取り専用（監査証跡）のため編集・削除操作なし
+    # 横展開: 他の監査ログ系コントローラーでも同様の考慮が必要
+    skip_around_action :audit_sensitive_data_access
+
     before_action :set_inventory, only: [ :index, :show ]
     PER_PAGE = 20  # 1ページあたりの表示件数
 

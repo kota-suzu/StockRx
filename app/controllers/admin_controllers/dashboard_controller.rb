@@ -6,7 +6,7 @@ module AdminControllers
     # CLAUDE.md準拠: セキュリティ機能最適化
     # メタ認知: ダッシュボードは統計表示のみで機密データ操作はないため監査不要
     # 横展開: 他の表示専用コントローラーでも同様の考慮が必要
-    skip_before_action :audit_sensitive_data_access
+    skip_around_action :audit_sensitive_data_access
 
     def index
       # パフォーマンス最適化: 統計データを効率的に事前計算

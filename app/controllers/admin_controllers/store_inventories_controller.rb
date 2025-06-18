@@ -8,6 +8,11 @@ module AdminControllers
   # CLAUDE.md準拠: 権限に基づいた適切な情報開示
   # ============================================
   class StoreInventoriesController < BaseController
+    # CLAUDE.md準拠: セキュリティ機能最適化
+    # メタ認知: 店舗別在庫は閲覧専用インターフェース（編集は個別在庫画面で実施）
+    # 横展開: 他の閲覧専用コントローラーでも同様の考慮が必要
+    skip_around_action :audit_sensitive_data_access
+
     before_action :set_store
     before_action :authorize_store_access
     before_action :set_inventory, only: [ :details ]
