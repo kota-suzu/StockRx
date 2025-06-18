@@ -10,6 +10,11 @@ module AdminControllers
   class AuditLogsController < BaseController
     include AuditLogViewer
 
+    # CLAUDE.md準拠: 管理者用ページネーション設定
+    # メタ認知: 監査ログは管理者向け機能のため、標準的なページサイズを固定
+    # 横展開: InventoryLogsControllerと同一パターンで一貫性確保
+    PER_PAGE = 20
+
     before_action :authorize_audit_log_access!
     before_action :set_audit_log, only: [ :show ]
 
@@ -21,7 +26,7 @@ module AdminControllers
     def index
       @audit_logs = filter_audit_logs
                    .page(params[:page])
-                   .per(per_page)
+                   .per(PER_PAGE)
 
       # 統計情報
       @stats = audit_log_stats(@audit_logs.except(:limit, :offset))
@@ -65,7 +70,7 @@ module AdminControllers
                                 .includes(:user)
                                 .recent
                                 .page(params[:page])
-                                .per(per_page)
+                                .per(PER_PAGE)
 
       # セキュリティ統計
       @security_stats = {
@@ -92,7 +97,7 @@ module AdminControllers
                         .includes(:auditable)
                         .recent
                         .page(params[:page])
-                        .per(per_page)
+                        .per(PER_PAGE)
 
       # ユーザー行動分析
       @user_stats = {

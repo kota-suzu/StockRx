@@ -7,6 +7,11 @@ module StoreControllers
   # 店舗スコープでの在庫閲覧・管理
   # ============================================
   class InventoriesController < BaseController
+    # CLAUDE.md準拠: 店舗用ページネーション設定
+    # メタ認知: 店舗スタッフ向けなので見やすい標準サイズを固定
+    # 横展開: AuditLogsController, InventoryLogsControllerと同一パターンで一貫性確保
+    PER_PAGE = 20
+
     before_action :set_inventory, only: [ :show, :request_transfer ]
 
     # ============================================
@@ -26,7 +31,7 @@ module StoreControllers
 
       @store_inventories = @q.order(sort_column => sort_direction)
                             .page(params[:page])
-                            .per(per_page)
+                            .per(PER_PAGE)
 
       # フィルタリング用のデータ
       load_filter_data

@@ -10,6 +10,11 @@ module StoreControllers
   class TransfersController < BaseController
     include RateLimitable
 
+    # CLAUDE.md準拠: 店舗用ページネーション設定
+    # メタ認知: 移動管理機能なので標準的なページサイズを固定
+    # 横展開: 他のコントローラーと同一パターンで一貫性確保
+    PER_PAGE = 20
+
     before_action :set_transfer, only: [ :show, :cancel ]
     before_action :ensure_can_cancel, only: [ :cancel ]
 
@@ -32,7 +37,7 @@ module StoreControllers
                               :requested_by, :approved_by)
                     .order(created_at: :desc)
                     .page(params[:page])
-                    .per(per_page)
+                    .per(PER_PAGE)
 
       # タブ用のカウント
       load_transfer_counts
