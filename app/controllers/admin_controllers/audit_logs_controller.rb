@@ -132,13 +132,20 @@ module AdminControllers
     # 認可
     # ============================================
 
-    # 🔒 セキュリティ修正: 監査ログアクセス権限の正しい実装
+    # 🔒 セキュリティ実装: 監査ログアクセス権限制御
     # CLAUDE.md準拠: 現在のrole enumに基づく適切な権限チェック
     # メタ認知: 監査ログは最高権限（本部管理者）のみアクセス可能とする
-    # TODO: 🔴 Phase 5（緊急）- super_admin権限実装後の権限チェック拡張
-    #   - super_admin権限実装後: super_admin? || admin? に変更
-    #   - より細かい権限制御（読み取り専用 vs 編集権限）
-    #   - セキュリティ要件: 最小権限原則の厳格な適用
+    # 
+    # 権限設計理由:
+    #   - headquarters_admin: 全店舗の監査ログアクセス権限
+    #   - store_manager: 担当店舗のみ（将来実装予定）
+    #   - その他の権限: アクセス不可（セキュリティ要件）
+    #
+    # TODO: 🟡 Phase 5（将来拡張）- 権限チェックの細分化
+    #   - super_admin権限実装時: super_admin? || headquarters_admin? に変更
+    #   - 店舗別監査ログアクセス（store_manager用）
+    #   - 読み取り専用 vs 編集権限の分離
+    #   - 監査ログ自体のアクセス監査（メタ監査）
     def authorize_audit_log_access!
       unless current_admin.headquarters_admin?
         redirect_to admin_root_path,

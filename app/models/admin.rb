@@ -56,21 +56,40 @@ class Admin < ApplicationRecord
     end
   end
 
+  # ============================================
+  # 権限システム設計指針（CLAUDE.md準拠）
+  # ============================================
+  # 
+  # 🔒 現在の権限階層（上位→下位）:
+  #    headquarters_admin > store_manager > pharmacist > store_user
+  #
+  # 📋 各権限の責任範囲:
+  #    - headquarters_admin: 全店舗管理、監査ログ、システム設定
+  #    - store_manager: 担当店舗管理、移動承認、スタッフ管理
+  #    - pharmacist: 薬事関連業務、在庫確認、品質管理
+  #    - store_user: 基本在庫操作、日常業務
+  #
+  # ✅ 実装済み権限メソッド:
+  #    - headquarters_admin?  # 最高権限（監査ログアクセス可能）
+  #    - store_manager?       # 店舗管理権限
+  #    - pharmacist?          # 薬剤師権限  
+  #    - store_user?          # 基本ユーザー権限
+  #    - can_access_all_stores?, can_manage_store?, can_approve_transfers?
+  #
   # TODO: 認証・認可関連機能
   # 1. ユーザーモデルの実装（一般スタッフ向け）
   #    - Userモデルの作成と権限管理
   #    - 管理者によるユーザーアカウント管理機能
-  # 2. 🔴 Phase 5（緊急）- 管理者権限レベルの拡張実装
-  #    - super_admin権限区分の追加（監査ログ・システム設定専用）
+  # 2. 🟡 Phase 5（将来拡張）- 管理者権限レベルの細分化
+  #    - super_admin権限区分の追加（システム設定・緊急対応専用）
   #    - admin権限区分の追加（本部管理者の細分化）
   #    - 画面アクセス制御の詳細化
-  #    優先度: 高（セキュリティ要件拡張）
+  #    優先度: 中（現在のheadquarters_adminで要件充足）
   #    実装内容:
   #      - enum roleにsuper_admin, adminを追加
-  #      - super_admin?(), admin?()メソッドの自動生成活用
   #      - 権限階層: super_admin > admin > headquarters_admin > store_manager > pharmacist > store_user
-  #    横展開: SearchResult, AuditLogsController等で権限チェック拡張
-  #    メタ認知: セキュリティレイヤーの階層化による最小権限原則の実現
+  #    横展開: AuditLogsController等で権限チェック拡張
+  #    メタ認知: 過度な権限分割を避け、必要時のみ実装（YAGNI原則）
   # 3. 2要素認証の導入
   #    - devise-two-factor gemを利用
   #    - QRコード生成とTOTPワンタイムパスワード
