@@ -59,7 +59,7 @@ class Admin < ApplicationRecord
   # ============================================
   # 権限システム設計指針（CLAUDE.md準拠）
   # ============================================
-  # 
+  #
   # 🔒 現在の権限階層（上位→下位）:
   #    headquarters_admin > store_manager > pharmacist > store_user
   #
@@ -72,7 +72,7 @@ class Admin < ApplicationRecord
   # ✅ 実装済み権限メソッド:
   #    - headquarters_admin?  # 最高権限（監査ログアクセス可能）
   #    - store_manager?       # 店舗管理権限
-  #    - pharmacist?          # 薬剤師権限  
+  #    - pharmacist?          # 薬剤師権限
   #    - store_user?          # 基本ユーザー権限
   #    - can_access_all_stores?, can_manage_store?, can_approve_transfers?
   #

@@ -173,10 +173,10 @@ FactoryBot.define do
 
     trait :full_store_user_workflow do
       association :source_store, factory: :store
-      association :destination_store, factory: :store  
+      association :destination_store, factory: :store
       association :requested_by, factory: :store_user
       association :approved_by, factory: :store_user
-      
+
       after(:create) do |transfer|
         # StoreUserの店舗に在庫を確保
         create(:store_inventory,

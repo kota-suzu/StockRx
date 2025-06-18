@@ -291,9 +291,9 @@ module AdminControllers
       # メタ認知: PostgreSQL前提のILIKEをMySQL対応のLIKEに統一
       if params[:search].present?
         sanitized_search = sanitize_search_term(params[:search])
-        
+
         # データベース非依存の複数カラム検索
-        search_columns = ['stores.name', 'stores.code', 'stores.region']
+        search_columns = [ "stores.name", "stores.code", "stores.region" ]
         @stores = search_across_columns(@stores, search_columns, sanitized_search)
       end
 

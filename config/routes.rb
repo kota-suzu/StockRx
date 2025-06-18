@@ -45,7 +45,7 @@ Rails.application.routes.draw do
   #     - app/views/store_controllers/inventories/show.html.erb (パンくず、戻るボタン)
   #     - app/views/layouts/store.html.erb (ナビゲーション)
   #     - app/views/store_controllers/dashboard/index.html.erb (リンク)
-  #   
+  #
   # TODO: 🟡 Phase 2（推奨）- 根本的な解決策の検討
   #   優先度: 中（将来的な改善）
   #   代替案:
@@ -170,7 +170,7 @@ Rails.application.routes.draw do
         get :pending      # 承認待ち一覧
         get :analytics    # 移動分析
       end
-      
+
       # 横展開: pending.html.erb等で使用される管理アクション
       # TODO: 🟡 Phase 2（構造改善）- ルーティング設計の最適化
       # 優先度: 中（リファクタリング）

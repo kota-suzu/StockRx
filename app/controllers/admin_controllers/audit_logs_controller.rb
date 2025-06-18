@@ -140,7 +140,7 @@ module AdminControllers
     # 🔒 セキュリティ実装: 監査ログアクセス権限制御
     # CLAUDE.md準拠: 現在のrole enumに基づく適切な権限チェック
     # メタ認知: 監査ログは最高権限（本部管理者）のみアクセス可能とする
-    # 
+    #
     # 権限設計理由:
     #   - headquarters_admin: 全店舗の監査ログアクセス権限
     #   - store_manager: 担当店舗のみ（将来実装予定）

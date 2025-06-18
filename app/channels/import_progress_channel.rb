@@ -37,11 +37,11 @@ class ImportProgressChannel < ApplicationCable::Channel
   def self.broadcast_progress(admin_id, progress_data)
     # 進捗データの検証
     validated_data = validate_progress_data(progress_data)
-    
+
     stream_name = "import_progress_#{admin_id}"
-    
+
     Rails.logger.info "📤 Broadcasting import progress to #{stream_name}: #{validated_data[:status]}"
-    
+
     # ActionCableでブロードキャスト
     ActionCable.server.broadcast(stream_name, validated_data)
   end
@@ -122,7 +122,7 @@ class ImportProgressChannel < ApplicationCable::Channel
   # メッセージのサニタイゼーション
   def self.sanitize_message(message)
     return "" if message.blank?
-    
+
     # HTMLタグ除去・長さ制限
     ActionView::Base.full_sanitizer.sanitize(message.to_s).truncate(200)
   end
@@ -130,12 +130,12 @@ class ImportProgressChannel < ApplicationCable::Channel
   # 進捗パーセンテージのバリデーション
   def self.validate_progress_percentage(progress)
     percentage = progress.to_f
-    [[percentage, 0].max, 100].min # 0-100の範囲に制限
+    [ [ percentage, 0 ].max, 100 ].min # 0-100の範囲に制限
   end
 
   # カウント値のバリデーション
   def self.validate_count(count)
-    [count.to_i, 0].max # 負数は0に修正
+    [ count.to_i, 0 ].max # 負数は0に修正
   end
 
   # エラータイプのサニタイゼーション
@@ -155,7 +155,7 @@ end
 # TODO: 🟡 Phase 6（推奨）- 高度な進捗機能実装
 # ============================================
 # 優先度: 中（UX改善）
-# 
+#
 # 【計画中の拡張機能】
 # 1. 📊 詳細進捗情報
 #    - 処理速度（行/秒）の表示

@@ -7,7 +7,7 @@ RSpec.describe InterStoreTransfer, type: :model do
     it { should belong_to(:source_store).class_name('Store') }
     it { should belong_to(:destination_store).class_name('Store') }
     it { should belong_to(:inventory) }
-    
+
     # ポリモーフィック関連付け：AdminとStoreUserの両方に対応
     # メタ認知: class_nameを指定しないことでポリモーフィック対応をテスト
     it { should belong_to(:requested_by) }
@@ -677,7 +677,7 @@ RSpec.describe InterStoreTransfer, type: :model do
       it 'works with Admin as requested_by' do
         admin = create(:admin)
         transfer = create(:inter_store_transfer, requested_by: admin)
-        
+
         expect(transfer.requested_by).to eq(admin)
         expect(transfer.requested_by_type).to eq('Admin')
         expect(transfer.requested_by_id).to eq(admin.id)
@@ -686,7 +686,7 @@ RSpec.describe InterStoreTransfer, type: :model do
       it 'works with StoreUser as requested_by' do
         store_user = create(:store_user)
         transfer = create(:inter_store_transfer, :requested_by_store_user)
-        
+
         expect(transfer.requested_by).to be_a(StoreUser)
         expect(transfer.requested_by_type).to eq('StoreUser')
       end
@@ -694,7 +694,7 @@ RSpec.describe InterStoreTransfer, type: :model do
       it 'works with Admin as approved_by' do
         admin = create(:admin)
         transfer = create(:inter_store_transfer, :approved, approved_by: admin)
-        
+
         expect(transfer.approved_by).to eq(admin)
         expect(transfer.approved_by_type).to eq('Admin')
         expect(transfer.approved_by_id).to eq(admin.id)
@@ -702,14 +702,14 @@ RSpec.describe InterStoreTransfer, type: :model do
 
       it 'works with StoreUser as approved_by' do
         transfer = create(:inter_store_transfer, :approved_by_store_user)
-        
+
         expect(transfer.approved_by).to be_a(StoreUser)
         expect(transfer.approved_by_type).to eq('StoreUser')
       end
 
       it 'supports full StoreUser workflow' do
         transfer = create(:inter_store_transfer, :full_store_user_workflow)
-        
+
         expect(transfer.requested_by).to be_a(StoreUser)
         expect(transfer.approved_by).to be_a(StoreUser)
         expect(transfer.requested_by_type).to eq('StoreUser')

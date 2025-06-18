@@ -16,12 +16,10 @@
     <%# Chart.js for graphs %>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <%# 🔴 Phase 1: Bootstrap CDN緊急追加 - ドロップダウン完全修正 %>
-    <%# CLAUDE.md準拠: Importmapとの競合回避のためdata属性で制御 %>
-    <%# メタ認知: BootstrapのJavaScript機能が完全に動作しない問題への最終手段 %>
-    <%# 横展開: 本番環境では必ずCDN整合性検証（SRI）を使用すること %>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" data-turbo-permanent></script>
+    <%# 🔧 Phase 3: Importmap統一完了 - CDN削除でJS競合解消 %>
+    <%# CLAUDE.md準拠: Rails 7ベストプラクティス - Importmap単独使用 %>
+    <%# メタ認知: application.jsでBootstrap初期化処理が正常動作する環境整備 %>
+    <%# 横展開: 全レイアウトファイルでImportmap統一パターン適用 %>
     
     <%# ログアウトボタンの視認性向上のためのカスタムCSS %>
     <style>
@@ -246,210 +244,68 @@
     <%# メタ認知: 管理者画面と同一問題のため同様の修正適用 %>
     <%# 横展開: admin.html.erbと同じパターンで修正完了 %>
 
-    <%# 🚨 緊急修正 - 店舗画面でドロップダウンが動作しない問題 %>
-    <%# CLAUDE.md準拠: 管理者画面と同様の手動実装パターン適用 %>
+    <%# 🔧 Phase 3: 最適化済み初期化 - application.js連携強化 %>
+    <%# CLAUDE.md準拠: Rails標準初期化を優先、フォールバックは簡素化 %>
     <script>
-      // Bootstrap CDN読み込み後の初期化確認
-      window.addEventListener('load', function() {
-        console.log('🎯 Window Load - Bootstrap Status:', typeof bootstrap !== 'undefined' ? 'Loaded' : 'Not Loaded');
-        
-        // Bootstrap正式初期化を試みる
-        if (typeof bootstrap !== 'undefined') {
-          console.log('✅ Bootstrap Available - Initializing dropdowns properly');
-          
-          // すべてのドロップダウンを正式に初期化
-          const dropdownElementList = document.querySelectorAll('.dropdown-toggle');
-          const dropdownList = [...dropdownElementList].map(dropdownToggleEl => {
-            try {
-              return new bootstrap.Dropdown(dropdownToggleEl);
-            } catch (e) {
-              console.error('Dropdown initialization error:', e);
-              return null;
-            }
-          });
-          
-          console.log(`✅ Initialized ${dropdownList.filter(d => d !== null).length} dropdowns`);
-        }
-      });
-      
-      // 最も基本的で確実な実装（管理者画面から移植）
+      // application.js初期化状況の確認とフォールバック
       document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚨 EMERGENCY: Store Layout - DOM Content Loaded');
+        console.log('🔧 Store Layout: Checking Bootstrap initialization...');
         
-        // すべてのドロップダウンに強制的に手動機能を追加
-        function forceDropdownFunctionality() {
-          console.log('🔧 Store: Forcing manual dropdown functionality...');
-          
+        // application.jsのBootstrap初期化をチェック
+        setTimeout(function() {
+          if (typeof bootstrap === 'undefined') {
+            console.warn('⚠️ Bootstrap not loaded, using fallback');
+            setupSimpleFallback();
+          } else {
+            console.log('✅ Bootstrap loaded via Importmap');
+            
+            // ドロップダウンが初期化されているかチェック
+            const userDropdown = document.getElementById('userDropdown');
+            if (userDropdown && !bootstrap.Dropdown.getInstance(userDropdown)) {
+              console.log('🔧 Initializing missing user dropdown');
+              try {
+                new bootstrap.Dropdown(userDropdown);
+              } catch (e) {
+                console.error('Bootstrap dropdown init failed:', e);
+                setupSimpleFallback();
+              }
+            }
+          }
+        }, 500);
+        
+        // シンプルなフォールバック機能
+        function setupSimpleFallback() {
           const userDropdown = document.getElementById('userDropdown');
           if (userDropdown) {
-            console.log('✅ Store: Found userDropdown element');
-            
-            // すべてのイベントリスナーを削除してクリーンアップ
-            const newUserDropdown = userDropdown.cloneNode(true);
-            userDropdown.parentNode.replaceChild(newUserDropdown, userDropdown);
-            
-            // 強制的な手動クリックハンドラー
-            newUserDropdown.addEventListener('click', function(e) {
-              console.log('🚨 Store: EMERGENCY CLICK HANDLER TRIGGERED');
+            userDropdown.addEventListener('click', function(e) {
               e.preventDefault();
-              e.stopPropagation();
-              
-              // より確実なセレクター（複数候補）
-              let dropdownMenu = document.querySelector('#userDropdown + .dropdown-menu');
-              if (!dropdownMenu) {
-                dropdownMenu = document.querySelector('.dropdown-menu.dropdown-menu-end');
+              const menu = this.nextElementSibling;
+              if (menu && menu.classList.contains('dropdown-menu')) {
+                menu.classList.toggle('show');
+                menu.style.display = menu.classList.contains('show') ? 'block' : 'none';
               }
-              if (!dropdownMenu) {
-                dropdownMenu = newUserDropdown.parentElement.querySelector('.dropdown-menu');
-              }
-              if (!dropdownMenu) {
-                dropdownMenu = document.querySelector('ul.dropdown-menu');
-              }
-              if (dropdownMenu) {
-                console.log('✅ Store: Found dropdown menu');
-                
-                // 現在の表示状態確認
-                const isVisible = dropdownMenu.style.display === 'block' || 
-                                dropdownMenu.classList.contains('show');
-                
-                console.log('Store: Current state:', isVisible ? 'visible' : 'hidden');
-                
-                // 全てのドロップダウンを閉じる
-                document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                  menu.style.display = 'none';
-                  menu.classList.remove('show');
-                });
-                
-                // 現在のドロップダウンをトグル
-                if (!isVisible) {
-                  dropdownMenu.style.display = 'block';
-                  dropdownMenu.classList.add('show');
-                  console.log('🎯 Store: Dropdown OPENED');
-                } else {
-                  console.log('🎯 Store: Dropdown CLOSED');
-                }
-              } else {
-                console.error('❌ Store: Dropdown menu not found!');
-              }
-            }, true); // キャプチャフェーズで確実に実行
-            
-            console.log('✅ Store: Emergency click handler attached');
-          } else {
-            console.error('❌ Store: userDropdown element not found!');
-          }
-        }
-        
-        // 即座に実行
-        forceDropdownFunctionality();
-        
-        // 追加のデバッグ情報
-        console.log('🔍 Store DOM Debug Info:');
-        console.log('- Total dropdown-toggle elements:', document.querySelectorAll('.dropdown-toggle').length);
-        console.log('- Total dropdown-menu elements:', document.querySelectorAll('.dropdown-menu').length);
-        console.log('- UserDropdown exists:', !!document.getElementById('userDropdown'));
-        
-        // さらに確実な代替アプローチ
-        document.addEventListener('click', function(e) {
-          if (e.target.closest('#userDropdown') || e.target.id === 'userDropdown') {
-            console.log('🎯 Store ALTERNATIVE: UserDropdown area clicked');
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const userMenu = document.querySelector('#userDropdown + .dropdown-menu, #userDropdown ~ .dropdown-menu, .dropdown-menu.dropdown-menu-end');
-            console.log('Store: Found user menu:', !!userMenu);
-            
-            if (userMenu) {
-              const isVisible = userMenu.style.display === 'block' || userMenu.classList.contains('show');
-              
-              // 全てのドロップダウンを閉じる（クリーンアップ）
-              document.querySelectorAll('.dropdown-menu').forEach(menu => {
-                menu.style.display = 'none';
-                menu.classList.remove('show');
-              });
-              
-              // ユーザーメニューのみをトグル
-              if (!isVisible) {
-                userMenu.style.display = 'block';
-                userMenu.classList.add('show');
-                console.log('🎯 Store: User menu opened');
-              } else {
-                console.log('🎯 Store: User menu closed');
-              }
-            } else {
-              console.error('❌ Store: User dropdown menu not found');
-            }
-          }
-        }, true);
-        
-        // 外部クリックで閉じる
-        document.addEventListener('click', function(e) {
-          if (!e.target.closest('.dropdown')) {
-            document.querySelectorAll('.dropdown-menu').forEach(menu => {
-              menu.style.display = 'none';
-              menu.classList.remove('show');
             });
           }
-        });
+        }
       });
       
       // Turbo環境でも実行
       document.addEventListener('turbo:load', function() {
-        console.log('🚨 Store: EMERGENCY Turbo Load');
+        console.log('🔧 Store: Turbo Load - Re-checking Bootstrap');
         
-        // 少し遅延させて確実に実行
+        // Turbo navigatション後もBootstrap初期化をチェック
         setTimeout(function() {
-          const userDropdown = document.getElementById('userDropdown');
-          if (userDropdown && !userDropdown.hasAttribute('data-emergency-handler')) {
-            console.log('🔧 Store: Adding emergency handler via Turbo');
-            
-            userDropdown.setAttribute('data-emergency-handler', 'true');
-            userDropdown.addEventListener('click', function(e) {
-              console.log('🚨 Store: TURBO EMERGENCY CLICK');
-              e.preventDefault();
-              e.stopPropagation();
-              
-              let menu = document.querySelector('#userDropdown + .dropdown-menu');
-              if (!menu) {
-                menu = document.querySelector('.dropdown-menu.dropdown-menu-end');
-              }
-              if (!menu) {
-                menu = userDropdown.parentElement.querySelector('.dropdown-menu');
-              }
-              if (!menu) {
-                menu = document.querySelector('ul.dropdown-menu');
-              }
-              if (menu) {
-                const isVisible = menu.style.display === 'block';
-                
-                // 全て閉じる（クリーンアップ）
-                document.querySelectorAll('.dropdown-menu').forEach(m => {
-                  m.style.display = 'none';
-                  m.classList.remove('show');
-                });
-                
-                // ユーザーメニューのみをトグル
-                if (!isVisible) {
-                  menu.style.display = 'block';
-                  menu.classList.add('show');
-                  console.log('🎯 Store TURBO: User dropdown opened');
-                }
-              }
-            }, true);
-          }
-          
-          // フラッシュメッセージの自動非表示（Turbo対応）
-          const alerts = document.querySelectorAll('.alert');
-          alerts.forEach(function(alert) {
-            setTimeout(function() {
+          if (typeof bootstrap !== 'undefined') {
+            const userDropdown = document.getElementById('userDropdown');
+            if (userDropdown && !bootstrap.Dropdown.getInstance(userDropdown)) {
               try {
-                const bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
-              } catch (error) {
-                // フォールバック
-                alert.style.display = 'none';
+                new bootstrap.Dropdown(userDropdown);
+                console.log('✅ Turbo: User dropdown re-initialized');
+              } catch (e) {
+                console.error('Turbo Bootstrap init failed:', e);
               }
-            }, 5000);
-          });
+            }
+          }
         }, 100);
       });
     </script>

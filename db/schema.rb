@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_17_232635) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_18_031102) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -148,6 +148,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_17_232635) do
     t.string "completed_by_type"
     t.integer "cancelled_by_id"
     t.string "cancelled_by_type"
+    t.text "notes"
+    t.date "requested_delivery_date"
     t.index ["approved_by_id"], name: "index_inter_store_transfers_on_approved_by_id", comment: "承認者別検索最適化"
     t.index ["approved_by_type", "approved_by_id"], name: "idx_on_approved_by_type_approved_by_id_f28063040e"
     t.index ["cancelled_by_type", "cancelled_by_id"], name: "idx_on_cancelled_by_type_cancelled_by_id_176ac8f835"

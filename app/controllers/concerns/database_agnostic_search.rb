@@ -19,13 +19,13 @@ module DatabaseAgnosticSearch
   # PostgreSQL: ILIKE
   def case_insensitive_like_operator
     case ActiveRecord::Base.connection.adapter_name.downcase
-    when 'postgresql'
-      'ILIKE'
-    when 'mysql', 'mysql2'
-      'LIKE'
+    when "postgresql"
+      "ILIKE"
+    when "mysql", "mysql2"
+      "LIKE"
     else
       # その他のDB（SQLite等）はLIKEを使用
-      'LIKE'
+      "LIKE"
     end
   end
 
@@ -40,8 +40,8 @@ module DatabaseAgnosticSearch
 
     # 各カラムでの検索条件を構築
     conditions = columns.map { |column| "#{column} #{operator} ?" }
-    where_clause = conditions.join(' OR ')
-    
+    where_clause = conditions.join(" OR ")
+
     # パラメータ配列（カラム数分の検索パターン）
     parameters = Array.new(columns.length, search_pattern)
 
@@ -51,7 +51,7 @@ module DatabaseAgnosticSearch
   # 単一カラムでの case-insensitive 検索
   # 使用例: search_single_column(User, 'name', 'search_term')
   def search_single_column(relation, column, search_term)
-    search_across_columns(relation, [column], search_term)
+    search_across_columns(relation, [ column ], search_term)
   end
 
   # 階層構造を持つ検索（JOINが必要な場合）
@@ -92,7 +92,7 @@ module DatabaseAgnosticSearch
 
     # 検索条件を構築
     conditions = all_columns.map { |column| "#{column} #{operator} ?" }
-    where_clause = conditions.join(' OR ')
+    where_clause = conditions.join(" OR ")
     parameters = Array.new(all_columns.length, search_pattern)
 
     relation_with_joins.where(where_clause, *parameters)
@@ -114,7 +114,7 @@ module DatabaseAgnosticSearch
 
   # 検索結果のページネーション（Kaminari対応）
   def paginated_search_results(relation, page: 1, per_page: 20)
-    relation.page(page).per([per_page, 100].min) # 最大100件制限
+    relation.page(page).per([ per_page, 100 ].min) # 最大100件制限
   end
 
   # ============================================
@@ -123,14 +123,14 @@ module DatabaseAgnosticSearch
 
   # 検索キーワードのサニタイゼーション
   def sanitize_search_term(term)
-    return '' if term.blank?
+    return "" if term.blank?
 
     # SQLインジェクション対策
     sanitized = ActiveRecord::Base.sanitize_sql_like(term.to_s)
-    
+
     # XSS対策（HTMLエスケープ）
     sanitized = ERB::Util.html_escape(sanitized)
-    
+
     # 検索キーワード長制限（DoS攻撃対策）
     sanitized.truncate(100)
   end
@@ -138,12 +138,12 @@ module DatabaseAgnosticSearch
   # 許可された検索カラムのみを使用
   def validate_search_columns(columns, allowed_columns)
     invalid_columns = columns - allowed_columns
-    
+
     if invalid_columns.any?
       Rails.logger.warn "Invalid search columns attempted: #{invalid_columns.join(', ')}"
       raise ArgumentError, "不正な検索対象が指定されました"
     end
-    
+
     columns
   end
 end
@@ -152,7 +152,7 @@ end
 # TODO: 🟡 Phase 3 - 高度な検索機能の拡張
 # ============================================
 # 優先度: 中（機能強化）
-# 
+#
 # 【計画中の拡張機能】
 # 1. 🔍 全文検索対応
 #    - MySQL: FULLTEXT INDEX + MATCH() AGAINST()

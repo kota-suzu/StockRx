@@ -254,7 +254,7 @@ module AdminControllers
     def transfer_params
       params.require(:inter_store_transfer).permit(
         :source_store_id, :destination_store_id, :inventory_id,
-        :quantity, :priority, :reason
+        :quantity, :priority, :reason, :notes, :requested_delivery_date
       )
     end
 
@@ -402,14 +402,14 @@ module AdminControllers
       # メタ認知: PostgreSQL前提のILIKEをMySQL対応のLIKEに統一
       if params[:search].present?
         sanitized_search = sanitize_search_term(params[:search])
-        
+
         # 複数テーブル横断検索（在庫名、店舗名）
         table_column_mappings = {
-          inventory: ['name'],
-          source_store: ['name'],
-          destination_store: ['name']
+          inventory: [ "name" ],
+          source_store: [ "name" ],
+          destination_store: [ "name" ]
         }
-        
+
         @transfers = search_across_joined_tables(@transfers, table_column_mappings, sanitized_search)
       end
 

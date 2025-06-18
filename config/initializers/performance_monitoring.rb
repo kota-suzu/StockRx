@@ -126,7 +126,7 @@ module PerformanceMonitoring
       # ActiveRecordのクエリイベントを監視（詳細版）
       subscription = ActiveSupport::Notifications.subscribe("sql.active_record") do |name, start, finish, id, payload|
         next if payload[:name] == "CACHE"
-        
+
         query_count += 1
         query_duration = (finish - start) * 1000
 
@@ -211,10 +211,10 @@ module PerformanceMonitoring
 
       # エンドポイントの正規化とマッチング
       normalized_endpoint = normalize_endpoint(endpoint)
-      
+
       QUERY_COUNT_THRESHOLDS.each do |pattern, threshold|
         next if pattern == :default
-        
+
         if normalized_endpoint.match?(Regexp.new(pattern.gsub("/:id", "/\\d+")))
           return threshold
         end

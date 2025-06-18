@@ -103,7 +103,7 @@ module AdminControllers::InventoryLogsHelper
   # @return [String] HTMLバッジ
   def inventory_log_importance_badge(log)
     level = inventory_log_importance_level(log)
-    
+
     case level
     when "high"
       content_tag(:span, "重要", class: "badge bg-danger ms-2")
@@ -127,15 +127,15 @@ module AdminControllers::InventoryLogsHelper
   # @return [Array] セレクトボックス用オプション配列
   def inventory_log_action_options
     [
-      ["すべてのアクション", ""],
-      ["入荷", "receipt"],
-      ["出荷", "shipment"],
-      ["調整", "adjustment"],
-      ["移動", "transfer"],
-      ["廃棄", "disposal"],
-      ["棚卸", "stocktaking"],
-      ["期限切れ", "expired"],
-      ["返品", "return"]
+      [ "すべてのアクション", "" ],
+      [ "入荷", "receipt" ],
+      [ "出荷", "shipment" ],
+      [ "調整", "adjustment" ],
+      [ "移動", "transfer" ],
+      [ "廃棄", "disposal" ],
+      [ "棚卸", "stocktaking" ],
+      [ "期限切れ", "expired" ],
+      [ "返品", "return" ]
     ]
   end
 
@@ -143,16 +143,16 @@ module AdminControllers::InventoryLogsHelper
   # @return [Array] セレクトボックス用オプション配列
   def inventory_log_period_options
     [
-      ["すべての期間", ""],
-      ["今日", "today"],
-      ["昨日", "yesterday"],
-      ["今週", "this_week"],
-      ["先週", "last_week"],
-      ["今月", "this_month"],
-      ["先月", "last_month"],
-      ["過去7日間", "7_days"],
-      ["過去30日間", "30_days"],
-      ["過去90日間", "90_days"]
+      [ "すべての期間", "" ],
+      [ "今日", "today" ],
+      [ "昨日", "yesterday" ],
+      [ "今週", "this_week" ],
+      [ "先週", "last_week" ],
+      [ "今月", "this_month" ],
+      [ "先月", "last_month" ],
+      [ "過去7日間", "7_days" ],
+      [ "過去30日間", "30_days" ],
+      [ "過去90日間", "90_days" ]
     ]
   end
 
@@ -165,7 +165,7 @@ module AdminControllers::InventoryLogsHelper
 
     # HTMLタグを除去
     cleaned = strip_tags(description)
-    
+
     # 長すぎる場合は省略
     if cleaned.length > max_length
       truncate(cleaned, length: max_length, omission: "...")
@@ -247,7 +247,7 @@ end
 # TODO: Phase 3 - 分析・レポート機能の拡張
 # ============================================
 # 優先度: 中（機能強化）
-# 
+#
 # 【計画中の拡張機能】
 # 1. 📊 高度な分析ヘルパー
 #    - 在庫回転率計算

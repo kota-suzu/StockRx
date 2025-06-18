@@ -285,12 +285,12 @@ categories.each_with_index do |(category, items), category_index|
   items.each_with_index do |item_data, item_index|
     # SKU生成（カテゴリ別連番）
     sku = "#{category_index.to_s.rjust(2, '0')}-#{item_index.to_s.rjust(4, '0')}"
-    
+
     # メーカー名をカテゴリに基づいて設定
     manufacturer = case category
     when "医薬品"
       %w[武田薬品 大塚製薬 アステラス製薬 エーザイ 第一三共 中外製薬 田辺三菱製薬].sample
-    when "医療機器"  
+    when "医療機器"
       %w[オムロン テルモ 日本光電 島津製作所 富士フイルム].sample
     when "消耗品"
       %w[ユニ・チャーム 花王 ライオン 大王製紙 エリエール].sample
@@ -299,13 +299,13 @@ categories.each_with_index do |(category, items), category_index|
     else
       "汎用メーカー"
     end
-    
+
     # 単位を商品名に基づいて設定
     unit = case item_data[:name]
     when /錠|カプセル|坐剤/
       "錠"
     when /ml|液|シロップ/
-      "ml" 
+      "ml"
     when /g|軟膏|クリーム|細粒|顆粒/
       "g"
     when /本|注射/
@@ -317,7 +317,7 @@ categories.each_with_index do |(category, items), category_index|
     else
       "個"
     end
-    
+
     inventory = Inventory.create!(
       name: item_data[:name],
       sku: sku,

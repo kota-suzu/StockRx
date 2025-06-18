@@ -36,6 +36,11 @@ class InterStoreTransfer < ApplicationRecord
   # ============================================
   validates :quantity, presence: true, numericality: { greater_than: 0 }
   validates :reason, presence: true, length: { maximum: 1000 }
+  # CLAUDE.md準拠: 新規追加カラムのバリデーション（セキュリティとデータ品質確保）
+  validates :notes, length: { maximum: 2000 }, allow_blank: true
+  validates :requested_delivery_date, 
+    comparison: { greater_than: -> { Date.current }, message: "は今日より後の日付を指定してください" },
+    allow_blank: true
   # requested_atはbefore_validationコールバックで自動設定されるため、バリデーション不要
   validate :different_stores
   validate :sufficient_source_stock, on: :create
