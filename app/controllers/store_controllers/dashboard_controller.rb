@@ -80,7 +80,7 @@ module StoreControllers
 
       @out_of_stock_items = current_store.store_inventories
                                          .joins(:inventory)
-                                         .where(quantity: 0)
+                                         .where("store_inventories.quantity = 0")
                                          .includes(:inventory)
                                          .order(updated_at: :desc)
                                          .limit(10)

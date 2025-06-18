@@ -297,7 +297,9 @@ module AdminControllers
       if search_params[:stock_level_eq].present?
         case search_params[:stock_level_eq]
         when 'out_of_stock'
-          scope = scope.where(quantity: 0)
+          # 🔧 SQL修正: テーブル名明示でカラム曖昧性解消（横展開修正）
+          # CLAUDE.md準拠: 他コントローラーと一貫した修正パターン適用
+          scope = scope.where("store_inventories.quantity = 0")
         when 'low_stock'
           scope = scope.where("store_inventories.quantity > 0 AND store_inventories.quantity <= store_inventories.safety_stock_level")
         when 'normal_stock'

@@ -54,8 +54,10 @@ module StoreControllers
       )
 
       # 在庫選択用のデータ
+      # 🔧 SQL修正: テーブル名明示でカラム曖昧性解消（store_inventories.quantityを明確化）
+      # CLAUDE.md準拠: store_inventoriesとinventoriesの両テーブルにquantityカラム存在のため
       @available_inventories = current_store.store_inventories
-                                          .where("quantity > reserved_quantity")
+                                          .where("store_inventories.quantity > store_inventories.reserved_quantity")
                                           .includes(:inventory)
                                           .order("inventories.name")
 
@@ -158,8 +160,10 @@ module StoreControllers
 
     # フォーム用データの読み込み
     def load_form_data
+      # 🔧 SQL修正: テーブル名明示でカラム曖昧性解消（横展開適用）
+      # メタ認知: newアクションと同じパターンで一貫性確保
       @available_inventories = current_store.store_inventories
-                                          .where("quantity > reserved_quantity")
+                                          .where("store_inventories.quantity > store_inventories.reserved_quantity")
                                           .includes(:inventory)
                                           .order("inventories.name")
 

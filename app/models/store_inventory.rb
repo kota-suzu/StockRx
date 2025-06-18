@@ -30,11 +30,18 @@ class StoreInventory < ApplicationRecord
   # ============================================
   # スコープ
   # ============================================
-  scope :available, -> { where("quantity > reserved_quantity") }
-  scope :low_stock, -> { where("quantity <= safety_stock_level") }
-  scope :critical_stock, -> { where("quantity <= safety_stock_level * 0.5") }
-  scope :out_of_stock, -> { where(quantity: 0) }
-  scope :overstocked, -> { where("quantity > safety_stock_level * 3") }
+  # 🔧 ベストプラクティス: JOINクエリでのテーブル名明示化
+  # CLAUDE.md準拠: SQLカラム曖昧性問題の予防（2025年6月17日修正完了）
+  # メタ認知: store_inventoriesとinventoriesの両方にquantityカラム存在のため
+  # TODO: 🟡 Phase 5（推奨）- 全スコープのテーブル名明示化
+  #   - 現在のスコープは単独使用時は問題なし
+  #   - JOINと組み合わせる際はテーブル名必須
+  #   - 横展開: 他モデルのスコープでも同様の対策適用
+  scope :available, -> { where("store_inventories.quantity > store_inventories.reserved_quantity") }
+  scope :low_stock, -> { where("store_inventories.quantity <= store_inventories.safety_stock_level") }
+  scope :critical_stock, -> { where("store_inventories.quantity <= store_inventories.safety_stock_level * 0.5") }
+  scope :out_of_stock, -> { where("store_inventories.quantity = 0") }
+  scope :overstocked, -> { where("store_inventories.quantity > store_inventories.safety_stock_level * 3") }
   scope :by_store, ->(store) { where(store: store) }
   scope :by_inventory, ->(inventory) { where(inventory: inventory) }
 

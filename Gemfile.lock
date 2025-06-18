@@ -177,6 +177,8 @@ GEM
       raabro (~> 1.4)
     globalid (1.2.1)
       activesupport (>= 6.1)
+    groupdate (6.7.0)
+      activesupport (>= 7.1)
     hashie (5.0.0)
     htmlentities (4.3.4)
     i18n (1.14.7)
@@ -526,6 +528,7 @@ DEPENDENCIES
   draper
   factory_bot_rails
   faker
+  groupdate (~> 6.4)
   importmap-rails
   jbuilder
   kaminari (~> 1.2)

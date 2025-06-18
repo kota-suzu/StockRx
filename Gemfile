@@ -116,6 +116,9 @@ gem "sidekiq", "~> 7.2"
 gem "sidekiq-scheduler", "~> 5.0"  # TODO: 将来の定期実行ジョブ用（月次レポート生成など）
 gem "rack-protection", "~> 4.0"   # Sidekiq Web UI のセキュリティ強化
 
+# Date/Time Grouping for Analytics
+gem "groupdate", "~> 6.4"          # 日付・時間による集計機能（監査ログ・分析用）
+
 # TODO: 外部API連携機能（Ruby 3.x対応）- CLAUDE.md参照
 # 外部API連携機能を完全に実装するため、以下のgemの追加が必要：
 # gem "faraday", "~> 2.7"           # HTTPクライアント（Net::HTTPのモダンな代替）
