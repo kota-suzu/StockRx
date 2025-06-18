@@ -237,6 +237,46 @@ class EmailAuthService
       raise RateLimitExceededError, "IP-based rate limit exceeded for #{ip_address}"
     end
   end
+  
+  # レート制限チェック（外部公開用）
+  def rate_limit_check(email, ip_address)
+    return true unless config.rate_limit_enabled
+    
+    # 時間別制限チェック
+    hourly_key = HOURLY_ATTEMPTS_KEY_PATTERN % { email: email }
+    hourly_count = get_rate_limit_count(hourly_key)
+    
+    return false if hourly_count >= config.max_attempts_per_hour
+    
+    # 日別制限チェック
+    daily_key = DAILY_ATTEMPTS_KEY_PATTERN % { email: email }
+    daily_count = get_rate_limit_count(daily_key)
+    
+    return false if daily_count >= config.max_attempts_per_day
+    
+    # IP別制限チェック
+    ip_key = RATE_LIMIT_KEY_PATTERN % { email: email, ip: ip_address }
+    ip_count = get_rate_limit_count(ip_key)
+    
+    return false if ip_count >= config.max_attempts_per_hour
+    
+    true
+  end
+  
+  # レート制限カウンター増加
+  def increment_rate_limit_counter(email, ip_address)
+    return unless config.rate_limit_enabled
+    
+    # 各キーのカウンターを増加（チェックなし）
+    hourly_key = HOURLY_ATTEMPTS_KEY_PATTERN % { email: email }
+    redis_increment_with_expiry(hourly_key, 1.hour)
+    
+    daily_key = DAILY_ATTEMPTS_KEY_PATTERN % { email: email }
+    redis_increment_with_expiry(daily_key, 1.day)
+    
+    ip_key = RATE_LIMIT_KEY_PATTERN % { email: email, ip: ip_address }
+    redis_increment_with_expiry(ip_key, 1.hour)
+  end
 
   def validate_user_eligibility(store_user)
     unless store_user.active?
@@ -444,6 +484,20 @@ class EmailAuthService
       @rate_limit_cache[key][:count] += 1
     end
 
+    @rate_limit_cache[key][:count]
+  end
+  
+  def get_rate_limit_count(key)
+    # TODO: 🟡 Phase 2重要 - Redis統合実装
+    # 暫定実装（メモリベース）
+    @rate_limit_cache ||= {}
+    return 0 unless @rate_limit_cache[key]
+    
+    if @rate_limit_cache[key][:expires_at] < Time.current
+      @rate_limit_cache[key] = { count: 0, expires_at: Time.current }
+      return 0
+    end
+    
     @rate_limit_cache[key][:count]
   end
 

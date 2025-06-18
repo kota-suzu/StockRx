@@ -51,18 +51,18 @@ module StoreControllers
     def request_temp_password
       unless @store
         respond_to_request_error(
-          I18n.t("email_auth.errors.store_selection_required"),
+          "店舗が選択されていません", 
           :store_selection_required
         )
         return
       end
 
-      # パラメータ検証
-      email = params.dig(:email_auth_request, :email) || params[:email]
+      # パラメータ検証（複数の形式に対応）
+      email = params[:email] || params.dig(:email_auth_request, :email)
       
       unless email.present?
         respond_to_request_error(
-          I18n.t("email_auth.errors.email_required"),
+          "メールアドレスを入力してください",
           :email_required
         )
         return
@@ -80,7 +80,7 @@ module StoreControllers
       # レート制限確認
       if rate_limit_exceeded?(email)
         respond_to_request_error(
-          I18n.t("email_auth.errors.rate_limit_exceeded"),
+          "一時パスワードの送信回数が制限を超えました。しばらくしてからお試しください。",
           :rate_limit_exceeded
         )
         return
@@ -91,7 +91,7 @@ module StoreControllers
         service = EmailAuthService.new
         result = service.generate_and_send_temp_password(
           store_user,
-          admin_id: nil, # 店舗ユーザーからのリクエストのためnill
+          admin_id: nil, # 店舗ユーザーからのリクエストのためnil
           request_metadata: {
             ip_address: request.remote_ip,
             user_agent: request.user_agent,
@@ -103,16 +103,22 @@ module StoreControllers
           track_rate_limit_action!(email) # 成功時もレート制限カウント
           respond_to_request_success(email)
         else
-          respond_to_request_error(
-            result[:error] || I18n.t("email_auth.errors.generation_failed"),
-            :generation_failed
-          )
+          error_message = case result[:error]
+          when "rate_limit_exceeded"
+            "一時パスワードの送信回数が制限を超えました。しばらくしてからお試しください。"
+          when "email_delivery_failed"
+            "メール送信に失敗しました。メールアドレスをご確認ください。"
+          else
+            "一時パスワードの生成に失敗しました。もう一度お試しください。"
+          end
+          
+          respond_to_request_error(error_message, :generation_failed)
         end
 
       rescue StandardError => e
         Rails.logger.error "一時パスワード生成エラー: #{e.message}"
         respond_to_request_error(
-          I18n.t("email_auth.errors.system_error"),
+          "システムエラーが発生しました。しばらくしてからお試しください。",
           :system_error
         )
       end
@@ -129,30 +135,31 @@ module StoreControllers
     def verify_temp_password
       unless @store
         respond_to_verification_error(
-          I18n.t("email_auth.errors.store_selection_required"),
+          "店舗が選択されていません",
           :store_selection_required
         )
         return
       end
 
-      # パラメータ検証
-      verification_params = params.require(:temp_password_verification).permit(:email, :temp_password)
+      # パラメータ検証（複数の形式に対応）
+      email = params[:email] || params.dig(:temp_password_verification, :email)
+      temp_password = params[:temp_password] || params.dig(:temp_password_verification, :temp_password)
       
-      unless verification_params[:email].present? && verification_params[:temp_password].present?
+      unless email.present? && temp_password.present?
         respond_to_verification_error(
-          I18n.t("email_auth.errors.missing_parameters"),
+          "メールアドレスと一時パスワードを入力してください",
           :missing_parameters
         )
         return
       end
 
       # ユーザー存在確認
-      store_user = StoreUser.find_by(email: verification_params[:email], store_id: @store.id)
+      store_user = StoreUser.find_by(email: email, store_id: @store.id)
       
       unless store_user
-        track_rate_limit_action!(verification_params[:email]) # 失敗時レート制限カウント
+        track_rate_limit_action!(email) # 失敗時レート制限カウント
         respond_to_verification_error(
-          I18n.t("email_auth.errors.invalid_credentials"),
+          "メールアドレスまたは一時パスワードが正しくありません",
           :invalid_credentials
         )
         return
@@ -163,7 +170,7 @@ module StoreControllers
         service = EmailAuthService.new
         result = service.authenticate_with_temp_password(
           store_user,
-          verification_params[:temp_password],
+          temp_password,
           request_metadata: {
             ip_address: request.remote_ip,
             user_agent: request.user_agent,
@@ -175,17 +182,26 @@ module StoreControllers
           # 認証成功 - 通常のログイン処理
           sign_in_store_user(store_user, result[:temp_password])
         else
-          track_rate_limit_action!(verification_params[:email]) # 失敗時レート制限カウント
-          respond_to_verification_error(
-            result[:error] || I18n.t("email_auth.errors.invalid_credentials"),
-            :invalid_credentials
-          )
+          track_rate_limit_action!(email) # 失敗時レート制限カウント
+          
+          error_message = case result[:reason]
+          when "expired"
+            "一時パスワードの有効期限が切れました。再度送信してください。"
+          when "already_used"
+            "この一時パスワードは既に使用されています。"
+          when "locked"
+            "試行回数が上限に達しました。新しい一時パスワードを要求してください。"
+          else
+            "メールアドレスまたは一時パスワードが正しくありません"
+          end
+          
+          respond_to_verification_error(error_message, :invalid_credentials)
         end
 
       rescue StandardError => e
         Rails.logger.error "一時パスワード検証エラー: #{e.message}"
         respond_to_verification_error(
-          I18n.t("email_auth.errors.system_error"),
+          "システムエラーが発生しました。しばらくしてからお試しください。",
           :system_error
         )
       end
@@ -202,13 +218,14 @@ module StoreControllers
       
       respond_to do |format|
         format.html do
-          redirect_to verify_form_store_email_auth_path(store_slug: @store.slug),
-                      notice: I18n.t("email_auth.messages.temp_password_sent", email: masked_email)
+          redirect_to store_verify_temp_password_form_path(store_slug: @store.slug),
+                      notice: "#{masked_email} に一時パスワードを送信しました"
         end
         format.json do
           render json: {
             success: true,
-            message: I18n.t("email_auth.messages.temp_password_sent", email: masked_email),
+            message: "一時パスワードを送信しました。メールをご確認ください。",
+            masked_email: masked_email,
             next_step: "verify_temp_password"
           }, status: :ok
         end

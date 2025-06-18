@@ -5,67 +5,161 @@
   店舗スタッフログイン
 </h2>
 
-<%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
-  <%# 店舗情報を隠しフィールドで送信 %>
-  <%= hidden_field_tag :store_slug, @store.slug if @store %>
-  
-  <%# メールアドレス %>
-  <div class="mb-3">
-    <%= f.label :email, class: "form-label" do %>
-      <i class="bi bi-envelope me-1"></i>
-      メールアドレス
-    <% end %>
-    <%= f.email_field :email, 
-                      autofocus: true, 
-                      autocomplete: "email",
-                      class: "form-control form-control-lg",
-                      placeholder: "email@example.com",
-                      required: true %>
-  </div>
-
-  <%# パスワード %>
-  <div class="mb-3">
-    <%= f.label :password, class: "form-label" do %>
+<!-- タブナビゲーション -->
+<ul class="nav nav-tabs mb-4" id="loginTabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="password-tab" data-bs-toggle="tab" data-bs-target="#password-login" type="button" role="tab" aria-controls="password-login" aria-selected="true">
       <i class="bi bi-key me-1"></i>
-      パスワード
-    <% end %>
-    <%= f.password_field :password, 
-                        autocomplete: "current-password",
-                        class: "form-control form-control-lg",
-                        placeholder: "••••••••",
-                        required: true %>
-  </div>
+      パスワードでログイン
+    </button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="email-auth-tab" data-bs-toggle="tab" data-bs-target="#email-auth-login" type="button" role="tab" aria-controls="email-auth-login" aria-selected="false">
+      <i class="bi bi-envelope-check me-1"></i>
+      一時パスワードでログイン
+    </button>
+  </li>
+</ul>
 
-  <%# ログイン状態を記憶 %>
-  <% if devise_mapping.rememberable? %>
-    <div class="mb-3">
-      <div class="form-check">
-        <%= f.check_box :remember_me, class: "form-check-input" %>
-        <%= f.label :remember_me, class: "form-check-label" do %>
-          ログイン状態を記憶する
+<!-- タブコンテンツ -->
+<div class="tab-content" id="loginTabsContent">
+  <!-- パスワードログインタブ -->
+  <div class="tab-pane fade show active" id="password-login" role="tabpanel" aria-labelledby="password-tab">
+    <%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+      <%# 店舗情報を隠しフィールドで送信 %>
+      <%= hidden_field_tag :store_slug, @store.slug if @store %>
+      
+      <%# メールアドレス %>
+      <div class="mb-3">
+        <%= f.label :email, class: "form-label" do %>
+          <i class="bi bi-envelope me-1"></i>
+          メールアドレス
+        <% end %>
+        <%= f.email_field :email, 
+                          autofocus: true, 
+                          autocomplete: "email",
+                          class: "form-control form-control-lg",
+                          placeholder: "email@example.com",
+                          required: true %>
+      </div>
+
+      <%# パスワード %>
+      <div class="mb-3">
+        <%= f.label :password, class: "form-label" do %>
+          <i class="bi bi-key me-1"></i>
+          パスワード
+        <% end %>
+        <%= f.password_field :password, 
+                            autocomplete: "current-password",
+                            class: "form-control form-control-lg",
+                            placeholder: "••••••••",
+                            required: true %>
+      </div>
+
+      <%# ログイン状態を記憶 %>
+      <% if devise_mapping.rememberable? %>
+        <div class="mb-3">
+          <div class="form-check">
+            <%= f.check_box :remember_me, class: "form-check-input" %>
+            <%= f.label :remember_me, class: "form-check-label" do %>
+              ログイン状態を記憶する
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <%# ログインボタン %>
+      <div class="d-grid mb-3">
+        <%= f.submit "ログイン", 
+                     class: "btn btn-primary btn-lg",
+                     data: { turbo: false } %>
+      </div>
+
+      <%# パスワードリセットリンク %>
+      <div class="text-center">
+        <% if @store %>
+          <%= link_to new_store_user_password_path(store_slug: @store.slug), 
+                      class: "text-decoration-none" do %>
+            <i class="bi bi-question-circle me-1"></i>
+            パスワードを忘れた方はこちら
+          <% end %>
         <% end %>
       </div>
-    </div>
-  <% end %>
-
-  <%# ログインボタン %>
-  <div class="d-grid mb-3">
-    <%= f.submit "ログイン", 
-                 class: "btn btn-primary btn-lg",
-                 data: { turbo: false } %>
-  </div>
-
-  <%# パスワードリセットリンク %>
-  <div class="text-center">
-    <% if @store %>
-      <%= link_to new_store_user_password_path(store_slug: @store.slug), 
-                  class: "text-decoration-none" do %>
-        <i class="bi bi-question-circle me-1"></i>
-        パスワードを忘れた方はこちら
-      <% end %>
     <% end %>
   </div>
-<% end %>
+
+  <!-- 一時パスワードログインタブ -->
+  <div class="tab-pane fade" id="email-auth-login" role="tabpanel" aria-labelledby="email-auth-tab">
+    <%= form_with url: store_request_temp_password_path(store_slug: @store.slug), local: true do |f| %>
+      <!-- Step 1: メールアドレス入力 -->
+      <div id="email-auth-step1">
+        <div class="mb-3">
+          <%= f.label :email, class: "form-label" do %>
+            <i class="bi bi-envelope me-1"></i>
+            メールアドレス
+          <% end %>
+          <%= f.email_field :email, 
+                            autocomplete: "email",
+                            class: "form-control form-control-lg",
+                            placeholder: "email@example.com",
+                            required: true %>
+          <div class="form-text">
+            登録されているメールアドレスを入力してください。<br>
+            一時パスワードをメールで送信します。
+          </div>
+        </div>
+
+        <div class="d-grid mb-3">
+          <%= f.submit "一時パスワードを送信", 
+                       class: "btn btn-success btn-lg",
+                       data: { turbo: false } %>
+        </div>
+      </div>
+    <% end %>
+
+    <!-- Step 2: 一時パスワード入力（送信後に表示） -->
+    <div id="email-auth-step2" style="display: none;">
+      <%= form_with url: store_verify_temp_password_path(store_slug: @store.slug), local: true do |f| %>
+        <%= f.hidden_field :email, id: "verify-email" %>
+        
+        <div class="alert alert-success" role="alert">
+          <i class="bi bi-check-circle me-2"></i>
+          一時パスワードを送信しました。メールをご確認ください。
+        </div>
+        
+        <div class="mb-3">
+          <%= f.label :temp_password, class: "form-label" do %>
+            <i class="bi bi-shield-lock me-1"></i>
+            一時パスワード
+          <% end %>
+          <%= f.text_field :temp_password, 
+                           autocomplete: "one-time-code",
+                           class: "form-control form-control-lg",
+                           placeholder: "12345678",
+                           maxlength: 8,
+                           pattern: "[0-9]{8}",
+                           required: true %>
+          <div class="form-text">
+            メールに記載された8桁の数字を入力してください。
+          </div>
+        </div>
+
+        <div class="d-grid mb-3">
+          <%= f.submit "ログイン", 
+                       class: "btn btn-primary btn-lg",
+                       data: { turbo: false } %>
+        </div>
+
+        <div class="text-center">
+          <a href="#" id="resend-temp-password" class="text-decoration-none">
+            <i class="bi bi-arrow-repeat me-1"></i>
+            一時パスワードを再送信
+          </a>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
 
 <%# セキュリティ情報 %>
 <div class="mt-4 p-3 bg-light rounded">
@@ -73,10 +167,102 @@
     <i class="bi bi-shield-check me-1"></i>
     セキュリティ情報
   </h6>
-  <ul class="small text-muted mb-0">
-    <li>パスワードは12文字以上で設定してください</li>
-    <li>大文字・小文字・数字・記号を含めてください</li>
-    <li>5回連続で失敗すると30分間ロックされます</li>
-    <li>パスワードは90日ごとに変更が必要です</li>
-  </ul>
+  <div id="password-security-info">
+    <ul class="small text-muted mb-0">
+      <li>パスワードは12文字以上で設定してください</li>
+      <li>大文字・小文字・数字・記号を含めてください</li>
+      <li>5回連続で失敗すると30分間ロックされます</li>
+      <li>パスワードは90日ごとに変更が必要です</li>
+    </ul>
+  </div>
+  <div id="temp-password-security-info" style="display: none;">
+    <ul class="small text-muted mb-0">
+      <li>一時パスワードは15分間有効です</li>
+      <li>一時パスワードは1回限り使用可能です</li>
+      <li>メールが届かない場合は迷惑メールフォルダをご確認ください</li>
+      <li>5回連続で失敗すると一時パスワードは無効になります</li>
+    </ul>
+  </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // タブ切り替えによるセキュリティ情報の更新
+  const passwordTab = document.getElementById('password-tab');
+  const emailAuthTab = document.getElementById('email-auth-tab');
+  const passwordInfo = document.getElementById('password-security-info');
+  const tempPasswordInfo = document.getElementById('temp-password-security-info');
+  
+  passwordTab.addEventListener('click', function() {
+    passwordInfo.style.display = 'block';
+    tempPasswordInfo.style.display = 'none';
+  });
+  
+  emailAuthTab.addEventListener('click', function() {
+    passwordInfo.style.display = 'none';
+    tempPasswordInfo.style.display = 'block';
+  });
+  
+  // 一時パスワード送信後のUI切り替え
+  const emailAuthForm = document.querySelector('#email-auth-step1 form');
+  if (emailAuthForm) {
+    emailAuthForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const email = emailAuthForm.querySelector('input[type="email"]').value;
+      
+      // フォームデータを準備
+      const formData = new FormData(emailAuthForm);
+      
+      // Ajax送信
+      fetch(emailAuthForm.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Step 2を表示
+          document.getElementById('email-auth-step1').style.display = 'none';
+          document.getElementById('email-auth-step2').style.display = 'block';
+          document.getElementById('verify-email').value = email;
+          
+          // メッセージ更新
+          const alertDiv = document.querySelector('#email-auth-step2 .alert');
+          alertDiv.innerHTML = `
+            <i class="bi bi-check-circle me-2"></i>
+            ${email} に一時パスワードを送信しました。<br>
+            メールをご確認ください。
+          `;
+        } else {
+          // エラー表示
+          alert(data.message || 'エラーが発生しました。もう一度お試しください。');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('通信エラーが発生しました。もう一度お試しください。');
+      });
+    });
+  }
+  
+  // 再送信リンク
+  const resendLink = document.getElementById('resend-temp-password');
+  if (resendLink) {
+    resendLink.addEventListener('click', function(e) {
+      e.preventDefault();
+      const email = document.getElementById('verify-email').value;
+      
+      // 再送信処理
+      if (confirm('一時パスワードを再送信しますか？')) {
+        // Step 1に戻る
+        document.getElementById('email-auth-step1').style.display = 'block';
+        document.getElementById('email-auth-step2').style.display = 'none';
+        document.querySelector('#email-auth-step1 input[type="email"]').value = email;
+      }
+    });
+  }
+});
+</script>
