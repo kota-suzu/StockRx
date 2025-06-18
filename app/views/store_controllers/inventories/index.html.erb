@@ -20,13 +20,26 @@
   </div>
   
   <div class="d-flex gap-2">
-    <%# TODO: 🟡 Phase 3（重要）- CSV出力機能 %>
-    <%# 優先度: 中（業務効率化） %>
-    <%# 実装内容: 店舗在庫データのCSVエクスポート %>
-    <%# メタ認知: 本部への報告や分析に必要な機能 %>
-    <button class="btn btn-outline-success" disabled>
-      <i class="bi bi-download me-1"></i>CSV出力
-    </button>
+    <%# CLAUDE.md準拠: CSV出力機能実装完了 %>
+    <%# メタ認知: 店舗業務の効率化とデータ活用促進 %>
+    <%# セキュリティ: 認証済みユーザーのみアクセス可能 %>
+    <%# 横展開: 他の一覧画面でも同様のCSV出力パターン適用可能 %>
+    <% if @authenticated_access && current_store %>
+      <%= link_to "/store/inventories.csv?#{request.query_string}", 
+                  class: "btn btn-outline-success",
+                  title: "在庫データをCSVファイルでダウンロード",
+                  data: { 
+                    bs_toggle: "tooltip", 
+                    bs_placement: "bottom",
+                    confirm: "在庫データ（#{@store_inventories.total_count}件）をCSVでダウンロードしますか？"
+                  } do %>
+        <i class="bi bi-download me-1"></i>CSV出力
+      <% end %>
+    <% else %>
+      <button class="btn btn-outline-success" disabled title="ログインが必要です">
+        <i class="bi bi-download me-1"></i>CSV出力
+      </button>
+    <% end %>
     
     <%# TODO: 🟡 Phase 3（重要）- 在庫調整機能 %>
     <%# 優先度: 中（棚卸し対応） %>

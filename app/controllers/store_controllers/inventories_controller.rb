@@ -23,7 +23,7 @@ module StoreControllers
       # 🔧 CLAUDE.md準拠: 認証状態に応じたアクセス制御
       # メタ認知: 公開アクセスと認証アクセスの適切な分離
       # セキュリティ: 機密情報は認証後のみ表示
-      
+
       if store_user_signed_in? && current_store
         # 認証済み: 店舗スコープでの詳細情報
         # 🔧 パフォーマンス最適化: index画面ではbatches情報不要
@@ -58,6 +58,18 @@ module StoreControllers
 
       # 統計情報（認証済みの場合のみ詳細表示）
       load_statistics if @authenticated_access
+
+      # CLAUDE.md準拠: CSV出力機能の実装
+      # メタ認知: データエクスポート機能により業務効率向上
+      # セキュリティ: 認証済みユーザーのみアクセス可能、店舗スコープ確保
+      # 横展開: 他の一覧画面でも同様のCSV出力パターン適用可能
+      respond_to do |format|
+        format.html # 通常のHTML表示
+        format.csv do
+          # CSVダウンロード専用処理
+          generate_csv_response
+        end
+      end
     end
 
     # 在庫詳細
@@ -235,7 +247,7 @@ module StoreControllers
     # ============================================
     # ソート設定
     # ============================================
-    
+
     # CLAUDE.md準拠: ソート機能のヘルパーメソッド化
     # メタ認知: ビューでソートリンクを生成するために必要
     # ベストプラクティス: 明示的なhelper_method宣言で可読性向上
@@ -253,7 +265,7 @@ module StoreControllers
       # メタ認知: 公開アクセス時はJOINが発生するため、曖昧性を回避
       # セキュリティ: SQLインジェクション対策として許可リストを使用
       allowed_columns = %w[inventories.name inventories.sku store_inventories.quantity store_inventories.safety_stock_level]
-      
+
       if allowed_columns.include?(params[:sort])
         params[:sort]
       else
@@ -397,6 +409,128 @@ module StoreControllers
       else
         "その他"
       end
+    end
+
+    # ============================================
+    # CSV出力処理
+    # ============================================
+
+    # CSV生成とレスポンス処理
+    # CLAUDE.md準拠: セキュリティとユーザビリティのベストプラクティス
+    # メタ認知: CSV出力により店舗業務の効率化とデータ活用促進
+    # 横展開: 他の一覧画面でも同様のCSVパターン適用可能
+    def generate_csv_response
+      # 認証チェック（念のため）
+      unless store_user_signed_in? && current_store
+        redirect_to stores_path, alert: "アクセス権限がありません"
+        return
+      end
+
+      # CSV生成用データ取得（ページネーションなしで全件）
+      csv_data = fetch_csv_data
+
+      # CSVファイル名生成（日本語対応）
+      timestamp = Time.current.strftime("%Y%m%d_%H%M%S")
+      filename = "#{current_store.name}_在庫一覧_#{timestamp}.csv"
+
+      # CSVレスポンス設定
+      # CLAUDE.md準拠: 文字エンコーディングとダウンロード設定のベストプラクティス
+      response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+      response.headers['Content-Disposition'] = "attachment; filename*=UTF-8''#{ERB::Util.url_encode(filename)}"
+
+      # BOM付きUTF-8で出力（Excel対応）
+      csv_content = "\uFEFF" + generate_csv_content(csv_data)
+
+      # 監査ログ記録
+      log_csv_export_event(csv_data.count)
+
+      # CSVレスポンス送信
+      render plain: csv_content
+    end
+
+    # CSV用データ取得
+    # CLAUDE.md準拠: パフォーマンス最適化とセキュリティ確保
+    def fetch_csv_data
+      # 店舗スコープでの全データ取得（セキュリティ確保）
+      base_scope = current_store.store_inventories
+                                .joins(:inventory)
+                                .includes(:inventory)
+
+      # 検索条件適用（index と同じロジック）
+      @q = apply_search_filters(base_scope, params[:q] || {})
+
+      # ソート適用（ページネーションなし）
+      @q.order(sort_column => sort_direction)
+    end
+
+    # CSV内容生成
+    # CLAUDE.md準拠: 読みやすいCSVヘッダーと適切なデータフォーマット
+    def generate_csv_content(store_inventories)
+      require 'csv'
+
+      CSV.generate(headers: true) do |csv|
+        # CSVヘッダー
+        csv << [
+          "商品名",
+          "商品コード", 
+          "カテゴリ",
+          "現在在庫数",
+          "安全在庫レベル",
+          "単価",
+          "在庫価値",
+          "在庫状態",
+          "回転日数",
+          "最終更新日"
+        ]
+
+        # データ行
+        store_inventories.find_each do |store_inventory|
+          csv << [
+            store_inventory.inventory.name,
+            store_inventory.inventory.sku || "---",
+            categorize_by_name(store_inventory.inventory.name),
+            store_inventory.quantity,
+            store_inventory.safety_stock_level,
+            store_inventory.inventory.price,
+            (store_inventory.quantity * store_inventory.inventory.price),
+            extract_stock_status_text(store_inventory),
+            turnover_days(store_inventory),
+            store_inventory.last_updated_at&.strftime("%Y/%m/%d %H:%M") || "---"
+          ]
+        end
+      end
+    end
+
+    # 在庫状態テキスト抽出
+    def extract_stock_status_text(store_inventory)
+      badge_info = stock_level_badge(store_inventory)
+      badge_info[:text]
+    end
+
+    # CSV出力監査ログ記録
+    # CLAUDE.md準拠: セキュリティコンプライアンスとトレーサビリティ確保
+    def log_csv_export_event(record_count)
+      # 基本情報
+      event_details = {
+        action: "inventory_csv_export",
+        store_id: current_store.id,
+        store_name: current_store.name,
+        user_id: current_store_user.id,
+        record_count: record_count,
+        ip_address: request.remote_ip,
+        user_agent: request.user_agent,
+        timestamp: Time.current.iso8601
+      }
+
+      # ログ記録
+      Rails.logger.info "[CSV_EXPORT] Store inventory export: #{event_details.to_json}"
+
+      # TODO: 🟡 Phase 3（重要）- セキュリティ監査ログとの統合
+      # 優先度: 中（コンプライアンス強化）
+      # 実装内容: SecurityComplianceManagerとの統合
+      # SecurityComplianceManager.instance.log_gdpr_event(
+      #   "data_export", current_store_user, event_details
+      # )
     end
   end
 end
