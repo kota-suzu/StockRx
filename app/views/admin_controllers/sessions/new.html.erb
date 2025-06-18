@@ -26,7 +26,7 @@
           
           <div class="card-body p-4">
             <%# エラーメッセージ表示エリア %>
-            <%= render "admin_controllers/shared/error_messages", resource: resource %>
+            <%= render "shared/forms/error_messages", resource: resource %>
             
             <%= form_for(resource, as: resource_name, url: session_path(resource_name), 
                          data: { turbo: false }, class: "needs-validation", novalidate: true) do |f| %>
@@ -102,7 +102,7 @@
                 <hr class="flex-grow-1 opacity-25">
               </div>
               
-              <%= link_to admin_omniauth_authorize_path(:github), 
+              <%= link_to admin_github_omniauth_authorize_path, 
                   method: :post,
                   class: "btn btn-outline-dark btn-lg w-100 py-3",
                   style: "border: 2px solid #333; transition: all 0.3s ease;",
@@ -116,7 +116,7 @@
           
           <%# フッターリンク %>
           <div class="card-footer bg-light text-center py-3">
-            <%= render "admin_controllers/shared/links" %>
+            <%= render "shared/auth/links" %>
           </div>
         </div>
 

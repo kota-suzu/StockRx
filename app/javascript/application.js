@@ -11,6 +11,11 @@ import "./controllers"
 // 横展開: 全ての管理画面・店舗画面で共通使用
 import "bootstrap"
 
+// 認証画面専用JavaScript
+// CLAUDE.md準拠: インラインスクリプト外部化でCSP対応
+// メタ認知: 認証機能の分離でメンテナンス性向上
+import "authentication"
+
 // Turboとの互換性確保
 // CLAUDE.md準拠: ベストプラクティス - 確実なBootstrap初期化実装
 document.addEventListener("turbo:load", () => {
@@ -74,7 +79,16 @@ function setupManualDropdown() {
 function initializeBootstrapComponents() {
   console.log('🔧 Initializing Bootstrap components...');
   
-  // タブの初期化（メタ認知: ログイン画面のタブ機能に必須）
+  // 🔐 認証ページ判定（メタ認知: JavaScript初期化競合回避）
+  // 横展開: 認証画面は専用のauthentication.jsで初期化
+  if (isAuthenticationPage()) {
+    console.log('🔐 Authentication page detected, delegating tab initialization to authentication.js');
+    // 認証ページではタブ以外のコンポーネントのみ初期化
+    initializeNonTabComponents();
+    return;
+  }
+  
+  // タブの初期化（一般ページ用）
   const tabElements = document.querySelectorAll('[data-bs-toggle="tab"]');
   if (tabElements.length > 0) {
     console.log(`📍 Found ${tabElements.length} tab elements`);
@@ -90,11 +104,6 @@ function initializeBootstrapComponents() {
         // 新しいタブインスタンス作成
         const tab = new bootstrap.Tab(element);
         console.log(`✅ Tab ${index + 1} initialized: ${element.id || 'unnamed'}`);
-        
-        // デバッグ: パスコードタブ特定
-        if (element.id === 'passcode-tab') {
-          console.log('🎯 Passcode tab initialized successfully');
-        }
         
       } catch (error) {
         console.error(`❌ Tab ${index + 1} initialization failed:`, error);
@@ -138,39 +147,8 @@ function initializeBootstrapComponents() {
     console.log('ℹ️ No dropdown elements found on this page');
   }
   
-  // ツールチップの初期化
-  const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-  if (tooltipElements.length > 0) {
-    tooltipElements.forEach(element => {
-      try {
-        const existingInstance = bootstrap.Tooltip.getInstance(element);
-        if (existingInstance) {
-          existingInstance.dispose();
-        }
-        new bootstrap.Tooltip(element);
-      } catch (error) {
-        console.error('Tooltip initialization failed:', error);
-      }
-    });
-    console.log(`✅ ${tooltipElements.length} tooltips initialized`);
-  }
-  
-  // ポップオーバーの初期化
-  const popoverElements = document.querySelectorAll('[data-bs-toggle="popover"]');
-  if (popoverElements.length > 0) {
-    popoverElements.forEach(element => {
-      try {
-        const existingInstance = bootstrap.Popover.getInstance(element);
-        if (existingInstance) {
-          existingInstance.dispose();
-        }
-        new bootstrap.Popover(element);
-      } catch (error) {
-        console.error('Popover initialization failed:', error);
-      }
-    });
-    console.log(`✅ ${popoverElements.length} popovers initialized`);
-  }
+  // ツールチップ・ポップオーバー初期化（共通関数使用）
+  initializeTooltipsAndPopovers();
   
   console.log('🎯 Bootstrap components initialization completed');
   
@@ -320,6 +298,94 @@ function handleDropdownToggle(toggle) {
 //   - エラーメッセージの改善
 //   - ローディングインジケーター追加
 // 期待効果: ユーザビリティ向上、操作ミス防止
+
+// ============================================
+// 認証ページ判定とタブ初期化競合回避機能
+// ============================================
+// CLAUDE.md準拠: メタ認知 - JavaScript初期化の重複防止
+// 横展開: 認証画面専用初期化の確実な分離
+
+// 認証ページ判定関数
+function isAuthenticationPage() {
+  // 複数の判定条件で確実な認証ページ検出
+  return !!(
+    document.querySelector('.gradient-bg') ||        // 店舗ログイン画面
+    document.querySelector('#loginTabs') ||          // 認証タブ
+    document.querySelector('.auth-page') ||          // 明示的な認証ページクラス
+    document.querySelector('#passcode-tab') ||       // パスコードタブ
+    window.location.pathname.includes('/sign_in') || // ログインパス
+    window.location.pathname.includes('/auth')       // 認証関連パス
+  );
+}
+
+// 非タブコンポーネント初期化（認証ページ用）
+function initializeNonTabComponents() {
+  console.log('🔐 Initializing non-tab components for authentication page...');
+  
+  // ドロップダウンの初期化（認証ページでも必要な場合）
+  const dropdownElements = document.querySelectorAll('.dropdown-toggle');
+  if (dropdownElements.length > 0) {
+    console.log(`📍 Found ${dropdownElements.length} dropdown elements on auth page`);
+    
+    dropdownElements.forEach((element, index) => {
+      try {
+        const existingInstance = bootstrap.Dropdown.getInstance(element);
+        if (existingInstance) {
+          existingInstance.dispose();
+        }
+        
+        const dropdown = new bootstrap.Dropdown(element);
+        console.log(`✅ Auth page dropdown ${index + 1} initialized: ${element.id || 'unnamed'}`);
+        
+      } catch (error) {
+        console.error(`❌ Auth page dropdown ${index + 1} initialization failed:`, error);
+        setupManualDropdownForElement(element);
+      }
+    });
+  }
+  
+  // ツールチップ・ポップオーバー初期化（認証ページでも使用される可能性）
+  initializeTooltipsAndPopovers();
+  
+  console.log('✅ Non-tab components initialized for authentication page');
+}
+
+// ツールチップ・ポップオーバー初期化（共通関数）
+function initializeTooltipsAndPopovers() {
+  // ツールチップの初期化
+  const tooltipElements = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+  if (tooltipElements.length > 0) {
+    tooltipElements.forEach(element => {
+      try {
+        const existingInstance = bootstrap.Tooltip.getInstance(element);
+        if (existingInstance) {
+          existingInstance.dispose();
+        }
+        new bootstrap.Tooltip(element);
+      } catch (error) {
+        console.error('Tooltip initialization failed:', error);
+      }
+    });
+    console.log(`✅ ${tooltipElements.length} tooltips initialized`);
+  }
+  
+  // ポップオーバーの初期化
+  const popoverElements = document.querySelectorAll('[data-bs-toggle="popover"]');
+  if (popoverElements.length > 0) {
+    popoverElements.forEach(element => {
+      try {
+        const existingInstance = bootstrap.Popover.getInstance(element);
+        if (existingInstance) {
+          existingInstance.dispose();
+        }
+        new bootstrap.Popover(element);
+      } catch (error) {
+        console.error('Popover initialization failed:', error);
+      }
+    });
+    console.log(`✅ ${popoverElements.length} popovers initialized`);
+  }
+}
 
 // デバッグ用コンソールメッセージ
 console.log("✅ Application JavaScript loaded successfully");

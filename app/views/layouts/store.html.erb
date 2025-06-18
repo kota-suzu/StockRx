@@ -97,9 +97,9 @@
     </style>
   </head>
 
-  <body>
+  <body class="store-layout">
     <%# ナビゲーションバー（認証状態に応じて表示切り替え） %>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-store">
       <div class="container-fluid">
         <% if store_user_signed_in? && current_store %>
           <%# 認証済みユーザー用の完全ナビゲーション %>
@@ -243,7 +243,7 @@
 
     <%# メインコンテンツ %>
     <main class="py-4">
-      <div class="container-fluid">
+      <div class="container-fluid main-content">
         <%= yield %>
       </div>
     </main>

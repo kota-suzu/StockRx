@@ -1,0 +1,238 @@
+<%# ============================================ %>
+<%# Modern UI v2 - Demo Page %>
+<%# 新しいUIコンポーネントのショーケース %>
+<%# ============================================ %>
+
+<div class="mesh-gradient-bg" style="min-height: 100vh; padding: 2rem 0;">
+  <%= modern_container do %>
+    <%# Page Header %>
+    <%= modern_page_header(
+      title: "StockRx Modern UI v2",
+      subtitle: "最新のUIトレンドに対応した新しいデザインシステム",
+      actions: -> { theme_toggle_button }
+    ) %>
+
+    <%# Button Showcase %>
+    <section class="mb-8">
+      <%= glass_card(header: "ボタンコンポーネント") do %>
+        <div class="grid-modern grid-cols-2 gap-4">
+          <%# Primary Buttons %>
+          <div>
+            <h4 class="mb-4">Primary Variants</h4>
+            <div class="flex-modern gap-2 flex-col">
+              <%= modern_button("Primary Button", variant: 'primary') %>
+              <%= modern_button("With Icon", variant: 'primary', icon: 'bi bi-rocket-takeoff') %>
+              <%= modern_button("Glow Effect", variant: 'primary', glow: true) %>
+              <%= modern_button("Loading", variant: 'primary', loading: true) %>
+            </div>
+          </div>
+
+          <%# Secondary Buttons %>
+          <div>
+            <h4 class="mb-4">Secondary Variants</h4>
+            <div class="flex-modern gap-2 flex-col">
+              <%= modern_button("Secondary", variant: 'secondary') %>
+              <%= modern_button("Ghost", variant: 'ghost') %>
+              <%= modern_button("Success", variant: 'success') %>
+              <%= modern_button("Danger", variant: 'danger') %>
+            </div>
+          </div>
+
+          <%# Size Variations %>
+          <div>
+            <h4 class="mb-4">Size Variations</h4>
+            <div class="flex-modern gap-2">
+              <%= modern_button("Small", size: 'sm') %>
+              <%= modern_button("Medium", size: 'md') %>
+              <%= modern_button("Large", size: 'lg') %>
+            </div>
+          </div>
+
+          <%# Icon Buttons %>
+          <div>
+            <h4 class="mb-4">Icon Buttons</h4>
+            <div class="flex-modern gap-2">
+              <%= modern_button("", icon: 'bi bi-heart', variant: 'primary') %>
+              <%= modern_button("", icon: 'bi bi-star', variant: 'secondary') %>
+              <%= modern_button("", icon: 'bi bi-gear', variant: 'ghost') %>
+              <%= modern_button("", icon: 'bi bi-trash', variant: 'danger') %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </section>
+
+    <%# Card Showcase %>
+    <section class="mb-8">
+      <h2 class="gradient-text mb-4">Glassmorphism カード</h2>
+      <%= modern_grid(cols: 3) do %>
+        <%# Basic Card %>
+        <%= glass_card do %>
+          <h3 class="mb-2">基本カード</h3>
+          <p>Glassmorphism効果を使用した基本的なカードコンポーネント。半透明の背景とぼかし効果が特徴です。</p>
+        <% end %>
+
+        <%# Interactive Card %>
+        <%= glass_card(interactive: true) do %>
+          <h3 class="mb-2">インタラクティブカード</h3>
+          <p>ホバー時にグロー効果が発生するインタラクティブなカード。クリック可能なコンテンツに最適。</p>
+        <% end %>
+
+        <%# Card with Header/Footer %>
+        <%= glass_card(
+          header: "ヘッダー付きカード",
+          footer: modern_button("詳細を見る", variant: 'secondary', size: 'sm')
+        ) do %>
+          <p>ヘッダーとフッターを持つ構造化されたカードレイアウト。</p>
+        <% end %>
+      <% end %>
+    </section>
+
+    <%# Statistics Cards %>
+    <section class="mb-8">
+      <h2 class="gradient-text mb-4">統計カード</h2>
+      <%= modern_grid(cols: 4) do %>
+        <%= stat_card(
+          label: "総在庫数",
+          value: "12,345",
+          icon: "bi bi-box-seam",
+          trend: :up,
+          trend_value: "+12.5%"
+        ) %>
+        
+        <%= stat_card(
+          label: "本日の出荷",
+          value: "234",
+          icon: "bi bi-truck",
+          trend: :up,
+          trend_value: "+5.2%"
+        ) %>
+        
+        <%= stat_card(
+          label: "在庫回転率",
+          value: "4.2",
+          icon: "bi bi-arrow-repeat",
+          trend: :down,
+          trend_value: "-2.1%"
+        ) %>
+        
+        <%= stat_card(
+          label: "在庫金額",
+          value: "¥5.2M",
+          icon: "bi bi-currency-yen",
+          trend: :up,
+          trend_value: "+8.7%"
+        ) %>
+      <% end %>
+    </section>
+
+    <%# Animation Showcase %>
+    <section class="mb-8">
+      <%= glass_card(header: "アニメーション効果") do %>
+        <div class="grid-modern grid-cols-3 gap-4 text-center">
+          <div class="p-4">
+            <div class="glass-surface p-6 animate-fadeIn">
+              <i class="bi bi-lightning-charge text-4xl text-primary"></i>
+              <p class="mt-2">Fade In</p>
+            </div>
+          </div>
+          
+          <div class="p-4">
+            <div class="glass-surface p-6 animate-slideInUp animate-delay-2">
+              <i class="bi bi-rocket text-4xl text-primary"></i>
+              <p class="mt-2">Slide In Up</p>
+            </div>
+          </div>
+          
+          <div class="p-4">
+            <div class="glass-surface p-6 animate-scaleIn animate-delay-4">
+              <i class="bi bi-star text-4xl text-primary"></i>
+              <p class="mt-2">Scale In</p>
+            </div>
+          </div>
+          
+          <div class="p-4">
+            <div class="glass-surface p-6 hover-lift">
+              <i class="bi bi-hand-index text-4xl text-primary"></i>
+              <p class="mt-2">Hover Lift</p>
+            </div>
+          </div>
+          
+          <div class="p-4">
+            <div class="glass-surface p-6 hover-grow">
+              <i class="bi bi-arrows-angle-expand text-4xl text-primary"></i>
+              <p class="mt-2">Hover Grow</p>
+            </div>
+          </div>
+          
+          <div class="p-4">
+            <div class="glass-surface p-6 animate-pulse">
+              <i class="bi bi-heart-pulse text-4xl text-primary"></i>
+              <p class="mt-2">Pulse</p>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </section>
+
+    <%# Loading States %>
+    <section class="mb-8">
+      <%= glass_card(header: "ローディング状態") do %>
+        <div class="flex-modern gap-8">
+          <div class="text-center">
+            <%= loading_spinner %>
+            <p class="mt-2 text-sm">Spinner</p>
+          </div>
+          
+          <div class="text-center">
+            <%= loading_dots %>
+            <p class="mt-2 text-sm">Dots</p>
+          </div>
+          
+          <div class="flex-1">
+            <p class="mb-2 text-sm">Skeleton Loader:</p>
+            <%= skeleton_loader(height: '2rem', rounded: true) %>
+            <div class="mt-2">
+              <%= skeleton_loader(width: '80%') %>
+              <%= skeleton_loader(width: '60%') %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </section>
+
+    <%# Typography Showcase %>
+    <section class="mb-8">
+      <%= glass_card(header: "タイポグラフィ") do %>
+        <div class="space-y-4">
+          <h1 class="gradient-text">Heading 1 with Gradient</h1>
+          <h2>Heading 2 - <%= gradient_text("Inline Gradient", tag: :span) %></h2>
+          <h3>Heading 3 - Modern Typography</h3>
+          <p class="text-lg">Large paragraph text for emphasis</p>
+          <p>Regular paragraph text with <strong>bold</strong> and <em>italic</em> styles.</p>
+          <p class="text-sm text-secondary">Small secondary text for additional information</p>
+        </div>
+      <% end %>
+    </section>
+
+  <% end %>
+</div>
+
+<style>
+  /* Temporary styles for demo - will be moved to main stylesheet */
+  .space-y-4 > * + * {
+    margin-top: 1rem;
+  }
+  
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .stat-card .glass-card-body {
+    padding: 1.5rem !important;
+  }
+</style>

@@ -75,15 +75,15 @@
     </style>
   </head>
 
-  <body>
+  <body class="admin-layout">
     <% if admin_signed_in? %>
-      <!-- Enhanced Admin Navigation with Multi-Store Support -->
-      <nav class="navbar navbar-expand-lg navbar-dark navbar-admin sticky-top">
+      <!-- ライトテーマ対応管理者ナビゲーション -->
+      <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom sticky-top shadow-sm">
         <div class="container-fluid">
-          <%= link_to admin_root_path, class: "navbar-brand d-flex align-items-center" do %>
-            <i class="bi bi-boxes me-2"></i>
-            <span>StockRx</span>
-            <small class="badge bg-light text-dark ms-2">管理パネル</small>
+          <%= link_to admin_root_path, class: "navbar-brand d-flex align-items-center", style: "color: var(--text-accent); text-decoration: none;" do %>
+            <i class="bi bi-boxes me-2" style="color: var(--text-accent);"></i>
+            <span class="fw-bold" style="color: var(--text-primary);">StockRx</span>
+            <small class="badge ms-2" style="background-color: var(--text-accent); color: var(--text-light);">管理パネル</small>
           <% end %>
           
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
@@ -96,9 +96,12 @@
               <!-- ダッシュボード -->
               <li class="nav-item">
                 <%= link_to admin_root_path, 
-                    class: "nav-link #{'active' if current_page?(admin_root_path)}", 
+                    class: "nav-link d-flex align-items-center #{'active' if current_page?(admin_root_path)}", 
+                    style: "color: var(--text-secondary) !important; font-weight: 500; transition: var(--transition-fast);",
+                    onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';",
+                    onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';",
                     title: "ダッシュボード" do %>
-                  <i class="bi bi-speedometer2 me-1"></i>
+                  <i class="bi bi-speedometer2 me-2" style="color: var(--text-accent);"></i>
                   <span class="d-none d-lg-inline">ダッシュボード</span>
                   <span class="d-lg-none">ダッシュボード</span>
                 <% end %>
@@ -107,29 +110,44 @@
               <!-- マルチストア管理メニュー（権限による表示制御） -->
               <% if current_admin.can_access_all_stores? || current_admin.store_manager? %>
                 <li class="nav-item dropdown">
-                  <a class="nav-link dropdown-toggle <%= 'active' if request.path.include?('/admin/stores') %>" 
+                  <a class="nav-link dropdown-toggle d-flex align-items-center <%= 'active' if request.path.include?('/admin/stores') %>" 
                      href="#" id="storeDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                     style="color: var(--text-secondary) !important; font-weight: 500; transition: var(--transition-fast);"
+                     onmouseover="this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                     onmouseout="this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';"
                      title="店舗管理">
-                    <i class="bi bi-shop me-1"></i>
+                    <i class="bi bi-shop me-2" style="color: var(--text-accent);"></i>
                     <span class="d-none d-lg-inline">店舗管理</span>
                     <span class="d-lg-none">店舗</span>
                   </a>
-                  <ul class="dropdown-menu">
+                  <ul class="dropdown-menu border-0 shadow" style="border-radius: var(--radius-lg); background-color: var(--bg-primary);">
                     <li>
-                      <%= link_to admin_stores_path, class: "dropdown-item" do %>
-                        <i class="bi bi-list me-2"></i>店舗一覧
+                      <%= link_to admin_stores_path, class: "dropdown-item d-flex align-items-center", 
+                          style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                          onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                          onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                        <i class="bi bi-list me-2" style="color: var(--text-accent);"></i>
+                        <span style="color: var(--text-primary);">店舗一覧</span>
                       <% end %>
                     </li>
                     <% if current_admin.headquarters_admin? %>
                       <li>
-                        <%= link_to new_admin_store_path, class: "dropdown-item" do %>
-                          <i class="bi bi-plus-circle me-2"></i>新規店舗
+                        <%= link_to new_admin_store_path, class: "dropdown-item d-flex align-items-center",
+                            style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                            onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                            onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                          <i class="bi bi-plus-circle me-2" style="color: var(--text-success);"></i>
+                          <span style="color: var(--text-primary);">新規店舗</span>
                         <% end %>
                       </li>
-                      <li><hr class="dropdown-divider"></li>
+                      <li><hr class="dropdown-divider" style="border-color: var(--border-primary);"></li>
                       <li>
-                        <%= link_to admin_stores_path, class: "dropdown-item" do %>
-                          <i class="bi bi-graph-up me-2"></i>店舗分析
+                        <%= link_to admin_stores_path, class: "dropdown-item d-flex align-items-center",
+                            style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                            onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                            onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                          <i class="bi bi-graph-up me-2" style="color: var(--text-info);"></i>
+                          <span style="color: var(--text-primary);">店舗分析</span>
                         <% end %>
                       </li>
                     <% end %>
@@ -137,33 +155,49 @@
                 </li>
 
                 <li class="nav-item dropdown">
-                  <a class="nav-link dropdown-toggle <%= 'active' if request.path.include?('/admin/transfers') %>" 
+                  <a class="nav-link dropdown-toggle d-flex align-items-center <%= 'active' if request.path.include?('/admin/transfers') %>" 
                      href="#" id="transferDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                     style="color: var(--text-secondary) !important; font-weight: 500; transition: var(--transition-fast);"
+                     onmouseover="this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                     onmouseout="this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';"
                      title="店舗間移動">
-                    <i class="bi bi-truck me-1"></i>
+                    <i class="bi bi-truck me-2" style="color: var(--text-accent);"></i>
                     <span class="d-none d-lg-inline">移動管理</span>
                     <span class="d-lg-none">移動</span>
                   </a>
-                  <ul class="dropdown-menu">
+                  <ul class="dropdown-menu border-0 shadow" style="border-radius: var(--radius-lg); background-color: var(--bg-primary);">
                     <li>
-                      <%= link_to admin_inter_store_transfers_path, class: "dropdown-item" do %>
-                        <i class="bi bi-list me-2"></i>移動一覧
+                      <%= link_to admin_inter_store_transfers_path, class: "dropdown-item d-flex align-items-center",
+                          style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                          onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                          onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                        <i class="bi bi-list me-2" style="color: var(--text-accent);"></i>
+                        <span style="color: var(--text-primary);">移動一覧</span>
                       <% end %>
                     </li>
                     <li>
-                      <%= link_to new_admin_inter_store_transfer_path, class: "dropdown-item" do %>
-                        <i class="bi bi-plus-circle me-2"></i>新規申請
+                      <%= link_to new_admin_inter_store_transfer_path, class: "dropdown-item d-flex align-items-center",
+                          style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                          onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                          onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                        <i class="bi bi-plus-circle me-2" style="color: var(--text-success);"></i>
+                        <span style="color: var(--text-primary);">新規申請</span>
                       <% end %>
                     </li>
                     <% if current_admin.can_approve_transfers? %>
-                      <li><hr class="dropdown-divider"></li>
+                      <li><hr class="dropdown-divider" style="border-color: var(--border-primary);"></li>
                       <li>
-                        <%= link_to pending_admin_inter_store_transfers_path, class: "dropdown-item position-relative" do %>
-                          <i class="bi bi-clock me-2"></i>承認待ち
+                        <%= link_to pending_admin_inter_store_transfers_path, class: "dropdown-item position-relative d-flex align-items-center",
+                            style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                            onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                            onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                          <i class="bi bi-clock me-2" style="color: var(--text-warning);"></i>
+                          <span style="color: var(--text-primary);">承認待ち</span>
                           <% begin %>
                             <% pending_count = current_admin&.accessible_store_ids&.any? ? InterStoreTransfer.accessible_to_admin(current_admin).pending.count : 0 %>
                             <% if pending_count > 0 %>
-                              <span class="badge bg-warning text-dark position-absolute top-0 start-100 translate-middle">
+                              <span class="badge position-absolute top-0 start-100 translate-middle" 
+                                    style="background-color: var(--text-warning); color: var(--text-light);">
                                 <%= pending_count %>
                               </span>
                             <% end %>
@@ -172,7 +206,7 @@
                             <% Rails.logger.error "承認待ち件数取得エラー: #{e.message}" if Rails.env.production? %>
                             <%# 開発環境では警告表示、本番環境では静かに失敗 %>
                             <% unless Rails.env.production? %>
-                              <span class="badge bg-danger">!</span>
+                              <span class="badge" style="background-color: var(--text-danger);">!</span>
                             <% end %>
                           <% end %>
                         <% end %>
@@ -180,8 +214,12 @@
                     <% end %>
                     <% if current_admin.headquarters_admin? %>
                       <li>
-                        <%= link_to analytics_admin_inter_store_transfers_path, class: "dropdown-item" do %>
-                          <i class="bi bi-graph-up me-2"></i>分析ダッシュボード
+                        <%= link_to analytics_admin_inter_store_transfers_path, class: "dropdown-item d-flex align-items-center",
+                            style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                            onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                            onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                          <i class="bi bi-graph-up me-2" style="color: var(--text-info);"></i>
+                          <span style="color: var(--text-primary);">分析ダッシュボード</span>
                         <% end %>
                       </li>
                     <% end %>
@@ -191,33 +229,52 @@
 
               <!-- 在庫管理 -->
               <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle <%= 'active' if request.path.include?('/admin/inventories') %>" 
+                <a class="nav-link dropdown-toggle d-flex align-items-center <%= 'active' if request.path.include?('/admin/inventories') %>" 
                    href="#" id="inventoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                   style="color: var(--text-secondary) !important; font-weight: 500; transition: var(--transition-fast);"
+                   onmouseover="this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                   onmouseout="this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';"
                    title="在庫管理">
-                  <i class="bi bi-boxes me-1"></i>
+                  <i class="bi bi-boxes me-2" style="color: var(--text-accent);"></i>
                   <span class="d-none d-lg-inline">在庫管理</span>
                   <span class="d-lg-none">在庫</span>
                 </a>
-                <ul class="dropdown-menu">
+                <ul class="dropdown-menu border-0 shadow" style="border-radius: var(--radius-lg); background-color: var(--bg-primary);">
                   <li>
-                    <%= link_to admin_inventories_path, class: "dropdown-item" do %>
-                      <i class="bi bi-list me-2"></i>商品一覧
+                    <%= link_to admin_inventories_path, class: "dropdown-item d-flex align-items-center",
+                        style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                        onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                        onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                      <i class="bi bi-list me-2" style="color: var(--text-accent);"></i>
+                      <span style="color: var(--text-primary);">商品一覧</span>
                     <% end %>
                   </li>
                   <li>
-                    <%= link_to new_admin_inventory_path, class: "dropdown-item" do %>
-                      <i class="bi bi-plus-circle me-2"></i>新規登録
+                    <%= link_to new_admin_inventory_path, class: "dropdown-item d-flex align-items-center",
+                        style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                        onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                        onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                      <i class="bi bi-plus-circle me-2" style="color: var(--text-success);"></i>
+                      <span style="color: var(--text-primary);">新規登録</span>
                     <% end %>
                   </li>
-                  <li><hr class="dropdown-divider"></li>
+                  <li><hr class="dropdown-divider" style="border-color: var(--border-primary);"></li>
                   <li>
-                    <%= link_to admin_inventories_path(filter: "low_stock"), class: "dropdown-item" do %>
-                      <i class="bi bi-exclamation-triangle me-2"></i>低在庫アラート
+                    <%= link_to admin_inventories_path(filter: "low_stock"), class: "dropdown-item d-flex align-items-center",
+                        style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                        onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                        onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                      <i class="bi bi-exclamation-triangle me-2" style="color: var(--text-warning);"></i>
+                      <span style="color: var(--text-primary);">低在庫アラート</span>
                     <% end %>
                   </li>
                   <li>
-                    <%= link_to import_form_admin_inventories_path, class: "dropdown-item" do %>
-                      <i class="bi bi-upload me-2"></i>CSVインポート
+                    <%= link_to import_form_admin_inventories_path, class: "dropdown-item d-flex align-items-center",
+                        style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                        onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                        onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                      <i class="bi bi-upload me-2" style="color: var(--text-info);"></i>
+                      <span style="color: var(--text-primary);">CSVインポート</span>
                     <% end %>
                   </li>
                 </ul>
@@ -225,42 +282,66 @@
 
               <!-- 履歴・監視 -->
               <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="monitorDropdown" role="button" 
-                   data-bs-toggle="dropdown" aria-expanded="false" title="監視・履歴">
-                  <i class="bi bi-activity me-1"></i>
+                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="monitorDropdown" role="button" 
+                   data-bs-toggle="dropdown" aria-expanded="false"
+                   style="color: var(--text-secondary) !important; font-weight: 500; transition: var(--transition-fast);"
+                   onmouseover="this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                   onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';"
+                   title="監視・履歴">
+                  <i class="bi bi-activity me-2" style="color: var(--text-accent);"></i>
                   <span class="d-none d-lg-inline">監視</span>
                   <span class="d-lg-none">監視</span>
                 </a>
-                <ul class="dropdown-menu">
+                <ul class="dropdown-menu border-0 shadow" style="border-radius: var(--radius-lg); background-color: var(--bg-primary);">
                   <li>
                     <%# ✅ 完了: Phase 3 - inventory_logs機能の管理画面統合（2025年6月） %>
                     <%# CLAUDE.md準拠: 管理機能の一元化完了 %>
-                    <%= link_to admin_inventory_logs_path, class: "dropdown-item" do %>
-                      <i class="bi bi-journal-text me-2"></i>在庫履歴
+                    <%= link_to admin_inventory_logs_path, class: "dropdown-item d-flex align-items-center",
+                        style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                        onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                        onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                      <i class="bi bi-journal-text me-2" style="color: var(--text-accent);"></i>
+                      <span style="color: var(--text-primary);">在庫履歴</span>
                     <% end %>
                   </li>
                   <li>
-                    <%= link_to admin_audit_logs_path, class: "dropdown-item" do %>
-                      <i class="bi bi-shield-check me-2"></i>監査ログ
+                    <%= link_to admin_audit_logs_path, class: "dropdown-item d-flex align-items-center",
+                        style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                        onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                        onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                      <i class="bi bi-shield-check me-2" style="color: var(--text-success);"></i>
+                      <span style="color: var(--text-primary);">監査ログ</span>
                     <% end %>
                   </li>
-                  <li><hr class="dropdown-divider"></li>
+                  <li><hr class="dropdown-divider" style="border-color: var(--border-primary);"></li>
                   <li>
-                    <%= link_to security_events_admin_audit_logs_path, class: "dropdown-item" do %>
-                      <i class="bi bi-shield-exclamation me-2"></i>セキュリティイベント
+                    <%= link_to security_events_admin_audit_logs_path, class: "dropdown-item d-flex align-items-center",
+                        style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                        onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                        onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                      <i class="bi bi-shield-exclamation me-2" style="color: var(--text-danger);"></i>
+                      <span style="color: var(--text-primary);">セキュリティイベント</span>
                     <% end %>
                   </li>
                   <li>
-                    <%= link_to user_activity_admin_audit_logs_path, class: "dropdown-item" do %>
-                      <i class="bi bi-person-lines-fill me-2"></i>ユーザー活動履歴
+                    <%= link_to user_activity_admin_audit_logs_path, class: "dropdown-item d-flex align-items-center",
+                        style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                        onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                        onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                      <i class="bi bi-person-lines-fill me-2" style="color: var(--text-info);"></i>
+                      <span style="color: var(--text-primary);">ユーザー活動履歴</span>
                     <% end %>
                   </li>
                   <li>
-                    <%= link_to compliance_report_admin_audit_logs_path, class: "dropdown-item" do %>
-                      <i class="bi bi-file-earmark-check me-2"></i>コンプライアンスレポート
+                    <%= link_to compliance_report_admin_audit_logs_path, class: "dropdown-item d-flex align-items-center",
+                        style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                        onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                        onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';" do %>
+                      <i class="bi bi-file-earmark-check me-2" style="color: var(--text-success);"></i>
+                      <span style="color: var(--text-primary);">コンプライアンスレポート</span>
                     <% end %>
                   </li>
-                  <li><hr class="dropdown-divider"></li>
+                  <li><hr class="dropdown-divider" style="border-color: var(--border-primary);"></li>
                   <li>
                     <%# TODO: 🟢 Phase 4（推奨）- Sidekiq Webマウントエンジンのパス管理 %>
                     <%# 優先度: 低（機能的には問題なし） %>
@@ -269,8 +350,13 @@
                     <%#   - helper methodでの一元管理 %>
                     <%# 理由: Sidekiq::Webは外部エンジンのため、Railsパスヘルパーが自動生成されない %>
                     <%# 現状: ハードコードパスは正常動作（routes.rbでマウント確認済み） %>
-                    <%= link_to "/admin/sidekiq", class: "dropdown-item", target: "_blank", rel: "noopener" do %>
-                      <i class="bi bi-gear me-2"></i>ジョブ監視
+                    <%= link_to "/admin/sidekiq", class: "dropdown-item d-flex align-items-center",
+                        style: "color: var(--text-secondary); transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
+                        onmouseover: "this.style.color='var(--text-primary)'; this.style.backgroundColor='var(--bg-secondary)';"
+                        onmouseout: "this.style.color='var(--text-secondary)'; this.style.backgroundColor='transparent';",
+                        target: "_blank", rel: "noopener" do %>
+                      <i class="bi bi-gear me-2" style="color: var(--text-muted);"></i>
+                      <span style="color: var(--text-primary);">ジョブ監視</span>
                     <% end %>
                   </li>
                 </ul>
@@ -281,10 +367,12 @@
             <ul class="navbar-nav">
               <!-- 通知（未実装） -->
               <li class="nav-item">
-                <a class="nav-link position-relative" href="#" title="通知（実装予定）">
-                  <i class="bi bi-bell"></i>
+                <a class="nav-link position-relative" href="#"
+                   style="color: var(--text-muted) !important;"
+                   title="通知（実装予定）">
+                  <i class="bi bi-bell" style="color: var(--text-muted);"></i>
                   <!-- TODO: Phase 3 - 通知機能実装時に表示 -->
-                  <!-- <span class="badge bg-danger position-absolute top-0 start-100 translate-middle">3</span> -->
+                  <!-- <span class="badge position-absolute top-0 start-100 translate-middle" style="background-color: var(--text-danger);">3</span> -->
                 </a>
               </li>
 
@@ -292,24 +380,25 @@
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" 
                    role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                   style="color: var(--text-secondary) !important;"
                    aria-haspopup="true" aria-label="ユーザーメニューを開く"
                    title="アカウントメニュー（ログアウトはこちら）"
                    tabindex="0">
-                  <i class="bi bi-person-circle me-2"></i>
+                  <i class="bi bi-person-circle me-2 fs-5" style="color: var(--text-accent);"></i>
                   <div class="d-none d-md-block">
-                    <div class="small"><%= current_admin.display_name %></div>
-                    <div class="text-muted" style="font-size: 0.75rem;"><%= current_admin.role_text %></div>
+                    <div class="small fw-semibold" style="color: var(--text-primary);"><%= current_admin.display_name %></div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);"><%= current_admin.role_text %></div>
                   </div>
                   <%# モバイルビューでも分かりやすく %>
-                  <span class="d-md-none small">メニュー</span>
-                  <i class="bi bi-chevron-down ms-1" style="font-size: 0.75rem;"></i>
+                  <span class="d-md-none small" style="color: var(--text-primary);">メニュー</span>
+                  <i class="bi bi-chevron-down ms-1" style="font-size: 0.75rem; color: var(--text-muted);"></i>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li class="dropdown-header">
-                    <%= current_admin.email %>
-                    <br><small class="text-muted"><%= current_admin.role_text %></small>
+                <ul class="dropdown-menu dropdown-menu-end border-0 shadow" style="border-radius: var(--radius-lg); background-color: var(--bg-primary);">
+                  <li class="dropdown-header" style="color: var(--text-muted);">
+                    <span style="color: var(--text-secondary);"><%= current_admin.email %></span>
+                    <br><small style="color: var(--text-muted);"><%= current_admin.role_text %></small>
                   </li>
-                  <li><hr class="dropdown-divider"></li>
+                  <li><hr class="dropdown-divider" style="border-color: var(--border-primary);"></li>
                   <%# TODO: 🟡 Phase 4（重要）- アカウント管理機能 %>
                   <%# 優先度: 中（ユーザビリティ向上） %>
                   <%# 実装内容: %>
@@ -334,7 +423,8 @@
                   <!-- <li><hr class="dropdown-divider"></li> -->
                   <li>
                     <%= button_to destroy_admin_session_path, method: :delete, 
-                        class: "dropdown-item text-danger d-flex align-items-center logout-btn", 
+                        class: "dropdown-item d-flex align-items-center logout-btn", 
+                        style: "color: var(--text-danger) !important; transition: var(--transition-fast); border-radius: var(--radius-md); margin: 0.25rem 0.5rem;",
                         title: "ログアウト（確認ダイアログが表示されます）",
                         form: { 
                           data: { 
@@ -342,8 +432,8 @@
                             confirm: "本当にログアウトしますか？\n\n作業中のデータが保存されていることを確認してください。"
                           } 
                         } do %>
-                      <i class="bi bi-box-arrow-right me-2 fs-5"></i>
-                      <strong>ログアウト</strong>
+                      <i class="bi bi-box-arrow-right me-2 fs-5" style="color: var(--text-danger);"></i>
+                      <strong style="color: var(--text-danger);">ログアウト</strong>
                     <% end %>
                   </li>
                 </ul>
@@ -355,10 +445,11 @@
     <% end %>
 
     <!-- Main Content -->
-    <main class="<%= admin_signed_in? ? 'container-fluid py-4' : 'container py-5' %>">
+    <main class="<%= admin_signed_in? ? 'container-fluid py-4' : 'container py-5' %>" style="background-color: var(--admin-bg-secondary); min-height: calc(100vh - 120px);">
       <!-- Flash Messages -->
       <% flash.each do |key, value| %>
-        <div class="alert alert-<%= key == 'notice' ? 'success' : 'danger' %> alert-dismissible fade show" role="alert">
+        <div class="alert alert-<%= key == 'notice' ? 'success' : 'danger' %> alert-dismissible fade show border-0 shadow-sm" role="alert">
+          <i class="bi bi-<%= key == 'notice' ? 'check-circle' : 'exclamation-triangle' %> me-2"></i>
           <%= value %>
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
@@ -369,9 +460,9 @@
 
     <!-- Footer -->
     <% if admin_signed_in? %>
-      <footer class="bg-admin-primary text-white text-center py-3 mt-auto">
+      <footer class="bg-white border-top text-center py-3 mt-auto">
         <div class="container-fluid">
-          <p class="mb-0">&copy; <%= Date.today.year %> StockRx - 管理者パネル V1.0</p>
+          <p class="mb-0 text-muted">&copy; <%= Date.today.year %> StockRx - 管理者パネル V1.0</p>
         </div>
       </footer>
     <% end %>

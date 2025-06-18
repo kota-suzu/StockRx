@@ -1,32 +1,32 @@
-<%# モダン管理者ダッシュボード - Bootstrap 5 & Chart.js版 %>
-<div class="container-fluid py-4">
-  <%# ダッシュボードヘッダー %>
+<%# モダン管理者ダッシュボード - ライトテーマ版 %>
+<% content_for :title, "管理ダッシュボード" %>
+
+<div class="container-fluid">
+  <!-- ページヘッダー（WCAG AA準拠の文字色適用） -->
   <div class="row mb-4">
-    <div class="col-12">
-      <div class="dashboard-card border-0 shadow-sm">
-        <div class="card-body p-4">
-          <div class="row align-items-center">
-            <div class="col-lg-8">
-              <div class="d-flex align-items-center mb-2">
-                <i class="bi bi-speedometer2 icon-lg me-3" style="background: linear-gradient(135deg, var(--admin-primary), var(--admin-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
-                <div>
-                  <h1 class="h2 mb-1 fw-bold">管理者ダッシュボード</h1>
-                  <p class="text-muted mb-0">ようこそ、<strong class="text-admin-primary"><%= current_admin.email %></strong> さん</p>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-              <div class="d-flex flex-column align-items-lg-end">
-                <small class="text-muted mb-1">
-                  <i class="bi bi-clock me-1" aria-hidden="true"></i>
-                  最終ログイン: <%= l(current_admin.last_sign_in_at, format: :long) if current_admin.last_sign_in_at.present? %>
-                </small>
-                <div class="badge bg-success mt-1" role="status" aria-label="システム状態">
-                  <i class="bi bi-check-circle me-1" aria-hidden="true"></i>システム正常
-                </div>
-              </div>
-            </div>
-          </div>
+    <div class="col">
+      <div class="d-flex align-items-center">
+        <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+             style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));">
+          <i class="bi bi-speedometer2 text-white fs-4"></i>
+        </div>
+        <div>
+          <h1 class="mb-1" style="color: var(--text-primary); font-weight: var(--font-weight-bold); font-size: var(--font-size-3xl);">
+            管理ダッシュボード
+          </h1>
+          <p class="mb-0" style="color: var(--text-secondary); font-size: var(--font-size-base);">
+            StockRx在庫管理システム - 全体概要
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-auto">
+      <div class="text-end">
+        <div style="color: var(--text-muted); font-size: var(--font-size-sm);">
+          最終更新: <%= Time.current.strftime("%Y年%m月%d日 %H:%M") %>
+        </div>
+        <div style="color: var(--text-accent); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">
+          <%= current_admin.role_text %>として接続中
         </div>
       </div>
     </div>
@@ -44,7 +44,7 @@
     
     <%# 総商品数 %>
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
           <div class="d-flex justify-content-between align-items-start mb-3">
             <div class="icon-lg text-primary bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-boxes"></i></div>
@@ -67,7 +67,7 @@
 
     <%# 在庫アラート %>
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100 <%= (@stats[:low_stock_count] || 0) > 0 ? 'border-warning' : '' %>">
+      <div class="card border-0 shadow-sm h-100 bg-white <%= (@stats[:low_stock_count] || 0) > 0 ? 'border-warning' : '' %>">
         <div class="card-body p-4 text-center">
           <div class="d-flex justify-content-between align-items-start mb-3">
             <div class="icon-lg text-warning bg-warning-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-exclamation-triangle"></i></div>
@@ -92,7 +92,7 @@
 
     <%# 総在庫金額 %>
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
           <div class="d-flex justify-content-between align-items-start mb-3">
             <div class="icon-lg text-info bg-info-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-currency-yen"></i></div>
@@ -111,7 +111,7 @@
 
     <%# 本日の操作 %>
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
           <div class="d-flex justify-content-between align-items-start mb-3">
             <div class="icon-lg text-success bg-success-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-graph-up"></i></div>
@@ -139,7 +139,7 @@
     </div>
     
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
           <div class="icon-lg text-secondary bg-secondary-subtle rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 50px; height: 50px;"><i class="bi bi-layers"></i></div>
           <h4 class="fw-bold text-secondary mb-1"><%= number_with_delimiter(@stats[:total_batches] || 0) %></h4>
@@ -149,7 +149,7 @@
     </div>
 
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
           <div class="icon-lg text-warning bg-warning-subtle rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 50px; height: 50px;"><i class="bi bi-clock"></i></div>
           <h4 class="fw-bold text-warning mb-1"><%= number_with_delimiter(@stats[:expiring_batches]) %></h4>
@@ -160,7 +160,7 @@
     </div>
 
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
           <div class="icon-lg text-danger bg-danger-subtle rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 50px; height: 50px;"><i class="bi bi-x-circle"></i></div>
           <h4 class="fw-bold text-danger mb-1"><%= number_with_delimiter(@stats[:expired_batches]) %></h4>
@@ -173,7 +173,7 @@
     </div>
 
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4">
           <h6 class="text-muted mb-3">期限状況</h6>
           <% 
@@ -220,10 +220,10 @@
       </h3>
     </div>
     <div class="col-sm-6 col-lg-3 mb-3">
-      <%= link_to admin_inventories_path, class: "dashboard-card text-decoration-none h-100 border-0 shadow-sm" do %>
+      <%= link_to admin_inventories_path, class: "card text-decoration-none h-100 border-0 shadow-sm bg-white" do %>
         <div class="card-body text-center p-4 h-100 d-flex flex-column justify-content-center">
           <div class="icon-lg mb-3 text-primary"><i class="bi bi-boxes"></i></div>
-          <h5 class="card-title fw-bold mb-2">在庫管理</h5>
+          <h5 class="card-title fw-bold mb-2 text-dark">在庫管理</h5>
           <p class="card-text text-muted small mb-0">商品の登録・編集・削除</p>
           <div class="mt-auto pt-3">
             <span class="badge bg-primary-subtle text-primary">管理機能</span>
@@ -247,10 +247,10 @@
     
     <div class="col-sm-6 col-lg-3 mb-3">
       <%# TODO: 🟡 Phase 3 - inventory_logsパスを/admin/inventory_logsに移行予定 %>
-      <%= link_to inventory_logs_path, class: "dashboard-card text-decoration-none h-100 border-0 shadow-sm" do %>
+      <%= link_to inventory_logs_path, class: "card text-decoration-none h-100 border-0 shadow-sm bg-white" do %>
         <div class="card-body text-center p-4 h-100 d-flex flex-column justify-content-center">
           <div class="icon-lg mb-3 text-success"><i class="bi bi-journal-text"></i></div>
-          <h5 class="card-title fw-bold mb-2">在庫履歴</h5>
+          <h5 class="card-title fw-bold mb-2 text-dark">在庫履歴</h5>
           <p class="card-text text-muted small mb-0">入出庫履歴の確認</p>
           <div class="mt-auto pt-3">
             <span class="badge bg-success-subtle text-success">監査機能</span>
@@ -264,10 +264,10 @@
       <%# 優先度: 低（機能的には問題なし） %>
       <%# 理由: Sidekiq::Webは外部エンジンのため、Railsパスヘルパーが自動生成されない %>
       <%# 現状: ハードコードパスは正常動作（routes.rbでマウント確認済み） %>
-      <%= link_to "/admin/sidekiq", class: "dashboard-card text-decoration-none h-100 border-0 shadow-sm", target: "_blank", rel: "noopener noreferrer" do %>
+      <%= link_to "/admin/sidekiq", class: "card text-decoration-none h-100 border-0 shadow-sm bg-white", target: "_blank", rel: "noopener noreferrer" do %>
         <div class="card-body text-center p-4 h-100 d-flex flex-column justify-content-center">
           <div class="icon-lg mb-3 text-warning"><i class="bi bi-gear"></i></div>
-          <h5 class="card-title fw-bold mb-2">ジョブ監視</h5>
+          <h5 class="card-title fw-bold mb-2 text-dark">ジョブ監視</h5>
           <p class="card-text text-muted small mb-0">バックグラウンド処理の状況</p>
           <div class="mt-auto pt-3">
             <span class="badge bg-warning-subtle text-warning">システム監視</span>
@@ -280,8 +280,8 @@
   <%# 最近のアクティビティ - Enhanced UI %>
   <div class="row">
     <div class="col-lg-8 mb-4">
-      <div class="dashboard-card border-0 shadow-sm h-100">
-        <div class="card-header bg-gradient-primary text-white d-flex justify-content-between align-items-center">
+      <div class="card border-0 shadow-sm h-100 bg-white">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
           <h3 class="mb-0 fw-bold">
             <i class="bi bi-activity me-2"></i>最近のアクティビティ
           </h3>
@@ -396,8 +396,8 @@
 
     <%# システム状況・クイック情報 - Enhanced UI %>
     <div class="col-lg-4 mb-4">
-      <div class="dashboard-card border-0 shadow-sm h-100">
-        <div class="card-header bg-gradient-info text-white">
+      <div class="card border-0 shadow-sm h-100 bg-white">
+        <div class="card-header bg-info text-white">
           <h3 class="mb-0 fw-bold">
             <i class="bi bi-gear-wide-connected me-2"></i>システム情報
           </h3>

@@ -7,7 +7,7 @@
     store_color = @store.pharmacy? ? 'primary' : (@store.warehouse? ? 'info' : 'success')
   %>
   
-  <%= render 'admin_controllers/shared/page_header',
+  <%= render 'shared/admin/page_header',
              title: "#{@store.name} の編集",
              subtitle: "店舗情報を更新します（店舗コード: #{@store.code}）",
              icon: store_icon,

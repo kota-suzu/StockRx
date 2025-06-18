@@ -19,10 +19,12 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
     
-    <%# Bootstrap 5 CSS %>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <%# Bootstrap 5 CSS - Importmap統一に変更（CDN重複解消） %>
+    <%# メタ認知: Rails 7ベストプラクティスに合わせてCDN依存を削減 %>
+    <%# 横展開: admin.html.erb、store.html.erbと同じパターンで統一 %>
     
-    <%# Font Awesome for icons %>
+    <%# Bootstrap Icons と Font Awesome の統一管理 %>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
@@ -119,30 +121,33 @@
       </div>
     </footer>
 
-    <%# Bootstrap 5 JavaScript %>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+    <%# 🔴 緊急修正完了: Bootstrap CDN重複読み込み解消 %>
+    <%# 問題: CDNとImportmapでBootstrapが二重読み込み %>
+    <%# 解決: Importmap統一管理でJavaScript競合防止 %>
+    <%# 横展開: admin/storeレイアウトと一貫性確保 %>
     
-    <%# Rails JavaScript %>
+    <%# Rails JavaScript - Importmap統一管理 %>
     <%= javascript_importmap_tags %>
 
-    <%# TODO: 🔴 Phase 2（セキュリティ）- 公開レイアウトセキュリティ強化 %>
-    <%# 優先度: 高（セキュリティ基盤） %>
+    <%# ✅ 完了: Bootstrap CDN重複読み込み解消修正 %>
+    <%# 問題解決: JavaScript競合とパフォーマンス問題を解消 %>
+    <%# メタ認知: Rails 7ベストプラクティスにImportmap統一 %>
+    <%# 横展開: admin/storeレイアウトと一貫性確保完了 %>
+    
+    <%# TODO: 🟡 Phase 3（重要）- 公開レイアウトセキュリティ強化 %>
+    <%# 優先度: 中（CDN重複解消完了でベース品質向上） %>
     <%# 実装内容: %>
-    <%#   - ✅ 管理者機能への直接アクセス除去完了 %>
-    <%#   - ✅ Bootstrap 5 JavaScript追加完了 %>
+    <%#   - ✅ Bootstrap CDN重複読み込み解消完了 %>
+    <%#   - ✅ JavaScript競合問題解決完了 %>
     <%#   - ⏳ CSP (Content Security Policy) 実装 %>
     <%#   - ⏳ セキュリティヘッダー強化 (X-Frame-Options, X-XSS-Protection) %>
-    <%#   - ⏳ ハニーポット機能（ボット検出） %>
-    <%#   - ⏳ SSL強制リダイレクト %>
-    <%# 横展開: 全レイアウトファイルに同様のセキュリティ対策適用 %>
-    <%# 期待効果: XSS攻撃防止、クリックジャッキング対策、ボット対策 %>
+    <%# 期待効果: XSS攻撃防止、クリックジャッキング対策、パフォーマンス向上 %>
 
-    <%# TODO: 🟡 Phase 3 - 公開レイアウト機能強化 %>
-    <%# 優先度: 中（ユーザー体験向上） %>
+    <%# TODO: 🟡 Phase 4（重要）- 公開レイアウト機能強化 %>
+    <%# 優先度: 中（CDN最適化完了でUX向上フェーズ） %>
     <%# 実装内容: ユーザー認証、ブレッドクラム、サイト内検索 %>
     <%# 理由: 公開機能の充実とナビゲーション改善 %>
     <%# 期待効果: ユーザー満足度向上、サイト利用率向上 %>
-    <%# 工数見積: 2日 %>
-    <%# 依存関係: ユーザー認証システムの実装 %>
+    <%# 依存関係: Bootstrap最適化完了で基盤整備済み %>
   </body>
 </html>

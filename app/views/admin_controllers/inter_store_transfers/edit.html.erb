@@ -2,7 +2,7 @@
 <%# 移動申請編集ページ - 統一UI版 %>
 <div class="container-fluid py-4">
   <%# 統一ページヘッダー - UI一貫性向上 %>
-  <%= render 'admin_controllers/shared/page_header',
+  <%= render 'shared/admin/page_header',
              title: '移動申請編集',
              subtitle: "#{@transfer.source_store.name} → #{@transfer.destination_store.name}",
              icon: 'bi-pencil-square',

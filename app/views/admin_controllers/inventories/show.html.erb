@@ -1,7 +1,7 @@
 <%# 在庫詳細 - 統一UI版 %>
 <div class="container-fluid py-4">
   <%# 統一ページヘッダー %>
-  <%= render 'admin_controllers/shared/page_header',
+  <%= render 'shared/admin/page_header',
              title: @inventory.name,
              subtitle: "最終更新: #{l(@inventory.updated_at, format: :short) if @inventory.updated_at.present?}",
              icon: 'bi-box',
@@ -32,10 +32,10 @@
 
   <%# ステータスバッジ表示 %>
   <div class="mb-4 d-flex align-items-center gap-3">
-    <%= render 'admin_controllers/shared/status_badge',
+    <%= render 'shared/admin/status_badge',
                status: @inventory.status,
                type: 'status' %>
-    <%= render 'admin_controllers/shared/status_badge',
+    <%= render 'shared/admin/status_badge',
                status: @inventory.alert_level,
                type: 'level' %>
   </div>
@@ -287,24 +287,24 @@
                   </td>
                   <td>
                     <% if batch.expired? %>
-                      <%= render 'admin_controllers/shared/status_badge',
+                      <%= render 'shared/admin/status_badge',
                                  status: 'expired',
                                  text: '期限切れ',
                                  type: 'level' %>
                     <% elsif batch.expiring_soon? %>
-                      <%= render 'admin_controllers/shared/status_badge',
+                      <%= render 'shared/admin/status_badge',
                                  status: 'expiring_soon',
                                  text: '期限間近',
                                  type: 'level' %>
                     <% else %>
-                      <%= render 'admin_controllers/shared/status_badge',
+                      <%= render 'shared/admin/status_badge',
                                  status: 'normal',
                                  text: '正常',
                                  type: 'level' %>
                     <% end %>
                   </td>
                   <td class="text-end">
-                    <%= render 'admin_controllers/shared/action_buttons',
+                    <%= render 'shared/admin/action_buttons',
                                buttons: [
                                  {
                                    text: '編集',

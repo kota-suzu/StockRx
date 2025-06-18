@@ -124,6 +124,23 @@
           <div id="perPageHelp" class="form-text visually-hidden">1ページあたりの表示件数</div>
         </div>
 
+        <%# 在庫数範囲フィルター - レスポンシブ対応 %>
+        <div class="col-lg-2 col-md-3 col-6">
+          <%= f.label :min_quantity, "最小在庫数", class: "form-label" %>
+          <%= f.number_field :min_quantity, value: params[:min_quantity], 
+                             class: "form-control", placeholder: "0", min: 0,
+                             "aria-describedby": "minQuantityHelp" %>
+          <div id="minQuantityHelp" class="form-text visually-hidden">最小在庫数を入力</div>
+        </div>
+
+        <div class="col-lg-2 col-md-3 col-6">
+          <%= f.label :max_quantity, "最大在庫数", class: "form-label" %>
+          <%= f.number_field :max_quantity, value: params[:max_quantity], 
+                             class: "form-control", placeholder: "999", min: 0,
+                             "aria-describedby": "maxQuantityHelp" %>
+          <div id="maxQuantityHelp" class="form-text visually-hidden">最大在庫数を入力</div>
+        </div>
+
         <%# フィルターオプション - レスポンシブ対応 %>
         <div class="col-lg-2 col-md-3 col-6 d-flex flex-column justify-content-end">
           <div class="form-check">
@@ -438,6 +455,8 @@
                             sort: params[:sort], 
                             direction: params[:direction], 
                             low_stock: params[:low_stock],
+                            min_quantity: params[:min_quantity],
+                            max_quantity: params[:max_quantity],
                             per_page: params[:per_page]
                           } %>
             </div>
@@ -466,6 +485,8 @@
                     <%= f.hidden_field :sort, value: params[:sort] %>
                     <%= f.hidden_field :direction, value: params[:direction] %>
                     <%= f.hidden_field :low_stock, value: params[:low_stock] %>
+                    <%= f.hidden_field :min_quantity, value: params[:min_quantity] %>
+                    <%= f.hidden_field :max_quantity, value: params[:max_quantity] %>
                     <%= f.hidden_field :per_page, value: params[:per_page] %>
                     <%= f.number_field :page, 
                                       value: @inventories_raw.current_page, 
