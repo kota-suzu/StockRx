@@ -33,8 +33,11 @@ module StoreControllers
       # 検索条件の適用（ransackの代替）
       @q = apply_search_filters(base_scope, params[:q] || {})
 
-      @transfers = @q.includes(:source_store, :destination_store, :inventory,
-                              :requested_by, :approved_by)
+      # 🔧 パフォーマンス最適化: Bullet警告に基づく不要なeager loading削除
+      # CLAUDE.md準拠: ビューで使用しない関連は読み込まない（N+1回避の逆最適化）
+      # メタ認知: requested_by/approved_byは管理者側でのみ必要、店舗側では不要
+      # 横展開: 管理者側（AdminControllers）では申請者情報表示のため保持
+      @transfers = @q.includes(:source_store, :destination_store, :inventory)
                     .order(created_at: :desc)
                     .page(params[:page])
                     .per(PER_PAGE)
