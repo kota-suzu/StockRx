@@ -66,7 +66,7 @@ class StoreInventoriesController < ApplicationController
     results = @store.store_inventories
                    .joins(:inventory)
                    .where("inventories.name LIKE :query OR inventories.sku LIKE :query",
-                         query: "%#{sanitize_sql_like(query)}%")
+                         query: "%#{ActiveRecord::Base.sanitize_sql_like(query)}%")
                    .merge(Inventory.where(status: :active))
                    .select(public_inventory_columns)
                    .limit(20)
@@ -241,12 +241,6 @@ class StoreInventoriesController < ApplicationController
     "store_inventories/#{@store.id}/#{params[:page]}/#{sort_column}/#{sort_direction}"
   end
 
-  # SQL Like演算子のサニタイズ
-  # CLAUDE.md準拠: SQLインジェクション対策の徹底
-  def sanitize_sql_like(string)
-    # 危険な文字をエスケープ
-    string.gsub(/[%_\\]/, '\\\\\\&')
-  end
 
   # XSS対策: 出力時のエスケープ
   # TODO: Phase 4 - Content Security Policyの強化

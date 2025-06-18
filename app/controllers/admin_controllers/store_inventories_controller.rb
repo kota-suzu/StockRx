@@ -291,7 +291,7 @@ module AdminControllers
     def apply_search_filters(scope, search_params)
       # 基本的な名前検索
       if search_params[:name_cont].present?
-        scope = scope.where("inventories.name LIKE ?", "%#{sanitize_sql_like(search_params[:name_cont])}%")
+        scope = scope.where("inventories.name LIKE ?", "%#{ActiveRecord::Base.sanitize_sql_like(search_params[:name_cont])}%")
       end
 
       # カテゴリフィルター（商品名パターンマッチング）

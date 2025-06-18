@@ -302,7 +302,7 @@ module StoreControllers
       # 在庫名検索
       if search_params[:inventory_name_cont].present?
         scope = scope.joins(:inventory)
-                    .where("inventories.name LIKE ?", "%#{sanitize_sql_like(search_params[:inventory_name_cont])}%")
+                    .where("inventories.name LIKE ?", "%#{ActiveRecord::Base.sanitize_sql_like(search_params[:inventory_name_cont])}%")
       end
 
       # ステータスフィルター
