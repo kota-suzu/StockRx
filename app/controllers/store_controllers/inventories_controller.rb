@@ -163,11 +163,16 @@ module StoreControllers
 
     # 移動履歴の読み込み
     def load_transfer_history
+      # 🔧 パフォーマンス最適化: 未使用のeager loading削除
+      # CLAUDE.md準拠: ビューで表示しない関連は読み込まない
+      # メタ認知: 移動履歴は現在ビューで表示されていない
+      # TODO: 🟡 Phase 3（重要）- 移動履歴表示機能の実装
+      #   - ビューに移動履歴セクション追加時に必要な関連を再検討
       InterStoreTransfer.where(
         "(source_store_id = :store_id OR destination_store_id = :store_id) AND inventory_id = :inventory_id",
         store_id: current_store.id,
         inventory_id: @inventory.id
-      ).includes(:source_store, :destination_store, :requested_by, :approved_by)
+      ).includes(:source_store, :destination_store)
        .order(created_at: :desc)
        .limit(10)
     end
@@ -175,6 +180,18 @@ module StoreControllers
     # ============================================
     # ソート設定
     # ============================================
+    
+    # CLAUDE.md準拠: ソート機能のヘルパーメソッド化
+    # メタ認知: ビューでソートリンクを生成するために必要
+    # ベストプラクティス: 明示的なhelper_method宣言で可読性向上
+    # 横展開: 他のコントローラーでも同様のパターン確認必要
+    # TODO: 🟡 Phase 3（重要）- ソート機能の統一化
+    # 優先度: 中（コード一貫性向上）
+    # 現状: store_inventories_controller, admin_controllers/store_inventories_controller
+    #      にも同様のソートメソッドがあるが、helper_method宣言なし
+    # 対応: 各ビューでソート機能が必要になった際に同様の修正適用
+    # 期待効果: 一貫性のあるソート機能の実装、保守性向上
+    helper_method :sort_column, :sort_direction
 
     def sort_column
       %w[inventories.name inventories.sku quantity safety_stock_level].include?(params[:sort]) ? params[:sort] : "inventories.name"

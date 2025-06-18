@@ -16,6 +16,13 @@
     <%# Chart.js for graphs %>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
+    <%# 🔴 Phase 1: Bootstrap CDN緊急追加 - ドロップダウン完全修正 %>
+    <%# CLAUDE.md準拠: Importmapとの競合回避のためdata属性で制御 %>
+    <%# メタ認知: BootstrapのJavaScript機能が完全に動作しない問題への最終手段 %>
+    <%# 横展開: 本番環境では必ずCDN整合性検証（SRI）を使用すること %>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" data-turbo-permanent></script>
+    
     <%# ログアウトボタンの視認性向上のためのカスタムCSS %>
     <style>
       /* ユーザーメニューの強調 */
@@ -142,7 +149,9 @@
                 </li>
                 <% if current_store_user.password_expired? %>
                   <li>
-                    <%= link_to store_change_password_profile_path, class: "dropdown-item text-warning" do %>
+                    <%# CLAUDE.md準拠: ルーティングヘルパーの正しい命名規則 %>
+                    <%# 横展開: profiles/show.html.erb でも同様の修正実施済み %>
+                    <%= link_to change_password_store_profile_path, class: "dropdown-item text-warning" do %>
                       <i class="bi bi-key me-2"></i>パスワード変更
                       <span class="badge bg-warning ms-1">要変更</span>
                     <% end %>
@@ -240,6 +249,29 @@
     <%# 🚨 緊急修正 - 店舗画面でドロップダウンが動作しない問題 %>
     <%# CLAUDE.md準拠: 管理者画面と同様の手動実装パターン適用 %>
     <script>
+      // Bootstrap CDN読み込み後の初期化確認
+      window.addEventListener('load', function() {
+        console.log('🎯 Window Load - Bootstrap Status:', typeof bootstrap !== 'undefined' ? 'Loaded' : 'Not Loaded');
+        
+        // Bootstrap正式初期化を試みる
+        if (typeof bootstrap !== 'undefined') {
+          console.log('✅ Bootstrap Available - Initializing dropdowns properly');
+          
+          // すべてのドロップダウンを正式に初期化
+          const dropdownElementList = document.querySelectorAll('.dropdown-toggle');
+          const dropdownList = [...dropdownElementList].map(dropdownToggleEl => {
+            try {
+              return new bootstrap.Dropdown(dropdownToggleEl);
+            } catch (e) {
+              console.error('Dropdown initialization error:', e);
+              return null;
+            }
+          });
+          
+          console.log(`✅ Initialized ${dropdownList.filter(d => d !== null).length} dropdowns`);
+        }
+      });
+      
       // 最も基本的で確実な実装（管理者画面から移植）
       document.addEventListener('DOMContentLoaded', function() {
         console.log('🚨 EMERGENCY: Store Layout - DOM Content Loaded');
