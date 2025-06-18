@@ -216,7 +216,10 @@
                 <% end %>
               <% end %>
             </th>
-            <th><i class="bi bi-shield-check me-1"></i>安全在庫</th>
+            <th class="text-center">
+              <i class="bi bi-shield-check me-1 text-primary"></i>
+              <span class="fw-bold">安全在庫</span>
+            </th>
             <th><i class="bi bi-currency-yen me-1"></i>単価</th>
             <th><i class="bi bi-traffic-light me-1"></i>状態</th>
             <th><i class="bi bi-clock me-1"></i>回転日数</th>
@@ -257,9 +260,22 @@
                   <% end %>
                 </td>
                 
-                <td>
-                  <span class="badge bg-outline-secondary">
-                    <%= store_inventory.safety_stock_level %> 個
+                <td class="text-center">
+                  <%# CLAUDE.md準拠: 視認性向上 - 安全在庫の表示を明確化 %>
+                  <%# メタ認知: ユーザビリティ改善により業務効率向上 %>
+                  <%# ベストプラクティス: 在庫レベルによる視覚的フィードバック %>
+                  <%# 横展開: 他の重要情報表示でも同様の視認性重視のスタイル適用 %>
+                  <% 
+                    safety_level = store_inventory.safety_stock_level
+                    badge_class = case safety_level
+                                  when 0..5 then "bg-danger text-white"
+                                  when 6..10 then "bg-warning text-dark"
+                                  when 11..20 then "bg-info text-white"
+                                  else "bg-success text-white"
+                                  end
+                  %>
+                  <span class="badge <%= badge_class %> fw-bold px-3 py-2" style="font-size: 0.875rem;">
+                    <i class="bi bi-shield-check me-1"></i><%= safety_level %> 個
                   </span>
                 </td>
                 
@@ -362,6 +378,24 @@
           <% end %>
         </tbody>
       </table>
+    </div>
+    
+    <%# CLAUDE.md準拠: ユーザビリティ向上 - 安全在庫レベルの説明 %>
+    <%# メタ認知: 色分けの意味を明確化することで誤解を防止 %>
+    <%# ベストプラクティス: アクセシビリティとユーザー体験の向上 %>
+    <div class="card-footer bg-light">
+      <div class="row">
+        <div class="col-12">
+          <small class="text-muted">
+            <strong>安全在庫レベル:</strong>
+            <span class="badge bg-danger text-white mx-1">0-5個</span>
+            <span class="badge bg-warning text-dark mx-1">6-10個</span>
+            <span class="badge bg-info text-white mx-1">11-20個</span>
+            <span class="badge bg-success text-white mx-1">21個以上</span>
+            - 色分けで在庫管理の優先度を表示
+          </small>
+        </div>
+      </div>
     </div>
   </div>
   
