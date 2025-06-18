@@ -188,6 +188,112 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
         expect(efficiency).to eq(0)
       end
     end
+
+    # CLAUDE.md準拠: パフォーマンス最適化メソッドのテスト
+    # メタ認知: システムリマインダーで確認された新機能のテスト実装
+    # 横展開: 他のパフォーマンス最適化実装でも同様のテスト構造適用
+    describe "performance optimization methods" do
+      let(:sample_transfers) do
+        [
+          double("transfer", status: "completed", completed_at: 2.hours.ago, requested_at: 1.day.ago, inventory: double("inventory")),
+          double("transfer", status: "approved", completed_at: nil, requested_at: 2.days.ago, inventory: double("inventory")),
+          double("transfer", status: "pending", completed_at: nil, requested_at: 3.days.ago, inventory: double("inventory"))
+        ]
+      end
+
+      describe "#calculate_store_efficiency_from_arrays" do
+        it "calculates efficiency from transfer arrays" do
+          outgoing = [sample_transfers[0], sample_transfers[1]]
+          incoming = [sample_transfers[2]]
+
+          efficiency = controller.send(:calculate_store_efficiency_from_arrays, outgoing, incoming)
+          
+          expect(efficiency).to be_a(Numeric)
+          expect(efficiency).to be_between(0, 100)
+        end
+
+        it "handles empty arrays" do
+          efficiency = controller.send(:calculate_store_efficiency_from_arrays, [], [])
+          expect(efficiency).to eq(0)
+        end
+      end
+
+      describe "#calculate_approval_rate_from_array" do
+        it "calculates approval rate from transfer array" do
+          rate = controller.send(:calculate_approval_rate_from_array, sample_transfers)
+          
+          expect(rate).to be_a(Numeric)
+          expect(rate).to be_between(0, 100)
+          # 3件中2件がapproved/completed
+          expect(rate).to eq(66.7)
+        end
+
+        it "handles empty array" do
+          rate = controller.send(:calculate_approval_rate_from_array, [])
+          expect(rate).to eq(0)
+        end
+      end
+
+      describe "#calculate_average_completion_time_from_array" do
+        let(:completed_transfers) do
+          [
+            double("transfer", completed_at: 2.hours.ago, requested_at: 1.day.ago),
+            double("transfer", completed_at: 1.hour.ago, requested_at: 12.hours.ago)
+          ]
+        end
+
+        it "calculates average completion time from transfer array" do
+          avg_time = controller.send(:calculate_average_completion_time_from_array, completed_transfers)
+          
+          expect(avg_time).to be_a(Numeric)
+          expect(avg_time).to be > 0
+        end
+
+        it "handles transfers without completion time" do
+          invalid_transfers = [double("transfer", completed_at: nil, requested_at: 1.day.ago)]
+          avg_time = controller.send(:calculate_average_completion_time_from_array, invalid_transfers)
+          
+          expect(avg_time).to eq(0)
+        end
+
+        it "handles empty array" do
+          avg_time = controller.send(:calculate_average_completion_time_from_array, [])
+          expect(avg_time).to eq(0)
+        end
+      end
+
+      describe "#calculate_most_transferred_items_from_array" do
+        let(:inventory1) { double("inventory1", name: "商品A") }
+        let(:inventory2) { double("inventory2", name: "商品B") }
+        let(:transfers_with_items) do
+          [
+            double("transfer", inventory: inventory1),
+            double("transfer", inventory: inventory1),
+            double("transfer", inventory: inventory2),
+            double("transfer", inventory: inventory1)
+          ]
+        end
+
+        it "returns most transferred items from transfer array" do
+          result = controller.send(:calculate_most_transferred_items_from_array, transfers_with_items)
+          
+          expect(result).to be_an(Array)
+          expect(result.length).to be <= 3
+          
+          if result.any?
+            top_item = result.first
+            expect(top_item).to have_key(:inventory)
+            expect(top_item).to have_key(:count)
+            expect(top_item[:count]).to eq(3) # inventory1が3回
+          end
+        end
+
+        it "handles empty array" do
+          result = controller.send(:calculate_most_transferred_items_from_array, [])
+          expect(result).to eq([])
+        end
+      end
+    end
   end
 
   # TODO: 🟡 Phase 3（中）- 統合テスト強化
@@ -214,6 +320,38 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
       create_list(:inter_store_transfer, 10)
 
       expect { get :analytics }.not_to exceed_query_limit(20)
+    end
+  end
+
+  # CLAUDE.md準拠: 原因となったNoMethodErrorの回帰防止テスト
+  # メタ認知: edit_admin_inter_store_transfer_pathエラーの特化テスト
+  # 横展開: 他のルーティングヘルパーでも同様のテスト実装
+  describe "routing helpers validation" do
+    it "edit_admin_inter_store_transfer_path exists and generates correct path" do
+      transfer = create(:inter_store_transfer, source_store: source_store, destination_store: destination_store, inventory: inventory)
+      
+      # ルーティングヘルパーの存在確認
+      expect(controller.helpers).to respond_to(:edit_admin_inter_store_transfer_path)
+      
+      # 正しいパス生成確認
+      path = controller.helpers.edit_admin_inter_store_transfer_path(transfer)
+      expect(path).to eq("/admin/transfers/#{transfer.id}/edit")
+    end
+
+    it "all inter_store_transfer routing helpers are available" do
+      transfer = create(:inter_store_transfer, source_store: source_store, destination_store: destination_store, inventory: inventory)
+      
+      helpers = controller.helpers
+      expect(helpers).to respond_to(:admin_inter_store_transfers_path)
+      expect(helpers).to respond_to(:admin_inter_store_transfer_path)
+      expect(helpers).to respond_to(:new_admin_inter_store_transfer_path)
+      expect(helpers).to respond_to(:edit_admin_inter_store_transfer_path)
+      
+      # パス生成テスト
+      expect(helpers.admin_inter_store_transfers_path).to eq("/admin/transfers")
+      expect(helpers.admin_inter_store_transfer_path(transfer)).to eq("/admin/transfers/#{transfer.id}")
+      expect(helpers.new_admin_inter_store_transfer_path).to eq("/admin/transfers/new")
+      expect(helpers.edit_admin_inter_store_transfer_path(transfer)).to eq("/admin/transfers/#{transfer.id}/edit")
     end
   end
 end
