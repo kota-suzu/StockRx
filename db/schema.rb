@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_18_035809) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_18_214629) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -206,8 +206,10 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_035809) do
     t.index ["batches_count"], name: "index_inventories_on_batches_count"
     t.index ["inventory_logs_count"], name: "index_inventories_on_inventory_logs_count"
     t.index ["name"], name: "index_inventories_on_name"
+    t.index ["quantity"], name: "idx_inventories_quantity", comment: "在庫数範囲検索最適化（min_quantity/max_quantity フィルター用）"
     t.index ["receipts_count"], name: "index_inventories_on_receipts_count"
     t.index ["shipments_count"], name: "index_inventories_on_shipments_count"
+    t.index ["status", "quantity"], name: "idx_inventories_status_quantity", comment: "ステータス別在庫数検索最適化"
   end
 
   create_table "inventory_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
