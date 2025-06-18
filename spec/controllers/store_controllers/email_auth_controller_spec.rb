@@ -47,7 +47,7 @@ RSpec.describe StoreControllers::EmailAuthController, type: :controller do
 
     context 'when store is inactive' do
       let(:inactive_store) { create(:store, :inactive) }
-      
+
       before { get :new, params: { store_slug: inactive_store.slug } }
 
       it 'redirects to store selection with error' do

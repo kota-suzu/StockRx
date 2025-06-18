@@ -15,8 +15,8 @@ RSpec.describe StoreAuthMailer, type: :mailer do
   describe '#temp_password_notification' do
     subject(:mail) do
       described_class.temp_password_notification(
-        store_user, 
-        plain_password, 
+        store_user,
+        plain_password,
         temp_password
       )
     end
@@ -24,7 +24,7 @@ RSpec.describe StoreAuthMailer, type: :mailer do
     # 基本的なメール属性テスト
     describe "mail attributes" do
       it "sets the correct recipient" do
-        expect(mail.to).to eq([store_user.email])
+        expect(mail.to).to eq([ store_user.email ])
       end
 
       it "sets the correct sender" do
@@ -195,7 +195,7 @@ RSpec.describe StoreAuthMailer, type: :mailer do
 
       it "masks email addresses correctly" do
         mailer = described_class.new
-        
+
         expect(mailer.send(:mask_email, "test@example.com")).to eq("t***t@example.com")
         expect(mailer.send(:mask_email, "ab@example.com")).to eq("a*@example.com")
         expect(mailer.send(:mask_email, "a@example.com")).to eq("a***@example.com")
@@ -218,7 +218,7 @@ RSpec.describe StoreAuthMailer, type: :mailer do
         let(:temp_password) { create(:temp_password, :expired, store_user: store_user) }
 
         it "still generates mail successfully" do
-          expect(mail.to).to eq([store_user.email])
+          expect(mail.to).to eq([ store_user.email ])
           expect(mail.html_part.body.to_s).to include(plain_password)
         end
       end
@@ -236,7 +236,7 @@ RSpec.describe StoreAuthMailer, type: :mailer do
       it "does not leak memory with password variables" do
         # メール生成後に機密変数がクリアされることを確認
         mail.deliver_now
-        
+
         # マジック変数アクセスでテスト（実際の実装では after_action で処理）
         expect(mail.instance_variable_get(:@plain_password)).to eq("[SANITIZED]")
       end
@@ -267,7 +267,7 @@ RSpec.describe StoreAuthMailer, type: :mailer do
     describe "#store_mail_defaults" do
       it "returns correct mail configuration" do
         defaults = mailer.send(:store_mail_defaults, store_user)
-        
+
         expect(defaults[:to]).to eq(store_user.email)
         expect(defaults[:from]).to eq(ENV.fetch("MAILER_STORE_FROM", "store-noreply@stockrx.example.com"))
         expect(defaults[:reply_to]).to eq(ENV.fetch("MAILER_STORE_REPLY_TO", "store-support@stockrx.example.com"))
@@ -281,7 +281,7 @@ RSpec.describe StoreAuthMailer, type: :mailer do
     describe "#urgent_mail_defaults" do
       it "returns urgent priority headers" do
         urgent_defaults = mailer.send(:urgent_mail_defaults)
-        
+
         expect(urgent_defaults["X-Priority"]).to eq("1")
         expect(urgent_defaults["X-MSMail-Priority"]).to eq("High")
         expect(urgent_defaults["Importance"]).to eq("High")
@@ -319,8 +319,8 @@ RSpec.describe StoreAuthMailer, type: :mailer do
     it "integrates correctly with EmailAuthService" do
       # EmailAuthServiceからのメール送信をテスト
       allow(TempPassword).to receive(:generate_for_user)
-        .and_return([temp_password, plain_password])
-      
+        .and_return([ temp_password, plain_password ])
+
       # モックメール送信
       expect(described_class).to receive(:temp_password_notification)
         .with(store_user, plain_password, temp_password)

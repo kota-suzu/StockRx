@@ -144,10 +144,10 @@ module StoreControllers
       # メタ認知: 認証チェックはbefore_actionで実行済み
       # セキュリティ: 現在の店舗の在庫のみアクセス可能
       @store_inventory = current_store.store_inventories.find_by!(inventory: @inventory)
-      
+
       # 調整履歴の取得（直近10件）
       @adjustment_history = @inventory.inventory_logs
-                                    .where(operation_type: 'adjustment')
+                                    .where(operation_type: "adjustment")
                                     .includes(:admin)
                                     .order(created_at: :desc)
                                     .limit(10)
@@ -157,22 +157,22 @@ module StoreControllers
     # パラメータ: { adjustment: { new_quantity: 数値, reason: 理由, notes: 備考 } }
     def adjust
       @store_inventory = current_store.store_inventories.find_by!(inventory: @inventory)
-      
+
       # バリデーション
       new_quantity = params.dig(:adjustment, :new_quantity)&.to_i
       reason = params.dig(:adjustment, :reason)
       notes = params.dig(:adjustment, :notes)
-      
+
       if new_quantity.nil? || new_quantity < 0
         flash[:alert] = "有効な在庫数を入力してください"
         redirect_to adjust_form_store_inventory_path(@inventory) and return
       end
-      
+
       if reason.blank?
         flash[:alert] = "調整理由を入力してください"
         redirect_to adjust_form_store_inventory_path(@inventory) and return
       end
-      
+
       # TODO: 🟡 Phase 4（重要）- トランザクション処理とログ記録の実装
       # 優先度: 高（データ整合性確保）
       # 実装内容:
@@ -186,24 +186,24 @@ module StoreControllers
           # 在庫数量の更新
           old_quantity = @store_inventory.quantity
           @store_inventory.update!(quantity: new_quantity)
-          
+
           # 在庫ログの記録
           quantity_change = new_quantity - old_quantity
           InventoryLog.create!(
             inventory: @inventory,
             admin: nil, # 店舗ユーザーの場合はnil（将来的にstore_userフィールド追加検討）
-            operation_type: 'adjustment',
+            operation_type: "adjustment",
             quantity_change: quantity_change,
             reason: reason,
             notes: "店舗調整: #{notes}",
             performed_at: Time.current
           )
-          
+
           flash[:success] = "在庫調整が完了しました（#{old_quantity} → #{new_quantity}個）"
         end
-        
+
         redirect_to store_inventory_path(@inventory)
-        
+
       rescue ActiveRecord::RecordInvalid => e
         Rails.logger.error "在庫調整エラー: #{e.message}"
         flash[:alert] = "在庫調整に失敗しました: #{e.message}"
@@ -217,12 +217,12 @@ module StoreControllers
     # @other_stores: 移動先候補店舗
     def request_transfer_form
       @store_inventory = current_store.store_inventories.find_by!(inventory: @inventory)
-      
+
       # 移動先候補店舗（現在店舗以外のアクティブ店舗）
       @other_stores = Store.where.not(id: current_store.id)
                           .where(active: true)
                           .order(:name)
-      
+
       # 移動履歴の取得（直近5件）
       @transfer_history = InterStoreTransfer.where(
         "(source_store_id = :store_id OR destination_store_id = :store_id) AND inventory_id = :inventory_id",
@@ -237,40 +237,40 @@ module StoreControllers
     # パラメータ: { transfer: { destination_store_id: 店舗ID, quantity: 数量, reason: 理由, notes: 備考 } }
     def request_transfer
       @store_inventory = current_store.store_inventories.find_by!(inventory: @inventory)
-      
+
       # バリデーション
       destination_store_id = params.dig(:transfer, :destination_store_id)&.to_i
       quantity = params.dig(:transfer, :quantity)&.to_i
       reason = params.dig(:transfer, :reason)
       notes = params.dig(:transfer, :notes)
-      
+
       if destination_store_id.blank?
         flash[:alert] = "移動先店舗を選択してください"
         redirect_to request_transfer_form_store_inventory_path(@inventory) and return
       end
-      
+
       if quantity.nil? || quantity <= 0
         flash[:alert] = "有効な移動数量を入力してください"
         redirect_to request_transfer_form_store_inventory_path(@inventory) and return
       end
-      
+
       if quantity > @store_inventory.quantity
         flash[:alert] = "移動数量が現在在庫数を超えています"
         redirect_to request_transfer_form_store_inventory_path(@inventory) and return
       end
-      
+
       if reason.blank?
         flash[:alert] = "移動理由を入力してください"
         redirect_to request_transfer_form_store_inventory_path(@inventory) and return
       end
-      
+
       # 移動先店舗の存在確認
       destination_store = Store.find_by(id: destination_store_id, active: true)
       unless destination_store
         flash[:alert] = "指定された移動先店舗が見つかりません"
         redirect_to request_transfer_form_store_inventory_path(@inventory) and return
       end
-      
+
       # TODO: 🟡 Phase 4（重要）- 移動申請ワークフローの実装
       # 優先度: 高（店舗間連携強化）
       # 実装内容:
@@ -287,21 +287,21 @@ module StoreControllers
             source_store: current_store,
             destination_store: destination_store,
             quantity: quantity,
-            status: 'pending',
+            status: "pending",
             reason: reason,
             notes: notes,
             requested_by: current_store_user,
             requested_at: Time.current
           )
-          
+
           # TODO: 移動先店舗への通知
           # NotificationService.notify_transfer_request(transfer)
-          
+
           flash[:success] = "移動申請を送信しました（#{destination_store.name}宛、#{quantity}個）"
         end
-        
+
         redirect_to store_inventory_path(@inventory)
-        
+
       rescue ActiveRecord::RecordInvalid => e
         Rails.logger.error "移動申請エラー: #{e.message}"
         flash[:alert] = "移動申請に失敗しました: #{e.message}"
@@ -612,8 +612,8 @@ module StoreControllers
 
       # CSVレスポンス設定
       # CLAUDE.md準拠: 文字エンコーディングとダウンロード設定のベストプラクティス
-      response.headers['Content-Type'] = 'text/csv; charset=utf-8'
-      response.headers['Content-Disposition'] = "attachment; filename*=UTF-8''#{ERB::Util.url_encode(filename)}"
+      response.headers["Content-Type"] = "text/csv; charset=utf-8"
+      response.headers["Content-Disposition"] = "attachment; filename*=UTF-8''#{ERB::Util.url_encode(filename)}"
 
       # BOM付きUTF-8で出力（Excel対応）
       csv_content = "\uFEFF" + generate_csv_content(csv_data)
@@ -643,13 +643,13 @@ module StoreControllers
     # CSV内容生成
     # CLAUDE.md準拠: 読みやすいCSVヘッダーと適切なデータフォーマット
     def generate_csv_content(store_inventories)
-      require 'csv'
+      require "csv"
 
       CSV.generate(headers: true) do |csv|
         # CSVヘッダー
         csv << [
           "商品名",
-          "商品コード", 
+          "商品コード",
           "カテゴリ",
           "現在在庫数",
           "安全在庫レベル",

@@ -159,7 +159,7 @@ module StoreControllers
     # パラメータから店舗を設定
     def set_store_from_params
       # クエリパラメータ、フォームパラメータの両方から取得を試みる
-      store_slug = params[:store_slug] || 
+      store_slug = params[:store_slug] ||
                    params.dig(:store_user, :store_slug) ||
                    request.query_parameters[:store_slug]
 

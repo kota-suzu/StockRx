@@ -3,7 +3,7 @@
 # 🔐 StoreAuthMailer - 店舗ユーザー認証メール送信クラス
 # ============================================================================
 # CLAUDE.md準拠: Phase 1 メール認証機能のプレゼンテーション層
-# 
+#
 # 目的:
 #   - 店舗ユーザー向け一時パスワード通知メール送信
 #   - ApplicationMailer統合による一貫性確保
@@ -44,7 +44,7 @@ class StoreAuthMailer < ApplicationMailer
     @store = store_user.store
     @expires_at = temp_password.expires_at
     @time_until_expiry = temp_password.time_until_expiry
-    
+
     # 店舗専用ログインURL生成
     @login_url = "#{Rails.env.production? ? 'https' : 'http'}://#{ENV.fetch('MAIL_HOST', 'localhost')}:#{ENV.fetch('MAIL_PORT', 3000)}/stores/#{@store.slug}/sign_in"
 
@@ -170,7 +170,7 @@ class StoreAuthMailer < ApplicationMailer
         password_length: @plain_password&.length,
         sanitized_at: Time.current.iso8601
       }.to_json)
-      
+
       # メモリから機密情報を削除
       @plain_password = "[SANITIZED]"
     end
@@ -179,10 +179,10 @@ class StoreAuthMailer < ApplicationMailer
   # メールアドレスマスキング（セキュリティログ用）
   def mask_email(email)
     return "[NO_EMAIL]" unless email.present?
-    
-    name, domain = email.split('@')
+
+    name, domain = email.split("@")
     return "[INVALID_EMAIL]" unless name && domain && name.length > 0
-    
+
     # 最初の文字と最後の文字のみ表示、中間をマスク
     if name.length == 1
       "#{name[0]}***@#{domain}"
@@ -207,7 +207,7 @@ class StoreAuthMailer < ApplicationMailer
     #   - 通知頻度制限・有効期間チェック
     # 横展開: AdminNotificationSettingのパターン適用
     # 現在は常に有効として扱う
-    
+
     case notification_type
     when :temp_password
       # 一時パスワード通知は常に有効（セキュリティ要件）

@@ -47,7 +47,7 @@ Rails.application.routes.draw do
   # CLAUDE.md準拠: 店舗別認証システムとの統合
   # 用途: パスワード忘れ・初回ログイン時の一時パスワード認証
   # セキュリティ: レート制限・ブルートフォース対策統合
-  
+
   # 店舗別の一時パスワード認証ルート（店舗スコープ付き）
   # パス例: /stores/:store_slug/auth/email, /stores/:store_slug/auth/email/verify
   scope :stores do
@@ -102,7 +102,7 @@ Rails.application.routes.draw do
       collection do
         get :search  # 在庫検索（認証不要）
       end
-      
+
       # 🔧 CLAUDE.md準拠: 調整・移動機能の追加
       # メタ認知: 認証済みユーザー向けの在庫操作機能
       # セキュリティ: コントローラー側で認証チェック実装
@@ -114,7 +114,7 @@ Rails.application.routes.draw do
         # セキュリティ: 認証済みstore_userのみアクセス可能
         patch :adjust           # 在庫調整（数量変更）
         get :adjust_form        # 在庫調整フォーム表示
-        
+
         # TODO: 🟡 Phase 3（重要）- 店舗間移動申請機能実装
         # 優先度: 高（店舗連携強化）
         # 実装内容: 他店舗への在庫移動申請・承認ワークフロー
