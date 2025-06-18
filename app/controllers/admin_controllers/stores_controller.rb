@@ -4,6 +4,8 @@ module AdminControllers
   # 店舗管理用コントローラ
   # Phase 2: Multi-Store Management
   class StoresController < BaseController
+    include DatabaseAgnosticSearch  # 🔧 MySQL/PostgreSQL両対応検索機能
+
     before_action :set_store, only: [ :show, :edit, :update, :destroy, :dashboard ]
     before_action :ensure_multi_store_permissions, except: [ :index, :dashboard ]
 
@@ -284,13 +286,15 @@ module AdminControllers
     end
 
     def apply_store_filters
-      # 🔍 検索・フィルタリング処理
+      # 🔍 検索・フィルタリング処理（CLAUDE.md準拠: MySQL/PostgreSQL両対応）
+      # 🔧 修正: ILIKE → DatabaseAgnosticSearch による適切な検索実装
+      # メタ認知: PostgreSQL前提のILIKEをMySQL対応のLIKEに統一
       if params[:search].present?
-        search_term = "%#{params[:search]}%"
-        @stores = @stores.where(
-          "stores.name ILIKE ? OR stores.code ILIKE ? OR stores.region ILIKE ?",
-          search_term, search_term, search_term
-        )
+        sanitized_search = sanitize_search_term(params[:search])
+        
+        # データベース非依存の複数カラム検索
+        search_columns = ['stores.name', 'stores.code', 'stores.region']
+        @stores = search_across_columns(@stores, search_columns, sanitized_search)
       end
 
       if params[:filter].present?

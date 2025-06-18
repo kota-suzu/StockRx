@@ -4,6 +4,8 @@ module AdminControllers
   # 店舗間移動管理用コントローラ
   # Phase 2: Multi-Store Management - Transfer Workflow
   class InterStoreTransfersController < BaseController
+    include DatabaseAgnosticSearch  # 🔧 MySQL/PostgreSQL両対応検索機能
+
     before_action :set_transfer, only: [ :show, :edit, :update, :destroy, :approve, :reject, :complete, :cancel ]
     before_action :set_stores_and_inventories, only: [ :new, :create, :edit, :update ]
     before_action :ensure_transfer_permissions, except: [ :index, :pending, :analytics ]
@@ -395,14 +397,20 @@ module AdminControllers
     end
 
     def apply_transfer_filters
-      # 🔍 検索・フィルタリング処理
+      # 🔍 検索・フィルタリング処理（CLAUDE.md準拠: MySQL/PostgreSQL両対応）
+      # 🔧 修正: ILIKE → DatabaseAgnosticSearch による適切な検索実装
+      # メタ認知: PostgreSQL前提のILIKEをMySQL対応のLIKEに統一
       if params[:search].present?
-        search_term = "%#{params[:search]}%"
-        @transfers = @transfers.joins(:inventory, :source_store, :destination_store)
-                              .where(
-                                "inventories.name ILIKE ? OR stores.name ILIKE ? OR destination_stores_inter_store_transfers.name ILIKE ?",
-                                search_term, search_term, search_term
-                              )
+        sanitized_search = sanitize_search_term(params[:search])
+        
+        # 複数テーブル横断検索（在庫名、店舗名）
+        table_column_mappings = {
+          inventory: ['name'],
+          source_store: ['name'],
+          destination_store: ['name']
+        }
+        
+        @transfers = search_across_joined_tables(@transfers, table_column_mappings, sanitized_search)
       end
 
       @transfers = @transfers.where(status: params[:status]) if params[:status].present?
