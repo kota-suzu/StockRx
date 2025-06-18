@@ -161,11 +161,11 @@ module AdminControllers
       # CLAUDE.md準拠: メタ認知的アプローチ - なぜCSVインポートが必要か？
       # 目的: 大量在庫データの効率的一括登録、外部システムからのデータ移行
       # 効果: 手作業時間削減、データ整合性向上、運用効率化
-      
+
       # セキュリティ考慮事項の事前チェック
       @import_security_info = {
         max_file_size: "10MB",
-        allowed_formats: [".csv"],
+        allowed_formats: [ ".csv" ],
         required_headers: %w[name quantity price],
         security_measures: [
           "ファイルサイズ制限: 10MB以下",
@@ -174,18 +174,18 @@ module AdminControllers
           "プレビュー機能: 事前確認可能"
         ]
       }
-      
+
       # 進行中のインポートジョブの確認
       @current_import_jobs = check_running_import_jobs
-      
+
       # CSVテンプレート用のサンプルデータ
       @csv_template_headers = %w[name quantity price status]
       @csv_sample_data = [
-        ["商品A", "100", "1500", "active"],
-        ["商品B", "50", "2000", "active"],
-        ["商品C", "200", "800", "active"]
+        [ "商品A", "100", "1500", "active" ],
+        [ "商品B", "50", "2000", "active" ],
+        [ "商品C", "200", "800", "active" ]
       ]
-      
+
       # TODO: 🟡 Phase 4（高度機能）- CSVインポート機能拡張
       # 優先度: 中（基本機能実装後）
       # 実装内容:
@@ -202,50 +202,50 @@ module AdminControllers
     def import
       # CLAUDE.md準拠: セキュリティファーストアプローチ
       # メタ認知: CSVインポートの潜在的リスク（ファイルアップロード攻撃、CSVインジェクション）
-      
+
       begin
         # 1. 基本的なパラメータ検証
         unless params[:csv_file].present?
           redirect_to import_form_admin_inventories_path,
                       alert: "CSVファイルを選択してください。" and return
         end
-        
+
         uploaded_file = params[:csv_file]
-        
+
         # 2. セキュリティバリデーション（CLAUDE.md準拠）
         validation_result = validate_uploaded_csv_file(uploaded_file)
-        
+
         unless validation_result[:valid]
           redirect_to import_form_admin_inventories_path,
                       alert: validation_result[:error_message] and return
         end
-        
+
         # 3. 一時ファイルとして安全に保存
         temp_file_path = save_uploaded_file_securely(uploaded_file)
-        
+
         # 4. インポートオプションの設定
         import_options = build_import_options(params)
-        
+
         # 5. 非同期インポートジョブの実行
         job_id = enqueue_import_job(temp_file_path, import_options)
-        
+
         # 6. 成功レスポンス（進捗追跡ページにリダイレクト）
         redirect_to admin_job_status_path(job_id),
                     notice: "CSVインポートを開始しました。進捗はこのページで確認できます。"
-        
+
       rescue => e
         # 7. エラーハンドリング（CLAUDE.md準拠：ユーザーフレンドリーなエラーメッセージ）
         Rails.logger.error "CSV import error: #{e.message}"
         Rails.logger.error e.backtrace.join("\n") if e.backtrace
-        
+
         # 一時ファイルのクリーンアップ
         cleanup_temp_file(temp_file_path) if defined?(temp_file_path)
-        
+
         # ユーザーへのエラー通知
         redirect_to import_form_admin_inventories_path,
                     alert: "CSVインポート中にエラーが発生しました。ファイルを確認して再試行してください。"
       end
-      
+
       # TODO: 🔴 Phase 5（重要）- CSVインポート機能強化
       # 優先度: 高（セキュリティ・パフォーマンス）
       # 実装内容:
@@ -335,7 +335,7 @@ module AdminControllers
     # アップロードされたCSVファイルのセキュリティバリデーション
     def validate_uploaded_csv_file(uploaded_file)
       # CLAUDE.md準拠: セキュリティファーストアプローチ
-      
+
       # ファイルサイズ制限（10MB）
       max_size = 10.megabytes
       if uploaded_file.size > max_size
@@ -346,7 +346,7 @@ module AdminControllers
       end
 
       # MIMEタイプ検証
-      unless uploaded_file.content_type&.include?("text/csv") || 
+      unless uploaded_file.content_type&.include?("text/csv") ||
              uploaded_file.content_type&.include?("application/csv") ||
              uploaded_file.original_filename&.end_with?(".csv")
         return {
@@ -356,7 +356,7 @@ module AdminControllers
       end
 
       # ファイル名の検証（パストラバーサル攻撃対策）
-      if uploaded_file.original_filename&.include?("..") || 
+      if uploaded_file.original_filename&.include?("..") ||
          uploaded_file.original_filename&.include?("/") ||
          uploaded_file.original_filename&.include?("\\")
         return {
@@ -395,7 +395,7 @@ module AdminControllers
       timestamp = Time.current.strftime("%Y%m%d_%H%M%S")
       random_suffix = SecureRandom.hex(8)
       safe_filename = "import_#{timestamp}_#{random_suffix}.csv"
-      
+
       temp_file_path = temp_dir.join(safe_filename)
 
       # ファイルを保存
@@ -422,11 +422,11 @@ module AdminControllers
     def enqueue_import_job(temp_file_path, import_options)
       # CLAUDE.md準拠: ImportInventoriesJobを使用した非同期処理
       # メタ認知: ユーザー体験向上（ノンブロッキング処理）とシステム安定性の両立
-      
+
       job_id = SecureRandom.uuid
-      
+
       Rails.logger.info "CSVインポートジョブ開始: #{temp_file_path}, オプション: #{import_options.except(:admin_id)}"
-      
+
       begin
         # ImportInventoriesJobを非同期実行
         ImportInventoriesJob.perform_later(
@@ -435,24 +435,24 @@ module AdminControllers
           import_options.except(:admin_id),
           job_id
         )
-        
+
         Rails.logger.info "CSVインポートジョブがキューに登録されました: job_id=#{job_id}"
-        
+
       rescue => e
         Rails.logger.error "CSVインポートジョブのエンキューに失敗: #{e.message}"
-        
+
         # エラー時は一時ファイルをクリーンアップ
         cleanup_temp_file(temp_file_path)
         raise e
       end
-      
+
       job_id
     end
 
     # 一時ファイルのクリーンアップ
     def cleanup_temp_file(temp_file_path)
       return unless temp_file_path && File.exist?(temp_file_path)
-      
+
       begin
         File.delete(temp_file_path)
         Rails.logger.info "一時ファイルを削除しました: #{File.basename(temp_file_path)}"

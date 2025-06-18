@@ -111,9 +111,11 @@ RSpec.describe "AdminControllers::Inventories", type: :request do
       expect(response.body).to include("CSVファイル選択")
     end
 
-    it "shows development notice" do
+    it "shows security information and import guidelines" do
       get import_form_admin_inventories_path
-      expect(response.body).to include("CSVインポート機能は現在Phase 3で実装予定です")
+      expect(response.body).to include("セキュリティ要件")
+      expect(response.body).to include("最大サイズ")
+      expect(response.body).to include("テンプレートダウンロード")
     end
 
     # TODO: Phase 3 - 追加テスト項目
@@ -125,10 +127,10 @@ RSpec.describe "AdminControllers::Inventories", type: :request do
   end
 
   describe "POST /admin/inventories/import" do
-    it "redirects with development notice" do
+    it "requires CSV file parameter" do
       post import_admin_inventories_path
-      expect(response).to redirect_to(admin_inventories_path)
-      expect(flash[:alert]).to eq("CSVインポート機能は現在開発中です。Phase 3で実装予定です。")
+      expect(response).to redirect_to(import_form_admin_inventories_path)
+      expect(flash[:alert]).to eq("CSVファイルを選択してください。")
     end
 
     # TODO: Phase 3 - CSVインポート機能実装時のテスト
