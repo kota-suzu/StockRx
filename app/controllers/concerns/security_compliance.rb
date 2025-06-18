@@ -264,6 +264,12 @@ module SecurityCompliance
   # セキュリティ用の現在ユーザー取得
   # 🔧 メタ認知: 認証システムに応じた適切なユーザー取得
   # 横展開: AdminControllers と StoreControllers 両方で利用可能
+  #
+  # TODO: 🟡 Phase 2（重要）- 統一認証インターフェースの検討
+  #   - 現状: AdminとStoreUserの二重認証システム
+  #   - 課題: 異なる認証メソッド名による複雑性
+  #   - 将来: 統一的なcurrent_userインターフェースの実装検討
+  #   - 参考: Pundit gemなど認可ライブラリとの統合時に考慮
   def current_user_for_security
     # AdminControllersではcurrent_admin、StoreControllersではcurrent_store_userを使用
     if defined?(current_admin) && respond_to?(:current_admin)
