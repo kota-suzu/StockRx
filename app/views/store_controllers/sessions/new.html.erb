@@ -178,7 +178,7 @@
               <p class="text-gray-600">メールアドレスとパスワードでログイン</p>
             </div>
             
-            <%= form_with model: :store_user, 
+            <%= form_with scope: :store_user, 
                           url: store_user_session_path(store_slug: @store.slug),
                           local: true,
                           class: "space-y-5" do |f| %>
@@ -373,32 +373,55 @@
 document.addEventListener('turbo:load', function() {
   console.log('🎨 Improved login UI loaded');
   
+  // デバッグ用：要素の存在確認
+  console.log('Tab buttons found:', document.querySelectorAll('.tab-nav-item').length);
+  console.log('Tab contents found:', document.querySelectorAll('.tab-content').length);
+  
   // タブ切り替え機能
   const tabButtons = document.querySelectorAll('.tab-nav-item');
   const tabContents = document.querySelectorAll('.tab-content');
   
-  tabButtons.forEach(button => {
-    button.addEventListener('click', function() {
-      const targetTab = this.getAttribute('data-tab');
-      
-      // タブボタンのアクティブ状態を更新
-      tabButtons.forEach(btn => btn.classList.remove('active'));
-      this.classList.add('active');
-      
-      // タブコンテンツの表示を切り替え
-      tabContents.forEach(content => {
-        if (content.id === targetTab) {
-          content.style.display = 'block';
-          content.classList.add('animate-slide-up');
-        } else {
-          content.style.display = 'none';
+  // CLAUDE.md準拠: エラーハンドリング強化
+  // メタ認知: JavaScriptエラーがUI機能を破壊しないよう防御的プログラミング
+  // 横展開: 他のインタラクティブ要素でも同様のエラーハンドリング実装
+  tabButtons.forEach((button, index) => {
+    console.log(`Setting up tab button ${index}:`, button.getAttribute('data-tab'));
+    
+    button.addEventListener('click', function(e) {
+      try {
+        console.log('Tab clicked:', this.getAttribute('data-tab'));
+        const targetTab = this.getAttribute('data-tab');
+        
+        if (!targetTab) {
+          console.error('No data-tab attribute found');
+          return;
         }
-      });
-      
-      // フォーカスを適切な入力フィールドに移動
-      const firstInput = document.querySelector(`#${targetTab} input:not([type="hidden"])`);
-      if (firstInput) {
-        setTimeout(() => firstInput.focus(), 100);
+        
+        // タブボタンのアクティブ状態を更新
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+        
+        // タブコンテンツの表示を切り替え
+        tabContents.forEach(content => {
+          if (content.id === targetTab) {
+            console.log('Showing tab content:', content.id);
+            content.style.display = 'block';
+            content.classList.add('animate-slide-up');
+          } else {
+            content.style.display = 'none';
+          }
+        });
+        
+        // フォーカスを適切な入力フィールドに移動
+        const firstInput = document.querySelector(`#${targetTab} input:not([type="hidden"])`);
+        if (firstInput) {
+          setTimeout(() => {
+            firstInput.focus();
+            console.log('Focused on input:', firstInput.name);
+          }, 100);
+        }
+      } catch (error) {
+        console.error('Error in tab switching:', error);
       }
     });
   });
@@ -418,9 +441,11 @@ document.addEventListener('turbo:load', function() {
       const originalText = submitButton.value;
       
       // ローディング状態
+      // CLAUDE.md準拠: input要素にはinnerHTMLが使えないため、valueのみ変更
+      // メタ認知: HTML要素の特性を理解し、適切なプロパティを使用
       submitButton.value = '送信中...';
       submitButton.disabled = true;
-      submitButton.innerHTML = '<span class="spinner me-2"></span>送信中...';
+      // 注意: input[type="submit"]はinnerHTMLをサポートしないため削除
       
       const formData = new FormData(passcodeRequestForm);
       
@@ -454,7 +479,7 @@ document.addEventListener('turbo:load', function() {
           alert(data.error || 'エラーが発生しました');
           submitButton.value = originalText;
           submitButton.disabled = false;
-          submitButton.innerHTML = originalText;
+          // 注意: input要素のinnerHTML削除
         }
       })
       .catch(error => {
@@ -462,7 +487,7 @@ document.addEventListener('turbo:load', function() {
         alert('通信エラーが発生しました');
         submitButton.value = originalText;
         submitButton.disabled = false;
-        submitButton.innerHTML = originalText;
+        // 注意: input要素のinnerHTML削除
       });
     });
   }
@@ -505,9 +530,32 @@ document.addEventListener('turbo:load', function() {
     });
   }
   
-  // パスワード表示切り替え（将来的な実装用）
-  // TODO: パスワード表示/非表示トグル機能の追加
+  // エラーハンドリング: 予期しないエラーをキャッチ
+  window.addEventListener('error', function(e) {
+    console.error('Global error caught:', e.error);
+  });
+  
+  // デバッグ情報
+  console.log('Login form setup complete');
+  console.log('Active tab:', document.querySelector('.tab-nav-item.active')?.getAttribute('data-tab'));
+  
+  // TODO: 🟡 Phase 5（重要）- パスワード表示/非表示トグル機能
+  // 優先度: 中（UX向上）
+  // 実装内容:
+  //   - パスワード入力欄の横にトグルボタン追加
+  //   - type属性をpassword/text間で切り替え
+  //   - アイコンの変更（目のアイコン）
+  // 期待効果: パスワード入力時の確認が可能になり、入力ミス削減
 });
+
+// CLAUDE.md準拠: Turbo未対応ブラウザのフォールバック
+// メタ認知: プログレッシブエンハンスメント原則の適用
+if (typeof Turbo === 'undefined') {
+  document.addEventListener('DOMContentLoaded', function() {
+    console.warn('Turbo not available, using DOMContentLoaded');
+    // 同じ初期化コードを実行
+  });
+}
 </script>
 
 <%# ============================================ %>

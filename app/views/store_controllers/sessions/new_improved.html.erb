@@ -178,7 +178,7 @@
               <p class="text-gray-600">メールアドレスとパスワードでログイン</p>
             </div>
             
-            <%= form_with model: :store_user, 
+            <%= form_with scope: :store_user, 
                           url: store_user_session_path(store_slug: @store.slug),
                           local: true,
                           class: "space-y-5" do |f| %>
