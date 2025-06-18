@@ -241,7 +241,8 @@ Rails.application.routes.draw do
     # 店舗間移動管理（独立ルーティング）
     # CLAUDE.md準拠: ルーティング構造の整理とコンテキスト統一
     # メタ認知: ネストルーティングと独立ルーティングの役割分担明確化
-    resources :inter_store_transfers, path: :transfers, only: [ :index, :show, :new, :create ] do
+    # 🛠️ 修正: edit/update アクション追加（コントローラー実装済み、ビュー要求に対応）
+    resources :inter_store_transfers, path: :transfers, only: [ :index, :show, :new, :create, :edit, :update ] do
       collection do
         get :pending      # 承認待ち一覧
         get :analytics    # 移動分析
