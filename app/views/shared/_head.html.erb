@@ -1,0 +1,182 @@
+<%# ========================================== %>
+<%# 統一Headセクション - StockRx %>
+<%# ========================================== %>
+<%# CLAUDE.md準拠: 全レイアウトファイルでの重複解消と一貫性確保 %>
+<%# メタ認知: Bootstrap読み込み、メタタグ、セキュリティ設定の統一管理 %>
+<%# 横展開: application.html.erb、admin.html.erb、store.html.erb等で共通利用 %>
+<%# ========================================== %>
+
+<%# 基本メタタグ（全レイアウト共通） %>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="<%= content_for?(:description) ? yield(:description) : 'StockRx - モダンな在庫管理システム' %>">
+<meta name="author" content="StockRx Team">
+
+<%# Rails標準セキュリティタグ %>
+<%= csrf_meta_tags %>
+<%= csp_meta_tag %>
+
+<%# レイアウト固有のHead拡張ポイント %>
+<%= yield :head %>
+
+<%# PWA対応（公開レイアウトのみ） %>
+<% if content_for?(:pwa_support) || controller.class.name.start_with?('Home') %>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icon.png" type="image/png">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.png">
+<% end %>
+
+<%# ========================================== %>
+<%# CSS読み込み統一管理 %>
+<%# ========================================== %>
+
+<%# メインスタイルシート（統一された_variables.scss、_mixins.scssを含む） %>
+<%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+
+<%# ========================================== %>
+<%# アイコンシステム統一管理 %>
+<%# ========================================== %>
+
+<%# Bootstrap Icons（プライマリアイコンシステム） %>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<%# Font Awesome（条件付き読み込み） %>
+<% if content_for?(:use_font_awesome) %>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<% end %>
+
+<%# ========================================== %>
+<%# 外部ライブラリ（条件付き読み込み） %>
+<%# ========================================== %>
+
+<%# Chart.js（ダッシュボード・分析画面用） %>
+<% if content_for?(:use_chartjs) %>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<% end %>
+
+<%# FullCalendar（カレンダー機能用） %>
+<% if content_for?(:use_fullcalendar) %>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
+<% end %>
+
+<%# DataTables（高度なテーブル機能用） %>
+<% if content_for?(:use_datatables) %>
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+<% end %>
+
+<%# ========================================== %>
+<%# JavaScript読み込み統一管理 %>
+<%# ========================================== %>
+
+<%# Rails ImportMap（統一JavaScript管理） %>
+<%= javascript_importmap_tags %>
+
+<%# ========================================== %>
+<%# セクション別スタイル拡張ポイント %>
+<%# ========================================== %>
+
+<%# 管理者画面固有スタイル %>
+<% if content_for?(:admin_styles) %>
+  <style>
+    body { --section-primary: var(--admin-primary); --section-secondary: var(--admin-secondary); --section-accent: var(--admin-accent); }
+  </style>
+<% end %>
+
+<%# 店舗画面固有スタイル %>
+<% if content_for?(:store_styles) %>
+  <style>
+    body { --section-primary: var(--store-primary); --section-secondary: var(--store-secondary); --section-accent: var(--store-accent); }
+  </style>
+<% end %>
+
+<%# 公開画面固有スタイル %>
+<% if content_for?(:public_styles) %>
+  <style>
+    body { --section-primary: var(--public-primary); --section-secondary: var(--public-secondary); --section-accent: var(--public-accent); }
+  </style>
+<% end %>
+
+<%# ========================================== %>
+<%# パフォーマンス最適化設定 %>
+<%# ========================================== %>
+
+<%# DNS プリフェッチ（外部リソース高速化） %>
+<link rel="dns-prefetch" href="//cdn.jsdelivr.net">
+<link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+
+<%# リソースヒント（重要なリソースの事前読み込み） %>
+<% if content_for?(:preload_resources) %>
+  <%= yield(:preload_resources) %>
+<% end %>
+
+<%# ========================================== %>
+<%# セキュリティ強化設定 %>
+<%# ========================================== %>
+
+<%# セキュリティヘッダー（段階的実装） %>
+<% if content_for?(:security_headers) %>
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<% end %>
+
+<%# ========================================== %>
+<%# 開発・デバッグ支援 %>
+<%# ========================================== %>
+
+<%# 開発環境でのデバッグ情報 %>
+<% if Rails.env.development? %>
+  <!-- Layout: <%= controller.class.name %> -->
+  <!-- User Agent: <%= request.user_agent %> -->
+  <!-- Current User: <%= current_admin&.email || current_store_user&.email || 'Guest' %> -->
+<% end %>
+
+<%# ========================================== %>
+<%# 使用方法とベストプラクティス %>
+<%# ========================================== %>
+
+<%# 
+  レイアウトファイルでの使用例:
+  
+  <head>
+    <title><%= content_for(:title) || "StockRx" %></title>
+    <%= render 'shared/head' %>
+  </head>
+  
+  条件付き機能有効化:
+  
+  <% content_for :use_chartjs do %>true<% end %>
+  <% content_for :use_font_awesome do %>true<% end %>
+  <% content_for :admin_styles do %>true<% end %>
+  
+  カスタムhead要素追加:
+  
+  <% content_for :head do %>
+    <meta name="robots" content="noindex">
+    <link rel="canonical" href="<%= request.url %>">
+  <% end %>
+  
+  セキュリティヘッダー有効化:
+  
+  <% content_for :security_headers do %>true<% end %>
+%>
+
+<%# ========================================== %>
+<%# TODO: 🟡 Phase 3（重要）- 高度なパフォーマンス最適化 %>
+<%# 優先度: 中（基本統合完了後） %>
+<%# 実装内容: %>
+<%#   - Critical CSS のインライン化 %>
+<%#   - 使用しないCSS/JSの動的除外 %>
+<%#   - Service Worker 統合 %>
+<%#   - WebP画像対応 %>
+<%#   - HTTP/2 Push 対応 %>
+<%# 期待効果: ページ読み込み速度30%向上、Lighthouse スコア改善 %>
+<%# 工数見積: 2-3日 %>
+<%# 依存関係: WebPack/Importmap最適化、Service Worker実装 %>
+<%# ========================================== %>
