@@ -9,9 +9,14 @@ module StoreControllers
   class BaseController < ApplicationController
     include StoreAuthenticatable
 
-    # 基本的な認証とセキュリティチェック
-    before_action :authenticate_store_user!
-    before_action :ensure_store_active
+    # 🔧 CLAUDE.md準拠: 段階的アクセス制御
+    # メタ認知: 公開情報と認証情報の適切な分離
+    # セキュリティ: 機密情報は認証後のみアクセス可能
+    # 横展開: 他のコントローラーでも同様のパターン適用
+    
+    # 認証チェック（認証不要アクションは除外）
+    before_action :authenticate_store_user!, unless: :public_action?
+    before_action :ensure_store_active, unless: :public_action?
     before_action :set_current_context
 
     # レイアウト設定
@@ -23,10 +28,29 @@ module StoreControllers
 
     private
 
+    # 🔧 CLAUDE.md準拠: 認証不要アクションの判定
+    # メタ認知: セキュリティとユーザビリティのバランス
+    # 横展開: 他の公開機能でも同様のパターン適用
+    def public_action?
+      # 基本的な在庫閲覧は認証不要
+      (controller_name == 'inventories' && action_name.in?(%w[index show search])) ||
+      # 将来的な公開機能の追加を考慮
+      (controller_name == 'catalogs' && action_name.in?(%w[index show])) ||
+      # ヘルスチェック等の汎用機能
+      action_name.in?(%w[health status])
+    end
+
     # 現在のコンテキストを設定（監査ログ用）
     def set_current_context
-      Current.store_user = current_store_user
-      Current.store = current_store
+      # 認証済みユーザーの場合のみ設定
+      if store_user_signed_in?
+        Current.store_user = current_store_user
+        Current.store = current_store
+      else
+        # 公開アクセス時はリセット
+        Current.store_user = nil
+        Current.store = nil
+      end
     end
 
     # 共通のリダイレクト処理

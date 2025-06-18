@@ -36,25 +36,65 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Don't care if the mailer can't send.
-  config.action_mailer.raise_delivery_errors = false
+  # ============================================
+  # メール配信設定（開発環境用）
+  # ============================================
+  
+  # メール配信方法の切り替え設定
+  # ENV['MAIL_DELIVERY_METHOD'] で切り替え可能
+  # - 'smtp'          : MailHog/MailTrap等のSMTPサーバー使用
+  # - 'letter_opener' : ブラウザでメール内容を表示
+  # - 'test'          : メール送信しない（テスト用）
+  # - 'log'           : ログにメール内容を出力
+  
+  mail_delivery_method = ENV.fetch('MAIL_DELIVERY_METHOD', 'letter_opener').to_sym
+  
+  case mail_delivery_method
+  when :smtp
+    # SMTP配信（MailHog/MailTrap使用）
+    config.action_mailer.delivery_method = :smtp
+    config.action_mailer.smtp_settings = {
+      address: ENV["SMTP_ADDRESS"] || "localhost",
+      port: ENV["SMTP_PORT"] || 1025,
+      domain: ENV["SMTP_DOMAIN"] || "localhost",
+      user_name: ENV["SMTP_USERNAME"],
+      password: ENV["SMTP_PASSWORD"],
+      authentication: ENV["SMTP_USERNAME"].present? ? "plain" : nil,
+      enable_starttls_auto: ENV["SMTP_USERNAME"].present?
+    }
+    config.action_mailer.raise_delivery_errors = true
+    puts "📧 メール配信: SMTP (#{ENV["SMTP_ADDRESS"] || "localhost"}:#{ENV["SMTP_PORT"] || 1025})"
+    
+  when :letter_opener
+    # Letter Opener（ブラウザ表示）
+    config.action_mailer.delivery_method = :letter_opener
+    config.action_mailer.raise_delivery_errors = false
+    puts "📧 メール配信: Letter Opener (ブラウザ表示)"
+    
+  when :test
+    # テスト用（送信しない）
+    config.action_mailer.delivery_method = :test
+    config.action_mailer.raise_delivery_errors = false
+    puts "📧 メール配信: Test (送信なし)"
+    
+  when :log
+    # ログ出力のみ
+    config.action_mailer.delivery_method = :test
+    config.action_mailer.raise_delivery_errors = false
+    puts "📧 メール配信: Log only"
+    
+  else
+    # デフォルト: Letter Opener
+    config.action_mailer.delivery_method = :letter_opener
+    config.action_mailer.raise_delivery_errors = false
+    puts "📧 メール配信: Letter Opener (デフォルト)"
+  end
 
-  # Disable caching for Action Mailer templates even if Action Controller
-  # caching is enabled.
+  # 共通設定
   config.action_mailer.perform_caching = false
-
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
-
-  # Devise用のメール設定を追加
-  config.action_mailer.delivery_method = :smtp
-  config.action_mailer.smtp_settings = {
-    address: ENV["SMTP_ADDRESS"] || "localhost",
-    port: ENV["SMTP_PORT"] || 1025,
-    domain: ENV["SMTP_DOMAIN"] || "localhost",
-    user_name: ENV["SMTP_USERNAME"],
-    password: ENV["SMTP_PASSWORD"],
-    authentication: ENV["SMTP_USERNAME"].present? ? "plain" : nil,
-    enable_starttls_auto: ENV["SMTP_USERNAME"].present?
+  config.action_mailer.default_url_options = { 
+    host: ENV.fetch('MAIL_HOST', 'localhost'), 
+    port: ENV.fetch('MAIL_PORT', 3000)
   }
 
   # Print deprecation notices to the Rails logger.

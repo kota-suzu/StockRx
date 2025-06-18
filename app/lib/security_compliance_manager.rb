@@ -219,14 +219,25 @@ class SecurityComplianceManager
     # 暗号化して保存
     encrypted_entry = encrypt_sensitive_data(audit_entry.to_json, context: 'audit_logs')
     
-    ComplianceAuditLog.create!(
-      event_type: action,
-      user: user,
-      encrypted_details: encrypted_entry,
-      compliance_standard: 'PCI_DSS',
-      severity: determine_severity(action),
-      created_at: Time.current
-    )
+    # CLAUDE.md準拠: メタ認知的エラーハンドリング - 詳細なバリデーションエラー検出
+    # 横展開: 他のコンプライアンスログ作成箇所でも同様のパターン適用
+    begin
+      ComplianceAuditLog.create!(
+        event_type: action,
+        user: user,
+        encrypted_details: encrypted_entry,
+        compliance_standard: 'PCI_DSS',
+        severity: determine_severity(action)
+        # created_at は自動設定されるため削除（Rails 8対応）
+      )
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error "[PCI_DSS_AUDIT_ERROR] Failed to create audit log: #{e.message}"
+      Rails.logger.error "[PCI_DSS_AUDIT_ERROR] Validation errors: #{e.record.errors.full_messages.join(', ')}"
+      
+      # 緊急時の代替ログ記録（暗号化なし）
+      Rails.logger.warn "[PCI_DSS_AUDIT_FALLBACK] #{action} by #{user&.id} - #{details[:result]} - #{audit_entry.to_json}"
+      raise ComplianceError, "PCI DSS監査ログの作成に失敗しました: #{e.message}"
+    end
     
     Rails.logger.info "[PCI_DSS_AUDIT] #{action} by #{user&.id} - #{details[:result]}"
   end
@@ -326,14 +337,27 @@ class SecurityComplianceManager
       details: sanitize_audit_details(details)
     }
     
-    ComplianceAuditLog.create!(
-      event_type: action,
-      user: user,
-      encrypted_details: encrypt_sensitive_data(audit_entry.to_json, context: 'audit_logs'),
-      compliance_standard: 'GDPR',
-      severity: determine_severity(action),
-      created_at: Time.current
-    )
+    # CLAUDE.md準拠: 一貫したエラーハンドリングパターンの適用
+    # 横展開: PCI_DSS監査ログと同様のエラー処理パターン
+    begin
+      ComplianceAuditLog.create!(
+        event_type: action,
+        user: user,
+        encrypted_details: encrypt_sensitive_data(audit_entry.to_json, context: 'audit_logs'),
+        compliance_standard: 'GDPR',
+        severity: determine_severity(action)
+        # created_at は自動設定されるため削除（Rails 8対応）
+      )
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error "[GDPR_AUDIT_ERROR] Failed to create audit log: #{e.message}"
+      Rails.logger.error "[GDPR_AUDIT_ERROR] Validation errors: #{e.record.errors.full_messages.join(', ')}"
+      
+      # 緊急時の代替ログ記録（暗号化なし）
+      Rails.logger.warn "[GDPR_AUDIT_FALLBACK] #{action} by #{user&.id} - #{audit_entry.to_json}"
+      raise ComplianceError, "GDPR監査ログの作成に失敗しました: #{e.message}"
+    end
+    
+    Rails.logger.info "[GDPR_AUDIT] #{action} by #{user&.id}"
   end
 
   # ============================================================================

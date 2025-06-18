@@ -249,7 +249,16 @@ module StoreControllers
     helper_method :sort_column, :sort_direction
 
     def sort_column
-      %w[inventories.name inventories.sku quantity safety_stock_level].include?(params[:sort]) ? params[:sort] : "inventories.name"
+      # 🔧 CLAUDE.md準拠: 認証状態に応じたカラム名の調整
+      # メタ認知: 公開アクセス時はJOINが発生するため、曖昧性を回避
+      # セキュリティ: SQLインジェクション対策として許可リストを使用
+      allowed_columns = %w[inventories.name inventories.sku store_inventories.quantity store_inventories.safety_stock_level]
+      
+      if allowed_columns.include?(params[:sort])
+        params[:sort]
+      else
+        "inventories.name"  # デフォルトカラム
+      end
     end
 
     def sort_direction

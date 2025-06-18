@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_18_031633) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_18_035809) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -109,7 +109,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_031633) do
     t.index ["inventory_id"], name: "index_batches_on_inventory_id"
   end
 
-  create_table "compliance_audit_logs", charset: "utf8mb4", collation: "utf8mb4_general_ci", force: :cascade do |t|
+  create_table "compliance_audit_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.string "event_type", null: false, comment: "イベントタイプ（data_access, login_attempt等）"
     t.string "user_type"
     t.bigint "user_id", comment: "実行ユーザー（admin/store_user、システム処理の場合はnull）"
@@ -370,6 +370,27 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_031633) do
     t.index ["store_type"], name: "index_stores_on_store_type", comment: "店舗種別による検索最適化"
   end
 
+  create_table "temp_passwords", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "store_user_id", null: false
+    t.string "password_hash", null: false
+    t.datetime "expires_at", null: false
+    t.datetime "used_at"
+    t.string "ip_address"
+    t.text "user_agent"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "active", default: true, null: false, comment: "アクティブ状態（管理者による無効化可能）"
+    t.integer "usage_attempts", default: 0, null: false, comment: "使用試行回数（ブルートフォース対策）"
+    t.datetime "last_attempt_at", comment: "最終使用試行日時"
+    t.string "generated_by_admin_id", comment: "生成実行管理者ID（監査用）"
+    t.index ["active"], name: "index_temp_passwords_on_active"
+    t.index ["generated_by_admin_id", "created_at"], name: "index_temp_passwords_on_admin_created_at"
+    t.index ["last_attempt_at"], name: "index_temp_passwords_on_last_attempt_at"
+    t.index ["store_user_id", "active", "expires_at"], name: "index_temp_passwords_active_valid"
+    t.index ["store_user_id"], name: "index_temp_passwords_on_store_user_id"
+    t.index ["usage_attempts"], name: "index_temp_passwords_on_usage_attempts"
+  end
+
   add_foreign_key "admin_notification_settings", "admins"
   add_foreign_key "admins", "stores"
   add_foreign_key "audit_logs", "admins", column: "user_id", on_delete: :nullify
@@ -385,4 +406,5 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_031633) do
   add_foreign_key "store_inventories", "inventories", on_delete: :cascade
   add_foreign_key "store_inventories", "stores", on_delete: :cascade
   add_foreign_key "store_users", "stores"
+  add_foreign_key "temp_passwords", "store_users"
 end

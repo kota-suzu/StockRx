@@ -11,7 +11,11 @@
       <i class="bi bi-box-seam me-2"></i>在庫管理
     </h1>
     <p class="text-muted mb-0">
-      <%= current_store.name %> の在庫状況
+      <% if @authenticated_access && current_store %>
+        <%= current_store.name %> の在庫状況
+      <% else %>
+        公開在庫情報
+      <% end %>
     </p>
   </div>
   
@@ -34,7 +38,8 @@
   </div>
 </div>
 
-<%# 統計サマリー %>
+<%# 統計サマリー（認証済みのみ表示） %>
+<% if @authenticated_access && @statistics %>
 <div class="row g-3 mb-4">
   <div class="col-sm-6 col-lg-3">
     <div class="card bg-primary text-white">
@@ -100,6 +105,7 @@
     </div>
   </div>
 </div>
+<% end %>
 
 <%# 検索・フィルター %>
 <div class="card mb-4">
@@ -316,10 +322,26 @@
   <% if @store_inventories.present? %>
     <div class="card-footer">
       <%# CLAUDE.md準拠: Bootstrap 5テーマ復活 - bootstrap5-kaminari-views gem追加完了 %>
-      <%# メタ認知: 美しいページネーションによりユーザビリティ向上 %>
-      <%# ベストプラクティス: UI一貫性確保とユーザー体験向上 %>
+      <%# CLAUDE.md準拠: 緊急修正 - Bootstrap 5テーマ問題の暫定対応 %>
+      <%# メタ認知: ページネーション機能の安定性を最優先し、見た目は後で調整 %>
       <%# 横展開: 全ページネーション箇所で同様修正適用 %>
-      <%= paginate @store_inventories, theme: :bootstrap_5 %>
+      <%# TODO: 🟡 Phase 5（改善）- Bootstrap 5対応Kaminari設定の適切な実装 %>
+      <%#   優先度: 中（UI改善） %>
+      <%#   実装内容: bootstrap5-kaminari-views gem設定またはカスタムテンプレート作成 %>
+      <%#   期待効果: Bootstrap 5スタイルによる統一されたページネーション %>
+      <% begin %>
+        <% if @store_inventories.respond_to?(:current_page) %>
+          <%= paginate @store_inventories %>
+        <% else %>
+          <div class="text-muted text-center">
+            ページネーション機能は認証後利用可能
+          </div>
+        <% end %>
+      <% rescue => e %>
+        <div class="text-muted text-center">
+          ページネーション処理中にエラーが発生しました: <%= e.message %>
+        </div>
+      <% end %>
     </div>
   <% end %>
 </div>

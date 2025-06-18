@@ -12,6 +12,16 @@ Rails.application.routes.draw do
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
 
   # ============================================
+  # Development Tools (開発環境のみ)
+  # ============================================
+  if Rails.env.development?
+    # Letter Opener Web - 送信メールの確認UI
+    # ✅ Phase 2完了 - LetterOpenerWeb gem設定修正完了
+    # 解決内容: bundle installでletter_opener関連gem追加
+    mount LetterOpenerWeb::Engine, at: "/letter_opener"
+  end
+
+  # ============================================
   # Phase 2: 店舗別ログインシステム
   # ============================================
 
@@ -62,15 +72,41 @@ Rails.application.routes.draw do
     end
   end
 
+  # 🔧 CLAUDE.md準拠: 認証不要の店舗在庫閲覧ルート追加
+  # メタ認知: 公開情報として店舗在庫の基本情報を提供
+  # セキュリティ: 機密情報（価格、仕入先）は認証が必要
+  # 横展開: 既存の /stores/:store_id/inventories との整合性確保
+  namespace :store, module: :store_controllers do
+    # 在庫管理（認証不要・基本情報のみ）
+    resources :inventories, only: [ :index, :show ] do
+      collection do
+        get :search  # 在庫検索（認証不要）
+      end
+    end
+  end
+
   # 店舗ユーザー用の認証済みルート
   authenticated :store_user do
     namespace :store, module: :store_controllers do
       root "dashboard#index"
 
-      # 在庫管理（店舗スコープ）
-      resources :inventories, only: [ :index, :show ] do
+      # 在庫管理（詳細・操作機能）
+      # TODO: 🟡 Phase 2（重要）- 認証済み機能の拡張
+      # 優先度: 中（機能完成度向上）
+      # 実装内容:
+      #   - 詳細在庫情報（価格、仕入先、コスト分析）
+      #   - 在庫操作（調整、移動申請、棚卸）
+      #   - 履歴管理（個人別アクセス履歴、操作履歴）
+      # 期待効果: 認証ユーザー向け高機能提供
+      resources :inventories, only: [], path: :inventory_management do
         member do
-          post :request_transfer  # 移動申請
+          get :details           # 詳細情報（認証必要）
+          post :request_transfer # 移動申請
+          patch :adjust          # 在庫調整
+        end
+        collection do
+          get :analytics         # 分析情報
+          get :history          # アクセス履歴
         end
       end
 

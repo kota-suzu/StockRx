@@ -1,7 +1,21 @@
 <!DOCTYPE html>
 <html lang="ja">
   <head>
-    <title><%= content_for?(:title) ? "#{yield(:title)} - #{current_store.name}" : "#{current_store.name} - StockRx" %></title>
+    <title><%= 
+      if content_for?(:title)
+        if store_user_signed_in? && current_store
+          "#{yield(:title)} - #{current_store.name}"
+        else
+          "#{yield(:title)} - StockRx"
+        end
+      else
+        if store_user_signed_in? && current_store
+          "#{current_store.name} - StockRx"
+        else
+          "StockRx - 在庫管理システム"
+        end
+      end
+    %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta charset="utf-8">
     <%= csrf_meta_tags %>
@@ -84,44 +98,55 @@
   </head>
 
   <body>
-    <%# ナビゲーションバー %>
+    <%# ナビゲーションバー（認証状態に応じて表示切り替え） %>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container-fluid">
-        <%= link_to store_root_path, class: "navbar-brand" do %>
-          <i class="bi bi-shop me-2"></i>
-          <%= current_store.name %>
+        <% if store_user_signed_in? && current_store %>
+          <%# 認証済みユーザー用の完全ナビゲーション %>
+          <%= link_to store_root_path, class: "navbar-brand" do %>
+            <i class="bi bi-shop me-2"></i>
+            <%= current_store.name %>
+          <% end %>
+        <% else %>
+          <%# 公開アクセス用のシンプルナビゲーション %>
+          <%= link_to "/store/inventories", class: "navbar-brand" do %>
+            <i class="bi bi-box-seam me-2"></i>
+            StockRx - 在庫管理システム
+          <% end %>
         <% end %>
         
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        
-        <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav me-auto">
-            <li class="nav-item">
-              <%= link_to store_root_path, class: "nav-link #{active_class('store/dashboard')}" do %>
-                <i class="bi bi-speedometer2 me-1"></i>
-                ダッシュボード
-              <% end %>
-            </li>
-            <li class="nav-item">
-              <%# CLAUDE.md準拠: メタ認知 - 認証済み店舗ユーザー用のnamespaceルート使用 %>
-              <%# 横展開: 公開ルート(/stores/:store_id/inventories)との名前衝突回避 %>
-              <%# ベストプラクティス: 明示的パス指定で曖昧性を排除 %>
-              <%= link_to "/store/inventories", class: "nav-link #{active_class('store/inventories')}" do %>
-                <i class="bi bi-box-seam me-1"></i>
-                在庫管理
-              <% end %>
-            </li>
-            <li class="nav-item">
-              <%= link_to store_transfers_path, class: "nav-link #{active_class('store/transfers')}" do %>
-                <i class="bi bi-arrow-left-right me-1"></i>
-                店舗間移動
-                <% if current_store.pending_incoming_transfers_count > 0 %>
-                  <span class="badge bg-warning ms-1"><%= current_store.pending_incoming_transfers_count %></span>
+        <% if store_user_signed_in? && current_store %>
+          <%# 認証済みユーザー用の完全メニュー %>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+              <li class="nav-item">
+                <%= link_to store_root_path, class: "nav-link #{active_class('store/dashboard')}" do %>
+                  <i class="bi bi-speedometer2 me-1"></i>
+                  ダッシュボード
                 <% end %>
-              <% end %>
-            </li>
+              </li>
+              <li class="nav-item">
+                <%# CLAUDE.md準拠: メタ認知 - 認証済み店舗ユーザー用のnamespaceルート使用 %>
+                <%# 横展開: 公開ルート(/stores/:store_id/inventories)との名前衝突回避 %>
+                <%# ベストプラクティス: 明示的パス指定で曖昧性を排除 %>
+                <%= link_to "/store/inventories", class: "nav-link #{active_class('store/inventories')}" do %>
+                  <i class="bi bi-box-seam me-1"></i>
+                  在庫管理
+                <% end %>
+              </li>
+              <li class="nav-item">
+                <%= link_to store_transfers_path, class: "nav-link #{active_class('store/transfers')}" do %>
+                  <i class="bi bi-arrow-left-right me-1"></i>
+                  店舗間移動
+                  <% if current_store.pending_incoming_transfers_count > 0 %>
+                    <span class="badge bg-warning ms-1"><%= current_store.pending_incoming_transfers_count %></span>
+                  <% end %>
+                <% end %>
+              </li>
           </ul>
           
           <ul class="navbar-nav">
@@ -173,12 +198,23 @@
               </ul>
             </li>
           </ul>
-        </div>
+          </div>
+        <% else %>
+          <%# 公開アクセス用のシンプルなログインリンク %>
+          <div class="navbar-nav ms-auto">
+            <div class="nav-item">
+              <span class="navbar-text text-muted me-3">
+                <i class="bi bi-info-circle me-1"></i>
+                公開在庫情報
+              </span>
+            </div>
+          </div>
+        <% end %>
       </div>
     </nav>
 
-    <%# ブレッドクラム %>
-    <% if content_for?(:breadcrumbs) %>
+    <%# ブレッドクラム（認証済みユーザーのみ） %>
+    <% if store_user_signed_in? && current_store && content_for?(:breadcrumbs) %>
       <nav aria-label="breadcrumb" class="bg-light border-bottom">
         <div class="container-fluid">
           <ol class="breadcrumb mb-0 py-2">
@@ -219,8 +255,12 @@
           <div class="col-md-6">
             <p class="text-muted mb-0">
               <i class="bi bi-building me-1"></i>
-              <%= current_store.display_name %> 
-              (<%= current_store.store_type_text %>)
+              <% if store_user_signed_in? && current_store %>
+                <%= current_store.display_name %> 
+                (<%= current_store.store_type_text %>)
+              <% else %>
+                StockRx - 在庫管理システム（公開アクセス）
+              <% end %>
             </p>
           </div>
           <div class="col-md-6 text-md-end">

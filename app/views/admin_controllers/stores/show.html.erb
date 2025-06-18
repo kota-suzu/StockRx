@@ -232,9 +232,10 @@
             <% if @store_inventories.respond_to?(:total_pages) && @store_inventories.total_pages > 1 %>
               <div class="card-footer bg-white">
                 <div class="d-flex justify-content-center">
-                  <%# CLAUDE.md準拠: 横展開修正 - bootstrap5-kaminari-views gem追加完了 %>
+                  <%# CLAUDE.md準拠: 緊急修正 - Bootstrap 5テーマ問題の暫定対応 %>
                   <%# メタ認知: 管理者画面の一貫性確保とUI向上 %>
-                  <%= paginate @store_inventories, theme: :bootstrap_5 %>
+                  <%# TODO: 🟡 Phase 5（改善）- Bootstrap 5対応Kaminari設定の適切な実装 %>
+                  <%= paginate @store_inventories %>
                 </div>
               </div>
             <% end %>
