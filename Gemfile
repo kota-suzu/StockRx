@@ -110,6 +110,7 @@ gem "omniauth-rails_csrf_protection", "~> 1.0"  # CSRF保護
 # gem "attr_encrypted"               # 属性の暗号化
 
 gem "kaminari", "~> 1.2"            # ページネーション
+gem "bootstrap5-kaminari-views", "~> 0.0.1"  # Bootstrap 5対応ページネーション
 
 # Background Job Processing
 gem "sidekiq", "~> 7.2"
