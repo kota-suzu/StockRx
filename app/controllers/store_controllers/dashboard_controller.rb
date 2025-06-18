@@ -137,9 +137,15 @@ module StoreControllers
       # TODO: Phase 4 - アクティビティログの実装
       @recent_activities = []
 
-      # 仮実装：最近の在庫変動
-      @recent_inventory_changes = InventoryLog.joins(inventory: :store_inventories)
-                                             .where(store_inventories: { store_id: current_store.id })
+      # 最近の在庫変動
+      # CLAUDE.md準拠: inventory_logsはグローバルレコード
+      # メタ認知: 店舗別フィルタリングは店舗が扱う商品IDを経由する
+      # 横展開: StoreControllers::Inventories, AdminControllers::StoreInventoriesでも同様修正済み
+      # TODO: 🟡 Phase 2（重要）- 店舗別在庫変動追跡の実装
+      #   - store_inventory_logsテーブルまたはpolymorphicな設計検討
+      #   - 現在は店舗が扱う商品の全体ログを表示
+      inventory_ids = current_store.inventories.pluck(:id)
+      @recent_inventory_changes = InventoryLog.where(inventory_id: inventory_ids)
                                              .includes(:inventory, :admin)
                                              .order(created_at: :desc)
                                              .limit(10)

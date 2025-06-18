@@ -112,34 +112,51 @@
     <%# CLAUDE.md準拠: 横展開 - ルーティング衝突問題の解決 %>
     <%# メタ認知: 公開ルート(/stores/:store_id/inventories)と認証済みルート(/store/inventories)の区別 %>
     <%# ベストプラクティス: 明示的パス指定で曖昧性を排除 %>
-    <%= search_form_for @q, url: "/store/inventories", method: :get, class: "row g-3" do |f| %>
+    <%# CLAUDE.md準拠: ransack削除後の代替実装 %>
+    <%# メタ認知: search_form_forはransack固有のため、標準的なform_withを使用 %>
+    <%# ベストプラクティス: 検索パラメータをqハッシュで構造化して互換性維持 %>
+    <%# 横展開: 他の検索フォームでも同様の修正適用必要 %>
+    <%# TODO: 🟡 Phase 3（重要）- 高度な検索機能の実装 %>
+    <%# 優先度: 中（ユーザビリティ向上） %>
+    <%# 実装内容: %>
+    <%#   - リアルタイム検索（Stimulus/Turbo Frames活用） %>
+    <%#   - 検索履歴・お気に入り検索条件保存 %>
+    <%#   - 複数条件のAND/OR組み合わせ %>
+    <%#   - CSVエクスポートに検索条件反映 %>
+    <%# 期待効果: 検索効率50%向上、業務時間短縮 %>
+    <%= form_with url: "/store/inventories", method: :get, local: true, class: "row g-3" do |f| %>
       <div class="col-md-3">
-        <%= f.search_field :inventory_name_cont, placeholder: "商品名で検索", 
-                           class: "form-control", 
-                           value: params.dig(:q, :inventory_name_cont) %>
+        <%= f.text_field "q[name_cont]", 
+                         placeholder: "商品名で検索", 
+                         class: "form-control", 
+                         value: params.dig(:q, :name_cont) %>
       </div>
       
       <div class="col-md-2">
-        <%= f.select :inventory_manufacturer_eq, 
-                     options_for_select([['メーカーを選択', '']] + @manufacturers.map { |m| [m, m] }),
-                     { selected: params.dig(:q, :inventory_manufacturer_eq) },
+        <%= f.select "q[manufacturer_eq]", 
+                     options_for_select([['メーカーを選択', '']] + @manufacturers.map { |m| [m, m] },
+                                       params.dig(:q, :manufacturer_eq)),
+                     {},
                      { class: "form-select" } %>
       </div>
       
       <div class="col-md-2">
-        <%= f.select :stock_level_eq, 
-                     options_for_select([['在庫状態を選択', '']] + @stock_levels),
-                     { selected: params.dig(:q, :stock_level_eq) },
+        <%= f.select "q[stock_level_eq]", 
+                     options_for_select([['在庫状態を選択', '']] + @stock_levels,
+                                       params.dig(:q, :stock_level_eq)),
+                     {},
                      { class: "form-select" } %>
       </div>
       
       <div class="col-md-3">
         <div class="input-group">
-          <%= f.number_field :quantity_gteq, placeholder: "最小在庫数", 
+          <%= f.number_field "q[quantity_gteq]", 
+                             placeholder: "最小在庫数", 
                              class: "form-control",
                              value: params.dig(:q, :quantity_gteq) %>
           <span class="input-group-text">〜</span>
-          <%= f.number_field :quantity_lteq, placeholder: "最大在庫数", 
+          <%= f.number_field "q[quantity_lteq]", 
+                             placeholder: "最大在庫数", 
                              class: "form-control",
                              value: params.dig(:q, :quantity_lteq) %>
         </div>

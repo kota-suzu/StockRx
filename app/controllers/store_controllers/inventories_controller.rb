@@ -52,8 +52,14 @@ module StoreControllers
                           .page(params[:batch_page])
 
       # 在庫履歴
+      # CLAUDE.md準拠: inventory_logsはグローバルレコードで店舗別ではない
+      # メタ認知: inventory_logsテーブルにstore_idカラムは存在しない
+      # 横展開: 他のコントローラーでも同様の誤解がないか確認必要
+      # TODO: 🟡 Phase 2（重要）- 店舗別在庫変動履歴の実装検討
+      #   - store_inventory_logsテーブルの新規作成
+      #   - StoreInventoryモデルでの変動追跡
+      #   - 現在は全体の在庫ログを表示（店舗フィルタなし）
       @inventory_logs = @inventory.inventory_logs
-                                 .where(store_id: current_store.id)
                                  .includes(:admin)
                                  .order(created_at: :desc)
                                  .limit(20)
@@ -242,22 +248,22 @@ module StoreControllers
       if search_params[:category_eq].present?
         category_keywords = category_keywords_map[search_params[:category_eq]]
         if category_keywords
-          scope = scope.where("inventories.name REGEXP ?", category_keywords.join('|'))
+          scope = scope.where("inventories.name REGEXP ?", category_keywords.join("|"))
         end
       end
 
       # 在庫レベルフィルター
       if search_params[:stock_level_eq].present?
         case search_params[:stock_level_eq]
-        when 'out_of_stock'
+        when "out_of_stock"
           # 🔧 SQL修正: テーブル名明示でカラム曖昧性解消（横展開修正）
           # CLAUDE.md準拠: store_inventoriesテーブルのquantity指定
           scope = scope.where("store_inventories.quantity = 0")
-        when 'low_stock'
+        when "low_stock"
           scope = scope.where("store_inventories.quantity > 0 AND store_inventories.quantity <= store_inventories.safety_stock_level")
-        when 'normal_stock'
+        when "normal_stock"
           scope = scope.where("store_inventories.quantity > store_inventories.safety_stock_level AND store_inventories.quantity <= store_inventories.safety_stock_level * 2")
-        when 'excess_stock'
+        when "excess_stock"
           scope = scope.where("store_inventories.quantity > store_inventories.safety_stock_level * 2")
         end
       end
