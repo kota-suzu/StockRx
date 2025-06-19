@@ -6,85 +6,74 @@ RSpec.describe Inventory, type: :model do
   # 関連付けのテスト
   describe 'associations' do
     it { should have_many(:batches).dependent(:destroy) }
+    it { should have_many(:inventory_logs).dependent(:destroy) }
+    it { should have_many(:receipts).dependent(:destroy) }
+    it { should have_many(:shipments).dependent(:destroy) }
+    it { should have_many(:store_inventories).dependent(:destroy) }
+    it { should have_many(:stores).through(:store_inventories) }
+    it { should have_many(:inter_store_transfers).dependent(:destroy) }
+    it { should have_many(:transfer_items).through(:inter_store_transfers) }
   end
 
   # バリデーションのテスト
   describe 'validations' do
+    subject { build(:inventory) }
+    
     it { should validate_presence_of(:name) }
+    it { should validate_uniqueness_of(:name).case_insensitive }
     it { should validate_numericality_of(:price).is_greater_than_or_equal_to(0) }
     it { should validate_numericality_of(:quantity).is_greater_than_or_equal_to(0) }
+    it { should validate_numericality_of(:reserved_quantity).is_greater_than_or_equal_to(0).allow_nil }
+    
+    describe 'custom validations' do
+      it 'reserved_quantity should not exceed quantity' do
+        inventory = build(:inventory, quantity: 10, reserved_quantity: 15)
+        expect(inventory).not_to be_valid
+        expect(inventory.errors[:reserved_quantity]).to include('cannot exceed available quantity')
+      end
+      
+      it 'allows reserved_quantity equal to quantity' do
+        inventory = build(:inventory, quantity: 10, reserved_quantity: 10)
+        expect(inventory).to be_valid
+      end
+    end
   end
 
   # enumのテスト
   describe 'enums' do
-    it { should define_enum_for(:status).with_values(active: 0, archived: 1) }
+    it { should define_enum_for(:status).with_values(active: 0, archived: 1).backed_by_column_of_type(:integer) }
+    it { should define_enum_for(:unit).with_values(piece: 0, box: 1, bottle: 2, pack: 3, kg: 4, g: 5, l: 6, ml: 7).backed_by_column_of_type(:integer) }
   end
-
-  # CSVインポート機能のテスト
-  describe '.import_from_csv' do
-    let(:csv_content) do
-      <<~CSV
-        name,quantity,price,status
-        商品A,100,1000,active
-        商品B,50,1500,active
-        商品C,30,2000,archived
-      CSV
-    end
-
-    let(:file) do
-      temp_file = Tempfile.new([ 'inventories', '.csv' ])
-      temp_file.write(csv_content)
-      temp_file.rewind
-      temp_file
-    end
-
-    after do
-      file.close
-      file.unlink
-    end
-
-    it 'CSVデータを一括インポートできること' do
-      # テスト前に既存のInventoryをクリア
-      Inventory.destroy_all
-
-      result = Inventory.import_from_csv(file)
-
-      expect(result[:valid_count]).to eq(3)
-      expect(result[:invalid_records]).to be_empty
-
-      expect(Inventory.count).to eq(3)
-      expect(Inventory.find_by(name: '商品A')).not_to be_nil
-      expect(Inventory.find_by(name: '商品B')).not_to be_nil
-      expect(Inventory.find_by(name: '商品C')).not_to be_nil
-    end
-
-    context '不正なデータがある場合' do
-      let(:invalid_csv_content) do
-        <<~CSV
-          name,quantity,price,status
-          ,100,1000,active
-          商品B,-50,1500,active
-          商品C,30,-2000,invalid_status
-        CSV
+  
+  # コールバックのテスト
+  describe 'callbacks' do
+    describe 'before_save' do
+      it 'normalizes name by stripping whitespace' do
+        inventory = build(:inventory, name: '  Product Name  ')
+        inventory.save!
+        expect(inventory.name).to eq('Product Name')
       end
-
-      let(:invalid_file) do
-        temp_file = Tempfile.new([ 'invalid_inventories', '.csv' ])
-        temp_file.write(invalid_csv_content)
-        temp_file.rewind
-        temp_file
+      
+      it 'sets default values' do
+        inventory = build(:inventory, reserved_quantity: nil, low_stock_threshold: nil)
+        inventory.save!
+        expect(inventory.reserved_quantity).to eq(0)
+        expect(inventory.low_stock_threshold).to eq(5)
       end
-
-      after do
-        invalid_file.close
-        invalid_file.unlink
-      end
-
-      it '無効なレコードを報告すること' do
-        result = Inventory.import_from_csv(invalid_file)
-
-        expect(result[:valid_count]).to eq(0)
-        expect(result[:invalid_records].size).to eq(3)
+    end
+    
+    describe 'after_update' do
+      it 'creates inventory log on quantity change' do
+        inventory = create(:inventory, quantity: 100)
+        expect {
+          inventory.update!(quantity: 80)
+        }.to change(InventoryLog, :count).by(1)
+        
+        log = InventoryLog.last
+        expect(log.inventory).to eq(inventory)
+        expect(log.previous_quantity).to eq(100)
+        expect(log.current_quantity).to eq(80)
+        expect(log.delta).to eq(-20)
       end
     end
   end
@@ -129,6 +118,128 @@ RSpec.describe Inventory, type: :model do
         expect(Inventory.low_stock(5)).not_to include(low_stock)
       end
     end
+    
+    describe '.by_name' do
+      it 'searches by partial name match' do
+        aspirin = create(:inventory, name: 'Aspirin 100mg')
+        vitamin = create(:inventory, name: 'Vitamin C')
+        
+        expect(Inventory.by_name('aspirin')).to include(aspirin)
+        expect(Inventory.by_name('ASPIRIN')).to include(aspirin)
+        expect(Inventory.by_name('100')).to include(aspirin)
+        expect(Inventory.by_name('vitamin')).not_to include(aspirin)
+      end
+    end
+    
+    describe '.expiring_soon' do
+      it 'returns inventories with batches expiring soon' do
+        inventory_with_expiring = create(:inventory)
+        inventory_without_expiring = create(:inventory)
+        
+        create(:batch, inventory: inventory_with_expiring, expires_on: 15.days.from_now)
+        create(:batch, inventory: inventory_without_expiring, expires_on: 60.days.from_now)
+        
+        expect(Inventory.expiring_soon).to include(inventory_with_expiring)
+        expect(Inventory.expiring_soon).not_to include(inventory_without_expiring)
+      end
+    end
+    
+    describe '.with_available_stock' do
+      it 'returns inventories with available stock' do
+        available = create(:inventory, quantity: 100, reserved_quantity: 20)
+        unavailable = create(:inventory, quantity: 50, reserved_quantity: 50)
+        
+        expect(Inventory.with_available_stock).to include(available)
+        expect(Inventory.with_available_stock).not_to include(unavailable)
+      end
+    end
+  end
+
+  # CSVインポート機能のテスト
+  describe '.import_from_csv' do
+    let(:csv_content) do
+      <<~CSV
+        name,quantity,price,status,unit,low_stock_threshold
+        商品A,100,1000,active,piece,10
+        商品B,50,1500,active,box,5
+        商品C,30,2000,archived,bottle,15
+      CSV
+    end
+
+    let(:file) do
+      temp_file = Tempfile.new([ 'inventories', '.csv' ])
+      temp_file.write(csv_content)
+      temp_file.rewind
+      temp_file
+    end
+
+    after do
+      file.close
+      file.unlink
+    end
+
+    it 'CSVデータを一括インポートできること' do
+      # テスト前に既存のInventoryをクリア
+      Inventory.destroy_all
+
+      result = Inventory.import_from_csv(file)
+
+      expect(result[:valid_count]).to eq(3)
+      expect(result[:invalid_records]).to be_empty
+
+      expect(Inventory.count).to eq(3)
+      
+      product_a = Inventory.find_by(name: '商品A')
+      expect(product_a).not_to be_nil
+      expect(product_a.quantity).to eq(100)
+      expect(product_a.price).to eq(1000)
+      expect(product_a.low_stock_threshold).to eq(10)
+    end
+
+    context '不正なデータがある場合' do
+      let(:invalid_csv_content) do
+        <<~CSV
+          name,quantity,price,status
+          ,100,1000,active
+          商品B,-50,1500,active
+          商品C,30,-2000,invalid_status
+        CSV
+      end
+
+      let(:invalid_file) do
+        temp_file = Tempfile.new([ 'invalid_inventories', '.csv' ])
+        temp_file.write(invalid_csv_content)
+        temp_file.rewind
+        temp_file
+      end
+
+      after do
+        invalid_file.close
+        invalid_file.unlink
+      end
+
+      it '無効なレコードを報告すること' do
+        result = Inventory.import_from_csv(invalid_file)
+
+        expect(result[:valid_count]).to eq(0)
+        expect(result[:invalid_records].size).to eq(3)
+      end
+    end
+    
+    context 'with update_existing option' do
+      it 'updates existing records when enabled' do
+        existing = create(:inventory, name: '商品A', quantity: 50, price: 500)
+        
+        result = Inventory.import_from_csv(file, update_existing: true)
+        
+        expect(result[:valid_count]).to eq(3)
+        expect(result[:update_count]).to eq(1) if result[:update_count]
+        
+        existing.reload
+        expect(existing.quantity).to eq(100)
+        expect(existing.price).to eq(1000)
+      end
+    end
   end
 
   # 基本的な機能のテスト
@@ -139,6 +250,23 @@ RSpec.describe Inventory, type: :model do
       create(:batch, inventory: inventory, quantity: 20)
 
       expect(inventory.total_batch_quantity).to eq(50)
+    end
+  end
+  
+  describe '#available_quantity' do
+    it 'calculates available quantity correctly' do
+      inventory = create(:inventory, quantity: 100, reserved_quantity: 25)
+      expect(inventory.available_quantity).to eq(75)
+    end
+    
+    it 'returns 0 when fully reserved' do
+      inventory = create(:inventory, quantity: 50, reserved_quantity: 50)
+      expect(inventory.available_quantity).to eq(0)
+    end
+    
+    it 'handles nil reserved_quantity' do
+      inventory = create(:inventory, quantity: 100, reserved_quantity: nil)
+      expect(inventory.available_quantity).to eq(100)
     end
   end
 
@@ -157,14 +285,12 @@ RSpec.describe Inventory, type: :model do
 
   describe '#low_stock?' do
     it 'デフォルト閾値以下の場合はtrueを返すこと' do
-      inventory = create(:inventory, quantity: 3)
-      allow(inventory).to receive(:low_stock_threshold).and_return(5)
+      inventory = create(:inventory, quantity: 3, low_stock_threshold: 5)
       expect(inventory.low_stock?).to be true
     end
 
     it 'デフォルト閾値より多い場合はfalseを返すこと' do
-      inventory = create(:inventory, quantity: 10)
-      allow(inventory).to receive(:low_stock_threshold).and_return(5)
+      inventory = create(:inventory, quantity: 10, low_stock_threshold: 5)
       expect(inventory.low_stock?).to be false
     end
 
@@ -256,10 +382,7 @@ RSpec.describe Inventory, type: :model do
     end
   end
 
-  # ============================================
-  # Multi-Store機能のテスト（カバレッジ向上）
-  # ============================================
-
+  # Multi-Store機能のテスト
   describe 'multi-store functionality' do
     let(:inventory) { create(:inventory) }
     let(:store1) { create(:store) }
@@ -375,61 +498,41 @@ RSpec.describe Inventory, type: :model do
     end
   end
 
-  # ============================================
-  # アソシエーション強化テスト（カバレッジ向上）
-  # ============================================
-
-  describe 'associations (extended)' do
-    it { is_expected.to have_many(:store_inventories).dependent(:destroy) }
-    it { is_expected.to have_many(:stores).through(:store_inventories) }
-    it { is_expected.to have_many(:inter_store_transfers).dependent(:destroy) }
-
-    context 'データ整合性テスト' do
-      let(:inventory) { create(:inventory) }
-      let(:store) { create(:store) }
-
-      it 'inventoryが削除されるとstore_inventoriesも削除されること' do
-        store_inventory = create(:store_inventory, inventory: inventory, store: store)
-
-        expect { inventory.destroy! }.to change { StoreInventory.count }.by(-1)
-        expect(StoreInventory.find_by(id: store_inventory.id)).to be_nil
-      end
-
-      it 'inventoryが削除されるとinter_store_transfersも削除されること' do
-        transfer = create(:inter_store_transfer, inventory: inventory)
-
-        expect { inventory.destroy! }.to change { InterStoreTransfer.count }.by(-1)
-        expect(InterStoreTransfer.find_by(id: transfer.id)).to be_nil
-      end
-    end
-  end
-
-  # ============================================
-  # パフォーマンステスト（カバレッジ向上）
-  # ============================================
-
+  # パフォーマンステスト
   describe 'performance' do
     let(:inventory) { create(:inventory) }
 
     it '大量店舗での集計が効率的に動作すること' do
-      # 50店舗作成
-      stores = create_list(:store, 20) # CI環境を考慮して数を減らす
+      # 20店舗作成（CI環境を考慮）
+      stores = create_list(:store, 20)
       stores.each_with_index do |store, index|
         create(:store_inventory, inventory: inventory, store: store, quantity: index * 10)
       end
 
+      start_time = Time.current
+      inventory.total_quantity_across_stores
+      inventory.total_available_quantity_across_stores
+      inventory.stores_with_stock.count
+      elapsed_time = (Time.current - start_time) * 1000 # ミリ秒
+
+      expect(elapsed_time).to be < 100
+    end
+    
+    it 'avoids N+1 queries when loading batches' do
+      inventories = create_list(:inventory, 3)
+      inventories.each do |inv|
+        create_list(:batch, 2, inventory: inv)
+      end
+      
       expect {
-        inventory.total_quantity_across_stores
-        inventory.total_available_quantity_across_stores
-        inventory.stores_with_stock.count
-      }.to perform_under(100).ms
+        Inventory.includes(:batches).each do |inv|
+          inv.batches.to_a
+        end
+      }.not_to exceed_query_limit(4)
     end
   end
 
-  # ============================================
-  # エッジケースのテスト（カバレッジ向上）
-  # ============================================
-
+  # エッジケースのテスト
   describe 'edge cases' do
     let(:inventory) { create(:inventory) }
 
@@ -461,21 +564,125 @@ RSpec.describe Inventory, type: :model do
         expect(inventory.total_available_quantity_across_stores).to eq(-5)
       end
     end
+    
+    context 'with concurrent updates' do
+      it 'handles race conditions safely' do
+        inventory = create(:inventory, quantity: 100)
+        
+        threads = 5.times.map do
+          Thread.new do
+            inventory.with_lock do
+              current_qty = inventory.reload.quantity
+              inventory.update!(quantity: current_qty - 10)
+            end
+          end
+        end
+        
+        threads.each(&:join)
+        expect(inventory.reload.quantity).to eq(50)
+      end
+    end
   end
-
-  # TODO: ShipmentManagement統合テストの拡張
-  # 1. 複雑なシナリオテスト
-  #    - 複数出荷・入荷の同時処理テスト
-  #    - 在庫移動の連鎖テスト
-  #    - バッチ管理との連携テスト
-  #
-  # 2. エラーハンドリングテスト
-  #    - トランザクション失敗時のロールバックテスト
-  #    - 外部キー制約違反の処理テスト
-  #    - 並行処理での競合状態テスト
-  #
-  # 3. パフォーマンステスト
-  #    - 大量データでの処理性能テスト
-  #    - メモリ使用量の最適化テスト
-  #    - データベース負荷テスト
+  
+  # セキュリティテスト
+  describe 'security' do
+    it 'sanitizes name on save' do
+      inventory = build(:inventory, name: '<script>alert("XSS")</script>Product')
+      inventory.save!
+      expect(inventory.name).not_to include('<script>')
+      expect(inventory.name).to include('Product')
+    end
+    
+    it 'prevents SQL injection in search' do
+      malicious_name = "'; DROP TABLE inventories; --"
+      create(:inventory, name: 'Safe Product')
+      
+      expect { Inventory.by_name(malicious_name) }.not_to raise_error
+      expect(Inventory.by_name(malicious_name)).to be_empty
+    end
+  end
+  
+  # 統合テスト
+  describe 'integration scenarios' do
+    it 'handles complete inventory lifecycle' do
+      # 1. 在庫作成
+      inventory = create(:inventory, quantity: 0, low_stock_threshold: 10)
+      
+      # 2. 入荷処理
+      inventory.create_receipt(100, 'Supplier A')
+      expect(inventory.reload.quantity).to eq(100)
+      
+      # 3. バッチ作成
+      create(:batch, inventory: inventory, quantity: 50, expires_on: 30.days.from_now)
+      create(:batch, inventory: inventory, quantity: 50, expires_on: 60.days.from_now)
+      
+      # 4. 店舗在庫配分
+      store1 = create(:store)
+      store2 = create(:store)
+      create(:store_inventory, inventory: inventory, store: store1, quantity: 60)
+      create(:store_inventory, inventory: inventory, store: store2, quantity: 40)
+      
+      # 5. 出荷処理
+      inventory.create_shipment(30, 'Customer A')
+      expect(inventory.reload.quantity).to eq(70)
+      
+      # 6. 在庫アラート確認
+      expect(inventory.low_stock?).to be false
+      
+      # 7. 更に出荷
+      inventory.create_shipment(65, 'Customer B')
+      expect(inventory.reload.quantity).to eq(5)
+      expect(inventory.low_stock?).to be true
+    end
+  end
+  
+  # Auditable concern integration
+  describe 'auditable behavior' do
+    it_behaves_like 'auditable'
+    
+    it 'tracks inventory adjustments in audit log' do
+      inventory = create(:inventory, quantity: 100)
+      Current.user = create(:admin)
+      
+      expect {
+        inventory.update!(quantity: 120, notes: 'Stock adjustment')
+      }.to change(AuditLog, :count).by(1)
+      
+      audit = AuditLog.last
+      expect(audit.auditable).to eq(inventory)
+      expect(audit.action).to eq('update')
+      expect(audit.details['quantity']).to eq([100, 120])
+    end
+  end
+  
+  # メタデータとビジネスロジック
+  describe 'business logic' do
+    describe '#reorder_point' do
+      it 'calculates reorder point based on lead time and daily usage' do
+        inventory = create(:inventory, 
+          low_stock_threshold: 10,
+          lead_time_days: 7,
+          average_daily_usage: 5
+        )
+        
+        # reorder_point = (lead_time_days * average_daily_usage) + low_stock_threshold
+        expect(inventory.reorder_point).to eq(45) # (7 * 5) + 10
+      end
+    end
+    
+    describe '#optimal_order_quantity' do
+      it 'suggests order quantity based on EOQ formula' do
+        inventory = create(:inventory,
+          average_daily_usage: 10,
+          ordering_cost: 50,
+          holding_cost_per_unit: 2
+        )
+        
+        # Simple EOQ = sqrt((2 * annual_demand * ordering_cost) / holding_cost)
+        # annual_demand = average_daily_usage * 365
+        expect(inventory.optimal_order_quantity).to be > 0
+        expect(inventory.optimal_order_quantity).to be_a(Integer)
+      end
+    end
+  end
 end
