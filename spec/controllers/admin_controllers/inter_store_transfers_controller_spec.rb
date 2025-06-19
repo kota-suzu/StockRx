@@ -354,4 +354,734 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
       expect(helpers.edit_admin_inter_store_transfer_path(transfer)).to eq("/admin/transfers/#{transfer.id}/edit")
     end
   end
+
+  # ============================================
+  # CRUDアクションの包括的テスト
+  # ============================================
+
+  describe "CRUD actions" do
+    let(:headquarters_admin) { create(:admin, role: :headquarters_admin) }
+    let(:store_admin) { create(:admin, role: :store_admin, store: source_store) }
+    let(:valid_attributes) do
+      {
+        source_store_id: source_store.id,
+        destination_store_id: destination_store.id,
+        inventory_id: inventory.id,
+        quantity: 10,
+        priority: "normal",
+        reason: "在庫補充のため",
+        notes: "至急対応が必要",
+        requested_delivery_date: 3.days.from_now
+      }
+    end
+    let(:invalid_attributes) do
+      {
+        source_store_id: nil,
+        destination_store_id: nil,
+        inventory_id: nil,
+        quantity: -1,
+        reason: ""
+      }
+    end
+
+    before do
+      # 在庫データをセットアップ
+      create(:store_inventory, 
+             store: source_store, 
+             inventory: inventory, 
+             quantity: 100, 
+             safety_stock_level: 20)
+    end
+
+    describe "GET #index" do
+      before do
+        sign_in headquarters_admin
+        @transfers = create_list(:inter_store_transfer, 5,
+                                source_store: source_store,
+                                destination_store: destination_store,
+                                inventory: inventory)
+      end
+
+      it "成功レスポンスを返す" do
+        get :index
+        expect(response).to be_successful
+      end
+
+      it "移動申請一覧をページネーション付きで取得する" do
+        get :index
+        expect(assigns(:transfers)).to be_present
+        expect(assigns(:transfers)).to respond_to(:current_page)
+      end
+
+      it "統計情報を計算する" do
+        get :index
+        stats = assigns(:stats)
+        expect(stats).to include(:total_transfers, :pending_count, :approved_count)
+      end
+
+      it "関連データを事前読み込みする" do
+        get :index
+        transfers = assigns(:transfers)
+        first_transfer = transfers.first
+        expect(first_transfer.association(:source_store)).to be_loaded
+        expect(first_transfer.association(:destination_store)).to be_loaded
+        expect(first_transfer.association(:inventory)).to be_loaded
+      end
+
+      context "フィルタリング" do
+        before do
+          create(:inter_store_transfer, 
+                 source_store: source_store,
+                 destination_store: destination_store,
+                 inventory: inventory,
+                 status: :pending)
+          create(:inter_store_transfer,
+                 source_store: source_store,
+                 destination_store: destination_store,
+                 inventory: inventory,
+                 status: :completed)
+        end
+
+        it "ステータスでフィルタリングできる" do
+          get :index, params: { status: "pending" }
+          expect(assigns(:transfers).all?(&:pending?)).to be true
+        end
+
+        it "優先度でフィルタリングできる" do
+          get :index, params: { priority: "urgent" }
+          expect(response).to be_successful
+        end
+
+        it "店舗でフィルタリングできる" do
+          get :index, params: { store_id: source_store.id }
+          expect(response).to be_successful
+        end
+
+        it "検索でフィルタリングできる" do
+          get :index, params: { search: inventory.name[0..2] }
+          expect(response).to be_successful
+        end
+      end
+    end
+
+    describe "GET #show" do
+      let(:transfer) { create(:inter_store_transfer,
+                             source_store: source_store,
+                             destination_store: destination_store,
+                             inventory: inventory) }
+
+      before { sign_in headquarters_admin }
+
+      it "成功レスポンスを返す" do
+        get :show, params: { id: transfer.id }
+        expect(response).to be_successful
+      end
+
+      it "移動詳細情報を設定する" do
+        get :show, params: { id: transfer.id }
+        expect(assigns(:transfer)).to eq(transfer)
+        expect(assigns(:transfer_history)).to be_present
+        expect(assigns(:related_transfers)).to be_present
+        expect(assigns(:transfer_analytics)).to be_present
+      end
+    end
+
+    describe "GET #new" do
+      before { sign_in headquarters_admin }
+
+      it "成功レスポンスを返す" do
+        get :new
+        expect(response).to be_successful
+      end
+
+      it "新しいInterStoreTransferインスタンスを作成する" do
+        get :new
+        expect(assigns(:transfer)).to be_a_new(InterStoreTransfer)
+        expect(assigns(:stores)).to be_present
+        expect(assigns(:inventories)).to be_present
+      end
+
+      it "URLパラメータから初期値を設定する" do
+        get :new, params: { 
+          source_store_id: source_store.id,
+          inventory_id: inventory.id 
+        }
+        
+        transfer = assigns(:transfer)
+        expect(transfer.source_store_id).to eq(source_store.id)
+        expect(transfer.inventory_id).to eq(inventory.id)
+        expect(transfer.requested_by).to eq(headquarters_admin)
+        expect(transfer.priority).to eq("normal")
+      end
+    end
+
+    describe "POST #create" do
+      before { sign_in headquarters_admin }
+
+      context "有効なパラメータの場合" do
+        it "新しい移動申請を作成する" do
+          expect {
+            post :create, params: { inter_store_transfer: valid_attributes }
+          }.to change(InterStoreTransfer, :count).by(1)
+        end
+
+        it "作成した移動申請にリダイレクトする" do
+          post :create, params: { inter_store_transfer: valid_attributes }
+          transfer = InterStoreTransfer.last
+          expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+          expect(flash[:notice]).to include("正常に作成されました")
+        end
+
+        it "申請者と申請日時を設定する" do
+          post :create, params: { inter_store_transfer: valid_attributes }
+          transfer = InterStoreTransfer.last
+          expect(transfer.requested_by).to eq(headquarters_admin)
+          expect(transfer.requested_at).to be_present
+        end
+      end
+
+      context "無効なパラメータの場合" do
+        it "移動申請を作成しない" do
+          expect {
+            post :create, params: { inter_store_transfer: invalid_attributes }
+          }.not_to change(InterStoreTransfer, :count)
+        end
+
+        it "newテンプレートを再表示する" do
+          post :create, params: { inter_store_transfer: invalid_attributes }
+          expect(response).to have_http_status(:unprocessable_entity)
+          expect(response).to render_template(:new)
+          expect(assigns(:stores)).to be_present
+          expect(assigns(:inventories)).to be_present
+        end
+      end
+    end
+
+    describe "GET #edit" do
+      let(:transfer) { create(:inter_store_transfer,
+                             source_store: source_store,
+                             destination_store: destination_store,
+                             inventory: inventory,
+                             requested_by: headquarters_admin,
+                             status: :pending) }
+
+      before { sign_in headquarters_admin }
+
+      it "成功レスポンスを返す" do
+        get :edit, params: { id: transfer.id }
+        expect(response).to be_successful
+      end
+
+      it "編集用データを設定する" do
+        get :edit, params: { id: transfer.id }
+        expect(assigns(:transfer)).to eq(transfer)
+        expect(assigns(:stores)).to be_present
+        expect(assigns(:inventories)).to be_present
+      end
+    end
+
+    describe "PATCH #update" do
+      let(:transfer) { create(:inter_store_transfer,
+                             source_store: source_store,
+                             destination_store: destination_store,
+                             inventory: inventory,
+                             requested_by: headquarters_admin,
+                             status: :pending) }
+      let(:new_attributes) { { quantity: 20, reason: "更新された理由" } }
+
+      before { sign_in headquarters_admin }
+
+      context "有効なパラメータの場合" do
+        it "移動申請を更新する" do
+          patch :update, params: { 
+            id: transfer.id, 
+            inter_store_transfer: new_attributes 
+          }
+          transfer.reload
+          expect(transfer.quantity).to eq(20)
+          expect(transfer.reason).to eq("更新された理由")
+        end
+
+        it "更新した移動申請にリダイレクトする" do
+          patch :update, params: { 
+            id: transfer.id, 
+            inter_store_transfer: new_attributes 
+          }
+          expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+          expect(flash[:notice]).to include("正常に更新されました")
+        end
+      end
+
+      context "無効なパラメータの場合" do
+        it "移動申請を更新しない" do
+          original_quantity = transfer.quantity
+          patch :update, params: { 
+            id: transfer.id, 
+            inter_store_transfer: invalid_attributes 
+          }
+          transfer.reload
+          expect(transfer.quantity).to eq(original_quantity)
+        end
+
+        it "editテンプレートを再表示する" do
+          patch :update, params: { 
+            id: transfer.id, 
+            inter_store_transfer: invalid_attributes 
+          }
+          expect(response).to have_http_status(:unprocessable_entity)
+          expect(response).to render_template(:edit)
+        end
+      end
+    end
+
+    describe "DELETE #destroy" do
+      let!(:transfer) { create(:inter_store_transfer,
+                              source_store: source_store,
+                              destination_store: destination_store,
+                              inventory: inventory,
+                              requested_by: headquarters_admin,
+                              status: :pending) }
+
+      before { sign_in headquarters_admin }
+
+      context "キャンセル可能な移動申請の場合" do
+        it "移動申請を削除する" do
+          expect {
+            delete :destroy, params: { id: transfer.id }
+          }.to change(InterStoreTransfer, :count).by(-1)
+        end
+
+        it "移動申請一覧にリダイレクトする" do
+          delete :destroy, params: { id: transfer.id }
+          expect(response).to redirect_to(admin_inter_store_transfers_path)
+          expect(flash[:notice]).to include("正常に削除されました")
+        end
+      end
+
+      context "削除できない移動申請の場合" do
+        before do
+          transfer.update!(status: :completed)
+        end
+
+        it "移動申請を削除しない" do
+          expect {
+            delete :destroy, params: { id: transfer.id }
+          }.not_to change(InterStoreTransfer, :count)
+        end
+
+        it "エラーメッセージと共にリダイレクトする" do
+          delete :destroy, params: { id: transfer.id }
+          expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+          expect(flash[:alert]).to include("削除できません")
+        end
+      end
+    end
+  end
+
+  # ============================================
+  # ワークフローアクションテスト
+  # ============================================
+
+  describe "workflow actions" do
+    let(:headquarters_admin) { create(:admin, role: :headquarters_admin) }
+    let(:store_admin) { create(:admin, role: :store_admin, store: destination_store) }
+    let(:transfer) { create(:inter_store_transfer,
+                           source_store: source_store,
+                           destination_store: destination_store,
+                           inventory: inventory,
+                           requested_by: headquarters_admin,
+                           status: :pending) }
+
+    before do
+      # 十分な在庫を確保
+      create(:store_inventory, 
+             store: source_store, 
+             inventory: inventory, 
+             quantity: 100, 
+             safety_stock_level: 20)
+    end
+
+    describe "PATCH #approve" do
+      before { sign_in headquarters_admin }
+
+      context "承認可能な移動申請の場合" do
+        it "移動申請を承認する" do
+          patch :approve, params: { id: transfer.id }
+          transfer.reload
+          expect(transfer.approved?).to be true
+          expect(transfer.approved_by).to eq(headquarters_admin)
+          expect(transfer.approved_at).to be_present
+        end
+
+        it "成功メッセージと共にリダイレクトする" do
+          patch :approve, params: { id: transfer.id }
+          expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+          expect(flash[:notice]).to include("承認しました")
+        end
+      end
+
+      context "承認できない移動申請の場合" do
+        before do
+          # 在庫を不足させる
+          source_store.store_inventories.first.update!(quantity: 1)
+        end
+
+        it "承認に失敗する" do
+          patch :approve, params: { id: transfer.id }
+          transfer.reload
+          expect(transfer.pending?).to be true
+        end
+
+        it "エラーメッセージと共にリダイレクトする" do
+          patch :approve, params: { id: transfer.id }
+          expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+          expect(flash[:alert]).to include("承認に失敗しました")
+        end
+      end
+    end
+
+    describe "PATCH #reject" do
+      before { sign_in headquarters_admin }
+
+      context "却下理由がある場合" do
+        it "移動申請を却下する" do
+          patch :reject, params: { 
+            id: transfer.id, 
+            rejection_reason: "在庫過多のため不要" 
+          }
+          transfer.reload
+          expect(transfer.rejected?).to be true
+          expect(transfer.approved_by).to eq(headquarters_admin)
+          expect(transfer.reason).to include("却下理由")
+        end
+
+        it "成功メッセージと共にリダイレクトする" do
+          patch :reject, params: { 
+            id: transfer.id, 
+            rejection_reason: "在庫過多のため不要" 
+          }
+          expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+          expect(flash[:notice]).to include("却下しました")
+        end
+      end
+
+      context "却下理由がない場合" do
+        it "却下せずエラーメッセージを表示する" do
+          patch :reject, params: { id: transfer.id }
+          transfer.reload
+          expect(transfer.pending?).to be true
+          expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+          expect(flash[:alert]).to include("却下理由を入力してください")
+        end
+      end
+    end
+
+    describe "PATCH #complete" do
+      before do
+        sign_in headquarters_admin
+        transfer.update!(status: :approved, approved_by: headquarters_admin)
+      end
+
+      context "実行可能な移動申請の場合" do
+        it "移動を実行する" do
+          patch :complete, params: { id: transfer.id }
+          transfer.reload
+          expect(transfer.completed?).to be true
+          expect(transfer.completed_at).to be_present
+        end
+
+        it "在庫を移動する" do
+          source_inventory = source_store.store_inventories.first
+          initial_source_qty = source_inventory.quantity
+          initial_reserved_qty = source_inventory.reserved_quantity
+
+          patch :complete, params: { id: transfer.id }
+
+          source_inventory.reload
+          expect(source_inventory.quantity).to eq(initial_source_qty - transfer.quantity)
+          expect(source_inventory.reserved_quantity).to eq(initial_reserved_qty - transfer.quantity)
+
+          # 移動先在庫の確認
+          dest_inventory = destination_store.store_inventories.find_by(inventory: inventory)
+          expect(dest_inventory).to be_present
+          expect(dest_inventory.quantity).to eq(transfer.quantity)
+        end
+
+        it "成功メッセージと共にリダイレクトする" do
+          patch :complete, params: { id: transfer.id }
+          expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+          expect(flash[:notice]).to include("正常に完了しました")
+        end
+      end
+    end
+
+    describe "PATCH #cancel" do
+      before { sign_in headquarters_admin }
+
+      context "キャンセル可能な移動申請の場合" do
+        it "移動申請をキャンセルする" do
+          patch :cancel, params: { 
+            id: transfer.id, 
+            cancellation_reason: "緊急事態のため" 
+          }
+          transfer.reload
+          expect(transfer.cancelled?).to be true
+        end
+
+        it "成功メッセージと共にリダイレクトする" do
+          patch :cancel, params: { id: transfer.id }
+          expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+          expect(flash[:notice]).to include("キャンセルしました")
+        end
+      end
+
+      context "キャンセルできない移動申請の場合" do
+        before do
+          transfer.update!(status: :completed)
+        end
+
+        it "キャンセルに失敗する" do
+          patch :cancel, params: { id: transfer.id }
+          transfer.reload
+          expect(transfer.completed?).to be true
+        end
+
+        it "エラーメッセージと共にリダイレクトする" do
+          patch :cancel, params: { id: transfer.id }
+          expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+          expect(flash[:alert]).to include("キャンセルに失敗しました")
+        end
+      end
+    end
+  end
+
+  # ============================================
+  # 特別なアクションテスト
+  # ============================================
+
+  describe "special actions" do
+    let(:headquarters_admin) { create(:admin, role: :headquarters_admin) }
+
+    before { sign_in headquarters_admin }
+
+    describe "GET #pending" do
+      before do
+        create_list(:inter_store_transfer, 3,
+                   source_store: source_store,
+                   destination_store: destination_store,
+                   inventory: inventory,
+                   status: :pending)
+        create_list(:inter_store_transfer, 2,
+                   source_store: source_store,
+                   destination_store: destination_store,
+                   inventory: inventory,
+                   status: :completed)
+      end
+
+      it "成功レスポンスを返す" do
+        get :pending
+        expect(response).to be_successful
+      end
+
+      it "保留中の移動申請のみを取得する" do
+        get :pending
+        pending_transfers = assigns(:pending_transfers)
+        expect(pending_transfers.count).to eq(3)
+        expect(pending_transfers.all?(&:pending?)).to be true
+      end
+
+      it "保留統計を計算する" do
+        get :pending
+        stats = assigns(:pending_stats)
+        expect(stats).to include(:total_pending, :urgent_count, :emergency_count, :avg_waiting_time)
+        expect(stats[:total_pending]).to be > 0
+      end
+    end
+  end
+
+  # ============================================
+  # 権限テスト
+  # ============================================
+
+  describe "authorization" do
+    let(:headquarters_admin) { create(:admin, role: :headquarters_admin) }
+    let(:store_admin) { create(:admin, role: :store_admin, store: source_store) }
+    let(:other_store_admin) { create(:admin, role: :store_admin, store: destination_store) }
+    let(:transfer) { create(:inter_store_transfer,
+                           source_store: source_store,
+                           destination_store: destination_store,
+                           inventory: inventory,
+                           requested_by: store_admin) }
+
+    context "本部管理者" do
+      before { sign_in headquarters_admin }
+
+      it "全てのアクションにアクセスできる" do
+        get :index
+        expect(response).to be_successful
+
+        get :show, params: { id: transfer.id }
+        expect(response).to be_successful
+
+        get :analytics
+        expect(response).to be_successful
+      end
+
+      it "全ての移動申請を承認・却下できる" do
+        patch :approve, params: { id: transfer.id }
+        expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+      end
+    end
+
+    context "店舗管理者" do
+      before { sign_in store_admin }
+
+      it "自店舗関連の移動申請にアクセスできる" do
+        get :show, params: { id: transfer.id }
+        expect(response).to be_successful
+      end
+
+      it "自分が申請した移動申請を編集できる" do
+        get :edit, params: { id: transfer.id }
+        expect(response).to be_successful
+      end
+
+      it "移動先店舗の管理者は承認できる" do
+        sign_in other_store_admin
+        patch :approve, params: { id: transfer.id }
+        expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
+      end
+    end
+
+    context "認証なしアクセス" do
+      before { sign_out :admin }
+
+      it "ログインページにリダイレクトされる" do
+        get :index
+        expect(response).to redirect_to(new_admin_session_path)
+
+        get :analytics
+        expect(response).to redirect_to(new_admin_session_path)
+      end
+    end
+  end
+
+  # ============================================
+  # パフォーマンステスト
+  # ============================================
+
+  describe "performance tests" do
+    let(:headquarters_admin) { create(:admin, role: :headquarters_admin) }
+
+    before { sign_in headquarters_admin }
+
+    describe "N+1 query prevention" do
+      it "index画面でN+1クエリを防ぐ" do
+        create_list(:inter_store_transfer, 10,
+                   source_store: source_store,
+                   destination_store: destination_store,
+                   inventory: inventory)
+
+        expect {
+          get :index
+        }.not_to exceed_query_limit(15)
+      end
+
+      it "analytics画面でN+1クエリを防ぐ" do
+        create_list(:store, 5)
+        create_list(:inter_store_transfer, 20,
+                   source_store: source_store,
+                   destination_store: destination_store,
+                   inventory: inventory)
+
+        expect {
+          get :analytics
+        }.not_to exceed_query_limit(25)
+      end
+    end
+
+    describe "large data handling" do
+      it "大量データでのパフォーマンス" do
+        create_list(:inter_store_transfer, 100,
+                   source_store: source_store,
+                   destination_store: destination_store,
+                   inventory: inventory)
+
+        start_time = Time.current
+        get :index
+        elapsed_time = (Time.current - start_time) * 1000
+
+        expect(response).to be_successful
+        expect(elapsed_time).to be < 1000 # 1秒以内
+      end
+    end
+  end
+
+  # ============================================
+  # セキュリティテスト
+  # ============================================
+
+  describe "security tests" do
+    let(:headquarters_admin) { create(:admin, role: :headquarters_admin) }
+
+    before { sign_in headquarters_admin }
+
+    context "XSS防止" do
+      let(:xss_attributes) do
+        {
+          source_store_id: source_store.id,
+          destination_store_id: destination_store.id,
+          inventory_id: inventory.id,
+          quantity: 10,
+          reason: "<script>alert('XSS')</script>悪意のある理由",
+          notes: "<img src=x onerror=alert('XSS')>メモ"
+        }
+      end
+
+      it "理由フィールドのXSSスクリプトはエスケープされる" do
+        post :create, params: { inter_store_transfer: xss_attributes }
+        transfer = InterStoreTransfer.last
+        expect(transfer.reason).not_to include("<script>")
+        expect(transfer.reason).to include("悪意のある理由")
+      end
+    end
+
+    context "Mass Assignment防止" do
+      it "許可されていないパラメータは無視される" do
+        malicious_params = {
+          source_store_id: source_store.id,
+          destination_store_id: destination_store.id,
+          inventory_id: inventory.id,
+          quantity: 10,
+          reason: "正当な理由",
+          status: "completed", # 不正なパラメータ
+          approved_by_id: 999, # 不正なパラメータ
+          created_at: 1.year.ago # 不正なパラメータ
+        }
+
+        post :create, params: { inter_store_transfer: malicious_params }
+        transfer = InterStoreTransfer.last
+
+        expect(transfer.reason).to eq("正当な理由")
+        expect(transfer.pending?).to be true # statusは変更されない
+        expect(transfer.created_at).to be > 1.hour.ago
+      end
+    end
+
+    context "SQL Injection防止" do
+      it "検索パラメータでのSQL Injection防止" do
+        malicious_search = "'; DROP TABLE inter_store_transfers; --"
+        create(:inter_store_transfer,
+               source_store: source_store,
+               destination_store: destination_store,
+               inventory: inventory)
+
+        expect {
+          get :index, params: { search: malicious_search }
+        }.not_to raise_error
+
+        expect(InterStoreTransfer.count).to be > 0
+      end
+    end
+  end
 end

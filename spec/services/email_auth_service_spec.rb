@@ -9,14 +9,13 @@ RSpec.describe EmailAuthService do
   let(:request_metadata) do
     {
       ip_address: "192.168.1.100",
-      user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"
+      user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+      referer: "https://example.com/login",
+      session_id: "abc123"
     }
   end
 
-  # ============================================
   # 基本的なサービス検証
-  # ============================================
-
   describe "configuration" do
     it "has default configuration values" do
       expect(service.config.max_attempts_per_hour).to eq(3)
@@ -25,6 +24,21 @@ RSpec.describe EmailAuthService do
       expect(service.config.rate_limit_enabled).to be true
       expect(service.config.email_delivery_timeout).to eq(30.seconds)
       expect(service.config.security_monitoring_enabled).to be true
+    end
+    
+    it "allows runtime configuration changes" do
+      original_config = service.config.dup
+      
+      service.configure do |config|
+        config.max_attempts_per_hour = 5
+        config.temp_password_expiry = 30.minutes
+      end
+      
+      expect(service.config.max_attempts_per_hour).to eq(5)
+      expect(service.config.temp_password_expiry).to eq(30.minutes)
+      
+      # Reset config
+      service.instance_variable_set(:@config, original_config)
     end
   end
 
@@ -37,12 +51,14 @@ RSpec.describe EmailAuthService do
       expect(EmailAuthService::RateLimitExceededError).to be < EmailAuthService::SecurityViolationError
       expect(EmailAuthService::UserIneligibleError).to be < EmailAuthService::SecurityViolationError
     end
+    
+    it "provides meaningful error messages" do
+      error = EmailAuthService::RateLimitExceededError.new("Custom message")
+      expect(error.message).to eq("Custom message")
+    end
   end
 
-  # ============================================
   # 一時パスワード生成・送信機能
-  # ============================================
-
   describe "#generate_and_send_temp_password" do
     context "when successful" do
       let(:temp_password) { create(:temp_password, store_user: store_user) }
@@ -92,6 +108,16 @@ RSpec.describe EmailAuthService do
           request_metadata: request_metadata
         )
       end
+      
+      it "tracks admin who generated the password" do
+        result = service.generate_and_send_temp_password(
+          store_user,
+          admin_id: admin.id,
+          request_metadata: request_metadata
+        )
+        
+        expect(result[:generated_by_admin_id]).to eq(admin.id)
+      end
     end
 
     context "when rate limited" do
@@ -105,6 +131,14 @@ RSpec.describe EmailAuthService do
           service.generate_and_send_temp_password(store_user, request_metadata: request_metadata)
         }.to raise_error(EmailAuthService::RateLimitExceededError, "Rate limit exceeded")
       end
+      
+      it "logs rate limit violation" do
+        expect(Rails.logger).to receive(:warn).with(/Rate limit exceeded/)
+        
+        expect {
+          service.generate_and_send_temp_password(store_user, request_metadata: request_metadata)
+        }.to raise_error(EmailAuthService::RateLimitExceededError)
+      end
     end
 
     context "when user is ineligible" do
@@ -117,6 +151,17 @@ RSpec.describe EmailAuthService do
             request_metadata: request_metadata
           )
         }.to raise_error(EmailAuthService::UserIneligibleError, "User account is not active")
+      end
+      
+      it "raises UserIneligibleError for deleted user" do
+        deleted_user = create(:store_user, deleted_at: 1.day.ago)
+        
+        expect {
+          service.generate_and_send_temp_password(
+            deleted_user,
+            request_metadata: request_metadata
+          )
+        }.to raise_error(EmailAuthService::UserIneligibleError, "User account is deleted")
       end
     end
 
@@ -139,12 +184,39 @@ RSpec.describe EmailAuthService do
         expect(result[:details]).to include("Failed to generate temp password")
       end
     end
+    
+    context "when email delivery fails" do
+      before do
+        temp_password = create(:temp_password, store_user: store_user)
+        allow(TempPassword).to receive(:generate_for_user).and_return([temp_password, "12345678"])
+        allow(service).to receive(:validate_rate_limit)
+        allow(service).to receive(:validate_user_eligibility)
+        allow(service).to receive(:deliver_temp_password_email)
+          .and_raise(EmailAuthService::EmailDeliveryError, "SMTP connection failed")
+      end
+      
+      it "rolls back temp password creation" do
+        expect {
+          service.generate_and_send_temp_password(
+            store_user,
+            request_metadata: request_metadata
+          )
+        }.not_to change(TempPassword, :count)
+      end
+      
+      it "returns appropriate error" do
+        result = service.generate_and_send_temp_password(
+          store_user,
+          request_metadata: request_metadata
+        )
+        
+        expect(result[:success]).to be false
+        expect(result[:error]).to eq('email_delivery_failed')
+      end
+    end
   end
 
-  # ============================================
   # 一時パスワード認証機能
-  # ============================================
-
   describe "#authenticate_with_temp_password" do
     context "when successful authentication" do
       let(:plain_password) { "12345678" }
@@ -191,6 +263,20 @@ RSpec.describe EmailAuthService do
           request_metadata: request_metadata
         )
       end
+      
+      it "creates audit log entry" do
+        expect {
+          service.authenticate_with_temp_password(
+            store_user,
+            plain_password,
+            request_metadata: request_metadata
+          )
+        }.to change(AuditLog, :count).by(1)
+        
+        audit = AuditLog.last
+        expect(audit.action).to eq('temp_password_auth_success')
+        expect(audit.user).to eq(store_user)
+      end
     end
 
     context "when authentication fails" do
@@ -236,6 +322,18 @@ RSpec.describe EmailAuthService do
           request_metadata: request_metadata
         )
       end
+      
+      it "locks temp password after max attempts" do
+        temp_password.update!(usage_attempts: 4)
+        
+        service.authenticate_with_temp_password(
+          store_user,
+          wrong_password,
+          request_metadata: request_metadata
+        )
+        
+        expect(temp_password.reload).to be_locked
+      end
     end
 
     context "when no valid temp password exists" do
@@ -255,13 +353,40 @@ RSpec.describe EmailAuthService do
         expect(result[:success]).to be false
         expect(result[:reason]).to eq('no_valid_temp_password')
       end
+      
+      it "still records rate limit attempt" do
+        expect(service).to receive(:record_authentication_attempt)
+          .with(store_user.email, request_metadata[:ip_address])
+        
+        service.authenticate_with_temp_password(
+          store_user,
+          "anypassword",
+          request_metadata: request_metadata
+        )
+      end
+    end
+    
+    context "when temp password is expired" do
+      let(:expired_password) { create(:temp_password, :expired, store_user: store_user) }
+      
+      before do
+        allow(service).to receive(:find_valid_temp_password).and_return(nil)
+      end
+      
+      it "returns expired error" do
+        result = service.authenticate_with_temp_password(
+          store_user,
+          "anypassword",
+          request_metadata: request_metadata
+        )
+        
+        expect(result[:success]).to be false
+        expect(result[:reason]).to include('no_valid_temp_password')
+      end
     end
   end
 
-  # ============================================
   # クリーンアップ機能
-  # ============================================
-
   describe "#cleanup_expired_passwords" do
     it "calls TempPassword.cleanup_expired and logs the result" do
       expect(TempPassword).to receive(:cleanup_expired).and_return(5)
@@ -271,12 +396,18 @@ RSpec.describe EmailAuthService do
 
       expect(result).to eq(5)
     end
+    
+    it "handles cleanup errors gracefully" do
+      allow(TempPassword).to receive(:cleanup_expired).and_raise(StandardError, "DB error")
+      expect(Rails.logger).to receive(:error).with(/Failed to cleanup expired passwords/)
+      
+      expect {
+        service.cleanup_expired_passwords
+      }.not_to raise_error
+    end
   end
 
-  # ============================================
   # プライベートメソッドテスト（重要な機能のみ）
-  # ============================================
-
   describe "private methods" do
     describe "#validate_rate_limit" do
       context "when rate limiting is enabled" do
@@ -298,6 +429,19 @@ RSpec.describe EmailAuthService do
             expect {
               service.send(:validate_rate_limit, store_user.email, request_metadata[:ip_address])
             }.to raise_error(EmailAuthService::RateLimitExceededError, /Hourly rate limit exceeded/)
+          end
+        end
+        
+        context "when daily limit exceeded" do
+          before do
+            allow(service).to receive(:redis_increment_with_expiry)
+              .and_return(1, service.config.max_attempts_per_day + 1, 1)
+          end
+          
+          it "raises rate limit error" do
+            expect {
+              service.send(:validate_rate_limit, store_user.email, request_metadata[:ip_address])
+            }.to raise_error(EmailAuthService::RateLimitExceededError, /Daily rate limit exceeded/)
           end
         end
       end
@@ -343,6 +487,16 @@ RSpec.describe EmailAuthService do
           }.to raise_error(EmailAuthService::UserIneligibleError, "User account is locked")
         end
       end
+      
+      context "with suspended user" do
+        let(:suspended_user) { create(:store_user, suspended_at: 1.hour.ago) }
+        
+        it "raises UserIneligibleError" do
+          expect {
+            service.send(:validate_user_eligibility, suspended_user)
+          }.to raise_error(EmailAuthService::UserIneligibleError, "User account is suspended")
+        end
+      end
     end
 
     describe "#find_valid_temp_password" do
@@ -362,27 +516,17 @@ RSpec.describe EmailAuthService do
         expect(result).not_to eq(expired_password)
         expect(result).not_to eq(used_password)
       end
+      
+      it "excludes locked passwords" do
+        locked_password = create(:temp_password, :locked, store_user: store_user)
+        
+        result = service.send(:find_valid_temp_password, store_user)
+        expect(result).not_to eq(locked_password)
+      end
     end
   end
 
-  # ============================================
-  # 設定・カスタマイズテスト
-  # ============================================
-
-  describe "configuration customization" do
-    it "allows configuration override" do
-      service.config.max_attempts_per_hour = 5
-      service.config.rate_limit_enabled = false
-
-      expect(service.config.max_attempts_per_hour).to eq(5)
-      expect(service.config.rate_limit_enabled).to be false
-    end
-  end
-
-  # ============================================
-  # セキュリティ機能テスト（重要な新機能）
-  # ============================================
-
+  # セキュリティ機能テスト
   describe "rate limiting functionality" do
     let(:email) { store_user.email }
     let(:ip_address) { '192.168.1.100' }
@@ -609,24 +753,80 @@ RSpec.describe EmailAuthService do
     end
 
     describe "timing attack protection" do
-      # TODO: 🟢 Phase 3推奨 - タイミング攻撃対策テスト
-      it "TODO: implements timing attack protection verification"
+      let(:plain_password) { "correctpass" }
+      let(:temp_password) { create(:temp_password, :with_plain_password, store_user: store_user, plain_password: plain_password) }
+      
+      before do
+        allow(service).to receive(:find_valid_temp_password).and_return(temp_password)
+        allow(service).to receive(:validate_authentication_rate_limit)
+      end
+      
+      it "uses constant time comparison for password verification" do
+        # This is a conceptual test - in real implementation, 
+        # we'd use ActiveSupport::SecurityUtils.secure_compare
+        expect(ActiveSupport::SecurityUtils).to receive(:secure_compare).and_call_original
+        
+        service.authenticate_with_temp_password(
+          store_user,
+          plain_password,
+          request_metadata: request_metadata
+        )
+      end
+      
+      it "takes similar time for correct and incorrect passwords" do
+        correct_times = []
+        incorrect_times = []
+        
+        5.times do
+          start = Time.current
+          service.authenticate_with_temp_password(store_user, plain_password, request_metadata: request_metadata)
+          correct_times << (Time.current - start)
+          
+          start = Time.current
+          service.authenticate_with_temp_password(store_user, "wrongpass", request_metadata: request_metadata)
+          incorrect_times << (Time.current - start)
+        end
+        
+        avg_correct = correct_times.sum / correct_times.size
+        avg_incorrect = incorrect_times.sum / incorrect_times.size
+        
+        # Times should be within 10% of each other
+        expect((avg_correct - avg_incorrect).abs / avg_correct).to be < 0.1
+      end
     end
   end
 
-  # ============================================
   # パフォーマンステスト
-  # ============================================
-
   describe "performance" do
-    # TODO: 🟡 Phase 2重要 - パフォーマンステスト実装
-    it "TODO: implements performance benchmarks for high-load scenarios"
+    it "handles high-load authentication requests efficiently" do
+      temp_passwords = create_list(:temp_password, 100, store_user: store_user)
+      
+      start_time = Time.current
+      100.times do |i|
+        service.authenticate_with_temp_password(
+          store_user,
+          "password#{i}",
+          request_metadata: request_metadata
+        )
+      end
+      elapsed_time = (Time.current - start_time) * 1000
+      
+      expect(elapsed_time).to be < 5000 # Under 5 seconds for 100 requests
+    end
+    
+    it "cleans up expired passwords efficiently" do
+      create_list(:temp_password, 1000, :expired)
+      
+      start_time = Time.current
+      count = service.cleanup_expired_passwords
+      elapsed_time = (Time.current - start_time) * 1000
+      
+      expect(count).to eq(1000)
+      expect(elapsed_time).to be < 1000 # Under 1 second
+    end
   end
 
-  # ============================================
   # 統合テスト（実際のユースケース）
-  # ============================================
-
   describe "integration scenarios" do
     describe "complete email authentication flow" do
       let(:plain_password) { "12345678" }
@@ -680,6 +880,138 @@ RSpec.describe EmailAuthService do
 
         # Verify temp password is locked
         expect(temp_password.reload).to be_locked
+      end
+      
+      it "prevents brute force attacks across multiple users" do
+        users = create_list(:store_user, 3)
+        ip_address = "192.168.1.100"
+        
+        # Simulate attacks from same IP
+        users.each do |user|
+          3.times do
+            service.record_authentication_attempt(user.email, ip_address)
+          end
+        end
+        
+        # IP should be rate limited
+        expect(service.rate_limit_check(users.first.email, ip_address)).to be false
+      end
+    end
+    
+    describe "email delivery retry mechanism" do
+      let(:temp_password) { create(:temp_password, store_user: store_user) }
+      
+      before do
+        allow(TempPassword).to receive(:generate_for_user).and_return([temp_password, "12345678"])
+        allow(service).to receive(:validate_rate_limit)
+        allow(service).to receive(:validate_user_eligibility)
+      end
+      
+      it "retries email delivery on transient failures" do
+        call_count = 0
+        allow(service).to receive(:deliver_temp_password_email) do
+          call_count += 1
+          if call_count < 3
+            raise EmailAuthService::EmailDeliveryError, "Temporary failure"
+          else
+            { success: true, delivered_at: Time.current }
+          end
+        end
+        
+        result = service.generate_and_send_temp_password(
+          store_user,
+          admin_id: admin.id,
+          request_metadata: request_metadata
+        )
+        
+        expect(result[:success]).to be true
+        expect(call_count).to eq(3)
+      end
+    end
+  end
+  
+  # エッジケーステスト
+  describe "edge cases" do
+    it "handles concurrent password generation requests" do
+      threads = 5.times.map do
+        Thread.new do
+          service.generate_and_send_temp_password(
+            store_user,
+            admin_id: admin.id,
+            request_metadata: request_metadata
+          )
+        end
+      end
+      
+      results = threads.map(&:value)
+      successful_results = results.select { |r| r[:success] }
+      
+      # At least one should succeed, others may be rate limited
+      expect(successful_results).not_to be_empty
+    end
+    
+    it "handles nil metadata gracefully" do
+      expect {
+        service.generate_and_send_temp_password(
+          store_user,
+          admin_id: admin.id,
+          request_metadata: nil
+        )
+      }.not_to raise_error
+    end
+    
+    it "handles very long email addresses" do
+      long_email_user = create(:store_user, email: "a" * 200 + "@example.com")
+      
+      expect {
+        service.generate_and_send_temp_password(
+          long_email_user,
+          request_metadata: request_metadata
+        )
+      }.not_to raise_error
+    end
+  end
+  
+  # セキュリティベストプラクティステスト
+  describe "security best practices" do
+    it "does not log sensitive password information" do
+      allow(Rails.logger).to receive(:info) do |message|
+        expect(message).not_to include("12345678")
+        expect(message).not_to include("password")
+      end
+      
+      temp_password = create(:temp_password, :with_plain_password, 
+                            store_user: store_user, plain_password: "12345678")
+      
+      service.authenticate_with_temp_password(
+        store_user,
+        "12345678",
+        request_metadata: request_metadata
+      )
+    end
+    
+    it "sanitizes user input in metadata" do
+      malicious_metadata = {
+        ip_address: "<script>alert('XSS')</script>",
+        user_agent: "'; DROP TABLE users; --"
+      }
+      
+      expect {
+        service.generate_and_send_temp_password(
+          store_user,
+          request_metadata: malicious_metadata
+        )
+      }.not_to raise_error
+    end
+    
+    it "implements proper password expiry" do
+      expired_time = 16.minutes.from_now
+      
+      travel_to expired_time do
+        temp_password = create(:temp_password, store_user: store_user, 
+                              created_at: 16.minutes.ago)
+        
+        expect(temp_password).to be_expired
       end
     end
   end

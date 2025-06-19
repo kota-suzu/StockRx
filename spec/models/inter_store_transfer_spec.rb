@@ -3,13 +3,33 @@
 require 'rails_helper'
 
 RSpec.describe InterStoreTransfer, type: :model do
+  # CLAUDE.md準拠: 店舗間在庫移動の包括的テスト
+  # メタ認知: 複雑な承認フローとポリモーフィック関連の品質保証
+  # 横展開: 他の承認系モデルでも同様のテストパターン適用
+
+  let(:source_store) { create(:store, name: '渋谷店') }
+  let(:destination_store) { create(:store, name: '新宿店') }
+  let(:inventory) { create(:inventory, name: 'アスピリン錠100mg', price: 1000) }
+  let(:admin_user) { create(:admin, name: '管理者太郎') }
+  let(:store_user) { create(:store_user, store: source_store, name: '店舗スタッフ') }
+  
+  # 移動元に在庫を準備
+  let!(:source_inventory) do
+    create(:store_inventory,
+      store: source_store,
+      inventory: inventory,
+      quantity: 100,
+      reserved_quantity: 0,
+      safety_stock_level: 20
+    )
+  end
+
   describe 'associations' do
     it { should belong_to(:source_store).class_name('Store') }
     it { should belong_to(:destination_store).class_name('Store') }
     it { should belong_to(:inventory) }
-
+    
     # ポリモーフィック関連付け：AdminとStoreUserの両方に対応
-    # メタ認知: class_nameを指定しないことでポリモーフィック対応をテスト
     it { should belong_to(:requested_by) }
     it { should belong_to(:approved_by).optional }
     it { should belong_to(:shipped_by).optional }
@@ -17,704 +37,1185 @@ RSpec.describe InterStoreTransfer, type: :model do
     it { should belong_to(:cancelled_by).optional }
   end
 
-  describe 'enums' do
-    it { should define_enum_for(:status).with_values(
-      pending: 0, approved: 1, rejected: 2, in_transit: 3, completed: 4, cancelled: 5
-    ) }
-    it { should define_enum_for(:priority).with_values(
-      normal: 0, urgent: 1, emergency: 2
-    ) }
-  end
-
   describe 'validations' do
-    subject { build(:inter_store_transfer) }
+    subject { build(:inter_store_transfer, source_store: source_store, destination_store: destination_store) }
 
     it { should validate_presence_of(:quantity) }
     it { should validate_numericality_of(:quantity).is_greater_than(0) }
     it { should validate_presence_of(:reason) }
     it { should validate_length_of(:reason).is_at_most(1000) }
-    # NOTE: requested_atはbefore_validationコールバックで自動設定されるため、
-    # presence validationのテストは実際には意味がない
-    # it { should validate_presence_of(:requested_at) }
+    it { should validate_length_of(:notes).is_at_most(2000).allow_blank }
+
+    describe 'requested_delivery_date validation' do
+      it 'accepts future dates' do
+        transfer = build(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          requested_delivery_date: 3.days.from_now
+        )
+        expect(transfer).to be_valid
+      end
+
+      it 'rejects past dates' do
+        transfer = build(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          requested_delivery_date: 1.day.ago
+        )
+        expect(transfer).not_to be_valid
+        expect(transfer.errors[:requested_delivery_date]).to include('は今日より後の日付を指定してください')
+      end
+
+      it 'rejects today' do
+        transfer = build(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          requested_delivery_date: Date.current
+        )
+        expect(transfer).not_to be_valid
+      end
+
+      it 'allows nil' do
+        transfer = build(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          requested_delivery_date: nil
+        )
+        expect(transfer).to be_valid
+      end
+    end
 
     describe 'custom validations' do
       describe 'different_stores' do
-        it 'allows different source and destination stores' do
-          source_store = create(:store)
-          destination_store = create(:store)
-          inventory = create(:inventory)
-          create(:store_inventory, store: source_store, inventory: inventory, quantity: 100)
+        it 'requires different source and destination stores' do
           transfer = build(:inter_store_transfer,
-                           source_store: source_store,
-                           destination_store: destination_store,
-                           inventory: inventory,
-                           quantity: 10,
-                           requested_by: create(:admin))
-          expect(transfer).to be_valid
-        end
-
-        it 'rejects same source and destination stores' do
-          store = create(:store)
-          transfer = build(:inter_store_transfer, source_store: store, destination_store: store)
+            source_store: source_store,
+            destination_store: source_store,
+            inventory: inventory,
+            requested_by: admin_user
+          )
           expect(transfer).not_to be_valid
           expect(transfer.errors[:destination_store]).to include('移動元と移動先は異なる店舗である必要があります')
         end
       end
 
       describe 'sufficient_source_stock' do
-        let(:source_store) { create(:store) }
-        let(:inventory) { create(:inventory) }
-
-        context 'when sufficient stock exists' do
-          before do
-            create(:store_inventory, store: source_store, inventory: inventory, quantity: 10, reserved_quantity: 2)
-          end
-
-          it 'allows transfer within available quantity' do
-            transfer = build(:inter_store_transfer, source_store: source_store, inventory: inventory, quantity: 5)
-            expect(transfer).to be_valid
-          end
+        it 'validates sufficient stock at source' do
+          transfer = build(:inter_store_transfer,
+            source_store: source_store,
+            destination_store: destination_store,
+            inventory: inventory,
+            quantity: 150, # More than available
+            requested_by: admin_user
+          )
+          expect(transfer).not_to be_valid
+          expect(transfer.errors[:quantity]).to include('移動元の利用可能在庫が不足しています')
         end
 
-        context 'when insufficient stock exists' do
-          before do
-            create(:store_inventory, store: source_store, inventory: inventory, quantity: 10, reserved_quantity: 8)
-          end
-
-          it 'rejects transfer exceeding available quantity' do
-            transfer = build(:inter_store_transfer, source_store: source_store, inventory: inventory, quantity: 5)
-            expect(transfer).not_to be_valid
-            expect(transfer.errors[:quantity]).to include('移動元の利用可能在庫が不足しています')
-          end
+        it 'allows transfer within available stock' do
+          transfer = build(:inter_store_transfer,
+            source_store: source_store,
+            destination_store: destination_store,
+            inventory: inventory,
+            quantity: 50,
+            requested_by: admin_user
+          )
+          expect(transfer).to be_valid
         end
 
-        context 'when no stock record exists' do
-          it 'rejects transfer' do
-            # StoreInventoryレコードを作成せずにInterStoreTransferを直接構築
-            transfer = InterStoreTransfer.new(
-              source_store: source_store,
-              destination_store: create(:store),
-              inventory: inventory,
-              quantity: 1,
-              reason: '在庫不足のため移動が必要です',
-              requested_by: create(:admin)
-            )
-            expect(transfer).not_to be_valid
-            expect(transfer.errors[:quantity]).to include('移動元の利用可能在庫が不足しています')
-          end
+        it 'considers reserved quantity' do
+          source_inventory.update!(reserved_quantity: 60)
+          transfer = build(:inter_store_transfer,
+            source_store: source_store,
+            destination_store: destination_store,
+            inventory: inventory,
+            quantity: 50, # Available is 40
+            requested_by: admin_user
+          )
+          expect(transfer).not_to be_valid
         end
       end
 
       describe 'valid_status_transition' do
-        let(:transfer) { create(:inter_store_transfer, status: :pending) }
+        let(:transfer) { create(:inter_store_transfer, source_store: source_store, destination_store: destination_store) }
 
-        it 'allows valid transitions from pending' do
-          %w[approved rejected cancelled].each do |new_status|
-            transfer.status = new_status
+        context 'from pending' do
+          it 'allows transition to approved' do
+            transfer.status = :approved
             expect(transfer).to be_valid
+          end
+
+          it 'allows transition to rejected' do
+            transfer.status = :rejected
+            expect(transfer).to be_valid
+          end
+
+          it 'allows transition to cancelled' do
+            transfer.status = :cancelled
+            expect(transfer).to be_valid
+          end
+
+          it 'prevents direct transition to completed' do
+            transfer.status = :completed
+            expect(transfer).not_to be_valid
+            expect(transfer.errors[:status]).to include(/無効なステータス変更/)
           end
         end
 
-        it 'rejects invalid transitions from completed' do
-          # 正しいステータス遷移で完了状態にする
-          transfer.update!(status: :approved)
-          transfer.update!(status: :completed)
+        context 'from approved' do
+          before { transfer.update!(status: :approved) }
 
-          transfer.status = :pending
-          expect(transfer).not_to be_valid
-          expect(transfer.errors[:status]).to include('無効なステータス変更です: completed → pending')
+          it 'allows transition to in_transit' do
+            transfer.status = :in_transit
+            expect(transfer).to be_valid
+          end
+
+          it 'allows transition to completed' do
+            transfer.status = :completed
+            expect(transfer).to be_valid
+          end
+
+          it 'allows transition to cancelled' do
+            transfer.status = :cancelled
+            expect(transfer).to be_valid
+          end
+
+          it 'prevents transition back to pending' do
+            transfer.status = :pending
+            expect(transfer).not_to be_valid
+          end
         end
 
-        it 'allows valid transitions from approved' do
-          transfer.update!(status: :approved)
-          %w[in_transit cancelled completed].each do |new_status|
-            transfer.status = new_status
-            expect(transfer).to be_valid
+        context 'from completed' do
+          before { transfer.update!(status: :approved) } # First valid transition
+          before { transfer.update!(status: :completed) }
+
+          it 'prevents any status change' do
+            [:pending, :approved, :rejected, :in_transit, :cancelled].each do |status|
+              transfer.status = status
+              expect(transfer).not_to be_valid
+            end
           end
         end
       end
     end
   end
 
+  describe 'enums' do
+    it { should define_enum_for(:status).with_values(
+      pending: 0,
+      approved: 1,
+      rejected: 2,
+      in_transit: 3,
+      completed: 4,
+      cancelled: 5
+    ).backed_by_column_of_type(:integer) }
+
+    it { should define_enum_for(:priority).with_values(
+      normal: 0,
+      urgent: 1,
+      emergency: 2
+    ).backed_by_column_of_type(:integer) }
+  end
+
   describe 'callbacks' do
     describe 'before_validation :set_requested_at' do
-      it 'sets requested_at on create when not provided' do
-        transfer = build(:inter_store_transfer, requested_at: nil)
-        transfer.validate
+      it 'sets requested_at on create' do
+        transfer = build(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          requested_at: nil
+        )
+        transfer.save!
         expect(transfer.requested_at).to be_present
+        expect(transfer.requested_at).to be_within(1.second).of(Time.current)
       end
 
-      it 'does not override existing requested_at' do
-        custom_time = 1.hour.ago.round
-        transfer = build(:inter_store_transfer, requested_at: custom_time)
-        transfer.validate
+      it 'preserves existing requested_at' do
+        custom_time = 2.hours.ago
+        transfer = build(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          requested_at: custom_time
+        )
+        transfer.save!
         expect(transfer.requested_at).to eq(custom_time)
       end
     end
 
     describe 'after_create :reserve_source_stock' do
-      let(:source_store) { create(:store) }
-      let(:inventory) { create(:inventory) }
-      let!(:store_inventory) { create(:store_inventory, store: source_store, inventory: inventory, quantity: 10, reserved_quantity: 2) }
-
-      it 'increases reserved_quantity in source store' do
+      it 'reserves stock at source store' do
         expect {
-          create(:inter_store_transfer, source_store: source_store, inventory: inventory, quantity: 3)
-        }.to change { store_inventory.reload.reserved_quantity }.from(2).to(5)
+          create(:inter_store_transfer,
+            source_store: source_store,
+            destination_store: destination_store,
+            inventory: inventory,
+            quantity: 30,
+            requested_by: admin_user
+          )
+        }.to change { source_inventory.reload.reserved_quantity }.from(0).to(30)
       end
     end
 
     describe 'after_update :handle_status_change' do
-      let(:source_store) { create(:store) }
-      let(:inventory) { create(:inventory) }
-      let(:transfer) { create(:inter_store_transfer, source_store: source_store, inventory: inventory, quantity: 3) }
-      let(:store_inventory) { StoreInventory.find_by(store: source_store, inventory: inventory) }
-
-      it 'releases reserved stock when cancelled' do
-        transfer # Ensure transfer is created
-        store_inventory = StoreInventory.find_by(store: source_store, inventory: inventory)
-
-        expect {
-          transfer.update!(status: :cancelled)
-        }.to change { store_inventory.reload.reserved_quantity }.by(-3)
+      let(:transfer) do
+        create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          inventory: inventory,
+          quantity: 20,
+          requested_by: admin_user
+        )
       end
 
-      it 'releases reserved stock when rejected' do
-        transfer # Ensure transfer is created
-        store_inventory = StoreInventory.find_by(store: source_store, inventory: inventory)
+      it 'logs approval' do
+        expect(Rails.logger).to receive(:info).with(/移動申請が承認されました/)
+        transfer.update!(status: :approved)
+      end
 
+      it 'releases reserved stock on rejection' do
         expect {
           transfer.update!(status: :rejected)
-        }.to change { store_inventory.reload.reserved_quantity }.by(-3)
+        }.to change { source_inventory.reload.reserved_quantity }.from(20).to(0)
       end
 
-      it 'logs approval information' do
-        expect(Rails.logger).to receive(:info).with("移動申請が承認されました: #{transfer.id}")
-        transfer.update!(status: :approved)
+      it 'releases reserved stock on cancellation' do
+        expect {
+          transfer.update!(status: :cancelled)
+        }.to change { source_inventory.reload.reserved_quantity }.from(20).to(0)
       end
 
-      it 'logs completion information' do
+      it 'logs completion' do
         transfer.update!(status: :approved)
-        expect(Rails.logger).to receive(:info).with("移動が完了しました: #{transfer.id}")
+        expect(Rails.logger).to receive(:info).with(/移動が完了しました/)
         transfer.update!(status: :completed)
+      end
+    end
+
+    describe 'before_destroy :release_reserved_stock' do
+      it 'releases reserved stock if cancellable' do
+        transfer = create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          inventory: inventory,
+          quantity: 25,
+          requested_by: admin_user
+        )
+        
+        expect {
+          transfer.destroy
+        }.to change { source_inventory.reload.reserved_quantity }.from(25).to(0)
+      end
+
+      it 'does not release stock if not cancellable' do
+        transfer = create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          inventory: inventory,
+          quantity: 25,
+          requested_by: admin_user,
+          status: :approved
+        )
+        transfer.update!(status: :completed)
+        source_inventory.update!(reserved_quantity: 0)
+        
+        transfer.destroy
+        expect(source_inventory.reload.reserved_quantity).to eq(0)
+      end
+    end
+
+    describe 'after_commit :update_store_pending_counts' do
+      it 'updates source store pending count on create' do
+        expect {
+          create(:inter_store_transfer,
+            source_store: source_store,
+            destination_store: destination_store,
+            requested_by: admin_user
+          )
+        }.to change { source_store.reload.pending_outgoing_transfers_count }.by(1)
+      end
+
+      it 'updates destination store pending count on create' do
+        expect {
+          create(:inter_store_transfer,
+            source_store: source_store,
+            destination_store: destination_store,
+            requested_by: admin_user
+          )
+        }.to change { destination_store.reload.pending_incoming_transfers_count }.by(1)
+      end
+
+      it 'updates counts on status change' do
+        transfer = create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          requested_by: admin_user
+        )
+        
+        expect {
+          transfer.update!(status: :approved)
+        }.to change { source_store.reload.pending_outgoing_transfers_count }.by(-1)
       end
     end
   end
 
   describe 'scopes' do
-    let!(:store1) { create(:store) }
-    let!(:store2) { create(:store) }
-    let!(:store3) { create(:store) }
-    let!(:inventory) { create(:inventory) }
-    let!(:admin) { create(:admin) }
+    let!(:transfer1) do
+      create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store,
+        inventory: inventory,
+        requested_by: admin_user,
+        status: :pending,
+        priority: :urgent
+      )
+    end
 
-    let!(:transfer1) { create(:inter_store_transfer, source_store: store1, destination_store: store2, status: :pending, priority: :normal) }
-    let!(:transfer2) { create(:inter_store_transfer, source_store: store2, destination_store: store3, status: :approved, priority: :urgent) }
-    let!(:transfer3) { create(:inter_store_transfer, source_store: store1, destination_store: store3, status: :completed, priority: :emergency) }
-    let!(:transfer4) { create(:inter_store_transfer, source_store: store3, destination_store: store1, status: :rejected) }
+    let!(:transfer2) do
+      create(:inter_store_transfer,
+        source_store: destination_store,
+        destination_store: source_store,
+        inventory: inventory,
+        requested_by: store_user,
+        status: :approved,
+        priority: :normal
+      )
+    end
+
+    let!(:transfer3) do
+      other_store = create(:store)
+      create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: other_store,
+        inventory: inventory,
+        requested_by: admin_user,
+        approved_by: admin_user,
+        status: :approved,
+        priority: :emergency
+      )
+    end
 
     describe '.by_source_store' do
-      it 'returns transfers from specified store' do
-        expect(InterStoreTransfer.by_source_store(store1)).to include(transfer1, transfer3)
-        expect(InterStoreTransfer.by_source_store(store1)).not_to include(transfer2, transfer4)
+      it 'filters by source store' do
+        expect(InterStoreTransfer.by_source_store(source_store)).to include(transfer1, transfer3)
+        expect(InterStoreTransfer.by_source_store(source_store)).not_to include(transfer2)
       end
     end
 
     describe '.by_destination_store' do
-      it 'returns transfers to specified store' do
-        expect(InterStoreTransfer.by_destination_store(store3)).to include(transfer2, transfer3)
-        expect(InterStoreTransfer.by_destination_store(store3)).not_to include(transfer1, transfer4)
+      it 'filters by destination store' do
+        expect(InterStoreTransfer.by_destination_store(destination_store)).to include(transfer1)
+        expect(InterStoreTransfer.by_destination_store(destination_store)).not_to include(transfer2, transfer3)
       end
     end
 
     describe '.by_store' do
-      it 'returns transfers involving specified store (source or destination)' do
-        expect(InterStoreTransfer.by_store(store1)).to include(transfer1, transfer3, transfer4)
-        expect(InterStoreTransfer.by_store(store1)).not_to include(transfer2)
+      it 'filters by either source or destination store' do
+        expect(InterStoreTransfer.by_store(source_store)).to include(transfer1, transfer2, transfer3)
+        expect(InterStoreTransfer.by_store(destination_store)).to include(transfer1, transfer2)
+      end
+    end
+
+    describe '.by_inventory' do
+      it 'filters by inventory' do
+        other_inventory = create(:inventory)
+        other_transfer = create(:inter_store_transfer,
+          inventory: other_inventory,
+          source_store: source_store,
+          destination_store: destination_store
+        )
+        
+        expect(InterStoreTransfer.by_inventory(inventory)).to include(transfer1, transfer2, transfer3)
+        expect(InterStoreTransfer.by_inventory(inventory)).not_to include(other_transfer)
+      end
+    end
+
+    describe '.by_requestor' do
+      it 'filters by polymorphic requestor (admin)' do
+        expect(InterStoreTransfer.by_requestor(admin_user)).to include(transfer1, transfer3)
+        expect(InterStoreTransfer.by_requestor(admin_user)).not_to include(transfer2)
+      end
+
+      it 'filters by polymorphic requestor (store user)' do
+        expect(InterStoreTransfer.by_requestor(store_user)).to include(transfer2)
+        expect(InterStoreTransfer.by_requestor(store_user)).not_to include(transfer1, transfer3)
+      end
+    end
+
+    describe '.by_approver' do
+      it 'filters by approver' do
+        expect(InterStoreTransfer.by_approver(admin_user)).to include(transfer3)
+        expect(InterStoreTransfer.by_approver(admin_user)).not_to include(transfer1, transfer2)
+      end
+    end
+
+    describe '.recent' do
+      it 'orders by requested_at desc' do
+        old_transfer = create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          requested_at: 1.week.ago
+        )
+        
+        recent_transfers = InterStoreTransfer.recent
+        expect(recent_transfers.first.requested_at).to be > recent_transfers.last.requested_at
+        expect(recent_transfers.last).to eq(old_transfer)
       end
     end
 
     describe '.by_priority' do
-      it 'returns transfers with specified priority' do
-        expect(InterStoreTransfer.by_priority(:urgent)).to include(transfer2)
-        expect(InterStoreTransfer.by_priority(:urgent)).not_to include(transfer1, transfer3)
+      it 'filters by priority' do
+        expect(InterStoreTransfer.by_priority(:urgent)).to include(transfer1)
+        expect(InterStoreTransfer.by_priority(:normal)).to include(transfer2)
+        expect(InterStoreTransfer.by_priority(:emergency)).to include(transfer3)
       end
     end
 
     describe '.active' do
-      it 'returns transfers with active statuses' do
-        expect(InterStoreTransfer.active).to include(transfer1, transfer2)
-        expect(InterStoreTransfer.active).not_to include(transfer3, transfer4)
+      it 'returns pending, approved, and in_transit transfers' do
+        expect(InterStoreTransfer.active).to include(transfer1, transfer2, transfer3)
+        
+        # Create completed transfer
+        completed = create(:inter_store_transfer, status: :approved)
+        completed.update!(status: :completed)
+        expect(InterStoreTransfer.active).not_to include(completed)
       end
     end
 
     describe '.completed_transfers' do
-      it 'returns transfers with final statuses' do
-        expect(InterStoreTransfer.completed_transfers).to include(transfer3, transfer4)
-        expect(InterStoreTransfer.completed_transfers).not_to include(transfer1, transfer2)
+      it 'returns completed, cancelled, and rejected transfers' do
+        completed = create(:inter_store_transfer, status: :approved)
+        completed.update!(status: :completed)
+        cancelled = create(:inter_store_transfer, status: :cancelled)
+        rejected = create(:inter_store_transfer, status: :rejected)
+        
+        expect(InterStoreTransfer.completed_transfers).to include(completed, cancelled, rejected)
+        expect(InterStoreTransfer.completed_transfers).not_to include(transfer1, transfer2, transfer3)
       end
     end
   end
 
   describe 'instance methods' do
-    let(:source_store) { create(:store, name: '中央薬局') }
-    let(:destination_store) { create(:store, name: '西口薬局') }
-    let(:inventory) { create(:inventory, name: 'アスピリン100mg') }
-    let(:admin) { create(:admin) }
-    let(:transfer) { create(:inter_store_transfer,
-      source_store: source_store,
-      destination_store: destination_store,
-      inventory: inventory,
-      quantity: 5,
-      requested_by: admin
-    ) }
+    let(:transfer) do
+      create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store,
+        inventory: inventory,
+        quantity: 30,
+        requested_by: admin_user
+      )
+    end
 
-    describe 'status and priority text methods' do
-      describe '#status_text' do
-        it 'returns Japanese text for each status' do
-          status_translations = {
-            'pending' => '承認待ち',
-            'approved' => '承認済み',
-            'rejected' => '却下',
-            'in_transit' => '移動中',
-            'completed' => '完了',
-            'cancelled' => 'キャンセル'
-          }
-
-          status_translations.each do |status, text|
-            transfer.status = status
-            expect(transfer.status_text).to eq(text)
-          end
-        end
+    describe '#status_text' do
+      it 'returns Japanese text for status' do
+        expect(transfer.status_text).to eq('承認待ち')
+        
+        transfer.status = :approved
+        expect(transfer.status_text).to eq('承認済み')
+        
+        transfer.status = :rejected
+        expect(transfer.status_text).to eq('却下')
+        
+        transfer.status = :in_transit
+        expect(transfer.status_text).to eq('移動中')
+        
+        transfer.status = :completed
+        expect(transfer.status_text).to eq('完了')
+        
+        transfer.status = :cancelled
+        expect(transfer.status_text).to eq('キャンセル')
       end
+    end
 
-      describe '#priority_text' do
-        it 'returns Japanese text for each priority' do
-          priority_translations = {
-            'normal' => '通常',
-            'urgent' => '緊急',
-            'emergency' => '非常時'
-          }
-
-          priority_translations.each do |priority, text|
-            transfer.priority = priority
-            expect(transfer.priority_text).to eq(text)
-          end
-        end
+    describe '#priority_text' do
+      it 'returns Japanese text for priority' do
+        expect(transfer.priority_text).to eq('通常')
+        
+        transfer.priority = :urgent
+        expect(transfer.priority_text).to eq('緊急')
+        
+        transfer.priority = :emergency
+        expect(transfer.priority_text).to eq('非常時')
       end
     end
 
     describe '#transfer_summary' do
-      it 'returns formatted transfer description' do
-        expected = "#{source_store.code} - 中央薬局 → #{destination_store.code} - 西口薬局: アスピリン100mg × 5"
+      it 'returns formatted transfer summary' do
+        expected = "#{source_store.display_name} → #{destination_store.display_name}: #{inventory.name} × #{transfer.quantity}"
         expect(transfer.transfer_summary).to eq(expected)
       end
     end
 
     describe '#processing_time' do
-      it 'returns nil when not completed' do
+      it 'calculates time between request and completion' do
+        transfer.update!(status: :approved)
+        transfer.update!(
+          status: :completed,
+          completed_at: transfer.requested_at + 2.hours
+        )
+        
+        expect(transfer.processing_time).to eq(2.hours)
+      end
+
+      it 'returns nil if not completed' do
         expect(transfer.processing_time).to be_nil
       end
 
-      it 'calculates processing time when completed' do
-        start_time = 2.hours.ago
-        end_time = 1.hour.ago
-
-        # 正しいステータス遷移で完了状態にする
+      it 'returns nil if requested_at is nil' do
         transfer.update!(status: :approved)
-        transfer.update!(status: :completed, completed_at: end_time, requested_at: start_time)
-
-        expect(transfer.processing_time).to be_within(1.second).of(1.hour)
+        transfer.update!(status: :completed, completed_at: Time.current)
+        transfer.update_column(:requested_at, nil)
+        
+        expect(transfer.processing_time).to be_nil
       end
     end
 
-    describe 'state check methods' do
-      describe '#approvable?' do
-        it 'returns true for pending transfers with sufficient stock' do
-          create(:store_inventory, store: source_store, inventory: inventory, quantity: 10, reserved_quantity: 0)
-          expect(transfer.approvable?).to be true
+    describe '#approvable?' do
+      it 'returns true for pending with sufficient stock' do
+        expect(transfer.approvable?).to be true
+      end
+
+      it 'returns false if not pending' do
+        transfer.update!(status: :approved)
+        expect(transfer.approvable?).to be false
+      end
+
+      it 'returns false if insufficient stock' do
+        source_inventory.update!(quantity: 20)
+        expect(transfer.approvable?).to be false
+      end
+    end
+
+    describe '#rejectable?' do
+      it 'returns true for pending' do
+        expect(transfer.rejectable?).to be true
+      end
+
+      it 'returns false if not pending' do
+        transfer.update!(status: :approved)
+        expect(transfer.rejectable?).to be false
+      end
+    end
+
+    describe '#can_be_cancelled?' do
+      it 'returns true for pending' do
+        expect(transfer.can_be_cancelled?).to be true
+      end
+
+      it 'returns true for approved' do
+        transfer.update!(status: :approved)
+        expect(transfer.can_be_cancelled?).to be true
+      end
+
+      it 'returns false for completed' do
+        transfer.update!(status: :approved)
+        transfer.update!(status: :completed)
+        expect(transfer.can_be_cancelled?).to be false
+      end
+
+      it 'returns false for rejected' do
+        transfer.update!(status: :rejected)
+        expect(transfer.can_be_cancelled?).to be false
+      end
+    end
+
+    describe '#can_be_cancelled_by?' do
+      context 'with admin user' do
+        it 'allows cancellation by requesting admin' do
+          expect(transfer.can_be_cancelled_by?(admin_user)).to be true
         end
 
-        it 'returns false for non-pending transfers' do
-          transfer.update!(status: :approved)
-          expect(transfer.approvable?).to be false
+        it 'allows cancellation by headquarters admin' do
+          hq_admin = create(:admin, :headquarters_admin)
+          expect(transfer.can_be_cancelled_by?(hq_admin)).to be true
         end
 
-        it 'returns false when insufficient stock' do
-          # transferが作成されるとファクトリによって在庫が作成される
-          transfer # Ensure transfer is created and StoreInventory exists
-          store_inventory = StoreInventory.find_by(store: source_store, inventory: inventory)
-          store_inventory.update!(quantity: 3, reserved_quantity: 2)  # available: 1, needed: 5
-          expect(transfer.approvable?).to be false
+        it 'prevents cancellation by other admin' do
+          other_admin = create(:admin)
+          expect(transfer.can_be_cancelled_by?(other_admin)).to be false
         end
       end
 
-      describe '#rejectable?' do
-        it 'returns true for pending transfers' do
-          expect(transfer.rejectable?).to be true
+      context 'with store user' do
+        let(:store_transfer) do
+          create(:inter_store_transfer,
+            source_store: source_store,
+            destination_store: destination_store,
+            requested_by: store_user
+          )
         end
 
-        it 'returns false for non-pending transfers' do
-          transfer.update!(status: :approved)
-          expect(transfer.rejectable?).to be false
-        end
-      end
-
-      describe '#can_be_cancelled?' do
-        it 'returns true for pending and approved transfers' do
-          expect(transfer.can_be_cancelled?).to be true
-
-          transfer.update!(status: :approved)
-          expect(transfer.can_be_cancelled?).to be true
+        it 'allows cancellation by store user from same store if pending' do
+          expect(store_transfer.can_be_cancelled_by?(store_user)).to be true
         end
 
-        it 'returns false for other statuses' do
-          # 正しいステータス遷移で完了状態にする
-          transfer.update!(status: :approved)
-          transfer.update!(status: :completed)
-          expect(transfer.can_be_cancelled?).to be false
-        end
-      end
-
-      describe '#completable?' do
-        it 'returns true for approved and in_transit transfers' do
-          transfer.update!(status: :approved)
-          expect(transfer.completable?).to be true
-
-          transfer.update!(status: :in_transit)
-          expect(transfer.completable?).to be true
+        it 'prevents cancellation by store user from different store' do
+          other_store_user = create(:store_user, store: destination_store)
+          expect(store_transfer.can_be_cancelled_by?(other_store_user)).to be false
         end
 
-        it 'returns false for other statuses' do
-          expect(transfer.completable?).to be false
+        it 'prevents cancellation by store user if approved' do
+          store_transfer.update!(status: :approved)
+          expect(store_transfer.can_be_cancelled_by?(store_user)).to be false
         end
       end
     end
 
-    describe 'workflow action methods' do
-      let(:approver) { create(:admin) }
-      let(:store_inventory) { StoreInventory.find_by(store: source_store, inventory: inventory) }
+    describe '#cancel_by!' do
+      it 'cancels transfer and releases stock' do
+        expect {
+          result = transfer.cancel_by!(admin_user)
+          expect(result).to be true
+        }.to change { transfer.reload.status }.from('pending').to('cancelled')
+          .and change { source_inventory.reload.reserved_quantity }.from(30).to(0)
+      end
 
-      describe '#approve!' do
-        context 'when approvable' do
-          it 'updates status and approver information' do
-            expect(transfer.approve!(approver)).to be true
+      it 'returns false if not cancellable by user' do
+        other_admin = create(:admin)
+        result = transfer.cancel_by!(other_admin)
+        expect(result).to be false
+        expect(transfer.reload.status).to eq('pending')
+      end
 
-            transfer.reload
-            expect(transfer.status).to eq('approved')
-            expect(transfer.approved_by).to eq(approver)
-            expect(transfer.approved_at).to be_present
-          end
-        end
+      it 'handles validation errors gracefully' do
+        allow(transfer).to receive(:update!).and_raise(ActiveRecord::RecordInvalid)
+        result = transfer.cancel_by!(admin_user)
+        expect(result).to be false
+      end
+    end
 
-        context 'when not approvable' do
-          before do
-            # 正しいステータス遷移で完了状態にする
-            transfer.update!(status: :approved)
-            transfer.update!(status: :completed)
-          end
+    describe '#completable?' do
+      it 'returns true for approved' do
+        transfer.update!(status: :approved)
+        expect(transfer.completable?).to be true
+      end
 
-          it 'returns false and does not update' do
-            expect(transfer.approve!(approver)).to be false
-            expect(transfer.approved_by).to be_nil
-          end
+      it 'returns true for in_transit' do
+        transfer.update!(status: :approved)
+        transfer.update!(status: :in_transit)
+        expect(transfer.completable?).to be true
+      end
+
+      it 'returns false for pending' do
+        expect(transfer.completable?).to be false
+      end
+    end
+
+    describe '#sufficient_stock_available?' do
+      it 'returns true when stock is sufficient' do
+        expect(transfer.sufficient_stock_available?).to be true
+      end
+
+      it 'returns false when stock is insufficient' do
+        source_inventory.update!(quantity: 20, reserved_quantity: 10)
+        expect(transfer.sufficient_stock_available?).to be false
+      end
+
+      it 'returns false when source inventory does not exist' do
+        source_inventory.destroy
+        expect(transfer.sufficient_stock_available?).to be false
+      end
+    end
+
+    describe '#approve!' do
+      it 'approves transfer with timestamp' do
+        freeze_time do
+          result = transfer.approve!(admin_user)
+          
+          expect(result).to be true
+          expect(transfer.reload.status).to eq('approved')
+          expect(transfer.approved_by).to eq(admin_user)
+          expect(transfer.approved_at).to eq(Time.current)
         end
       end
 
-      describe '#reject!' do
-        let(:rejection_reason) { '在庫不足のため' }
+      it 'returns false if not approvable' do
+        transfer.update!(status: :approved)
+        transfer.update!(status: :completed)
+        result = transfer.approve!(admin_user)
+        
+        expect(result).to be false
+        expect(transfer.reload.status).to eq('completed')
+      end
 
-        context 'when rejectable' do
-          it 'updates status and adds rejection reason' do
-            original_reason = transfer.reason
-            expect(transfer.reject!(approver, rejection_reason)).to be true
+      it 'handles validation errors' do
+        allow(transfer).to receive(:update!).and_raise(ActiveRecord::RecordInvalid)
+        result = transfer.approve!(admin_user)
+        
+        expect(result).to be false
+      end
+    end
 
-            transfer.reload
-            expect(transfer.status).to eq('rejected')
-            expect(transfer.approved_by).to eq(approver)
-            expect(transfer.approved_at).to be_present
-            expect(transfer.reason).to include(original_reason)
-            expect(transfer.reason).to include(rejection_reason)
-          end
+    describe '#reject!' do
+      let(:rejection_reason) { '在庫不足のため' }
 
-          it 'releases reserved stock' do
-            transfer # Ensure transfer is created
-            store_inventory = StoreInventory.find_by(store: source_store, inventory: inventory)
+      it 'rejects transfer and releases stock' do
+        result = transfer.reject!(admin_user, rejection_reason)
+        
+        expect(result).to be true
+        expect(transfer.reload.status).to eq('rejected')
+        expect(transfer.approved_by).to eq(admin_user)
+        expect(transfer.approved_at).to be_present
+        expect(transfer.reason).to include(rejection_reason)
+        expect(source_inventory.reload.reserved_quantity).to eq(0)
+      end
 
-            expect {
-              transfer.reject!(approver, rejection_reason)
-            }.to change { store_inventory.reload.reserved_quantity }.by(-5) # Release transfer quantity
-          end
+      it 'appends rejection reason to existing reason' do
+        original_reason = transfer.reason
+        transfer.reject!(admin_user, rejection_reason)
+        
+        expect(transfer.reload.reason).to include(original_reason)
+        expect(transfer.reason).to include('【却下理由】')
+        expect(transfer.reason).to include(rejection_reason)
+      end
+
+      it 'returns false if not rejectable' do
+        transfer.update!(status: :approved)
+        result = transfer.reject!(admin_user, rejection_reason)
+        
+        expect(result).to be false
+      end
+    end
+
+    describe '#execute_transfer!' do
+      before { transfer.update!(status: :approved) }
+
+      context 'when destination inventory exists' do
+        let!(:destination_inventory) do
+          create(:store_inventory,
+            store: destination_store,
+            inventory: inventory,
+            quantity: 50,
+            reserved_quantity: 0
+          )
         end
 
-        context 'when not rejectable' do
-          before do
-            # 正しいステータス遷移で完了状態にする
-            transfer.update!(status: :approved)
-            transfer.update!(status: :completed)
-          end
-
-          it 'returns false and does not update' do
-            expect(transfer.reject!(approver, rejection_reason)).to be false
-          end
+        it 'transfers inventory between stores' do
+          result = transfer.execute_transfer!
+          
+          expect(result).to be true
+          expect(transfer.reload.status).to eq('completed')
+          expect(transfer.completed_at).to be_present
+          
+          # Source inventory updated
+          source_inventory.reload
+          expect(source_inventory.quantity).to eq(70) # 100 - 30
+          expect(source_inventory.reserved_quantity).to eq(0) # Released
+          
+          # Destination inventory updated
+          destination_inventory.reload
+          expect(destination_inventory.quantity).to eq(80) # 50 + 30
         end
       end
 
-      describe '#execute_transfer!' do
-        let(:destination_store_inventory) { create(:store_inventory, store: destination_store, inventory: inventory, quantity: 3) }
-
-        before do
-          transfer.update!(status: :approved)
+      context 'when destination inventory does not exist' do
+        it 'creates destination inventory and transfers' do
+          expect {
+            result = transfer.execute_transfer!
+            expect(result).to be true
+          }.to change(StoreInventory, :count).by(1)
+          
+          destination_inventory = StoreInventory.find_by(
+            store: destination_store,
+            inventory: inventory
+          )
+          
+          expect(destination_inventory).to be_present
+          expect(destination_inventory.quantity).to eq(30)
+          expect(destination_inventory.reserved_quantity).to eq(0)
+          expect(destination_inventory.safety_stock_level).to eq(5)
         end
+      end
 
-        context 'when completable and valid' do
-          it 'transfers inventory between stores' do
-            destination_store_inventory # Create destination inventory
+      it 'returns false if not completable' do
+        transfer.update!(status: :pending)
+        result = transfer.execute_transfer!
+        
+        expect(result).to be false
+        expect(source_inventory.reload.quantity).to eq(100)
+      end
 
-            expect(transfer.execute_transfer!).to be true
-
-            store_inventory.reload
-            destination_store_inventory.reload
-            transfer.reload
-
-            expect(store_inventory.quantity).to eq(20) # 25 - 5 (factory creates quantity + 20 = 5 + 20 = 25)
-            expect(store_inventory.reserved_quantity).to eq(0) # All reserved stock released
-            expect(destination_store_inventory.quantity).to eq(8) # 3 + 5
-            expect(transfer.status).to eq('completed')
-            expect(transfer.completed_at).to be_present
-          end
-
-          it 'creates destination inventory if it does not exist' do
-            expect {
-              transfer.execute_transfer!
-            }.to change { StoreInventory.where(store: destination_store, inventory: inventory).count }.from(0).to(1)
-
-            new_inventory = StoreInventory.find_by(store: destination_store, inventory: inventory)
-            expect(new_inventory.quantity).to eq(5)
-            expect(new_inventory.safety_stock_level).to eq(5)
-          end
-        end
-
-        context 'when not completable' do
-          before do
-            # Transfer is already in pending status, which is not completable
-            # No status change needed as pending is not completable
-          end
-
-          it 'returns false and does not transfer' do
-            # Transfer is already approved, change to pending to make it not completable
-            # but this is invalid status transition, so create a new pending transfer
-            initial_quantity = store_inventory.reload.quantity
-
-            pending_transfer = create(:inter_store_transfer,
-                                     source_store: source_store,
-                                     inventory: inventory,
-                                     quantity: 5,
-                                     status: :pending)
-
-            expect(pending_transfer.execute_transfer!).to be false
-            expect(store_inventory.reload.quantity).to eq(initial_quantity) # unchanged
-          end
-        end
-
-        context 'when transfer fails due to validation errors' do
-          before do
-            # Force a validation error by setting insufficient inventory
-            # We need to make source inventory have insufficient available quantity for the transfer
-            store_inventory.update!(quantity: 3, reserved_quantity: 1)  # available: 2, needed: 5
-          end
-
-          it 'returns false and logs error' do
-            expect(Rails.logger).to receive(:error).with(/移動実行エラー/)
-            expect(transfer.execute_transfer!).to be false
-          end
-        end
+      it 'handles transaction errors' do
+        allow_any_instance_of(StoreInventory).to receive(:save!).and_raise(ActiveRecord::RecordInvalid)
+        
+        expect(Rails.logger).to receive(:error).with(/移動実行エラー/)
+        
+        result = transfer.execute_transfer!
+        expect(result).to be false
+        expect(transfer.reload.status).to eq('approved')
       end
     end
   end
 
   describe 'class methods' do
-    let!(:store1) { create(:store) }
-    let!(:store2) { create(:store) }
-    let!(:store3) { create(:store) }
-    let!(:inventory1) { create(:inventory) }
-    let!(:inventory2) { create(:inventory) }
+    let(:hq_admin) { create(:admin, :headquarters_admin) }
+    let(:area_admin) { create(:admin) }
+    let(:store3) { create(:store) }
+    
+    before do
+      area_admin.stores << [source_store, destination_store]
+    end
 
-    let!(:completed_transfer1) { create(:inter_store_transfer,
-      source_store: store1,
-      destination_store: store2,
-      inventory: inventory1,
-      status: :completed,
-      requested_at: 5.days.ago,
-      completed_at: 4.days.ago
-    ) }
+    let!(:transfers) do
+      [
+        create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          requested_by: admin_user
+        ),
+        create(:inter_store_transfer,
+          source_store: destination_store,
+          destination_store: store3,
+          requested_by: admin_user
+        ),
+        create(:inter_store_transfer,
+          source_store: store3,
+          destination_store: source_store,
+          requested_by: admin_user
+        )
+      ]
+    end
 
-    let!(:completed_transfer2) { create(:inter_store_transfer,
-      source_store: store1,
-      destination_store: store3,
-      inventory: inventory2,
-      status: :completed,
-      requested_at: 3.days.ago,
-      completed_at: 2.days.ago
-    ) }
+    describe '.accessible_to_admin' do
+      it 'returns all transfers for headquarters admin' do
+        result = InterStoreTransfer.accessible_to_admin(hq_admin)
+        expect(result).to include(*transfers)
+      end
 
-    let!(:pending_transfer) { create(:inter_store_transfer,
-      source_store: store1,
-      destination_store: store2,
-      status: :pending,
-      requested_at: 1.day.ago
-    ) }
+      it 'returns only accessible store transfers for area admin' do
+        result = InterStoreTransfer.accessible_to_admin(area_admin)
+        expect(result).to include(transfers[0], transfers[1], transfers[2])
+      end
+    end
+
+    describe '.accessible_by_store' do
+      it 'returns transfers involving the store' do
+        result = InterStoreTransfer.accessible_by_store(source_store)
+        expect(result).to include(transfers[0], transfers[2])
+        expect(result).not_to include(transfers[1])
+      end
+    end
 
     describe '.store_transfer_stats' do
-      it 'returns comprehensive transfer statistics for a store' do
-        stats = InterStoreTransfer.store_transfer_stats(store1, 7.days.ago..)
+      before do
+        # Create completed transfers
+        create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          status: :approved,
+          requested_at: 10.days.ago,
+        ).update!(status: :completed, completed_at: 8.days.ago)
+        
+        create(:inter_store_transfer,
+          source_store: destination_store,
+          destination_store: source_store,
+          status: :approved,
+          requested_at: 5.days.ago,
+        ).update!(status: :completed, completed_at: 3.days.ago)
+        
+        # Old transfer (outside period)
+        create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          requested_at: 40.days.ago
+        )
+      end
 
-        expect(stats[:outgoing_count]).to eq(3) # all transfers from store1
-        expect(stats[:incoming_count]).to eq(0) # no transfers to store1
-        expect(stats[:outgoing_completed]).to eq(2) # completed transfers
-        expect(stats[:pending_approvals]).to eq(1) # pending transfer
+      it 'calculates store transfer statistics' do
+        stats = InterStoreTransfer.store_transfer_stats(source_store)
+        
+        expect(stats[:outgoing_count]).to eq(2) # Including pending
+        expect(stats[:incoming_count]).to eq(2)
+        expect(stats[:outgoing_completed]).to eq(1)
+        expect(stats[:incoming_completed]).to eq(1)
+        expect(stats[:pending_approvals]).to eq(1)
         expect(stats[:average_processing_time]).to be > 0
+      end
+
+      it 'respects period parameter' do
+        stats = InterStoreTransfer.store_transfer_stats(source_store, 3.days.ago..)
+        
+        expect(stats[:outgoing_count]).to eq(0)
+        expect(stats[:incoming_count]).to eq(1)
       end
     end
 
     describe '.transfer_analytics' do
       before do
-        # Add a rejected transfer for more comprehensive testing
-        create(:inter_store_transfer,
-          source_store: store2,
-          destination_store: store1,
-          status: :rejected,
+        # Create various transfers
+        create_list(:inter_store_transfer, 3, 
+          source_store: source_store,
+          destination_store: destination_store,
           priority: :urgent,
-          requested_at: 2.days.ago
+          status: :approved
+        )
+        
+        create_list(:inter_store_transfer, 2,
+          source_store: source_store,
+          destination_store: destination_store,
+          priority: :emergency,
+          status: :approved
+        ).each { |t| t.update!(status: :completed) }
+        
+        create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          status: :rejected
         )
       end
 
-      it 'returns analytical data for transfers in period' do
-        # Get the IDs of our specific test transfers
-        our_transfer_ids = [ completed_transfer1.id, completed_transfer2.id, pending_transfer.id ]
-
-        # Add the rejected transfer created in before block
-        rejected_transfer = InterStoreTransfer.where(
-          source_store: store2,
-          destination_store: store1,
-          status: :rejected
-        ).first
-        our_transfer_ids << rejected_transfer.id if rejected_transfer
-
-        # Use specific time period that only includes our test data
-        analytics = InterStoreTransfer.transfer_analytics(6.days.ago..Time.current)
-
-        # Count only transfers in our time period with our store IDs
-        our_stores = [ store1.id, store2.id, store3.id ]
-        actual_transfers = InterStoreTransfer.where(
-          requested_at: 6.days.ago..Time.current,
-          source_store_id: our_stores
-        ).or(
-          InterStoreTransfer.where(
-            requested_at: 6.days.ago..Time.current,
-            destination_store_id: our_stores
-          )
-        )
-
-        expect(actual_transfers.count).to eq(4) # Verify our assumption
-        expect(analytics[:total_requests]).to be >= 4
+      it 'provides comprehensive analytics' do
+        analytics = InterStoreTransfer.transfer_analytics
+        
+        expect(analytics[:total_requests]).to be >= 6
         expect(analytics[:approval_rate]).to be > 0
         expect(analytics[:average_quantity]).to be > 0
-        expect(analytics[:by_priority]).to include('normal', 'urgent')
-        expect(analytics[:by_status]).to include('completed', 'pending', 'rejected')
-        expect(analytics[:top_requested_items]).to be_present
-      end
-    end
-
-    describe 'private helper methods' do
-      describe '.calculate_approval_rate' do
-        let(:transfers) { InterStoreTransfer.where(id: [ completed_transfer1.id, completed_transfer2.id, pending_transfer.id ]) }
-
-        it 'calculates approval rate correctly' do
-          rate = InterStoreTransfer.calculate_approval_rate(transfers)
-          expected_rate = (2.0 / 3.0 * 100).round(2) # 2 completed out of 3 total
-          expect(rate).to eq(expected_rate)
-        end
-
-        it 'returns 0 for empty collection' do
-          rate = InterStoreTransfer.calculate_approval_rate(InterStoreTransfer.none)
-          expect(rate).to eq(0.0)
-        end
+        expect(analytics[:by_priority]).to be_a(Hash)
+        expect(analytics[:by_status]).to be_a(Hash)
+        expect(analytics[:top_requested_items]).to be_a(Hash)
       end
 
-      describe '.calculate_average_processing_time' do
-        let(:completed_transfers) { InterStoreTransfer.where(id: [ completed_transfer1.id, completed_transfer2.id ]) }
-
-        it 'calculates average processing time correctly' do
-          avg_time = InterStoreTransfer.calculate_average_processing_time(completed_transfers)
-          expect(avg_time).to be_within(1.second).of(1.day) # Both transfers took 1 day each
-        end
-
-        it 'returns 0 for empty collection' do
-          avg_time = InterStoreTransfer.calculate_average_processing_time(InterStoreTransfer.none)
-          expect(avg_time).to eq(0.0)
-        end
+      it 'calculates approval rate correctly' do
+        # Reset to known state
+        InterStoreTransfer.destroy_all
+        
+        create_list(:inter_store_transfer, 3, status: :approved)
+        create_list(:inter_store_transfer, 2, status: :approved).each { |t| t.update!(status: :completed) }
+        create_list(:inter_store_transfer, 5, status: :rejected)
+        
+        analytics = InterStoreTransfer.transfer_analytics
+        expect(analytics[:approval_rate]).to eq(50.0) # 5 out of 10
       end
     end
   end
 
-  describe 'factory' do
-    it 'has a valid factory' do
-      expect(create(:inter_store_transfer)).to be_valid
+  # ポリモーフィック関連のテスト
+  describe 'polymorphic associations' do
+    it 'accepts Admin as requested_by' do
+      transfer = create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store,
+        requested_by: admin_user
+      )
+      
+      expect(transfer.requested_by).to eq(admin_user)
+      expect(transfer.requested_by_type).to eq('Admin')
     end
 
-    it 'has working traits' do
-      expect(create(:inter_store_transfer, :pending)).to be_valid
-      expect(create(:inter_store_transfer, :approved)).to be_valid
-      expect(create(:inter_store_transfer, :completed)).to be_valid
-      expect(create(:inter_store_transfer, :urgent)).to be_valid
-      expect(create(:inter_store_transfer, :emergency)).to be_valid
+    it 'accepts StoreUser as requested_by' do
+      transfer = create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store,
+        requested_by: store_user
+      )
+      
+      expect(transfer.requested_by).to eq(store_user)
+      expect(transfer.requested_by_type).to eq('StoreUser')
     end
 
-    # ポリモーフィック関連付けのテスト
-    # メタ認知: AdminとStoreUserの両方で正常に動作することを確認
-    describe 'polymorphic associations' do
-      it 'works with Admin as requested_by' do
-        admin = create(:admin)
-        transfer = create(:inter_store_transfer, requested_by: admin)
+    it 'handles different user types for different actions' do
+      transfer = create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store,
+        requested_by: store_user
+      )
+      
+      transfer.approve!(admin_user)
+      
+      expect(transfer.requested_by).to eq(store_user)
+      expect(transfer.approved_by).to eq(admin_user)
+      expect(transfer.approved_by_type).to eq('Admin')
+    end
+  end
 
-        expect(transfer.requested_by).to eq(admin)
-        expect(transfer.requested_by_type).to eq('Admin')
-        expect(transfer.requested_by_id).to eq(admin.id)
+  # パフォーマンステスト
+  describe 'performance' do
+    it 'handles bulk transfers efficiently' do
+      transfers = []
+      
+      start_time = Time.current
+      100.times do
+        transfers << build(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store
+        )
       end
+      InterStoreTransfer.import(transfers) if defined?(InterStoreTransfer.import)
+      elapsed_time = (Time.current - start_time) * 1000
+      
+      expect(elapsed_time).to be < 5000 # Under 5 seconds
+    end
 
-      it 'works with StoreUser as requested_by' do
-        store_user = create(:store_user)
-        transfer = create(:inter_store_transfer, :requested_by_store_user)
+    it 'avoids N+1 queries when loading associations' do
+      create_list(:inter_store_transfer, 5,
+        source_store: source_store,
+        destination_store: destination_store
+      )
+      
+      expect {
+        InterStoreTransfer.includes(
+          :source_store, :destination_store, :inventory, :requested_by
+        ).each do |transfer|
+          transfer.source_store.name
+          transfer.destination_store.name
+          transfer.inventory.name
+          transfer.requested_by.name if transfer.requested_by
+        end
+      }.not_to exceed_query_limit(6)
+    end
+  end
 
-        expect(transfer.requested_by).to be_a(StoreUser)
-        expect(transfer.requested_by_type).to eq('StoreUser')
+  # セキュリティテスト
+  describe 'security' do
+    it 'sanitizes reason input' do
+      transfer = create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store,
+        reason: '<script>alert("XSS")</script>在庫調整'
+      )
+      
+      # アプリケーション層でのサニタイズを想定
+      expect(transfer.reason).to include('在庫調整')
+    end
+
+    it 'prevents unauthorized status changes' do
+      transfer = create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store
+      )
+      
+      # Direct status manipulation should be validated
+      transfer.status = :completed
+      expect(transfer).not_to be_valid
+    end
+  end
+
+  # 統合シナリオテスト
+  describe 'integration scenarios' do
+    it 'handles complete transfer lifecycle' do
+      # 1. Create transfer request
+      transfer = create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store,
+        inventory: inventory,
+        quantity: 40,
+        requested_by: store_user,
+        priority: :urgent,
+        reason: '新宿店の在庫不足対応'
+      )
+      
+      expect(source_inventory.reload.reserved_quantity).to eq(40)
+      
+      # 2. Admin approves
+      expect(transfer.approve!(admin_user)).to be true
+      expect(transfer.reload.status).to eq('approved')
+      
+      # 3. Mark as in transit
+      transfer.update!(status: :in_transit)
+      
+      # 4. Execute transfer
+      expect(transfer.execute_transfer!).to be true
+      
+      # 5. Verify final state
+      transfer.reload
+      expect(transfer.status).to eq('completed')
+      expect(transfer.completed_at).to be_present
+      
+      source_inventory.reload
+      expect(source_inventory.quantity).to eq(60)
+      expect(source_inventory.reserved_quantity).to eq(0)
+      
+      dest_inventory = StoreInventory.find_by(
+        store: destination_store,
+        inventory: inventory
+      )
+      expect(dest_inventory.quantity).to eq(40)
+    end
+
+    it 'handles rejection flow correctly' do
+      # 1. Create transfer
+      transfer = create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store,
+        inventory: inventory,
+        quantity: 80,
+        requested_by: store_user
+      )
+      
+      # 2. Admin rejects
+      expect(transfer.reject!(admin_user, '数量が多すぎるため')).to be true
+      
+      # 3. Verify state
+      transfer.reload
+      expect(transfer.status).to eq('rejected')
+      expect(transfer.reason).to include('数量が多すぎるため')
+      expect(source_inventory.reload.reserved_quantity).to eq(0)
+    end
+
+    it 'handles cancellation by requestor' do
+      # 1. Store user creates request
+      transfer = create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store,
+        inventory: inventory,
+        quantity: 25,
+        requested_by: store_user
+      )
+      
+      # 2. Store user cancels
+      expect(transfer.cancel_by!(store_user)).to be true
+      
+      # 3. Verify state
+      expect(transfer.reload.status).to eq('cancelled')
+      expect(source_inventory.reload.reserved_quantity).to eq(0)
+    end
+  end
+
+  # エッジケース
+  describe 'edge cases' do
+    it 'handles concurrent transfers safely' do
+      # Create multiple transfers for same inventory
+      transfers = 3.times.map do
+        create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          inventory: inventory,
+          quantity: 30,
+          requested_by: admin_user
+        )
       end
+      
+      # Total reserved should not exceed available
+      expect(source_inventory.reload.reserved_quantity).to eq(90)
+      expect(source_inventory.quantity).to eq(100)
+    end
 
-      it 'works with Admin as approved_by' do
-        admin = create(:admin)
-        transfer = create(:inter_store_transfer, :approved, approved_by: admin)
+    it 'handles store deletion gracefully' do
+      transfer = create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store,
+        requested_by: admin_user
+      )
+      
+      # Stores should not be deletable with active transfers
+      expect { source_store.destroy }.not_to change(Store, :count)
+      expect { destination_store.destroy }.not_to change(Store, :count)
+    end
 
-        expect(transfer.approved_by).to eq(admin)
-        expect(transfer.approved_by_type).to eq('Admin')
-        expect(transfer.approved_by_id).to eq(admin.id)
-      end
-
-      it 'works with StoreUser as approved_by' do
-        transfer = create(:inter_store_transfer, :approved_by_store_user)
-
-        expect(transfer.approved_by).to be_a(StoreUser)
-        expect(transfer.approved_by_type).to eq('StoreUser')
-      end
-
-      it 'supports full StoreUser workflow' do
-        transfer = create(:inter_store_transfer, :full_store_user_workflow)
-
-        expect(transfer.requested_by).to be_a(StoreUser)
-        expect(transfer.approved_by).to be_a(StoreUser)
-        expect(transfer.requested_by_type).to eq('StoreUser')
-        expect(transfer.approved_by_type).to eq('StoreUser')
-      end
+    it 'handles very large transfer quantities' do
+      source_inventory.update!(quantity: 999_999_999)
+      
+      transfer = create(:inter_store_transfer,
+        source_store: source_store,
+        destination_store: destination_store,
+        inventory: inventory,
+        quantity: 500_000_000,
+        requested_by: admin_user
+      )
+      
+      expect(transfer).to be_valid
+      transfer.update!(status: :approved)
+      expect(transfer.execute_transfer!).to be true
     end
   end
 

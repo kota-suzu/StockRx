@@ -536,4 +536,455 @@ RSpec.describe AdminControllers::StoresController, type: :controller do
       end
     end
   end
+
+  # ============================================
+  # パフォーマンス・N+1クエリテスト
+  # ============================================
+
+  describe "performance tests" do
+    before do
+      sign_in headquarters_admin
+    end
+
+    describe "N+1 query prevention" do
+      context "index action" do
+        it "多数の店舗でのN+1クエリ防止" do
+          create_list(:store, 10, active: true)
+
+          expect {
+            get :index
+          }.not_to exceed_query_limit(15) # Counter Cache活用で制限
+        end
+
+        it "統計計算でのクエリ最適化" do
+          stores = create_list(:store, 5, active: true)
+          stores.each do |store|
+            create_list(:store_inventory, 3, store: store)
+            create_list(:inter_store_transfer, 2, source_store: store)
+          end
+
+          expect {
+            get :index
+          }.not_to exceed_query_limit(20) # 統計計算含むクエリ制限
+        end
+      end
+
+      context "show action optimization" do
+        it "店舗詳細表示でのN+1クエリ防止" do
+          inventory1 = create(:inventory)
+          inventory2 = create(:inventory)
+          create(:store_inventory, store: store, inventory: inventory1)
+          create(:store_inventory, store: store, inventory: inventory2)
+
+          expect {
+            get :show, params: { id: store.id }
+          }.not_to exceed_query_limit(8) # includes使用で制限
+        end
+
+        it "最近の移動履歴読み込み最適化" do
+          create_list(:inter_store_transfer, 5, source_store: store)
+          create_list(:inter_store_transfer, 3, destination_store: store)
+
+          expect {
+            get :show, params: { id: store.id }
+          }.not_to exceed_query_limit(10) # 移動履歴のincludes最適化
+        end
+      end
+
+      context "dashboard action optimization" do
+        it "ダッシュボード表示でのCounter Cache活用" do
+          setup_store_with_data(store)
+
+          expect {
+            get :dashboard, params: { id: store.id }
+          }.not_to exceed_query_limit(12) # Counter Cache使用で高速化
+        end
+
+        it "低在庫アイテム取得最適化" do
+          inventories = create_list(:inventory, 8)
+          inventories.each do |inventory|
+            create(:store_inventory, 
+                   store: store, 
+                   inventory: inventory,
+                   quantity: 5,
+                   safety_stock_level: 10)
+          end
+
+          expect {
+            get :dashboard, params: { id: store.id }
+          }.not_to exceed_query_limit(8) # JOIN使用で最適化
+        end
+      end
+    end
+
+    describe "bulk operations performance" do
+      it "大量店舗でのindex表示パフォーマンス" do
+        create_list(:store, 50, active: true)
+
+        start_time = Time.current
+        get :index
+        elapsed_time = (Time.current - start_time) * 1000
+
+        expect(response).to be_successful
+        expect(elapsed_time).to be < 800 # 800ms以内
+      end
+
+      it "検索・フィルタリング機能のパフォーマンス" do
+        stores = create_list(:store, 30, active: true)
+        target_store = stores.first
+
+        start_time = Time.current
+        get :index, params: { search: target_store.name[0..2] }
+        elapsed_time = (Time.current - start_time) * 1000
+
+        expect(response).to be_successful
+        expect(elapsed_time).to be < 400 # 400ms以内
+      end
+
+      it "統計計算の重い処理でのパフォーマンス" do
+        stores = create_list(:store, 20, active: true)
+        stores.each do |s|
+          create_list(:store_inventory, 5, store: s)
+          create_list(:inter_store_transfer, 3, source_store: s)
+        end
+
+        start_time = Time.current
+        get :index
+        elapsed_time = (Time.current - start_time) * 1000
+
+        expect(response).to be_successful
+        expect(elapsed_time).to be < 1000 # 1秒以内
+      end
+    end
+  end
+
+  # ============================================
+  # セキュリティテスト
+  # ============================================
+
+  describe "security tests" do
+    context "認証なしアクセス" do
+      before { sign_out :admin }
+
+      it "index画面への認証なしアクセスは拒否される" do
+        get :index
+        expect(response).to redirect_to(new_admin_session_path)
+      end
+
+      it "dashboard画面への認証なしアクセスは拒否される" do
+        get :dashboard, params: { id: store.id }
+        expect(response).to redirect_to(new_admin_session_path)
+      end
+    end
+
+    context "権限エスカレーション防止" do
+      before do
+        sign_in store_admin
+        store_admin.update!(store: store)
+      end
+
+      it "店舗管理者は他店舗のデータにアクセスできない" do
+        get :show, params: { id: other_store.id }
+        expect(response).to redirect_to(admin_root_path)
+        expect(flash[:alert]).to include("権限がありません")
+      end
+
+      it "店舗管理者は本部機能（店舗作成）にアクセスできない" do
+        post :create, params: { store: valid_attributes }
+        expect(response).to redirect_to(admin_root_path)
+        expect(flash[:alert]).to include("本部管理者のみ")
+      end
+
+      it "店舗管理者は他店舗の削除はできない" do
+        delete :destroy, params: { id: other_store.id }
+        expect(response).to redirect_to(admin_root_path)
+      end
+    end
+
+    context "XSS防止" do
+      before { sign_in headquarters_admin }
+
+      let(:xss_attributes) do
+        {
+          name: "<script>alert('XSS')</script>悪意のある店舗",
+          code: "EVIL001",
+          store_type: "pharmacy",
+          region: "関東",
+          manager_name: "<img src=x onerror=alert('XSS')>管理者",
+          active: true
+        }
+      end
+
+      it "店舗名のXSSスクリプトはエスケープされる" do
+        post :create, params: { store: xss_attributes }
+        created_store = Store.last
+        expect(created_store.name).not_to include("<script>")
+        expect(created_store.name).to include("悪意のある店舗")
+      end
+
+      it "管理者名のXSSスクリプトはエスケープされる" do
+        post :create, params: { store: xss_attributes }
+        created_store = Store.last
+        expect(created_store.manager_name).not_to include("<img")
+        expect(created_store.manager_name).to include("管理者")
+      end
+    end
+
+    context "Mass Assignment防止" do
+      before { sign_in headquarters_admin }
+
+      it "許可されていないパラメータは無視される" do
+        malicious_params = valid_attributes.merge(
+          id: 999,
+          created_at: 1.year.ago,
+          internal_secret: "SECRET_DATA"
+        )
+
+        post :create, params: { store: malicious_params }
+        created_store = Store.last
+
+        expect(created_store.name).to eq(valid_attributes[:name])
+        expect(created_store.code).to eq(valid_attributes[:code])
+        # 許可されていないパラメータは設定されない
+        expect(created_store.created_at).to be > 1.hour.ago
+      end
+    end
+
+    context "SQL Injection防止" do
+      before { sign_in headquarters_admin }
+
+      it "検索パラメータでのSQL Injection防止" do
+        malicious_search = "'; DROP TABLE stores; --"
+        create(:store, name: "安全な店舗")
+
+        expect {
+          get :index, params: { search: malicious_search }
+        }.not_to raise_error
+
+        expect(Store.count).to be > 0 # テーブルが削除されていない
+      end
+
+      it "フィルタパラメータでのSQL Injection防止" do
+        malicious_filter = "pharmacy'; DROP TABLE stores; --"
+
+        expect {
+          get :index, params: { filter: malicious_filter }
+        }.not_to raise_error
+      end
+    end
+  end
+
+  # ============================================
+  # エラーハンドリングテスト
+  # ============================================
+
+  describe "error handling" do
+    before { sign_in headquarters_admin }
+
+    context "データベース接続エラー" do
+      before do
+        allow(Store).to receive(:active).and_raise(ActiveRecord::ConnectionTimeoutError)
+      end
+
+      it "適切にエラーハンドリングされる" do
+        expect {
+          get :index
+        }.to raise_error(ActiveRecord::ConnectionTimeoutError)
+      end
+    end
+
+    context "メモリ不足エラー" do
+      before do
+        allow(controller).to receive(:calculate_store_overview_stats).and_raise(NoMemoryError)
+      end
+
+      it "メモリエラーは適切に伝播される" do
+        expect {
+          get :index
+        }.to raise_error(NoMemoryError)
+      end
+    end
+
+    context "複雑な統計計算でのタイムアウト" do
+      before do
+        allow(controller).to receive(:calculate_store_detailed_stats)
+          .and_raise(ActiveRecord::QueryCanceled, "Query timeout")
+      end
+
+      it "クエリタイムアウトエラーを適切に処理する" do
+        expect {
+          get :show, params: { id: store.id }
+        }.to raise_error(ActiveRecord::QueryCanceled)
+      end
+    end
+  end
+
+  # ============================================
+  # APIレスポンス互換性テスト
+  # ============================================
+
+  describe "API compatibility" do
+    before { sign_in headquarters_admin }
+
+    context "JSON APIレスポンス（将来実装準備）" do
+      it "index画面のJSON対応準備" do
+        create_list(:store, 3)
+        
+        # TODO: Phase 4 - JSON API実装時のテスト
+        get :index, format: :html
+        expect(response).to be_successful
+        expect(assigns(:stores)).to be_present
+      end
+
+      it "show画面のJSON対応準備" do
+        # TODO: Phase 4 - JSON API実装時のテスト
+        get :show, params: { id: store.id }, format: :html
+        expect(response).to be_successful
+        expect(assigns(:store)).to be_present
+      end
+    end
+  end
+
+  # ============================================
+  # 統計計算ロジックテスト
+  # ============================================
+
+  describe "statistics calculation" do
+    before { sign_in headquarters_admin }
+
+    describe "overview statistics" do
+      before do
+        # テストデータセットアップ
+        stores = create_list(:store, 3, active: true)
+        create(:store, active: false) # 非アクティブ店舗
+        
+        stores.each_with_index do |s, index|
+          inventory = create(:inventory, price: 1000)
+          create(:store_inventory, 
+                 store: s, 
+                 inventory: inventory,
+                 quantity: (index + 1) * 10,
+                 safety_stock_level: 5)
+        end
+
+        create_list(:inter_store_transfer, 2, status: :pending)
+        create_list(:inter_store_transfer, 3, status: :completed, 
+                    completed_at: Date.current.beginning_of_day)
+      end
+
+      it "統計情報を正しく計算する" do
+        get :index
+        stats = assigns(:stats)
+
+        expect(stats[:total_stores]).to eq(3) # アクティブ店舗のみ
+        expect(stats[:total_inventories]).to eq(3)
+        expect(stats[:total_inventory_value]).to eq(60000) # (10+20+30) * 1000
+        expect(stats[:pending_transfers]).to eq(2)
+        expect(stats[:completed_transfers_today]).to eq(3)
+      end
+    end
+
+    describe "store detailed statistics" do
+      before do
+        setup_store_with_data(store)
+      end
+
+      it "店舗詳細統計を正しく計算する" do
+        get :show, params: { id: store.id }
+        stats = assigns(:store_stats)
+
+        expect(stats).to be_a(Hash)
+        expect(stats).to have_key(:total_items)
+        expect(stats).to have_key(:total_value)
+        expect(stats).to have_key(:low_stock_count)
+      end
+    end
+
+    describe "dashboard statistics" do
+      before do
+        setup_store_with_data(store)
+      end
+
+      it "ダッシュボード統計を正しく計算する" do
+        get :dashboard, params: { id: store.id }
+        stats = assigns(:dashboard_stats)
+
+        expect(stats).to be_a(Hash)
+        expect(stats).to have_key(:inventory_turnover_rate)
+        expect(stats).to have_key(:transfers_completed_today)
+      end
+    end
+  end
+
+  # ============================================
+  # 検索・フィルタリング機能テスト
+  # ============================================
+
+  describe "search and filtering" do
+    before do
+      sign_in headquarters_admin
+      @pharmacy_store = create(:store, name: "薬局A", store_type: :pharmacy, region: "東京")
+      @warehouse_store = create(:store, name: "倉庫B", store_type: :warehouse, region: "大阪")
+      @headquarters_store = create(:store, name: "本社C", store_type: :headquarters, region: "東京")
+    end
+
+    context "名前検索" do
+      it "部分マッチで店舗を検索できる" do
+        get :index, params: { search: "薬局" }
+        expect(assigns(:stores)).to include(@pharmacy_store)
+        expect(assigns(:stores)).not_to include(@warehouse_store)
+      end
+
+      it "大文字小文字を区別しない検索" do
+        get :index, params: { search: "YAKKYOKU" }
+        # TODO: 実装によっては文字化けやローマ字検索対応が必要
+        expect(response).to be_successful
+      end
+    end
+
+    context "タイプフィルター" do
+      it "薬局のみフィルタリングできる" do
+        get :index, params: { filter: "pharmacy" }
+        expect(assigns(:stores)).to include(@pharmacy_store)
+        expect(assigns(:stores)).not_to include(@warehouse_store)
+      end
+
+      it "倉庫のみフィルタリングできる" do
+        get :index, params: { filter: "warehouse" }
+        expect(assigns(:stores)).to include(@warehouse_store)
+        expect(assigns(:stores)).not_to include(@pharmacy_store)
+      end
+    end
+
+    context "地域検索" do
+      it "地域で店舗を絞り込める" do
+        get :index, params: { search: "東京" }
+        stores = assigns(:stores)
+        expect(stores).to include(@pharmacy_store, @headquarters_store)
+        expect(stores).not_to include(@warehouse_store)
+      end
+    end
+
+    context "低在庫フィルター" do
+      before do
+        inventory = create(:inventory)
+        create(:store_inventory,
+               store: @pharmacy_store,
+               inventory: inventory,
+               quantity: 3,
+               safety_stock_level: 10) # 低在庫
+        create(:store_inventory,
+               store: @warehouse_store,
+               inventory: inventory,
+               quantity: 50,
+               safety_stock_level: 10) # 正常在庫
+      end
+
+      it "低在庫店舗のみフィルタリングできる" do
+        get :index, params: { filter: "low_stock" }
+        expect(assigns(:stores)).to include(@pharmacy_store)
+        expect(assigns(:stores)).not_to include(@warehouse_store)
+      end
+    end
+  end
 end

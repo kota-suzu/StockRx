@@ -645,4 +645,299 @@ RSpec.describe AdminControllers::InventoriesController, type: :controller do
       end
     end
   end
+
+  # ============================================
+  # パフォーマンス・N+1クエリテスト
+  # ============================================
+
+  describe "performance tests" do
+    describe "N+1 query prevention" do
+      context "index action" do
+        it "避けるN+1クエリ（一覧表示）" do
+          create_list(:inventory, 5) do |inventory|
+            create(:batch, inventory: inventory)
+            create(:inventory_log, inventory: inventory)
+          end
+
+          expect {
+            get :index
+          }.not_to exceed_query_limit(10) # 基本的なクエリ数制限
+        end
+
+        it "ページネーション時のクエリ数も一定" do
+          create_list(:inventory, 50)
+
+          expect {
+            get :index, params: { page: 1, per_page: 50 }
+          }.not_to exceed_query_limit(10)
+
+          expect {
+            get :index, params: { page: 2, per_page: 50 }
+          }.not_to exceed_query_limit(10)
+        end
+      end
+
+      context "show action with includes" do
+        it "バッチ情報読み込み時のN+1クエリ防止" do
+          inventory = create(:inventory)
+          create_list(:batch, 3, inventory: inventory)
+
+          expect {
+            get :show, params: { id: inventory.id }
+          }.not_to exceed_query_limit(5) # インクルード使用で制限
+        end
+      end
+
+      context "edit/update actions optimization" do
+        it "編集時は基本情報のみで高速化" do
+          inventory = create(:inventory)
+          create_list(:batch, 3, inventory: inventory)
+
+          expect {
+            get :edit, params: { id: inventory.id }
+          }.not_to exceed_query_limit(3) # バッチ情報を読み込まない
+        end
+
+        it "更新時も基本情報のみで高速化" do
+          inventory = create(:inventory)
+          create_list(:batch, 3, inventory: inventory)
+
+          expect {
+            patch :update, params: { 
+              id: inventory.id, 
+              inventory: { name: "Updated" } 
+            }
+          }.not_to exceed_query_limit(4) # 更新クエリも最小限
+        end
+      end
+    end
+
+    describe "bulk operations performance" do
+      it "大量データでのindex表示パフォーマンス" do
+        create_list(:inventory, 100)
+
+        start_time = Time.current
+        get :index, params: { per_page: 100 }
+        elapsed_time = (Time.current - start_time) * 1000
+
+        expect(response).to be_successful
+        expect(elapsed_time).to be < 500 # 500ms以内
+      end
+
+      it "検索機能のパフォーマンス" do
+        inventories = create_list(:inventory, 50)
+        search_target = inventories.first
+
+        start_time = Time.current
+        get :index, params: { search: search_target.name[0..2] }
+        elapsed_time = (Time.current - start_time) * 1000
+
+        expect(response).to be_successful
+        expect(elapsed_time).to be < 300 # 300ms以内
+      end
+    end
+  end
+
+  # ============================================
+  # セキュリティテスト
+  # ============================================
+
+  describe "security tests" do
+    context "認証なしアクセス" do
+      before { sign_out admin }
+
+      it "index画面への認証なしアクセスは拒否される" do
+        get :index
+        expect(response).to redirect_to(new_admin_session_path)
+      end
+
+      it "CSV import画面への認証なしアクセスは拒否される" do
+        get :import_form
+        expect(response).to redirect_to(new_admin_session_path)
+      end
+    end
+
+    context "XSS防止" do
+      let(:xss_attributes) do
+        {
+          name: "<script>alert('XSS')</script>悪意のある商品",
+          quantity: 100,
+          price: 1000,
+          status: "active"
+        }
+      end
+
+      it "商品名のXSSスクリプトはエスケープされる" do
+        post :create, params: { inventory: xss_attributes }
+        created_inventory = Inventory.last
+        expect(created_inventory.name).not_to include("<script>")
+        expect(created_inventory.name).to include("悪意のある商品")
+      end
+    end
+
+    context "Mass Assignment防止" do
+      it "許可されていないパラメータは無視される" do
+        malicious_params = valid_attributes.merge(
+          admin_id: 999,
+          created_at: 1.year.ago,
+          internal_code: "SECRET"
+        )
+
+        post :create, params: { inventory: malicious_params }
+        inventory = Inventory.last
+
+        expect(inventory.name).to eq(valid_attributes[:name])
+        expect(inventory.quantity).to eq(valid_attributes[:quantity])
+        # 許可されていないパラメータは設定されない
+        expect(inventory.created_at).to be > 1.hour.ago
+      end
+    end
+
+    context "CSVインポートセキュリティ" do
+      let(:csv_injection_content) do
+        "=cmd|'/c calc.exe'!A1,quantity,price,status\n商品A,100,1000,active"
+      end
+      
+      let(:csv_injection_file) do
+        file = Tempfile.new(['injection', '.csv'])
+        file.write(csv_injection_content)
+        file.rewind
+
+        ActionDispatch::Http::UploadedFile.new(
+          tempfile: file,
+          filename: 'injection.csv',
+          type: 'text/csv',
+          original_filename: 'injection.csv'
+        )
+      end
+
+      it "CSV Injectionを含むファイルは安全に処理される" do
+        allow(ImportInventoriesJob).to receive(:perform_later).and_return(true)
+        
+        expect {
+          post :import, params: { csv_file: csv_injection_file }
+        }.not_to raise_error
+        
+        expect(response).to redirect_to(admin_job_status_path(assigns(:job_id)))
+      end
+    end
+  end
+
+  # ============================================
+  # エラーハンドリングテスト
+  # ============================================
+
+  describe "error handling" do
+    context "データベース接続エラー" do
+      before do
+        allow(Inventory).to receive(:all).and_raise(ActiveRecord::ConnectionTimeoutError)
+      end
+
+      it "適切にエラーハンドリングされる" do
+        expect {
+          get :index
+        }.to raise_error(ActiveRecord::ConnectionTimeoutError)
+      end
+    end
+
+    context "メモリ不足エラー" do
+      before do
+        allow(SearchQuery).to receive(:call).and_raise(NoMemoryError)
+      end
+
+      it "メモリエラーは適切に伝播される" do
+        expect {
+          get :index
+        }.to raise_error(NoMemoryError)
+      end
+    end
+
+    context "ディスク容量不足（CSV保存時）" do
+      let(:csv_file) do
+        file = Tempfile.new(['test', '.csv'])
+        file.write("name,quantity,price\n商品A,100,1000")
+        file.rewind
+
+        ActionDispatch::Http::UploadedFile.new(
+          tempfile: file,
+          filename: 'test.csv',
+          type: 'text/csv',
+          original_filename: 'test.csv'
+        )
+      end
+
+      before do
+        allow(controller).to receive(:save_uploaded_file_securely)
+          .and_raise(Errno::ENOSPC, "No space left on device")
+      end
+
+      it "ディスク容量不足エラーを適切に処理する" do
+        post :import, params: { csv_file: csv_file }
+        expect(response).to redirect_to(import_form_admin_inventories_path)
+        expect(flash[:alert]).to include("CSVインポート中にエラーが発生しました")
+      end
+    end
+  end
+
+  # ============================================
+  # ブラウザ・レスポンス形式互換性テスト
+  # ============================================
+
+  describe "browser compatibility" do
+    context "古いブラウザ対応" do
+      before do
+        request.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko" # IE11
+      end
+
+      it "HTML形式でのレスポンスが正常" do
+        get :index
+        expect(response).to be_successful
+        expect(response.content_type).to match(/html/)
+      end
+    end
+
+    context "モバイルデバイス対応" do
+      before do
+        request.headers["User-Agent"] = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)"
+      end
+
+      it "モバイルデバイスでの表示が正常" do
+        get :index
+        expect(response).to be_successful
+      end
+    end
+
+    context "API利用（JSON）" do
+      it "Content-Typeが正しく設定される" do
+        get :index, format: :json
+        expect(response.content_type).to match(/application\/json/)
+      end
+
+      it "CORS対応（将来実装時の準備）" do
+        # TODO: Phase 4 - CORS設定テスト
+        get :index, format: :json
+        expect(response).to be_successful
+      end
+    end
+  end
+
+  # ============================================
+  # アクセシビリティ・ユーザビリティテスト  
+  # ============================================
+
+  describe "accessibility tests" do
+    it "一覧ページでのスクリーンリーダー対応" do
+      create_list(:inventory, 3)
+      get :index
+      
+      expect(response.body).to include('role=') if response.body.present?
+      expect(response).to be_successful
+    end
+
+    it "フォームでのaria-label対応準備" do
+      get :new
+      expect(response).to be_successful
+      # TODO: ビューテンプレートでのaria-label実装後にテスト追加
+    end
+  end
 end

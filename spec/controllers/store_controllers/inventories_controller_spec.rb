@@ -9,9 +9,22 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
   let(:store) { create(:store) }
   let(:store_user) { create(:store_user, store: store) }
+  let(:other_store) { create(:store) }
+  let(:other_store_user) { create(:store_user, store: other_store) }
   let(:admin) { create(:admin) }
-  let(:inventory) { create(:inventory) }
-  let!(:store_inventory) { create(:store_inventory, store: store, inventory: inventory, quantity: 100) }
+  let(:inventory1) { create(:inventory, name: "アスピリン錠100mg", sku: "MED001", manufacturer: "薬品メーカーA", price: 500) }
+  let(:inventory2) { create(:inventory, name: "デジタル血圧計", sku: "DEV001", manufacturer: "医療機器メーカーB", price: 15000) }
+  let(:inventory3) { create(:inventory, name: "マスク50枚入り", sku: "SUP001", manufacturer: "消耗品メーカーC", price: 200) }
+  let!(:store_inventory1) { create(:store_inventory, store: store, inventory: inventory1, quantity: 100, safety_stock_level: 20) }
+  let!(:store_inventory2) { create(:store_inventory, store: store, inventory: inventory2, quantity: 5, safety_stock_level: 10) }
+  let!(:store_inventory3) { create(:store_inventory, store: store, inventory: inventory3, quantity: 0, safety_stock_level: 50) }
+
+  before do
+    # StoreControllers::BaseControllerの認証をモック化
+    allow(controller).to receive(:current_store).and_return(store)
+    allow(controller).to receive(:store_user_signed_in?).and_return(true)
+    allow(controller).to receive(:current_store_user).and_return(store_user)
+  end
 
   describe 'GET #index' do
     context 'without authentication' do
