@@ -324,7 +324,7 @@ RSpec.describe ApplicationHelper, type: :helper do
         start_time = Time.current
         product_names.each { |name| helper.categorize_by_name(name) }
         elapsed_time = (Time.current - start_time) * 1000 # ミリ秒に変換
-        
+
         expect(elapsed_time).to be < 50
       end
     end
@@ -634,7 +634,7 @@ RSpec.describe ApplicationHelper, type: :helper do
         end
       end
       elapsed_time = (Time.current - start_time) * 1000 # ミリ秒に変換
-      
+
       expect(elapsed_time).to be < 100
     end
 
@@ -649,7 +649,7 @@ RSpec.describe ApplicationHelper, type: :helper do
         helper.brand_text
       end
       elapsed_time = (Time.current - start_time) * 1000 # ミリ秒に変換
-      
+
       expect(elapsed_time).to be < 50
     end
   end
@@ -675,7 +675,7 @@ RSpec.describe ApplicationHelper, type: :helper do
 
       it 'JavaScriptイベントハンドラを含む入力を安全に処理すること' do
         event_handlers = %w[onload onclick onerror onmouseover onfocus]
-        
+
         event_handlers.each do |handler|
           name = "#{handler}=alert(1) アスピリン錠"
           result = helper.categorize_by_name(name)
@@ -728,11 +728,11 @@ RSpec.describe ApplicationHelper, type: :helper do
     context 'メモリ効率' do
       it '極端に長い商品名でもメモリリークしないこと' do
         long_name = 'ビタミン' * 10000 + '錠'
-        
+
         initial_memory = `ps -o rss= -p #{Process.pid}`.to_i
         result = helper.categorize_by_name(long_name)
         final_memory = `ps -o rss= -p #{Process.pid}`.to_i
-        
+
         expect(result).to eq('医薬品')
         expect(final_memory - initial_memory).to be < 1000 # 1MB未満の増加
       end
@@ -760,7 +760,7 @@ RSpec.describe ApplicationHelper, type: :helper do
       }
 
       real_world_products.each do |name, expected|
-        expect(helper.categorize_by_name(name)).to eq(expected), 
+        expect(helper.categorize_by_name(name)).to eq(expected),
           "商品名 '#{name}' が期待通り '#{expected}' に分類されませんでした"
       end
     end

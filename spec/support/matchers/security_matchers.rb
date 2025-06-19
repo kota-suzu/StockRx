@@ -4,7 +4,7 @@
 RSpec::Matchers.define :have_secure_attribute do |attribute|
   match do |model|
     # 属性が暗号化されているか確認
-    model.respond_to?("#{attribute}_encrypted") || 
+    model.respond_to?("#{attribute}_encrypted") ||
     model.class.attribute_names.include?("encrypted_#{attribute}")
   end
 
@@ -29,7 +29,7 @@ end
 # CSRFトークンが必要か確認するマッチャー
 RSpec::Matchers.define :require_csrf_token do
   match do |response|
-    response.body.include?('csrf-token') || 
+    response.body.include?('csrf-token') ||
     response.headers['X-CSRF-Token'].present?
   end
 
@@ -42,7 +42,7 @@ end
 RSpec::Matchers.define :be_sql_injection_safe do
   match do |query_method|
     # Arel.sql()でラップされているか、プレースホルダーを使用しているか確認
-    query_method.to_s.include?('Arel.sql') || 
+    query_method.to_s.include?('Arel.sql') ||
     query_method.to_s.match(/\?|:\w+/)
   end
 
@@ -55,7 +55,7 @@ end
 RSpec::Matchers.define :be_xss_safe do |content|
   match do |rendered_output|
     # HTMLエスケープされているか確認
-    dangerous_patterns = ['<script>', 'javascript:', 'onerror=', 'onclick=']
+    dangerous_patterns = [ '<script>', 'javascript:', 'onerror=', 'onclick=' ]
     dangerous_patterns.none? { |pattern| rendered_output.include?(pattern) }
   end
 
@@ -67,7 +67,7 @@ end
 # 認証が必要か確認するマッチャー
 RSpec::Matchers.define :require_authentication do
   match do |response|
-    [401, 302].include?(response.status) && 
+    [ 401, 302 ].include?(response.status) &&
     (response.location&.include?('sign_in') || response.body.include?('sign_in'))
   end
 
@@ -97,14 +97,14 @@ RSpec::Matchers.define :have_security_headers do
       'X-XSS-Protection',
       'Strict-Transport-Security'
     ]
-    
+
     required_headers.all? { |header| response.headers[header].present? }
   end
 
   failure_message do |response|
-    missing_headers = ['X-Frame-Options', 'X-Content-Type-Options', 'X-XSS-Protection', 'Strict-Transport-Security']
+    missing_headers = [ 'X-Frame-Options', 'X-Content-Type-Options', 'X-XSS-Protection', 'Strict-Transport-Security' ]
       .select { |h| response.headers[h].blank? }
-    
+
     "expected response to have security headers, but missing: #{missing_headers.join(', ')}"
   end
 end

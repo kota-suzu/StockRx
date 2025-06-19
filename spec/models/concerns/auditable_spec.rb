@@ -28,7 +28,7 @@ RSpec.describe Auditable do
       # 監査ログ設定
       auditable except: [ :created_at, :updated_at ],
                 sensitive: [ :api_key ]
-      
+
       # auditable_nameメソッドの実装（shared_examplesで必要）
       def auditable_name
         name || "TestAuditable##{id}"
@@ -328,7 +328,7 @@ RSpec.describe Auditable do
   describe "パフォーマンステスト" do
     it "大量レコード作成時でもパフォーマンスが維持されること" do
       Current.user = admin
-      
+
       # 100レコードの作成が妥当な時間内に完了すること
       expect {
         Benchmark.realtime do
@@ -339,7 +339,7 @@ RSpec.describe Auditable do
 
     it "監査ログ作成がN+1クエリを発生させないこと" do
       Current.user = admin
-      
+
       expect {
         5.times { |i| TestAuditable.create!(name: "N+1 Test #{i}") }
       }.not_to exceed_query_limit(15) # 各作成で3クエリ以内
@@ -350,11 +350,11 @@ RSpec.describe Auditable do
     it "SQLインジェクション攻撃に対して安全であること" do
       Current.user = admin
       malicious_name = "'; DROP TABLE audit_logs; --"
-      
+
       expect {
         TestAuditable.create!(name: malicious_name)
       }.not_to raise_error
-      
+
       # テーブルが削除されていないことを確認
       expect(AuditLog.count).to be > 0
     end
@@ -362,10 +362,10 @@ RSpec.describe Auditable do
     it "XSS攻撃用のスクリプトが適切にエスケープされること" do
       Current.user = admin
       xss_payload = "<script>alert('XSS')</script>"
-      
+
       record = TestAuditable.create!(name: xss_payload)
       audit_log = record.audit_logs.last
-      
+
       # 詳細情報内でHTMLがエスケープされていることを確認
       expect(audit_log.details).not_to include("<script>")
       expect(audit_log.message).not_to include("<script>")
@@ -375,18 +375,18 @@ RSpec.describe Auditable do
   describe "エッジケース" do
     it "nilユーザーでも監査ログが作成されること" do
       Current.user = nil
-      
+
       expect {
         TestAuditable.create!(name: "No User Test")
       }.to change(AuditLog, :count).by(1)
-      
+
       expect(AuditLog.last.user).to be_nil
     end
 
     it "同時更新でもデータ整合性が保たれること" do
       Current.user = admin
       record = test_record
-      
+
       # 並行更新をシミュレート
       threads = 5.times.map do |i|
         Thread.new do
@@ -395,9 +395,9 @@ RSpec.describe Auditable do
           end
         end
       end
-      
+
       threads.each(&:join)
-      
+
       # 最終的な状態が正しく記録されていること
       expect(record.reload.name).to match(/Thread \d/)
       expect(record.audit_logs.where(action: "update").count).to be >= 1

@@ -12,7 +12,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
   let(:admin) { create(:admin) }
   let(:inventory) { create(:inventory) }
   let!(:store_inventory) { create(:store_inventory, store: store, inventory: inventory, quantity: 100) }
-  
+
   describe 'GET #index' do
     context 'without authentication' do
       it 'allows public access' do
@@ -39,9 +39,9 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
       it 'shows store-specific inventory' do
         other_store = create(:store)
         create(:store_inventory, store: other_store)
-        
+
         get :index
-        
+
         inventories = assigns(:inventories)
         expect(inventories.all? { |inv| inv.store_id == store.id }).to be true
       end
@@ -54,7 +54,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
       it 'allows CSV export' do
         get :index, format: :csv
-        
+
         expect(response.content_type).to include('text/csv')
         expect(response.headers['Content-Disposition']).to include('inventory_report')
       end
@@ -66,9 +66,9 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
       it 'shows all stores inventory' do
         other_store = create(:store)
         create(:store_inventory, store: other_store)
-        
+
         get :index
-        
+
         inventories = assigns(:inventories)
         expect(inventories.map(&:store_id).uniq.size).to be > 1
       end
@@ -97,7 +97,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
       it 'filters by stock status' do
         get :index, params: { stock_status: 'low' }
-        
+
         inventories = assigns(:inventories)
         expect(inventories).to include(@low_stock)
         expect(inventories).not_to include(@overstocked)
@@ -106,9 +106,9 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
       it 'filters by search query' do
         searchable = create(:inventory, name: 'Special Product')
         create(:store_inventory, store: store, inventory: searchable)
-        
+
         get :index, params: { q: 'Special' }
-        
+
         inventories = assigns(:inventories)
         expect(inventories.map(&:inventory).map(&:name)).to include('Special Product')
       end
@@ -116,21 +116,21 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
       it 'filters by category' do
         categorized = create(:inventory, name: 'Medicine ABC')
         create(:store_inventory, store: store, inventory: categorized)
-        
+
         get :index, params: { category: '医薬品' }
-        
+
         inventories = assigns(:inventories)
         names = inventories.map(&:inventory).map(&:name)
         expect(names).to include('Medicine ABC')
       end
 
       it 'combines multiple filters' do
-        get :index, params: { 
+        get :index, params: {
           stock_status: 'low',
           q: 'test',
           category: '医薬品'
         }
-        
+
         expect(response).to have_http_status(:ok)
         inventories = assigns(:inventories)
         expect(inventories).to be_a(ActiveRecord::Relation)
@@ -146,21 +146,21 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
       it 'sorts by name ascending' do
         get :index, params: { sort: 'name', direction: 'asc' }
-        
+
         names = assigns(:inventories).map(&:inventory).map(&:name)
         expect(names).to eq(names.sort)
       end
 
       it 'sorts by quantity descending' do
         get :index, params: { sort: 'quantity', direction: 'desc' }
-        
+
         quantities = assigns(:inventories).map(&:quantity)
         expect(quantities).to eq(quantities.sort.reverse)
       end
 
       it 'sorts by stock ratio' do
         get :index, params: { sort: 'stock_ratio' }
-        
+
         expect(assigns(:inventories)).to be_present
       end
     end
@@ -173,7 +173,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
       it 'paginates results' do
         get :index, params: { page: 1 }
-        
+
         inventories = assigns(:inventories)
         expect(inventories.size).to be <= 25
       end
@@ -181,10 +181,10 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
       it 'shows different results on different pages' do
         get :index, params: { page: 1 }
         page1_ids = assigns(:inventories).map(&:id)
-        
+
         get :index, params: { page: 2 }
         page2_ids = assigns(:inventories).map(&:id)
-        
+
         expect(page1_ids & page2_ids).to be_empty
       end
     end
@@ -194,9 +194,9 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
       it 'exports filtered results' do
         low_stock = create(:store_inventory, store: store, quantity: 5, safety_stock_level: 10)
-        
+
         get :index, params: { stock_status: 'low' }, format: :csv
-        
+
         csv_content = response.body
         expect(csv_content).to include(low_stock.inventory.name)
         expect(csv_content).not_to include(store_inventory.inventory.name)
@@ -204,7 +204,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
       it 'includes appropriate headers for role' do
         get :index, format: :csv
-        
+
         headers = CSV.parse(response.body).first
         expect(headers).to include('商品名', '在庫数', '安全在庫数')
         expect(headers).not_to include('原価') # 店舗ユーザーには非表示
@@ -213,9 +213,9 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
       it 'includes cost data for admin' do
         sign_out store_user
         sign_in admin
-        
+
         get :index, format: :csv
-        
+
         headers = CSV.parse(response.body).first
         expect(headers).to include('原価', '在庫金額')
       end
@@ -235,32 +235,32 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
       it 'shows inventory details for own store' do
         get :show, params: { id: store_inventory.id }
-        
+
         expect(response).to have_http_status(:ok)
         expect(assigns(:store_inventory)).to eq(store_inventory)
       end
 
       it 'denies access to other store inventory' do
         other_store_inventory = create(:store_inventory)
-        
+
         get :show, params: { id: other_store_inventory.id }
-        
+
         expect(response).to have_http_status(:forbidden)
       end
 
       it 'shows batch information' do
         batch = create(:batch, inventory: inventory, quantity: 50)
-        
+
         get :show, params: { id: store_inventory.id }
-        
+
         expect(response.body).to include(batch.lot_code)
       end
 
       it 'shows recent transactions' do
         log = create(:inventory_log, inventory: inventory, store: store)
-        
+
         get :show, params: { id: store_inventory.id }
-        
+
         expect(assigns(:recent_logs)).to include(log)
       end
     end
@@ -270,15 +270,15 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
       it 'can access any store inventory' do
         other_store_inventory = create(:store_inventory)
-        
+
         get :show, params: { id: other_store_inventory.id }
-        
+
         expect(response).to have_http_status(:ok)
       end
 
       it 'shows additional admin information' do
         get :show, params: { id: store_inventory.id }
-        
+
         expect(response.body).to include('調整履歴')
         expect(response.body).to include('監査ログ')
       end
@@ -288,11 +288,11 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
   describe 'POST #adjust_stock' do
     context 'without authentication' do
       it 'requires authentication' do
-        post :adjust_stock, params: { 
+        post :adjust_stock, params: {
           id: store_inventory.id,
           adjustment: { quantity: 10, reason: 'Found items' }
         }
-        
+
         expect(response).to redirect_to(new_store_user_session_path)
       end
     end
@@ -307,7 +307,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
             adjustment: { quantity: 10, reason: 'Found items' }
           }
         }.to change { store_inventory.reload.quantity }.by(10)
-        
+
         expect(response).to redirect_to(store_inventory_path(store_inventory))
         expect(flash[:notice]).to be_present
       end
@@ -326,7 +326,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
           id: store_inventory.id,
           adjustment: { quantity: 10, reason: '' }
         }
-        
+
         expect(response).to have_http_status(:unprocessable_entity)
         expect(flash[:alert]).to be_present
       end
@@ -336,7 +336,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
           id: store_inventory.id,
           adjustment: { quantity: -200, reason: 'Over adjustment' }
         }
-        
+
         expect(response).to have_http_status(:unprocessable_entity)
         expect(store_inventory.reload.quantity).to eq(100)
       end
@@ -348,7 +348,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
             adjustment: { quantity: 10, reason: 'Test adjustment' }
           }
         }.to change { InventoryLog.count }.by(1)
-        
+
         log = InventoryLog.last
         expect(log.operation_type).to eq('adjustment')
         expect(log.delta).to eq(10)
@@ -357,12 +357,12 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
       it 'denies adjustment for other store' do
         other_inventory = create(:store_inventory)
-        
+
         post :adjust_stock, params: {
           id: other_inventory.id,
           adjustment: { quantity: 10, reason: 'Unauthorized' }
         }
-        
+
         expect(response).to have_http_status(:forbidden)
       end
     end
@@ -372,7 +372,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
       it 'can adjust any store inventory' do
         other_inventory = create(:store_inventory, quantity: 50)
-        
+
         expect {
           post :adjust_stock, params: {
             id: other_inventory.id,
@@ -386,7 +386,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
           id: store_inventory.id,
           adjustment: { quantity: 10, reason: 'Admin check' }
         }
-        
+
         log = InventoryLog.last
         expect(log.user).to eq(admin)
         expect(log.metadata['admin_action']).to be true
@@ -412,7 +412,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
             }
           }
         }.to change { InterStoreTransfer.count }.by(1)
-        
+
         transfer = InterStoreTransfer.last
         expect(transfer.from_store).to eq(store)
         expect(transfer.to_store).to eq(target_store)
@@ -429,7 +429,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
             reason: 'Too much'
           }
         }
-        
+
         expect(response).to have_http_status(:unprocessable_entity)
         expect(flash[:alert]).to include('在庫不足')
       end
@@ -443,7 +443,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
             reason: ''
           }
         }
-        
+
         expect(response).to have_http_status(:unprocessable_entity)
       end
 
@@ -472,7 +472,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
     it 'shows only low stock items' do
       get :low_stock_report
-      
+
       low_stock_items = assigns(:low_stock_items)
       expect(low_stock_items.count).to eq(2)
       expect(low_stock_items.all? { |item| item.quantity <= item.safety_stock_level }).to be true
@@ -480,7 +480,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
     it 'orders by urgency' do
       get :low_stock_report
-      
+
       items = assigns(:low_stock_items)
       # 在庫切れが最初に来るべき
       expect(items.first.quantity).to eq(0)
@@ -488,7 +488,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
     it 'includes reorder suggestions' do
       get :low_stock_report
-      
+
       expect(assigns(:reorder_suggestions)).to be_present
     end
   end
@@ -498,7 +498,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
 
     it 'includes security headers in responses' do
       get :index
-      
+
       expect(response.headers['X-Frame-Options']).to eq('SAMEORIGIN')
       expect(response.headers['X-Content-Type-Options']).to eq('nosniff')
     end
@@ -520,7 +520,7 @@ RSpec.describe StoreControllers::InventoriesController, type: :controller do
       start_time = Time.current
       get :index
       duration = Time.current - start_time
-      
+
       expect(duration).to be < 1.0 # 1秒以内
     end
   end

@@ -23,7 +23,7 @@ RSpec.shared_examples "auditable" do
         Current.user = admin
         new_instance = create(model.name.underscore.to_sym)
         audit_log = AuditLog.last
-        
+
         expect(audit_log.action).to eq("create")
         expect(audit_log.auditable).to eq(new_instance)
         expect(audit_log.user).to eq(admin)
@@ -34,7 +34,7 @@ RSpec.shared_examples "auditable" do
         expect {
           create(model.name.underscore.to_sym)
         }.to change(AuditLog, :count).by(1)
-        
+
         expect(AuditLog.last.user).to be_nil
       end
     end
@@ -53,7 +53,7 @@ RSpec.shared_examples "auditable" do
         instance
         original_value = instance.updated_at
         instance.update!(updated_at: Time.current + 1.hour)
-        
+
         audit_log = AuditLog.last
         expect(audit_log.action).to eq("update")
         expect(audit_log.details).to include("updated_at")
@@ -81,7 +81,7 @@ RSpec.shared_examples "auditable" do
         instance
         instance_attributes = instance.attributes
         instance.destroy!
-        
+
         audit_log = AuditLog.last
         expect(audit_log.action).to eq("destroy")
         expect(audit_log.details).to include("final_state")
@@ -93,7 +93,7 @@ RSpec.shared_examples "auditable" do
     it "returns formatted changes" do
       instance.updated_at = Time.current + 1.hour
       changes = instance.send(:audit_changes)
-      
+
       expect(changes).to be_a(Hash)
       expect(changes).to have_key("updated_at")
     end
@@ -102,7 +102,7 @@ RSpec.shared_examples "auditable" do
       instance.created_at = Time.current
       instance.updated_at = Time.current
       changes = instance.send(:audit_changes, exclude_timestamps: true)
-      
+
       expect(changes).not_to have_key("created_at")
       expect(changes).not_to have_key("updated_at")
     end
@@ -131,7 +131,7 @@ RSpec.shared_examples "auditable" do
     it "creates audit logs for bulk updates" do
       instances = create_list(model.name.underscore.to_sym, 3)
       Current.user = admin
-      
+
       expect {
         model.where(id: instances.map(&:id)).update_all(updated_at: Time.current)
       }.to change(AuditLog, :count).by_at_least(1)
@@ -141,7 +141,7 @@ RSpec.shared_examples "auditable" do
   describe "error handling" do
     it "does not prevent save on audit failure" do
       allow_any_instance_of(AuditLog).to receive(:save!).and_raise(StandardError)
-      
+
       expect {
         instance.update!(updated_at: Time.current)
       }.not_to raise_error

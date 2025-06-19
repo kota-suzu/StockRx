@@ -37,9 +37,9 @@ RSpec.describe CollectionDecorator do
     context 'with non-empty collection' do
       context 'when decorator class exists' do
         it 'returns the appropriate decorator class' do
-          collection = [TestModel.new(id: 1, name: 'Item 1'), TestModel.new(id: 2, name: 'Item 2')]
+          collection = [ TestModel.new(id: 1, name: 'Item 1'), TestModel.new(id: 2, name: 'Item 2') ]
           decorator = CollectionDecorator.new(collection)
-          
+
           expect(decorator.decorator_class).to eq(TestModelDecorator)
         end
 
@@ -48,16 +48,16 @@ RSpec.describe CollectionDecorator do
           inventory = create(:inventory)
           relation = Inventory.where(id: inventory.id)
           decorator = CollectionDecorator.new(relation)
-          
+
           expect(decorator.decorator_class).to eq(InventoryDecorator)
         end
       end
 
       context 'when decorator class does not exist' do
         it 'returns nil when decorator class is not found' do
-          collection = [AnotherModel.new(value: 'test')]
+          collection = [ AnotherModel.new(value: 'test') ]
           decorator = CollectionDecorator.new(collection)
-          
+
           expect(decorator.decorator_class).to be_nil
         end
       end
@@ -74,9 +74,9 @@ RSpec.describe CollectionDecorator do
             end
           end
 
-          collection = [TestNamespace::SpecialModel.new]
+          collection = [ TestNamespace::SpecialModel.new ]
           decorator = CollectionDecorator.new(collection)
-          
+
           expect(decorator.decorator_class).to eq(TestNamespace::SpecialModelDecorator)
         end
       end
@@ -85,14 +85,14 @@ RSpec.describe CollectionDecorator do
     context 'with empty collection' do
       it 'returns nil for empty array' do
         decorator = CollectionDecorator.new([])
-        
+
         expect(decorator.decorator_class).to be_nil
       end
 
       it 'returns nil for empty ActiveRecord relation' do
         relation = Inventory.none
         decorator = CollectionDecorator.new(relation)
-        
+
         expect(decorator.decorator_class).to be_nil
       end
     end
@@ -100,9 +100,9 @@ RSpec.describe CollectionDecorator do
     context 'error handling' do
       it 'rescues NameError and returns nil' do
         # NameErrorが発生するケースを明示的にテスト
-        collection = [double(class: double(name: 'NonExistentModel'))]
+        collection = [ double(class: double(name: 'NonExistentModel')) ]
         decorator = CollectionDecorator.new(collection)
-        
+
         expect(decorator.decorator_class).to be_nil
       end
 
@@ -113,10 +113,10 @@ RSpec.describe CollectionDecorator do
             'Special::Model-With-Dash'
           end
         end
-        
-        collection = [special_class.new]
+
+        collection = [ special_class.new ]
         decorator = CollectionDecorator.new(collection)
-        
+
         expect { decorator.decorator_class }.not_to raise_error
         expect(decorator.decorator_class).to be_nil
       end
@@ -131,10 +131,10 @@ RSpec.describe CollectionDecorator do
           TestModel.new(id: 2, name: 'Item 2'),
           TestModel.new(id: 3, name: 'Item 3')
         ]
-        
+
         decorator = CollectionDecorator.new(items)
         decorated_items = decorator.to_a
-        
+
         expect(decorated_items).to all(be_a(TestModelDecorator))
         expect(decorated_items.map(&:decorated_name)).to eq([
           'Decorated: Item 1',
@@ -150,10 +150,10 @@ RSpec.describe CollectionDecorator do
           AnotherModel.new(value: 'test1'),
           AnotherModel.new(value: 'test2')
         ]
-        
+
         decorator = CollectionDecorator.new(items)
         result = decorator.to_a
-        
+
         # Draper::CollectionDecoratorのデフォルト動作をテスト
         expect(result).to eq(items)
       end
@@ -178,7 +178,7 @@ RSpec.describe CollectionDecorator do
 
     it 'supports map operation' do
       names = decorator.map(&:decorated_name)
-      expect(names).to eq(['Decorated: First', 'Decorated: Second', 'Decorated: Third'])
+      expect(names).to eq([ 'Decorated: First', 'Decorated: Second', 'Decorated: Third' ])
     end
 
     it 'supports select operation' do
@@ -202,7 +202,7 @@ RSpec.describe CollectionDecorator do
           AnotherModel.new(value: 'Another'),
           TestModel.new(id: 2, name: 'Test 2')
         ]
-        
+
         decorator = CollectionDecorator.new(mixed_items)
         expect(decorator.decorator_class).to eq(TestModelDecorator)
       end
@@ -214,7 +214,7 @@ RSpec.describe CollectionDecorator do
         allow(custom_collection).to receive(:empty?).and_return(false)
         allow(custom_collection).to receive(:first).and_return(TestModel.new(id: 1, name: 'Test'))
         allow(custom_collection).to receive(:each).and_yield(TestModel.new(id: 1, name: 'Test'))
-        
+
         decorator = CollectionDecorator.new(custom_collection)
         expect(decorator.decorator_class).to eq(TestModelDecorator)
       end
@@ -225,11 +225,11 @@ RSpec.describe CollectionDecorator do
     it 'caches decorator class lookup' do
       items = Array.new(100) { |i| TestModel.new(id: i, name: "Item #{i}") }
       decorator = CollectionDecorator.new(items)
-      
+
       # 最初の呼び出し
       expect(decorator).to receive(:object).once.and_return(items)
       decorator.decorator_class
-      
+
       # 2回目の呼び出しはキャッシュされるべき（実際の実装に依存）
       # 注: 現在の実装はキャッシュしていないが、パフォーマンステストとして記載
       decorator.decorator_class
@@ -244,9 +244,9 @@ RSpec.describe CollectionDecorator do
     end
 
     it 'preserves custom behavior in subclasses' do
-      items = [TestModel.new(id: 1, name: 'Test')]
+      items = [ TestModel.new(id: 1, name: 'Test') ]
       decorator = CustomCollectionDecorator.new(items)
-      
+
       expect(decorator.decorator_class).to eq(TestModelDecorator)
       expect(decorator.custom_method).to eq('custom behavior')
     end

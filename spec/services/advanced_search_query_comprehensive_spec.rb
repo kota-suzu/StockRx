@@ -9,11 +9,11 @@ RSpec.describe AdvancedSearchQuery do
 
   # テストデータの準備
   let(:test_prefix) { "ASQ_#{SecureRandom.hex(4)}" }
-  
+
   let!(:inventory1) { create(:inventory, name: "#{test_prefix}_Medicine A", quantity: 100, price: 500, status: 'active') }
   let!(:inventory2) { create(:inventory, name: "#{test_prefix}_Equipment B", quantity: 5, price: 10000, status: 'active') }
   let!(:inventory3) { create(:inventory, name: "#{test_prefix}_Supply C", quantity: 0, price: 100, status: 'discontinued') }
-  
+
   let!(:batch1) { create(:batch, inventory: inventory1, lot_code: 'LOT001', expiration_date: 30.days.from_now) }
   let!(:batch2) { create(:batch, inventory: inventory1, lot_code: 'LOT002', expiration_date: 5.days.from_now) }
   let!(:batch3) { create(:batch, inventory: inventory2, lot_code: 'LOT003', expiration_date: 1.year.from_now) }
@@ -61,7 +61,7 @@ RSpec.describe AdvancedSearchQuery do
       end
 
       it 'filters by multiple statuses' do
-        result = query.filter(status: ['active', 'discontinued']).execute
+        result = query.filter(status: [ 'active', 'discontinued' ]).execute
         expect(result).to include(inventory1, inventory2, inventory3)
       end
     end
@@ -69,7 +69,7 @@ RSpec.describe AdvancedSearchQuery do
     context 'association filters' do
       it 'filters by batch existence' do
         no_batch_inventory = create(:inventory, name: "#{test_prefix}_No Batch")
-        
+
         result = query.filter(has_batches: true).execute
         expect(result).to include(inventory1, inventory2)
         expect(result).not_to include(inventory3, no_batch_inventory)
@@ -95,7 +95,7 @@ RSpec.describe AdvancedSearchQuery do
           min_quantity: 50,
           max_price: 1000
         ).execute
-        
+
         expect(result).to include(inventory1)
         expect(result).not_to include(inventory2, inventory3)
       end
@@ -117,7 +117,7 @@ RSpec.describe AdvancedSearchQuery do
         .or
         .filter(quantity: 0)
         .execute
-      
+
       expect(result).to include(inventory1, inventory3)
       expect(result).not_to include(inventory2)
     end
@@ -130,7 +130,7 @@ RSpec.describe AdvancedSearchQuery do
         .or
         .filter(status: 'discontinued')
         .execute
-      
+
       expect(result).to include(inventory1, inventory2, inventory3)
     end
 
@@ -142,7 +142,7 @@ RSpec.describe AdvancedSearchQuery do
           g.filter(name: 'Medicine').or.filter(quantity: 0)
         end
         .execute
-      
+
       expect(result).to include(inventory1)
       expect(result).not_to include(inventory2, inventory3)
     end
@@ -155,21 +155,21 @@ RSpec.describe AdvancedSearchQuery do
       it 'handles equals conditions' do
         builder = AdvancedSearchQuery::BasicConditionBuilder.new(query.scope)
         result = builder.add_condition(:status, 'active').build
-        
+
         expect(result.to_sql).to include("status = 'active'")
       end
 
       it 'handles IN conditions for arrays' do
         builder = AdvancedSearchQuery::BasicConditionBuilder.new(query.scope)
-        result = builder.add_condition(:status, ['active', 'pending']).build
-        
+        result = builder.add_condition(:status, [ 'active', 'pending' ]).build
+
         expect(result.to_sql).to include("status IN")
       end
 
       it 'handles nil values' do
         builder = AdvancedSearchQuery::BasicConditionBuilder.new(query.scope)
         result = builder.add_condition(:deleted_at, nil).build
-        
+
         expect(result.to_sql).to include("deleted_at IS NULL")
       end
     end
@@ -178,21 +178,21 @@ RSpec.describe AdvancedSearchQuery do
       it 'handles minimum value' do
         builder = AdvancedSearchQuery::RangeConditionBuilder.new(query.scope)
         result = builder.add_range(:quantity, min: 10).build
-        
+
         expect(result.to_sql).to include("quantity >= 10")
       end
 
       it 'handles maximum value' do
         builder = AdvancedSearchQuery::RangeConditionBuilder.new(query.scope)
         result = builder.add_range(:price, max: 1000).build
-        
+
         expect(result.to_sql).to include("price <= 1000")
       end
 
       it 'handles both min and max' do
         builder = AdvancedSearchQuery::RangeConditionBuilder.new(query.scope)
         result = builder.add_range(:quantity, min: 10, max: 100).build
-        
+
         sql = result.to_sql
         expect(sql).to include("quantity >= 10")
         expect(sql).to include("quantity <= 100")
@@ -203,7 +203,7 @@ RSpec.describe AdvancedSearchQuery do
       it 'performs case-insensitive search' do
         builder = AdvancedSearchQuery::TextSearchBuilder.new(query.scope)
         result = builder.search(:name, 'medicine').build
-        
+
         expect(result.to_sql).to include("LOWER(inventories.name) LIKE")
       end
 
@@ -213,7 +213,7 @@ RSpec.describe AdvancedSearchQuery do
           .search(:name, 'medicine')
           .search(:description, 'emergency')
           .build
-        
+
         sql = result.to_sql
         expect(sql).to include("LOWER(inventories.name)")
         expect(sql).to include("LOWER(inventories.description)")
@@ -222,7 +222,7 @@ RSpec.describe AdvancedSearchQuery do
       it 'escapes special characters' do
         builder = AdvancedSearchQuery::TextSearchBuilder.new(query.scope)
         result = builder.search(:name, 'test%_').build
-        
+
         expect(result.to_sql).to include("\\%")
         expect(result.to_sql).to include("\\_")
       end
@@ -232,24 +232,24 @@ RSpec.describe AdvancedSearchQuery do
       it 'handles date range with start date' do
         builder = AdvancedSearchQuery::DateRangeBuilder.new(query.scope)
         result = builder.add_date_range(:created_at, from: 1.week.ago).build
-        
+
         expect(result.to_sql).to include("created_at >=")
       end
 
       it 'handles date range with end date' do
         builder = AdvancedSearchQuery::DateRangeBuilder.new(query.scope)
         result = builder.add_date_range(:updated_at, to: Date.today).build
-        
+
         expect(result.to_sql).to include("updated_at <=")
       end
 
       it 'converts strings to dates' do
         builder = AdvancedSearchQuery::DateRangeBuilder.new(query.scope)
-        result = builder.add_date_range(:created_at, 
+        result = builder.add_date_range(:created_at,
           from: '2024-01-01',
           to: '2024-12-31'
         ).build
-        
+
         sql = result.to_sql
         expect(sql).to include("created_at >= '2024-01-01")
         expect(sql).to include("created_at <= '2024-12-31")
@@ -260,7 +260,7 @@ RSpec.describe AdvancedSearchQuery do
       it 'joins associated tables' do
         builder = AdvancedSearchQuery::AssociationBuilder.new(query.scope)
         result = builder.join(:batches).build
-        
+
         expect(result.joins_values).to include(:batches)
       end
 
@@ -270,7 +270,7 @@ RSpec.describe AdvancedSearchQuery do
           .join(:batches)
           .where_assoc(:batches, lot_code: 'LOT001')
           .build
-        
+
         expect(result.to_sql).to include("batches")
         expect(result.to_sql).to include("lot_code")
       end
@@ -281,7 +281,7 @@ RSpec.describe AdvancedSearchQuery do
           .join(inventory_logs: :user)
           .where_assoc(:inventory_logs, operation_type: 'receive')
           .build
-        
+
         expect(result.joins_values.first).to eq(inventory_logs: :user)
       end
     end
@@ -298,10 +298,10 @@ RSpec.describe AdvancedSearchQuery do
 
     it 'sorts by multiple columns' do
       result = query.apply_sorting(
-        sort_by: ['status', 'name'],
-        direction: ['desc', 'asc']
+        sort_by: [ 'status', 'name' ],
+        direction: [ 'desc', 'asc' ]
       ).execute
-      
+
       expect(result.first.status).not_to be_nil
     end
 
@@ -310,7 +310,7 @@ RSpec.describe AdvancedSearchQuery do
         sort_by: 'batches.expiration_date',
         direction: 'asc'
       ).execute
-      
+
       expect(result.to_sql).to include('batches')
     end
 
@@ -339,14 +339,14 @@ RSpec.describe AdvancedSearchQuery do
     it 'offsets for different pages' do
       page1 = query.paginate(page: 1, per_page: 5).execute
       page2 = query.paginate(page: 2, per_page: 5).execute
-      
+
       expect(page1.pluck(:id) & page2.pluck(:id)).to be_empty
     end
 
     it 'handles last page correctly' do
       total_count = Inventory.where("name LIKE ?", "#{test_prefix}%").count
       last_page = (total_count / 5.0).ceil
-      
+
       result = query.paginate(page: last_page, per_page: 5).execute
       expect(result.count).to be <= 5
     end
@@ -356,8 +356,8 @@ RSpec.describe AdvancedSearchQuery do
     let(:query) { described_class.build(Inventory.where("name LIKE ?", "#{test_prefix}%")) }
 
     it 'selects specific fields' do
-      result = query.select_fields([:id, :name, :quantity]).execute
-      
+      result = query.select_fields([ :id, :name, :quantity ]).execute
+
       first_item = result.first
       expect(first_item.attributes.keys).to include('id', 'name', 'quantity')
       expect { first_item.price }.to raise_error(ActiveModel::MissingAttributeError)
@@ -369,7 +369,7 @@ RSpec.describe AdvancedSearchQuery do
         :name,
         'quantity * price AS total_value'
       ]).execute
-      
+
       first_item = result.first
       expect(first_item.attributes).to have_key('total_value')
     end
@@ -379,8 +379,8 @@ RSpec.describe AdvancedSearchQuery do
     let(:query) { described_class.build(Inventory.where("name LIKE ?", "#{test_prefix}%")) }
 
     it 'eager loads associations' do
-      result = query.include_associations([:batches]).execute
-      
+      result = query.include_associations([ :batches ]).execute
+
       # N+1クエリを避けるためのeager loading確認
       expect(result.first.association(:batches).loaded?).to be true
     end
@@ -390,7 +390,7 @@ RSpec.describe AdvancedSearchQuery do
         :batches,
         { inventory_logs: :user }
       ]).execute
-      
+
       expect(result.includes_values).to include(:batches)
       expect(result.includes_values).to include(inventory_logs: :user)
     end
@@ -405,9 +405,9 @@ RSpec.describe AdvancedSearchQuery do
         .filter(expiring_soon: true)
         .apply_sorting(sort_by: 'quantity', direction: 'desc')
         .paginate(page: 1, per_page: 10)
-        .include_associations([:batches])
+        .include_associations([ :batches ])
         .execute
-      
+
       expect(result).to be_present
       expect(result).to be_a(ActiveRecord::Relation)
     end
@@ -416,13 +416,13 @@ RSpec.describe AdvancedSearchQuery do
       conditions = [
         { field: 'name', operator: 'contains', value: 'Medicine' },
         { field: 'quantity', operator: 'greater_than', value: 50 },
-        { field: 'status', operator: 'in', value: ['active', 'pending'] }
+        { field: 'status', operator: 'in', value: [ 'active', 'pending' ] }
       ]
-      
+
       result = described_class.build(Inventory.where("name LIKE ?", "#{test_prefix}%"))
         .apply_search_conditions(conditions)
         .execute
-      
+
       expect(result).to include(inventory1)
       expect(result).not_to include(inventory2, inventory3)
     end
@@ -433,7 +433,7 @@ RSpec.describe AdvancedSearchQuery do
       query = described_class.build(Inventory.where("name LIKE ?", "#{test_prefix}%"))
         .filter(has_batches: true)
         .distinct
-      
+
       expect(query.scope.distinct_value).to be true
     end
 
@@ -441,7 +441,7 @@ RSpec.describe AdvancedSearchQuery do
       result = described_class.build(Inventory.where("name LIKE ?", "#{test_prefix}%"))
         .filter(lot_code: 'LOT001')
         .execute
-      
+
       # 重複なしで結果が返される
       expect(result.count).to eq(result.distinct.count)
     end
@@ -475,7 +475,7 @@ RSpec.describe AdvancedSearchQuery do
         .filter(status: 'active')
         .filter(min_quantity: 10)
         .to_sql
-      
+
       expect(sql).to be_a(String)
       expect(sql).to include('WHERE')
       expect(sql).to include('status')
@@ -488,7 +488,7 @@ RSpec.describe AdvancedSearchQuery do
 
     it 'returns total count without pagination' do
       paginated_query = query.paginate(page: 1, per_page: 1)
-      
+
       expect(paginated_query.count).to be > 1
       expect(paginated_query.execute.count).to eq(1)
     end

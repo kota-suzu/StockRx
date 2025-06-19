@@ -37,7 +37,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
         @medicine = create(:inventory, name: 'Aspirin 100mg')
         @equipment = create(:inventory, name: 'Surgical Gloves')
         @supply = create(:inventory, name: 'Office Paper')
-        
+
         @med_inv = create(:store_inventory, store: store, inventory: @medicine, quantity: 50)
         @equip_inv = create(:store_inventory, store: store, inventory: @equipment, quantity: 0)
         @supply_inv = create(:store_inventory, store: store, inventory: @supply, quantity: 200)
@@ -45,7 +45,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
       it 'filters by search query' do
         get :index, params: { q: 'Aspirin' }
-        
+
         inventories = assigns(:store_inventories)
         expect(inventories).to include(@med_inv)
         expect(inventories).not_to include(@equip_inv, @supply_inv)
@@ -54,9 +54,9 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
       it 'filters by store' do
         other_store = create(:store)
         other_inventory = create(:store_inventory, store: other_store)
-        
+
         get :index, params: { store_id: store.id }
-        
+
         inventories = assigns(:store_inventories)
         expect(inventories).to include(store_inventory)
         expect(inventories).not_to include(other_inventory)
@@ -64,7 +64,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
       it 'filters by category' do
         get :index, params: { category: '医薬品' }
-        
+
         inventories = assigns(:store_inventories)
         expect(inventories).to include(@med_inv)
         expect(inventories).not_to include(@equip_inv, @supply_inv)
@@ -72,7 +72,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
       it 'filters by stock status' do
         get :index, params: { stock_status: 'out_of_stock' }
-        
+
         inventories = assigns(:store_inventories)
         expect(inventories).to include(@equip_inv)
         expect(inventories).not_to include(@med_inv, @supply_inv)
@@ -84,7 +84,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
           category: '医薬品',
           stock_status: 'available'
         }
-        
+
         inventories = assigns(:store_inventories)
         expect(inventories).to include(@med_inv)
         expect(inventories.count).to eq(1)
@@ -101,7 +101,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
       it 'sorts by inventory name' do
         get :index, params: { sort: 'inventory_name', direction: 'asc' }
-        
+
         inventories = assigns(:store_inventories)
         names = inventories.map { |si| si.inventory.name }
         expect(names).to eq(names.sort)
@@ -109,7 +109,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
       it 'sorts by quantity' do
         get :index, params: { sort: 'quantity', direction: 'desc' }
-        
+
         inventories = assigns(:store_inventories)
         quantities = inventories.map(&:quantity)
         expect(quantities).to eq(quantities.sort.reverse)
@@ -117,7 +117,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
       it 'sorts by stock ratio' do
         get :index, params: { sort: 'stock_ratio', direction: 'asc' }
-        
+
         expect(assigns(:store_inventories)).to be_present
       end
     end
@@ -125,21 +125,21 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
     context 'export functionality' do
       it 'exports to CSV' do
         get :index, params: { format: :csv }
-        
+
         expect(response.content_type).to include('text/csv')
         expect(response.headers['Content-Disposition']).to include('store_inventories')
       end
 
       it 'exports to XLSX' do
         get :index, params: { format: :xlsx }
-        
+
         expect(response.content_type).to include('spreadsheetml')
         expect(response.headers['Content-Disposition']).to include('.xlsx')
       end
 
       it 'exports to JSON' do
         get :index, params: { format: :json }
-        
+
         expect(response.content_type).to include('application/json')
         json = JSON.parse(response.body)
         expect(json).to have_key('store_inventories')
@@ -148,9 +148,9 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
       it 'includes filtered results in export' do
         low_stock = create(:store_inventory, store: store, quantity: 5, safety_stock_level: 10)
-        
+
         get :index, params: { stock_status: 'low_stock', format: :csv }
-        
+
         csv_content = response.body
         expect(csv_content).to include(low_stock.inventory.name)
         expect(csv_content).not_to include(store_inventory.inventory.name)
@@ -172,16 +172,16 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
     it 'loads related data' do
       batch = create(:batch, inventory: inventory)
       log = create(:inventory_log, inventory: inventory, store: store)
-      
+
       get :show, params: { id: store_inventory.id }
-      
+
       expect(assigns(:batches)).to include(batch)
       expect(assigns(:recent_activities)).to include(log)
     end
 
     it 'calculates statistics' do
       get :show, params: { id: store_inventory.id }
-      
+
       stats = assigns(:statistics)
       expect(stats).to include(
         :turnover_rate,
@@ -204,7 +204,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
     it 'loads stores and inventories for selection' do
       get :new
-      
+
       expect(assigns(:stores)).to include(store)
       expect(assigns(:inventories)).to include(inventory)
     end
@@ -245,7 +245,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
         expect {
           post :create, params: valid_params
         }.to change(InventoryLog, :count).by(1)
-        
+
         log = InventoryLog.last
         expect(log.operation_type).to eq('initial_setup')
         expect(log.delta).to eq(50)
@@ -307,7 +307,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
       it 'updates the store inventory' do
         patch :update, params: update_params
-        
+
         store_inventory.reload
         expect(store_inventory.quantity).to eq(150)
         expect(store_inventory.safety_stock_level).to eq(30)
@@ -317,7 +317,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
         expect {
           patch :update, params: update_params
         }.to change(InventoryLog, :count).by(1)
-        
+
         log = InventoryLog.last
         expect(log.operation_type).to eq('adjustment')
         expect(log.delta).to eq(50) # 150 - 100
@@ -342,7 +342,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
       it 'does not update store inventory' do
         original_quantity = store_inventory.quantity
         patch :update, params: invalid_params
-        
+
         store_inventory.reload
         expect(store_inventory.quantity).to eq(original_quantity)
       end
@@ -357,7 +357,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
   describe 'DELETE #destroy' do
     it 'soft deletes the store inventory' do
       delete :destroy, params: { id: store_inventory.id }
-      
+
       store_inventory.reload
       expect(store_inventory.deleted_at).not_to be_nil
     end
@@ -366,7 +366,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
       expect {
         delete :destroy, params: { id: store_inventory.id }
       }.to change(InventoryLog, :count).by(1)
-      
+
       log = InventoryLog.last
       expect(log.operation_type).to eq('deleted')
     end
@@ -395,7 +395,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
         expect {
           post :transfer, params: transfer_params
         }.to change(InterStoreTransfer, :count).by(1)
-        
+
         transfer = InterStoreTransfer.last
         expect(transfer.from_store).to eq(store)
         expect(transfer.to_store).to eq(target_store)
@@ -404,7 +404,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
       it 'redirects with success message' do
         post :transfer, params: transfer_params
-        
+
         expect(response).to redirect_to(admin_store_inventory_path(store_inventory))
         expect(flash[:notice]).to include('Transfer initiated')
       end
@@ -413,18 +413,18 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
     context 'with invalid transfer' do
       it 'fails when quantity exceeds available' do
         transfer_params[:transfer][:quantity] = 200
-        
+
         post :transfer, params: transfer_params
-        
+
         expect(response).to redirect_to(admin_store_inventory_path(store_inventory))
         expect(flash[:alert]).to include('Insufficient quantity')
       end
 
       it 'fails without target store' do
         transfer_params[:transfer][:to_store_id] = nil
-        
+
         post :transfer, params: transfer_params
-        
+
         expect(flash[:alert]).to be_present
       end
     end
@@ -433,17 +433,17 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
   describe 'GET #analytics' do
     before do
       # アナリティクス用のテストデータ
-      create_list(:inventory_log, 10, 
-        inventory: inventory, 
+      create_list(:inventory_log, 10,
+        inventory: inventory,
         store: store,
         created_at: 1.week.ago,
         operation_type: 'ship',
         delta: -5
       )
-      
+
       create_list(:inventory_log, 5,
         inventory: inventory,
-        store: store, 
+        store: store,
         created_at: 1.day.ago,
         operation_type: 'receive',
         delta: 10
@@ -457,7 +457,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
     it 'generates movement statistics' do
       get :analytics
-      
+
       stats = assigns(:movement_stats)
       expect(stats).to include(
         :total_received,
@@ -469,14 +469,14 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
     it 'identifies trending items' do
       get :analytics
-      
+
       expect(assigns(:trending_items)).to be_an(Array)
       expect(assigns(:slow_moving_items)).to be_an(Array)
     end
 
     it 'calculates store performance metrics' do
       get :analytics
-      
+
       metrics = assigns(:store_performance)
       expect(metrics).to be_a(Hash)
       expect(metrics[store.id]).to include(
@@ -490,7 +490,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
   describe 'POST #bulk_update' do
     let(:item1) { create(:store_inventory, store: store, quantity: 10) }
     let(:item2) { create(:store_inventory, store: store, quantity: 20) }
-    
+
     let(:bulk_params) do
       {
         store_inventories: {
@@ -502,10 +502,10 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
     it 'updates multiple inventories' do
       post :bulk_update, params: bulk_params
-      
+
       item1.reload
       item2.reload
-      
+
       expect(item1.quantity).to eq(15)
       expect(item1.safety_stock_level).to eq(5)
       expect(item2.quantity).to eq(25)
@@ -520,9 +520,9 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
     it 'handles validation errors' do
       bulk_params[:store_inventories][item1.id.to_s][:quantity] = -10
-      
+
       post :bulk_update, params: bulk_params
-      
+
       item1.reload
       expect(item1.quantity).to eq(10) # 変更されない
       expect(flash[:alert]).to be_present
@@ -542,7 +542,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
     context 'authorization' do
       it 'includes security headers' do
         get :index
-        
+
         expect(response.headers['X-Frame-Options']).to eq('SAMEORIGIN')
         expect(response.headers['X-Content-Type-Options']).to eq('nosniff')
       end
@@ -562,7 +562,7 @@ RSpec.describe AdminControllers::StoreInventoriesController, type: :controller d
 
     it 'paginates results' do
       get :index
-      
+
       inventories = assigns(:store_inventories)
       expect(inventories).to respond_to(:current_page)
       expect(inventories.count).to be <= 25
