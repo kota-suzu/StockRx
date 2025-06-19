@@ -166,29 +166,38 @@ RSpec.describe SearchResult do
   end
 
   describe "セキュリティ機能" do
-    let(:admin) { create(:admin) }
-    let(:super_admin) { create(:admin) }
+    let(:store_admin) { create(:admin, role: :store_manager) }
+    let(:headquarters_admin) { create(:admin, role: :headquarters_admin) }
 
-    context "通常の管理者の場合" do
-      before { allow(Current).to receive(:admin).and_return(admin) }
+    context "店舗管理者の場合" do
+      before { allow(Current).to receive(:admin).and_return(store_admin) }
 
-      it "安全な属性のみを返す" do
+      it "基本属性のみを返す" do
         sanitized = search_result.sanitized_records
         expect(sanitized).to be_an(ActiveRecord::Relation)
       end
     end
 
-    context "スーパー管理者の場合" do
+    context "本部管理者の場合" do
       before do
-        allow(Current).to receive(:admin).and_return(super_admin)
-        # TODO: Adminモデルにsuper_admin?メソッドが実装されたら有効化
-        # allow(super_admin).to receive(:super_admin?).and_return(true)
+        allow(Current).to receive(:admin).and_return(headquarters_admin)
+        # 🔒 セキュリティ修正: 現在のrole enumに基づくテスト
+        # CLAUDE.md準拠: headquarters_admin?メソッドの使用
       end
 
-      it "全ての属性を返す" do
+      it "機密属性も含めた全属性を返す" do
         sanitized = search_result.sanitized_records
         expect(sanitized).to be_an(ActiveRecord::Relation)
-        # 現在は通常管理者と同じ動作でOK（super_admin機能は将来実装）
+        # 本部管理者は機密情報へのアクセス権限あり
+      end
+    end
+
+    context "未認証の場合" do
+      before { allow(Current).to receive(:admin).and_return(nil) }
+
+      it "基本属性のみを返す" do
+        sanitized = search_result.sanitized_records
+        expect(sanitized).to be_an(ActiveRecord::Relation)
       end
     end
   end

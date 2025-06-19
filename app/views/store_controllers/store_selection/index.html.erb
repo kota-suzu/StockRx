@@ -1,0 +1,421 @@
+<%# ============================================ %>
+<%# StockRx Store Selection - Modern Design %>
+<%# ============================================ %>
+<%# Phase 2: モダンUIコンポーネント実装 %>
+<%# CLAUDE.md準拠: ベストプラクティス・アクセシビリティ対応 %>
+
+<div class="store-selection-container">
+  <div class="store-selection-content">
+    <div class="container">
+      <%# Hero Section %>
+      <div class="text-center mb-8">
+        <h1 class="display-heading">
+          <i class="bi bi-shop me-3"></i>
+          店舗を選択してください
+        </h1>
+        <p class="section-subtitle section-subtitle--light">
+          ご利用になる店舗を選択してログインしてください
+        </p>
+      </div>
+
+      <%# 最近アクセスした店舗セクション %>
+      <% if @recent_stores.any? %>
+        <section class="recent-stores-section" aria-labelledby="recent-stores-heading">
+          <h2 id="recent-stores-heading" class="section-heading section-heading--light">
+            <i class="bi bi-clock-history me-2"></i>
+            最近アクセスした店舗
+          </h2>
+          
+          <div class="store-grid">
+            <% @recent_store_slugs.each do |slug| %>
+              <% store = @recent_stores[slug] %>
+              <% if store %>
+                <article class="store-card store-card--recent" role="button" tabindex="0" 
+                         aria-label="<%= store.name %>店舗にログイン" 
+                         onclick="window.location='<%= store_login_page_path(slug: store.slug) %>'"
+                         onkeypress="if(event.key==='Enter'||event.key===' ')window.location='<%= store_login_page_path(slug: store.slug) %>'">
+                  
+                  <%# シマーエフェクト %>
+                  <div class="store-card__shimmer" aria-hidden="true"></div>
+                  
+                  <%# カードヘッダー %>
+                  <header class="store-card__header">
+                    <div class="store-card__icon" aria-hidden="true">
+                      <i class="<%= store_type_icon_class(store.store_type) %>"></i>
+                    </div>
+                    <div>
+                      <h3 class="store-card__title"><%= store.name %></h3>
+                      <div class="store-card__code">
+                        <i class="bi bi-upc-scan me-1"></i>
+                        <%= store.code %>
+                      </div>
+                    </div>
+                  </header>
+                  
+                  <%# カードボディ %>
+                  <div class="store-card__body">
+                    <div class="store-card__info">
+                      <i class="bi bi-tag icon" aria-hidden="true"></i>
+                      <span><%= store_type_display_name(store.store_type) %></span>
+                    </div>
+                    
+                    <% if store.region.present? %>
+                      <div class="store-card__info">
+                        <i class="bi bi-geo-alt icon" aria-hidden="true"></i>
+                        <span><%= store.region %></span>
+                      </div>
+                    <% end %>
+                    
+                    <div class="store-card__info">
+                      <i class="bi bi-box-seam icon" aria-hidden="true"></i>
+                      <span>在庫: <%= number_with_delimiter(store.store_inventories_count) %>品目</span>
+                    </div>
+                    
+                    <%# ステータスバッジ %>
+                    <div class="store-card__status">
+                      <% badge = store_status_badge(store) %>
+                      <% case badge[:text] %>
+                      <% when /正常/ %>
+                        <span class="status-badge status-badge--success" role="status" aria-live="polite">
+                          <i class="bi bi-check-circle"></i>
+                          <%= badge[:text] %>
+                        </span>
+                      <% when /在庫不足/ %>
+                        <span class="status-badge status-badge--warning" role="status" aria-live="polite">
+                          <i class="bi bi-exclamation-triangle"></i>
+                          <%= badge[:text] %>
+                        </span>
+                      <% else %>
+                        <span class="status-badge status-badge--info" role="status" aria-live="polite">
+                          <i class="bi bi-info-circle"></i>
+                          <%= badge[:text] %>
+                        </span>
+                      <% end %>
+                    </div>
+                  </div>
+                  
+                  <%# カードフッター %>
+                  <footer class="store-card__footer">
+                    <%= link_to store_login_page_path(slug: store.slug), 
+                                class: "btn-modern btn-modern--full",
+                                'aria-label': "#{store.name}店舗にログイン" do %>
+                      <i class="bi bi-box-arrow-in-right me-2"></i>
+                      ログイン
+                    <% end %>
+                  </footer>
+                </article>
+              <% end %>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
+
+      <%# 全店舗一覧セクション %>
+      <section class="all-stores-section" aria-labelledby="all-stores-heading">
+        <h2 id="all-stores-heading" class="section-heading section-heading--light">
+          <i class="bi bi-list-ul me-2"></i>
+          すべての店舗
+        </h2>
+        
+        <% if @stores_by_type.any? %>
+          <% @stores_by_type.each do |store_type, stores| %>
+            <div class="store-type-group">
+              <div class="store-type-title">
+                <div class="icon" aria-hidden="true">
+                  <i class="<%= store_type_icon_class(store_type) %>"></i>
+                </div>
+                <span><%= store_type_display_name(store_type) %></span>
+                <span class="badge bg-white text-dark ms-auto"><%= stores.count %>店舗</span>
+              </div>
+              
+              <div class="store-grid">
+                <% stores.each do |store| %>
+                  <article class="store-card" role="button" tabindex="0" 
+                           aria-label="<%= store.name %>店舗にログイン"
+                           onclick="window.location='<%= store_login_page_path(slug: store.slug) %>'"
+                           onkeypress="if(event.key==='Enter'||event.key===' ')window.location='<%= store_login_page_path(slug: store.slug) %>'">
+                    
+                    <%# シマーエフェクト %>
+                    <div class="store-card__shimmer" aria-hidden="true"></div>
+                    
+                    <%# カードヘッダー %>
+                    <header class="store-card__header">
+                      <div class="store-card__icon" aria-hidden="true">
+                        <i class="<%= store_type_icon_class(store.store_type) %>"></i>
+                      </div>
+                      <div>
+                        <h3 class="store-card__title"><%= store.name %></h3>
+                        <div class="store-card__code">
+                          <i class="bi bi-upc-scan me-1"></i>
+                          <%= store.code %>
+                        </div>
+                      </div>
+                    </header>
+                    
+                    <%# カードボディ %>
+                    <div class="store-card__body">
+                      <% if store.region.present? %>
+                        <div class="store-card__info">
+                          <i class="bi bi-geo-alt icon" aria-hidden="true"></i>
+                          <span><%= store.region %></span>
+                        </div>
+                      <% end %>
+                      
+                      <div class="store-card__info">
+                        <i class="bi bi-box-seam icon" aria-hidden="true"></i>
+                        <span>在庫: <%= number_with_delimiter(store.store_inventories_count) %>品目</span>
+                      </div>
+                      
+                      <% if store.manager_name.present? %>
+                        <div class="store-card__info">
+                          <i class="bi bi-person-badge icon" aria-hidden="true"></i>
+                          <span>責任者: <%= store.manager_name %></span>
+                        </div>
+                      <% end %>
+                      
+                      <%# ステータスバッジ %>
+                      <div class="store-card__status">
+                        <% badge = store_status_badge(store) %>
+                        <% case badge[:text] %>
+                        <% when /正常/ %>
+                          <span class="status-badge status-badge--success" role="status" aria-live="polite">
+                            <i class="bi bi-check-circle"></i>
+                            <%= badge[:text] %>
+                          </span>
+                        <% when /在庫不足/ %>
+                          <span class="status-badge status-badge--warning" role="status" aria-live="polite">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <%= badge[:text] %>
+                          </span>
+                        <% else %>
+                          <span class="status-badge status-badge--info" role="status" aria-live="polite">
+                            <i class="bi bi-info-circle"></i>
+                            <%= badge[:text] %>
+                          </span>
+                        <% end %>
+                      </div>
+                    </div>
+                    
+                    <%# カードフッター %>
+                    <footer class="store-card__footer">
+                      <%= link_to store_login_page_path(slug: store.slug), 
+                                  class: "btn-modern btn-modern--outline btn-modern--full",
+                                  'aria-label': "#{store.name}店舗にログイン" do %>
+                        <i class="bi bi-box-arrow-in-right me-2"></i>
+                        ログイン
+                      <% end %>
+                    </footer>
+                  </article>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+        <% else %>
+          <%# 空状態 %>
+          <%# CLAUDE.md準拠: セキュリティ強化 - 管理者ログインリンク削除 %>
+          <%# メタ認知: 緊急時でも管理者機能への直接アクセスを提供せず、別チャンネルでサポート %>
+          <div class="empty-state" role="status" aria-live="polite">
+            <div class="empty-state__icon">
+              <i class="bi bi-exclamation-circle"></i>
+            </div>
+            <h3 class="empty-state__title">利用可能な店舗がありません</h3>
+            <p class="empty-state__description">
+              システム管理者にお問い合わせください。<br>
+              <small class="text-muted">
+                <i class="bi bi-info-circle me-1"></i>
+                技術的なサポートが必要な場合は、直接お電話またはメールでご連絡ください。
+              </small>
+            </p>
+            <%= link_to root_path, class: "btn-modern btn-modern--outline mt-4" do %>
+              <i class="bi bi-house-door me-2"></i>
+              ホームに戻る
+            <% end %>
+          </div>
+        <% end %>
+      </section>
+    </div>
+  </div>
+</div>
+
+<%# ============================================ %>
+<%# Enhanced JavaScript for Modern Interactions %>
+<%# ============================================ %>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // ============================================
+  // アクセシビリティ強化
+  // ============================================
+  
+  // キーボードナビゲーション対応
+  const storeCards = document.querySelectorAll('.store-card[role="button"]');
+  
+  storeCards.forEach(card => {
+    // フォーカス管理
+    card.addEventListener('focus', function() {
+      this.style.outline = '2px solid rgba(99, 102, 241, 0.8)';
+      this.style.outlineOffset = '2px';
+    });
+    
+    card.addEventListener('blur', function() {
+      this.style.outline = '';
+      this.style.outlineOffset = '';
+    });
+    
+    // マウス操作のアクセシビリティ向上
+    card.addEventListener('mouseenter', function() {
+      this.setAttribute('aria-pressed', 'false');
+    });
+    
+    card.addEventListener('mouseleave', function() {
+      this.removeAttribute('aria-pressed');
+    });
+  });
+  
+  // ============================================
+  // Intersection Observer アニメーション
+  // ============================================
+  
+  if ('IntersectionObserver' in window) {
+    const observerOptions = {
+      threshold: 0.1,
+      rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+          observer.unobserve(entry.target);
+        }
+      });
+    }, observerOptions);
+    
+    // アニメーション対象要素の初期設定
+    storeCards.forEach((card, index) => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(30px)';
+      card.style.transition = `opacity 0.6s ease ${index * 0.1}s, transform 0.6s ease ${index * 0.1}s`;
+      observer.observe(card);
+    });
+  }
+  
+  // ============================================
+  // パフォーマンス最適化
+  // ============================================
+  
+  // Preconnect to improve performance
+  const preconnectLinks = [
+    'https://cdn.jsdelivr.net',
+    'https://fonts.googleapis.com'
+  ];
+  
+  preconnectLinks.forEach(href => {
+    const link = document.createElement('link');
+    link.rel = 'preconnect';
+    link.href = href;
+    document.head.appendChild(link);
+  });
+  
+  // Passive event listeners for better scroll performance
+  document.addEventListener('touchstart', function() {}, { passive: true });
+  document.addEventListener('touchmove', function() {}, { passive: true });
+  
+  // ============================================
+  // 最近アクセス店舗の自動更新
+  // ============================================
+  
+  // カード選択時の分析データ送信
+  storeCards.forEach(card => {
+    card.addEventListener('click', function() {
+      const storeName = this.querySelector('.store-card__title')?.textContent?.trim();
+      const storeType = this.querySelector('.store-card__info')?.textContent?.trim();
+      
+      // Analytics event (if analytics is available)
+      if (typeof gtag !== 'undefined') {
+        gtag('event', 'store_selection', {
+          'store_name': storeName,
+          'store_type': storeType,
+          'selection_source': this.closest('.recent-stores-section') ? 'recent' : 'all'
+        });
+      }
+    });
+  });
+  
+  // ============================================
+  // Reduced Motion対応
+  // ============================================
+  
+  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  
+  if (prefersReducedMotion.matches) {
+    document.documentElement.style.setProperty('--transition-fast', '0ms');
+    document.documentElement.style.setProperty('--transition-base', '0ms');
+    document.documentElement.style.setProperty('--transition-slow', '0ms');
+    
+    // アニメーションを無効化
+    storeCards.forEach(card => {
+      card.style.transition = 'none';
+      card.style.opacity = '1';
+      card.style.transform = 'none';
+    });
+  }
+});
+</script>
+
+<%# ============================================ %>
+<%# TODO: Phase 2（セキュリティ）以降の拡張予定 %>
+<%# ============================================ %>
+<%# 🔴 Phase 2: セキュリティ強化（推定3日） %>
+<%#   - ✅ 管理者ログインリンク削除完了 %>
+<%#   - ⏳ 店舗アクセス試行制限（レート制限） %>
+<%#   - ⏳ 怪しいアクセスパターン検知 %>
+<%#   - ⏳ ハニーポット実装（ボット対策） %>
+<%#   - ⏳ アクセスログ暗号化 %>
+<%# %>
+<%# 🟡 Phase 4: 検索・フィルタリング機能（推定2日） %>
+<%# - 店舗名での部分一致検索 %>
+<%# - 地域別フィルタリング %>
+<%# - 店舗タイプ別絞り込み %>
+<%# - 在庫状況でのフィルタリング %>
+<%# %>
+<%# 🟡 Phase 5: 地図表示機能（推定3日） %>
+<%# - Google Maps API統合 %>
+<%# - 店舗位置表示 %>
+<%# - 最寄り店舗の自動提案 %>
+<%# - GPS連携での距離表示 %>
+<%# %>
+<%# 🟢 Phase 6: PWA対応（推定2日） %>
+<%# - オフライン対応 %>
+<%# - プッシュ通知 %>
+<%# - インストール可能化 %>
+<%# - キャッシング戦略 %>
+<%# %>
+<%# ============================================ %>
+<%# メタ認知的改善ポイント（今回の実装から得た教訓） %>
+<%# ============================================ %>
+<%# 1. **アクセシビリティファースト設計**: %>
+<%#    - 初期設計段階でのaria-label、role設定 %>
+<%#    - キーボードナビゲーションの優先実装 %>
+<%#    - スクリーンリーダー対応の徹底 %>
+<%# %>
+<%# 2. **パフォーマンス意識の組み込み**: %>
+<%#    - Intersection Observer活用によるアニメーション最適化 %>
+<%#    - Passive event listenersの活用 %>
+<%#    - Preconnectによるリソース読み込み最適化 %>
+<%# %>
+<%# 3. **プログレッシブエンハンスメント**: %>
+<%#    - JavaScript無効時でも基本機能動作 %>
+<%#    - CSS Featuresの段階的適用 %>
+<%#    - Reduced Motionへの配慮 %>
+<%# %>
+<%# 4. **将来拡張性への配慮**: %>
+<%#    - コンポーネント化されたマークアップ %>
+<%#    - CSS変数による柔軟な設計 %>
+<%#    - Analytics連携の準備 %>
+<%# %>
+<%# 5. **横展開チェックリスト**: %>
+<%#    - [ ] 他の店舗関連ページでの同様パターン適用 %>
+<%#    - [ ] アイコンシステムの全体統一確認 %>
+<%#    - [ ] カラーシステムの一貫性確保 %>
+<%#    - [ ] レスポンシブ設計の標準化 %>

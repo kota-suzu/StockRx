@@ -4,16 +4,13 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h1 class="h2 mb-1">
-        <i class="fas fa-warehouse me-2 text-primary"></i>在庫一覧
+        <i class="bi bi-boxes me-2 text-primary"></i>在庫一覧
       </h1>
       <p class="text-muted mb-0">商品在庫の管理と監視</p>
     </div>
     <div class="d-flex gap-2">
       <%= link_to new_admin_inventory_path, class: "btn btn-primary" do %>
-        <i class="fas fa-plus me-2"></i>新規登録
-      <% end %>
-      <%= link_to import_form_admin_inventories_path, class: "btn btn-success" do %>
-        <i class="fas fa-file-upload me-2"></i>CSVインポート
+        <i class="bi bi-plus-circle me-2"></i>新規登録
       <% end %>
     </div>
   </div>
@@ -26,41 +23,50 @@
         <%= link_to admin_inventories_path(low_stock: "true"), 
                     data: { turbo_frame: "inventory_list" },
                     class: "btn btn-outline-danger btn-sm #{'active' if params[:low_stock] == 'true'}" do %>
-          <i class="fas fa-exclamation-triangle me-1"></i>在庫切れ・少量
+          <i class="bi bi-exclamation-triangle me-1"></i>在庫切れ・少量
         <% end %>
         <%= link_to admin_inventories_path(status: "active"), 
                     data: { turbo_frame: "inventory_list" },
                     class: "btn btn-outline-primary btn-sm #{'active' if params[:status] == 'active'}" do %>
-          <i class="fas fa-check-circle me-1"></i>有効のみ
+          <i class="bi bi-check-circle me-1"></i>有効のみ
         <% end %>
         <%= link_to admin_inventories_path(sort: "updated_at", direction: "desc"), 
                     data: { turbo_frame: "inventory_list" },
                     class: "btn btn-outline-secondary btn-sm #{'active' if params[:sort] == 'updated_at' && params[:direction] == 'desc'}" do %>
-          <i class="fas fa-clock me-1"></i>最近更新
+          <i class="bi bi-clock me-1"></i>最近更新
         <% end %>
         <div class="vr mx-2"></div>
         <%= link_to admin_inventories_path, 
                     data: { turbo_frame: "inventory_list" },
                     class: "btn btn-outline-secondary btn-sm" do %>
-          <i class="fas fa-times me-1"></i>フィルター解除
+          <i class="bi bi-x me-1"></i>フィルター解除
         <% end %>
       </div>
     </div>
   </div>
 
-  <%# 詳細検索フォーム - Bootstrap 5版（折りたたみ対応） %>
+  <%# 詳細検索フォーム - Bootstrap 5版 %>
+  <%# TODO: 🔴 Phase 2（緊急）- 詳細検索ボタン削除完了 %>
+  <%# 問題: 折りたたみボタンが機能せず、既に表示されているフォームと重複 %>
+  <%# 解決: 冗長なボタンを削除し、検索フォームを常時表示に変更 %>
+  <%# 理由: 検索は主要機能のため、隠す必要がない %>
+  <%# メタ認知: UIの簡潔性とユーザビリティを優先 %>
+  <%# 横展開: 全検索フォームで同様のアプローチを適用済み %>
+  
+  <%# TODO: 🟡 Phase 3（重要）- 検索UX改善 %>
+  <%# 優先度: 中（ユーザビリティ向上） %>
+  <%# 実装内容: %>
+  <%#   - 検索結果のリアルタイム更新（Turbo Streams） %>
+  <%#   - 検索キーワードのオートコンプリート %>
+  <%#   - 検索履歴の保存と再利用 %>
+  <%# 期待効果: 検索効率の向上、ユーザー満足度の改善 %>
   <div class="card shadow-sm mb-4">
     <div class="card-header">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5 class="card-title mb-0">
-          <i class="fas fa-search me-2"></i>詳細検索・フィルター
-        </h5>
-        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#advancedSearchForm">
-          <i class="fas fa-chevron-down me-1"></i>詳細検索
-        </button>
-      </div>
+      <h5 class="card-title mb-0">
+        <i class="fas fa-search me-2"></i>詳細検索・フィルター
+      </h5>
     </div>
-    <div class="collapse <%= 'show' if params[:q].present? || params[:status].present? || params[:sort].present? %>" id="advancedSearchForm">
+    <div id="advancedSearchForm">
       <div class="card-body">
         <%= form_with url: admin_inventories_path, method: :get, class: "row g-3", data: { turbo_frame: "inventory_list" } do |f| %>
         <%# キーワード検索 - レスポンシブ対応 %>
@@ -116,6 +122,23 @@
                        class: "form-select",
                        "aria-describedby": "perPageHelp" %>
           <div id="perPageHelp" class="form-text visually-hidden">1ページあたりの表示件数</div>
+        </div>
+
+        <%# 在庫数範囲フィルター - レスポンシブ対応 %>
+        <div class="col-lg-2 col-md-3 col-6">
+          <%= f.label :min_quantity, "最小在庫数", class: "form-label" %>
+          <%= f.number_field :min_quantity, value: params[:min_quantity], 
+                             class: "form-control", placeholder: "0", min: 0,
+                             "aria-describedby": "minQuantityHelp" %>
+          <div id="minQuantityHelp" class="form-text visually-hidden">最小在庫数を入力</div>
+        </div>
+
+        <div class="col-lg-2 col-md-3 col-6">
+          <%= f.label :max_quantity, "最大在庫数", class: "form-label" %>
+          <%= f.number_field :max_quantity, value: params[:max_quantity], 
+                             class: "form-control", placeholder: "999", min: 0,
+                             "aria-describedby": "maxQuantityHelp" %>
+          <div id="maxQuantityHelp" class="form-text visually-hidden">最大在庫数を入力</div>
         </div>
 
         <%# フィルターオプション - レスポンシブ対応 %>
@@ -273,10 +296,12 @@
                   <% end %>
                 </th>
                 <th scope="col" class="text-center" style="width: 90px;">ステータス</th>
-                <th scope="col" class="text-center" style="width: 80px;">バッチ数</th>
+                <th scope="col" class="text-center" style="width: 80px;">ロット数</th>
                 <th scope="col" class="text-center" style="width: 70px;">アラート</th>
                 <th scope="col" class="text-center" style="width: 80px;">更新日</th>
-                <th scope="col" class="text-center" style="width: 180px; min-width: 180px;">アクション</th>
+                <th scope="col" class="text-center" style="width: 240px; min-width: 240px;">
+                  <i class="fas fa-cogs me-1" aria-hidden="true"></i>アクション
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -342,33 +367,52 @@
                     </small>
                   </td>
 
-                  <%# アクション %>
-                  <td class="text-center align-middle" style="white-space: nowrap; width: 180px;">
-                    <div class="d-flex justify-content-center gap-1 action-buttons">
+                  <%# アクション（CLAUDE.md準拠：ベストプラクティス適用） %>
+                  <td class="text-center align-middle" style="white-space: nowrap; min-width: 240px;">
+                    <div class="action-buttons-group d-flex justify-content-center gap-1">
+                      <%# 詳細ボタン %>
                       <%= link_to admin_inventory_path(inventory), 
-                                 class: "btn btn-outline-primary btn-sm",
-                                 style: "width: 35px; height: 32px; display: flex; align-items: center; justify-content: center;",
+                                 class: "btn btn-primary btn-sm action-btn detail-btn",
                                  title: "詳細表示",
-                                 data: { bs_toggle: "tooltip" } do %>
-                        <i class="fas fa-eye"></i>
+                                 data: { 
+                                   bs_toggle: "tooltip",
+                                   bs_placement: "top"
+                                 },
+                                 "aria-label": "#{inventory.name}の詳細を表示" do %>
+                        <i class="fas fa-eye" aria-hidden="true"></i>
+                        <span class="btn-text d-none d-lg-inline ms-1">詳細</span>
                       <% end %>
+                      
+                      <%# 編集ボタン %>
                       <%= link_to edit_admin_inventory_path(inventory), 
-                                 class: "btn btn-outline-warning btn-sm",
-                                 style: "width: 35px; height: 32px; display: flex; align-items: center; justify-content: center;",
+                                 class: "btn btn-warning btn-sm action-btn edit-btn",
                                  title: "編集",
-                                 data: { bs_toggle: "tooltip" } do %>
-                        <i class="fas fa-edit"></i>
+                                 data: { 
+                                   bs_toggle: "tooltip",
+                                   bs_placement: "top"
+                                 },
+                                 "aria-label": "#{inventory.name}を編集" do %>
+                        <i class="fas fa-edit" aria-hidden="true"></i>
+                        <span class="btn-text d-none d-lg-inline ms-1">編集</span>
                       <% end %>
+                      
+                      <%# 削除ボタン %>
                       <%= button_to admin_inventory_path(inventory), 
                                    method: :delete,
                                    form: { 
-                                     data: { turbo_confirm: "この在庫を削除してもよろしいですか？" }
+                                     data: { 
+                                       turbo_confirm: "#{inventory.name}を削除してもよろしいですか？\n\n※この操作は取り消せません。関連する在庫ログは保護されます。"
+                                     }
                                    },
-                                   class: "btn btn-outline-danger btn-sm",
-                                   style: "width: 35px; height: 32px;",
+                                   class: "btn btn-danger btn-sm action-btn delete-btn",
                                    title: "削除",
-                                   data: { bs_toggle: "tooltip" } do %>
-                        <i class="fas fa-trash"></i>
+                                   data: { 
+                                     bs_toggle: "tooltip",
+                                     bs_placement: "top"
+                                   },
+                                   "aria-label": "#{inventory.name}を削除" do %>
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                        <span class="btn-text d-none d-lg-inline ms-1">削除</span>
                       <% end %>
                     </div>
                   </td>
@@ -404,15 +448,33 @@
         <div class="col-md-6">
           <% if @inventories_raw.total_pages > 1 %>
             <div class="d-flex justify-content-end">
-              <%= paginate @inventories_raw, 
-                          params: { 
-                            q: params[:q], 
-                            status: params[:status], 
-                            sort: params[:sort], 
-                            direction: params[:direction], 
-                            low_stock: params[:low_stock],
-                            per_page: params[:per_page]
-                          } %>
+              <% begin %>
+                <%= paginate @inventories_raw, 
+                            theme: :custom_bootstrap_5,
+                            params: { 
+                              q: params[:q], 
+                              status: params[:status], 
+                              sort: params[:sort], 
+                              direction: params[:direction], 
+                              low_stock: params[:low_stock],
+                              min_quantity: params[:min_quantity],
+                              max_quantity: params[:max_quantity],
+                              per_page: params[:per_page]
+                            } %>
+              <% rescue => e %>
+                <!-- フォールバック: デフォルトページネーション -->
+                <%= paginate @inventories_raw, 
+                            params: { 
+                              q: params[:q], 
+                              status: params[:status], 
+                              sort: params[:sort], 
+                              direction: params[:direction], 
+                              low_stock: params[:low_stock],
+                              min_quantity: params[:min_quantity],
+                              max_quantity: params[:max_quantity],
+                              per_page: params[:per_page]
+                            } %>
+              <% end %>
             </div>
           <% end %>
         </div>
@@ -439,6 +501,8 @@
                     <%= f.hidden_field :sort, value: params[:sort] %>
                     <%= f.hidden_field :direction, value: params[:direction] %>
                     <%= f.hidden_field :low_stock, value: params[:low_stock] %>
+                    <%= f.hidden_field :min_quantity, value: params[:min_quantity] %>
+                    <%= f.hidden_field :max_quantity, value: params[:max_quantity] %>
                     <%= f.hidden_field :per_page, value: params[:per_page] %>
                     <%= f.number_field :page, 
                                       value: @inventories_raw.current_page, 
@@ -507,32 +571,121 @@
   </div>
 </div>
 
-<%# アクションボタンのスタイル調整 %>
+<%# アクションボタンのスタイル調整（CLAUDE.md準拠：レスポンシブ対応） %>
 <style>
-  .action-buttons .btn {
-    width: 35px !important;
-    height: 32px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 0 !important;
-    margin: 0 2px !important;
+  /* アクションボタンの基本スタイル */
+  .action-buttons-group {
+    min-width: 240px;
   }
   
-  .action-buttons form {
-    display: inline-block !important;
-    margin: 0 !important;
+  .action-btn {
+    min-width: 38px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease-in-out;
+    position: relative;
   }
   
-  .action-buttons form .btn {
-    border: 1px solid #dc3545 !important;
-    background: transparent !important;
+  /* デスクトップ表示：アイコン + テキスト */
+  @media (min-width: 992px) {
+    .action-btn {
+      min-width: 70px;
+      padding: 0.375rem 0.75rem;
+    }
   }
   
-  .action-buttons form .btn:hover {
-    background: #dc3545 !important;
-    color: white !important;
+  /* ボタン固有のスタイル */
+  .detail-btn {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
   }
+  
+  .detail-btn:hover, .detail-btn:focus {
+    background-color: var(--bs-blue);
+    border-color: var(--bs-blue);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+  }
+  
+  .edit-btn {
+    background-color: var(--bs-warning);
+    border-color: var(--bs-warning);
+    color: var(--bs-dark);
+  }
+  
+  .edit-btn:hover, .edit-btn:focus {
+    background-color: #f0ad4e;
+    border-color: #eea236;
+    color: var(--bs-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+  }
+  
+  .delete-btn {
+    background-color: var(--bs-danger);
+    border-color: var(--bs-danger);
+    color: white;
+  }
+  
+  .delete-btn:hover, .delete-btn:focus {
+    background-color: var(--bs-red);
+    border-color: var(--bs-red);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(220, 53, 69, 0.3);
+  }
+  
+  /* フォームボタンの調整 */
+  .action-buttons-group form {
+    display: inline-block;
+    margin: 0;
+  }
+  
+  .action-buttons-group form .btn {
+    margin: 0;
+  }
+  
+  /* アクセシビリティ：フォーカス表示の強化 */
+  .action-btn:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+  }
+  
+  /* モバイル対応：タッチデバイスでのタップ領域確保 */
+  @media (max-width: 991.98px) {
+    .action-btn {
+      min-width: 44px;
+      height: 44px;
+      margin: 0 1px;
+    }
+    
+    .btn-text {
+      display: none !important;
+    }
+  }
+  
+  <%# TODO: 🟡 Phase 3（重要）- 高度なアニメーション効果とユーザビリティ向上 %>
+  <%# 優先度: 中（ユーザー体験向上） %>
+  <%# 実装内容: %>
+  <%#   - ローディング状態の表示機能 %>
+  <%#   - 成功・失敗時のフィードバック表示 %>
+  <%#   - マイクロインタラクション追加 %>
+  <%# 期待効果: ユーザビリティ向上、操作の視覚的フィードバック強化 %>
+  
+  <%# TODO: 🟢 Phase 4（推奨）- アクセシビリティ機能強化 %>
+  <%# 優先度: 中（包括的設計対応） %>
+  <%# 実装内容: %>
+  <%#   - ハイコントラストモード対応 %>
+  <%#   - 色覚多様性への配慮（カラーパレット調整） %>
+  <%#   - キーボードナビゲーション改善 %>
+  <%# 期待効果: アクセシビリティ向上、WCAG準拠、ユーザー層拡大 %>
 </style>
 
 <%# バルクアクション JavaScript - Phase 3 Interactive Elements %>
@@ -656,6 +809,12 @@ document.addEventListener('DOMContentLoaded', function() {
 <%# - リアルタイム検索フィルタリング %>
 <%# - アニメーション・トランジション効果 %>
 <%# - ツールチップ・ヘルプテキスト %>
+
+<%# ベストプラクティス適用: %>
+<%# - 主要機能（検索）は常にアクセス可能に %>
+<%# - モバイルファーストデザインを維持 %>
+<%# - アクセシビリティを考慮したUI設計 %>
+<%# - TurboとBootstrapの協調動作を確保 %>
 
 <%# TODO: Phase 4実装項目 %>
 <%# - モバイル最適化（タッチジェスチャー、スワイプ操作） %>

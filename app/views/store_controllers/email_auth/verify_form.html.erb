@@ -1,0 +1,690 @@
+<% content_for :title, "パスコード入力" %>
+
+<style>
+  /* モダンな白ベースデザイン - ログイン画面との統一性確保 */
+  :root {
+    --primary-color: #0d6efd;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-bg: #f8f9fa;
+    --shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+    --border-radius: 0.75rem;
+    --transition: all 0.2s ease-in-out;
+  }
+  
+  /* 全体レイアウト */
+  .auth-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 2rem 1rem;
+  }
+  
+  /* カードデザイン */
+  .auth-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  
+  .auth-card-body {
+    padding: 3rem 2rem;
+  }
+  
+  /* ヘッダーセクション */
+  .auth-header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  
+  .auth-icon {
+    width: 4rem;
+    height: 4rem;
+    background: linear-gradient(135deg, var(--success-color), #20c997);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .auth-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #212529;
+    margin-bottom: 0.5rem;
+  }
+  
+  .auth-subtitle {
+    color: #6c757d;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+  
+  /* ストア情報セクション */
+  .store-info {
+    background: var(--light-bg);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #dee2e6;
+  }
+  
+  .store-info-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.25rem;
+    display: block;
+  }
+  
+  .store-info-value {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #212529;
+    margin: 0;
+  }
+  
+  /* パスコード入力フィールド */
+  .passcode-input {
+    font-size: 2rem;
+    letter-spacing: 0.75rem;
+    text-align: center;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
+    font-weight: 600;
+    padding: 1rem;
+    border: 2px solid #dee2e6;
+    border-radius: 0.5rem;
+    transition: var(--transition);
+    background: #fafbfc;
+  }
+  
+  .passcode-input:focus {
+    border-color: var(--primary-color);
+    background: white;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    outline: none;
+  }
+  
+  .passcode-input.is-valid {
+    border-color: var(--success-color);
+    background: #f8fff8;
+  }
+  
+  .passcode-input.is-invalid {
+    border-color: var(--danger-color);
+    background: #fff8f8;
+  }
+  
+  /* フォームラベル */
+  .form-label-enhanced {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  /* ボタンスタイル */
+  .btn-submit {
+    background: linear-gradient(135deg, var(--success-color), #20c997);
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 0.875rem 2rem;
+    border-radius: 0.5rem;
+    transition: var(--transition);
+    width: 100%;
+    font-size: 1.1rem;
+  }
+  
+  .btn-submit:hover:not(:disabled) {
+    background: linear-gradient(135deg, #157347, #198754);
+    transform: translateY(-1px);
+    box-shadow: 0 0.5rem 1rem rgba(25, 135, 84, 0.3);
+    color: white;
+  }
+  
+  .btn-submit:disabled {
+    opacity: 0.65;
+    transform: none;
+    cursor: not-allowed;
+  }
+  
+  /* リンクスタイル */
+  .auth-links {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    gap: 1rem;
+  }
+  
+  .auth-link {
+    text-decoration: none;
+    font-weight: 500;
+    color: var(--primary-color);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+  }
+  
+  .auth-link:hover {
+    color: #0b5ed7;
+    text-decoration: none;
+  }
+  
+  .auth-link.secondary {
+    color: #6c757d;
+  }
+  
+  .auth-link.secondary:hover {
+    color: #495057;
+  }
+  
+  /* セキュリティ情報 */
+  .security-info {
+    background: #fff3cd;
+    border: 1px solid #ffecb5;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-top: 1.5rem;
+  }
+  
+  .security-info-header {
+    font-weight: 600;
+    color: #664d03;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .security-info-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    color: #664d03;
+    font-size: 0.875rem;
+  }
+  
+  .security-info-list li {
+    margin-bottom: 0.25rem;
+    padding-left: 1rem;
+    position: relative;
+  }
+  
+  .security-info-list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--warning-color);
+    font-weight: bold;
+  }
+  
+  /* フッター */
+  .auth-footer {
+    background: var(--light-bg);
+    border-top: 1px solid #dee2e6;
+    padding: 1rem 2rem;
+    text-align: center;
+  }
+  
+  .secure-connection {
+    color: #6c757d;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  /* アニメーション */
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(2rem);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-in {
+    animation: slideInUp 0.6s ease-out;
+  }
+  
+  /* フォームバリデーション */
+  .form-text-enhanced {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  .invalid-feedback {
+    font-size: 0.875rem;
+    color: var(--danger-color);
+    margin-top: 0.5rem;
+  }
+  
+  .valid-feedback {
+    font-size: 0.875rem;
+    color: var(--success-color);
+    margin-top: 0.5rem;
+  }
+  
+  /* レスポンシブ調整 */
+  @media (max-width: 576px) {
+    .auth-container {
+      padding: 1rem 0.5rem;
+    }
+    
+    .auth-card-body {
+      padding: 2rem 1.5rem;
+    }
+    
+    .auth-title {
+      font-size: 1.5rem;
+    }
+    
+    .passcode-input {
+      font-size: 1.75rem;
+      letter-spacing: 0.5rem;
+    }
+    
+    .auth-links {
+      flex-direction: column;
+      gap: 0.75rem;
+      text-align: center;
+    }
+  }
+  
+  /* Focus管理 */
+  .form-control:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+  
+  /* ローディング状態 */
+  .loading {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent);
+    animation: loading 1.5s infinite;
+  }
+  
+  @keyframes loading {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+</style>
+
+<div class="auth-container d-flex align-items-center justify-content-center">
+  <div class="w-100">
+    <div class="auth-card animate-slide-in">
+      
+      <!-- カード本体 -->
+      <div class="auth-card-body">
+        
+        <!-- ヘッダーセクション -->
+        <div class="auth-header">
+          <div class="auth-icon">
+            <i class="bi bi-shield-lock fs-2 text-white"></i>
+          </div>
+          <h1 class="auth-title">パスコードを入力</h1>
+          <p class="auth-subtitle">
+            メールで受信した6桁のパスコードを入力してください
+          </p>
+        </div>
+
+        <!-- ストア情報 -->
+        <div class="store-info">
+          <label class="store-info-label">
+            <i class="bi bi-building"></i>
+            店舗名
+          </label>
+          <p class="store-info-value"><%= @store.name %></p>
+        </div>
+
+        <!-- フォーム -->
+        <%= form_with model: @temp_password_verification,
+                      url: store_verify_temp_password_path(store_slug: @store.slug),
+                      local: true,
+                      id: "passcode-verify-form",
+                      class: "needs-validation",
+                      novalidate: true do |form| %>
+          
+          <!-- メールアドレス表示 -->
+          <div class="mb-4">
+            <div class="store-info">
+              <label class="store-info-label">
+                <i class="bi bi-envelope"></i>
+                送信先メールアドレス
+              </label>
+              <p class="store-info-value"><%= @masked_email %></p>
+              <%= form.hidden_field :email, value: @temp_password_verification.email %>
+            </div>
+          </div>
+
+          <!-- パスコード入力 -->
+          <div class="mb-4">
+            <label class="form-label-enhanced" for="temp_password_field">
+              <i class="bi bi-shield-lock"></i>
+              6桁のパスコード
+            </label>
+            <%= form.text_field :temp_password,
+                                placeholder: "••••••",
+                                required: true,
+                                autocomplete: "one-time-code",
+                                maxlength: 6,
+                                pattern: "[0-9]{6}",
+                                inputmode: "numeric",
+                                id: "temp_password_field",
+                                class: "form-control passcode-input",
+                                aria_describedby: "passcode-help",
+                                aria_label: "6桁のパスコードを入力してください" %>
+            <div id="passcode-help" class="form-text-enhanced">
+              <i class="bi bi-clock"></i>
+              パスコードは15分間有効です
+            </div>
+            <div class="invalid-feedback">
+              6桁のパスコードを正しく入力してください
+            </div>
+            <div class="valid-feedback">
+              パスコードが正しく入力されました
+            </div>
+          </div>
+
+          <!-- 隠しフィールド -->
+          <%= form.hidden_field :store_id, value: @store.id %>
+          <%= form.hidden_field :store_slug, value: @store.slug %>
+
+          <!-- ログインボタン -->
+          <div class="mb-4">
+            <%= form.submit "ログイン",
+                            id: "submit-passcode",
+                            class: "btn btn-submit",
+                            data: { 
+                              disable_with: "ログイン中...",
+                              loading_text: "ログイン中..."
+                            } %>
+          </div>
+
+          <!-- リンク -->
+          <div class="auth-links">
+            <%= link_to new_store_user_session_path(store_slug: @store.slug),
+                        class: "auth-link" do %>
+              <i class="bi bi-arrow-left"></i>
+              パスコードを再送信
+            <% end %>
+            <%= link_to store_selection_path,
+                        class: "auth-link secondary" do %>
+              <i class="bi bi-shop"></i>
+              別の店舗を選択
+            <% end %>
+          </div>
+        <% end %>
+
+        <!-- セキュリティ情報 -->
+        <div class="security-info">
+          <div class="security-info-header">
+            <i class="bi bi-shield-exclamation"></i>
+            セキュリティ情報
+          </div>
+          <ul class="security-info-list">
+            <li>パスコードは1回限り使用可能です</li>
+            <li>5回間違えるとアカウントがロックされます</li>
+            <li>不審なアクセスを検知した場合は管理者にご連絡ください</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- フッター -->
+      <div class="auth-footer">
+        <div class="secure-connection">
+          <i class="bi bi-shield-check"></i>
+          <span>安全な接続で保護されています</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// パスコード入力画面の強化されたJavaScript
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('passcode-verify-form');
+  const submitButton = document.getElementById('submit-passcode');
+  const passcodeField = document.getElementById('temp_password_field');
+  
+  // Bootstrap 5フォームバリデーション
+  if (form) {
+    form.addEventListener('submit', function(event) {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        // エラー時のアクセシビリティサポート
+        const firstInvalidField = form.querySelector(':invalid');
+        if (firstInvalidField) {
+          firstInvalidField.focus();
+          firstInvalidField.setAttribute('aria-invalid', 'true');
+        }
+      }
+      form.classList.add('was-validated');
+    });
+  }
+  
+  // パスコード入力の自動フォーマットと検証
+  if (passcodeField) {
+    // 入力時の処理
+    passcodeField.addEventListener('input', function(e) {
+      // 数字以外を削除
+      let value = this.value.replace(/[^0-9]/g, '');
+      this.value = value;
+      
+      // 長さ制限
+      if (value.length > 6) {
+        this.value = value.slice(0, 6);
+      }
+      
+      // リアルタイムバリデーション
+      updateFieldValidation(this);
+      
+      // 6桁入力完了時の自動処理
+      if (this.value.length === 6) {
+        // 軽微な遅延後にフォーカスをボタンに移動
+        setTimeout(() => {
+          submitButton.focus();
+        }, 100);
+      }
+    });
+    
+    // ペースト時の処理
+    passcodeField.addEventListener('paste', function(e) {
+      e.preventDefault();
+      const pastedText = (e.clipboardData || window.clipboardData).getData('text');
+      const numbers = pastedText.replace(/[^0-9]/g, '').slice(0, 6);
+      this.value = numbers;
+      
+      // inputイベントをトリガー
+      const inputEvent = new Event('input', { bubbles: true });
+      this.dispatchEvent(inputEvent);
+      
+      // バリデーション更新
+      updateFieldValidation(this);
+    });
+    
+    // フォーカス時に全選択
+    passcodeField.addEventListener('focus', function() {
+      // 短い遅延後に選択（一部ブラウザで必要）
+      setTimeout(() => {
+        this.select();
+      }, 10);
+    });
+    
+    // キーダウンイベント（数字キーのみ許可）
+    passcodeField.addEventListener('keydown', function(e) {
+      // 許可されるキー
+      const allowedKeys = [
+        'Backspace', 'Delete', 'Tab', 'Escape', 'Enter', 'Home', 'End',
+        'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'
+      ];
+      
+      // 数字キー（メインキーボード）
+      const isNumber = e.key >= '0' && e.key <= '9';
+      // 数字キー（テンキー）
+      const isNumpad = e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9';
+      // Ctrl/Cmd + A, C, V, X (コピペ対応)
+      const isCtrlCmd = e.ctrlKey || e.metaKey;
+      const isCopyPaste = isCtrlCmd && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase());
+      
+      if (!isNumber && !isNumpad && !allowedKeys.includes(e.key) && !isCopyPaste) {
+        e.preventDefault();
+      }
+    });
+  }
+  
+  // フィールドバリデーション状態の更新
+  function updateFieldValidation(field) {
+    const value = field.value;
+    const isValid = /^[0-9]{6}$/.test(value);
+    const isEmpty = value.length === 0;
+    
+    // クラスのリセット
+    field.classList.remove('is-valid', 'is-invalid');
+    field.removeAttribute('aria-invalid');
+    
+    if (!isEmpty) {
+      if (isValid) {
+        field.classList.add('is-valid');
+        field.setAttribute('aria-invalid', 'false');
+      } else {
+        field.classList.add('is-invalid');
+        field.setAttribute('aria-invalid', 'true');
+      }
+    }
+    
+    // 送信ボタンの状態更新
+    updateSubmitButton();
+  }
+  
+  // 送信ボタンの状態更新
+  function updateSubmitButton() {
+    const passcodeValue = passcodeField ? passcodeField.value : '';
+    const isValidPasscode = /^[0-9]{6}$/.test(passcodeValue);
+    
+    if (submitButton) {
+      submitButton.disabled = !isValidPasscode;
+    }
+  }
+  
+  // フォーム送信時の追加処理
+  if (form) {
+    form.addEventListener('submit', function(e) {
+      const emailField = form.querySelector('input[name="temp_password_verification[email]"]');
+      const email = emailField ? emailField.value.trim() : '';
+      const passcode = passcodeField ? passcodeField.value.trim() : '';
+      
+      // 基本的な検証
+      if (!email) {
+        e.preventDefault();
+        showError('エラー: メールアドレスが設定されていません。最初からやり直してください。');
+        setTimeout(() => {
+          window.location.href = '<%= new_store_user_session_path(store_slug: @store.slug) %>';
+        }, 2000);
+        return false;
+      }
+      
+      if (passcode.length !== 6 || !/^[0-9]{6}$/.test(passcode)) {
+        e.preventDefault();
+        showError('6桁の数字のパスコードを入力してください');
+        passcodeField.focus();
+        return false;
+      }
+      
+      // ローディング状態の設定
+      setLoadingState(true);
+    });
+  }
+  
+  // エラー表示関数
+  function showError(message) {
+    // 既存のエラーメッセージを削除
+    const existingAlert = document.querySelector('.alert-danger');
+    if (existingAlert) {
+      existingAlert.remove();
+    }
+    
+    // 新しいエラーメッセージを作成
+    const alert = document.createElement('div');
+    alert.className = 'alert alert-danger alert-dismissible fade show';
+    alert.setAttribute('role', 'alert');
+    alert.innerHTML = `
+      <i class="bi bi-exclamation-triangle me-2"></i>
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="閉じる"></button>
+    `;
+    
+    // フォームの前に挿入
+    form.insertBefore(alert, form.firstChild);
+    
+    // アクセシビリティのためのフォーカス
+    alert.focus();
+  }
+  
+  // ローディング状態の設定
+  function setLoadingState(isLoading) {
+    if (submitButton) {
+      if (isLoading) {
+        submitButton.disabled = true;
+        submitButton.classList.add('loading');
+        const originalText = submitButton.textContent;
+        submitButton.setAttribute('data-original-text', originalText);
+        submitButton.textContent = submitButton.getAttribute('data-loading-text') || 'ログイン中...';
+      } else {
+        submitButton.disabled = false;
+        submitButton.classList.remove('loading');
+        const originalText = submitButton.getAttribute('data-original-text');
+        if (originalText) {
+          submitButton.textContent = originalText;
+        }
+      }
+    }
+  }
+  
+  // 初期化時のバリデーション
+  updateSubmitButton();
+  
+  // ページ離脱時のローディング状態リセット
+  window.addEventListener('beforeunload', function() {
+    setLoadingState(false);
+  });
+});
+
+// Turbo対応
+document.addEventListener('turbo:load', function() {
+  console.log('🔄 Turbo load detected for passcode verification page');
+});
+</script>

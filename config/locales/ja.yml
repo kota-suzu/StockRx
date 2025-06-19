@@ -1,4 +1,11 @@
 ja:
+  activerecord:
+    attributes:
+      store:
+        store_types:
+          pharmacy: "薬局"
+          warehouse: "倉庫"
+          headquarters: "本部"
   date:
     formats:
       default: "%Y/%m/%d"
@@ -35,6 +42,12 @@ ja:
       words_connector: "、"
       two_words_connector: "、"
       last_word_connector: "、"
+
+  # アプリケーション固有のメッセージ
+  messages:
+    transfer_requested: "移動申請を受け付けました"
+    transfer_cancelled: "移動申請をキャンセルしました"
+    profile_updated: "プロフィールを更新しました"
       
   # アクティブモデルのエラーメッセージ
   activemodel:
@@ -49,6 +62,10 @@ ja:
   # Rails標準のエラーメッセージ
   errors:
     messages:
+      access_denied: "アクセスが拒否されました"
+      insufficient_permissions: "この操作を実行する権限がありません"
+      store_inactive: "この店舗は現在利用できません"
+      record_not_found: "指定されたデータが見つかりません"
       blank: "を入力してください"
       too_long: "は%{count}文字以内で入力してください"
       too_short: "%{count}文字以上で入力してください"
@@ -72,6 +89,10 @@ ja:
       inventory: "在庫"
       batch: "バッチ"
       admin: "管理者"
+      store: "店舗"
+      inter_store_transfer: "店舗間移動"
+      audit_log: "監査ログ"
+      inventory_log: "在庫履歴"
     attributes:
       inventory:
         name: "商品名"
@@ -93,6 +114,10 @@ ja:
         missing_lower: "小文字を含める必要があります"
         missing_upper: "大文字を含める必要があります"
         missing_symbol: "記号を含める必要があります"
+        # 削除制限エラー（CLAUDE.md準拠：監査ログ保護）
+        restrict_dependent_destroy:
+          has_one: "%{record}に関連する%{dependent}が存在するため削除できません"
+          has_many: "%{record}に関連する%{dependent}が存在するため削除できません"
   
   # フォームオブジェクトのバリデーションメッセージ
   form_validation:

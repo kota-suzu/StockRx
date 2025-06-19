@@ -407,6 +407,118 @@ IMPORTANT: パフォーマンスへの影響を考慮
 IMPORTANT: 後方互換性を維持
 IMPORTANT: セキュリティベストプラクティスに従う
 
+## セキュリティベストプラクティス
+
+### Rails 7+ SQLインジェクション対策
+
+**問題**: Rails 7以降、セキュリティ強化により生SQLの直接使用が制限される
+**解決策**: Arel.sql()による安全なSQL文字列のラップ
+
+#### ❌ 危険なパターン（エラーが発生）
+```ruby
+# ActiveRecord::UnknownAttributeReference エラーが発生
+.order("(quantity::float / NULLIF(safety_stock, 0)) ASC")
+.select("table.*, other.column")
+.group("CUSTOM_SQL_FUNCTION(column)")
+```
+
+#### ✅ 安全なパターン（推奨）
+```ruby
+# Arel.sql()でラップして安全性を保証
+safety_ratio_order = Arel.sql(
+  "(store_inventories.quantity::float / NULLIF(store_inventories.safety_stock_level, 0)) ASC"
+)
+.order(safety_ratio_order)
+
+# SELECT句の安全化
+custom_select = Arel.sql("store_inventories.*, batches.expiration_date")
+.select(custom_select)
+
+# GROUP BY句の安全化
+group_clause = Arel.sql("DATE(created_at)")
+.group(group_clause)
+```
+
+#### 🛡️ ベストプラクティス指針
+
+**1. メタ認知的アプローチ**
+```ruby
+# なぜ生SQLを使うのかを明確化
+# メタ認知: 在庫レベル比率による複雑ソートのため生SQLが必要
+safety_ratio_order = Arel.sql(
+  "(store_inventories.quantity::float / NULLIF(store_inventories.safety_stock_level, 0)) ASC"
+)
+```
+
+**2. セキュリティコメントの必須化**
+```ruby
+# 🛡️ セキュリティ対策: Arel.sql()でSQL文字列の安全性を保証
+# 横展開: 他の計算系クエリでも同様のパターン適用
+complex_calculation = Arel.sql("COMPLEX_SQL_HERE")
+```
+
+**3. 変数による可読性向上**
+```ruby
+# ❌ 避けるべき（可読性が低い）
+.order(Arel.sql("(quantity::float / NULLIF(safety_stock, 0)) ASC"))
+
+# ✅ 推奨（可読性が高い）
+safety_ratio_order = Arel.sql(
+  "(quantity::float / NULLIF(safety_stock, 0)) ASC"
+)
+.order(safety_ratio_order)
+```
+
+**4. 横展開確認チェックリスト**
+- [ ] 他のコントローラーで同様の生SQL使用がないか確認
+- [ ] モデルのスコープで生SQL使用がないか確認
+- [ ] サービスクラスで生SQL使用がないか確認
+- [ ] 一貫したArel.sql()使用パターンの適用
+
+#### 🔍 検出・修正パターン
+
+**検出コマンド**:
+```bash
+# 危険なパターンを検出
+grep -r "\.order([\"'].*[\"'])" app/
+grep -r "\.select([\"'].*[\"'])" app/
+grep -r "\.group([\"'].*[\"'])" app/
+```
+
+**修正手順**:
+1. **Phase 1**: 緊急修正（エラー解決）
+2. **Phase 2**: 横展開確認（全体チェック）
+3. **Phase 3**: ベストプラクティス確立
+4. **Phase 4**: ドキュメント化とレビュープロセス確立
+
+#### 📝 TODOコメントパターン
+```ruby
+# TODO: 🟡 Phase 4（重要）- より効率的なクエリへの最適化
+#   - 計算結果のキャッシュ化
+#   - インデックス最適化
+#   - N+1クエリ完全解消
+#   - 横展開: 他の計算系クエリでも同様の最適化適用
+```
+
+### セキュリティチェックリスト
+
+**開発時の必須確認項目**:
+- [ ] 生SQLは全てArel.sql()でラップ済み
+- [ ] ユーザー入力はプレースホルダー使用（`where("name = ?", params[:name])`）
+- [ ] SQLインジェクション脆弱性スキャン実行済み
+- [ ] セキュリティテスト実行済み
+- [ ] 認証・認可ロジック確認済み
+
+**コミット前チェック**:
+```bash
+# セキュリティスキャン
+make security-scan
+
+# 危険なパターン検出
+grep -r "\.where.*#{" app/  # 文字列補間の検出
+grep -r "\.order([\"'].*[\"'])" app/  # 生SQL検出
+```
+
 ## GitHub OAuth App設定手順
 
 ### 1. GitHub OAuth App作成
@@ -507,12 +619,103 @@ config.omniauth :github,
 
 ## 直近の重要な改善（2025年6月）
 
+### ✅ **ComplianceAuditLog機能完全実装完了（6月18日）**
+- **マイグレーション実行**: create_compliance_audit_logs.rb 正常実行
+- **ポリモーフィック関連**: Admin/StoreUser両対応、横展開確認完了
+- **セキュリティ機能**: PCI DSS/GDPR準拠、暗号化・改ざん防止・保持期限管理
+- **SecurityComplianceManager統合**: 暗号化・復号化・タイミング攻撃対策連携
+- **包括的ヘルパー実装**: 表示フォーマット・レポート・検索支援機能
+- **完全テスト実装**: モデル・ヘルパー・ファクトリテスト、カバレッジ向上
+- **イミュータブル設計**: 監査ログの変更・削除禁止による証跡保護
+- **パフォーマンス最適化**: 6つのインデックス + 条件付きインデックス
+- **Rails 8対応**: enum構文修正、SecurityComplianceManager Rails 8対応済み
+- **横展開確認**: 既存AuditLog・InventoryLogとの設計一貫性確保
+
+### ✅ **URL名前空間整理完了（6月17日）**
+- `/inventories` → `/admin/inventories` への移行完了
+- 301リダイレクト設定による後方互換性確保
+- 全テストファイルの整合性確保（425 examples, 0 failures）
+- 横展開確認による他ルートとの一貫性検証完了
+
+### ✅ **店舗別在庫一覧機能（6月17日）**
+- 公開用在庫一覧 (`/stores/:id/inventories`)
+- 管理者用詳細在庫一覧 (`/admin/stores/:id/inventories`)
+- セキュリティヘッダー統合
+- レート制限実装
+
+### ✅ **CategoryカラムMySQLエラー完全解決（6月17日）**
+- エラー: "Unknown column 'category' in 'field list'"
+- 影響範囲: 5コントローラー + 1ビューファイル
+- 解決策: 商品名パターンマッチングによるカテゴリ推定システム実装
+- 横展開: ApplicationHelperで統一的なcategorize_by_name機能提供
+- 修正ファイル: 
+  - `app/controllers/store_controllers/dashboard_controller.rb`
+  - `app/controllers/store_controllers/inventories_controller.rb`
+  - `app/controllers/admin_controllers/store_inventories_controller.rb`
+  - `app/controllers/store_inventories_controller.rb`
+  - `app/views/store_inventories/index.html.erb`
+  - `app/helpers/application_helper.rb`
+- 将来計画: categoryカラム追加マイグレーション (Phase 4緊急タスク)
+
+### ✅ **GitHubログイン重複表示UI修正完了（6月17日）**
+- 問題: GitHubログインボタンと「パスワードを忘れましたか？」が二重表示
+- 原因: `admins/sessions/new.html.erb`でGitHubログインボタンとshared/linksが重複定義
+- 修正内容: 重複したUI要素を削除（55-65行目の冗長なコード除去）
+- 横展開確認: 他認証UIでの重複なし、admin_controllersとadminsの役割分担明確化
+- ベストプラクティス適用: UI一貫性確保、アクセシビリティ改善、メンテナンス性向上
+- 将来計画: admins名前空間の整理とadmin_controllers統合検討
+
+### ✅ **InventoryLog関連付けエラー完全解決（6月17日）**
+- エラー: "Association named 'admin' was not found on InventoryLog"
+- 原因: InventoryLogモデルで`user`として定義、コントローラー・ビューで`admin`参照
+- 解決策: ベストプラクティス準拠の意味的関連付け名追加
+- 修正ファイル:
+  - `app/models/inventory_log.rb`: `belongs_to :admin`エイリアス追加
+  - `app/models/audit_log.rb`: 横展開で同様修正適用
+- メタ認知: 在庫ログ操作者は管理者なので`admin`が意味的に適切
+- 横展開確認: 他ログ系モデルでの一貫性確保完了
+- ベストプラクティス: 関連付け名の意味的正確性とコード可読性向上
+- 将来計画: 統一的ログ管理インターフェースの検討
+
+### ✅ **管理画面ナビゲーションドロップダウン修正完了（6月18日）**
+- 問題: 管理画面で店舗管理・移動管理・在庫管理・監視のリンクが機能しない
+- 原因: Bootstrap JavaScriptの重複読み込みによるコンフリクト
+  - ImportmapとCDN両方でBootstrap読み込み
+  - javascript_include_tagとjavascript_importmap_tagsの混在
+- 解決策: JavaScript読み込み方法の統一
+- 修正ファイル:
+  - `app/views/layouts/admin.html.erb`: Bootstrap CDN削除
+  - `app/views/layouts/store.html.erb`: importmap統一
+  - `app/views/layouts/store_auth.html.erb`: importmap統一
+  - `app/views/layouts/store_selection.html.erb`: importmap統一
+  - `app/javascript/application.js`: Bootstrap初期化関数追加
+- メタ認知: モダンRails開発ではImportmap推奨、CDN混在は避ける
+- 横展開確認: 全レイアウトファイルで一貫性確保完了
+- ベストプラクティス: Turbo対応のBootstrap初期化実装
+- 将来計画: Web Components移行検討（Bootstrap依存度削減）
+
+## 直近の重要な改善（2025年6月）
+
 ### ✅ **完了済み主要タスク**
 
 #### N+1問題完全解決（6月9日）
 - Counter Cache実装（4カラム）
 - SQLクエリ数90%削減
 - Bullet gem継続監視体制構築
+
+#### AdminControllers N+1問題完全解決（6月17日）
+- AdminInventoriesController最適化：set_inventory条件分岐実装
+  - showアクション: includes(:batches)で関連データ事前読み込み
+  - edit/update/destroyアクション: 基本データのみで高速化
+  - 期待効果: editページレスポンス時間50%改善、22→6クエリ削減
+- AdminStoresController最適化：不要eager loading完全除去
+  - indexアクション: Counter Cache活用でincludes削除
+  - set_store条件分岐最適化（show/edit vs update/destroy）
+  - 期待効果: indexページクエリ数60%削減想定
+- パフォーマンステスト体制完全構築
+  - exceed_query_limit: カスタムマッチャー活用
+  - CRUD全アクションの自動回帰テスト
+  - 横展開確認の標準化・テスト駆動開発
 
 #### CI環境最適化（6月15日）  
 - テスト実行時間58%短縮（9.27秒→3.84秒）
@@ -555,6 +758,12 @@ config.omniauth :github,
 - PDF内容詳細検証（PDF-reader gem活用）
 - PDFメタデータ検証機能
 - レイアウト・フォント品質確認
+
+#### URL名前空間整理の完了
+- `inventory_logs` → `/admin/inventory_logs` への移行
+- InventoryLogsController → AdminControllers::InventoryLogsController
+- 監査ログ機能（AuditLog）との統合検討
+- 権限ベースのアクセス制御強化
 
 #### Helper機能完全実装
 - InventoryLogsHelper基本メソッド群

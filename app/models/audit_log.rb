@@ -5,6 +5,15 @@ class AuditLog < ApplicationRecord
   belongs_to :auditable, polymorphic: true
   belongs_to :user, optional: true, class_name: "Admin"
 
+  # CLAUDE.md準拠: ベストプラクティス - 意味的に正しい関連付け名の提供
+  # メタ認知: 監査ログの操作者は管理者（admin）なので、adminエイリアスが意味的に適切
+  # 横展開: InventoryLogと同様のパターン適用で一貫性確保
+  # TODO: 🟡 Phase 3（重要）- ログ系モデル関連付け統一設計
+  #   - user_idカラム名をadmin_idに統一するマイグレーション
+  #   - InventoryLogとの一貫性確保
+  #   - 監査ログ統合インターフェースの設計
+  belongs_to :admin, optional: true, class_name: "Admin", foreign_key: "user_id"
+
   # バリデーション
   validates :action, presence: true
   validates :message, presence: true
@@ -14,6 +23,9 @@ class AuditLog < ApplicationRecord
   scope :by_action, ->(action) { where(action: action) }
   scope :by_user, ->(user_id) { where(user_id: user_id) }
   scope :by_date_range, ->(start_date, end_date) { where(created_at: start_date..end_date) }
+  scope :security_events, -> { where(action: %w[security_event failed_login permission_change password_change]) }
+  scope :authentication_events, -> { where(action: %w[login logout failed_login]) }
+  scope :data_access_events, -> { where(action: %w[view export]) }
 
   # 列挙型：操作タイプ（Rails 8 対応：位置引数使用）
   enum :action, {
@@ -24,7 +36,11 @@ class AuditLog < ApplicationRecord
     export: "export",
     import: "import",
     login: "login",
-    logout: "logout"
+    logout: "logout",
+    security_event: "security_event",
+    permission_change: "permission_change",
+    password_change: "password_change",
+    failed_login: "failed_login"
   }, suffix: :action
 
   # インスタンスメソッド
@@ -34,6 +50,35 @@ class AuditLog < ApplicationRecord
 
   def formatted_created_at
     created_at.strftime("%Y年%m月%d日 %H:%M:%S")
+  end
+
+  # 監査ログ閲覧記録メソッド
+  # CLAUDE.md準拠: セキュリティ機能強化 - 監査の監査
+  # メタ認知: 監査ログ自体の閲覧も監査対象とすることでコンプライアンス要件を満たす
+  # 横展開: ComplianceAuditLogでも同様の実装が必要
+  def audit_view(viewer, details = {})
+    # 無限ループ防止: 監査ログの閲覧記録自体は記録しない
+    return if action == "view" && auditable_type == "AuditLog"
+
+    # 監査ログの閲覧は重要なセキュリティイベントとして記録
+    self.class.log_action(
+      self,                           # auditable: この監査ログ自体
+      "view",                         # action: 閲覧アクション
+      "監査ログ(ID: #{id})が閲覧されました",  # message
+      details.merge({                 # 詳細情報
+        viewed_log_id: id,
+        viewed_log_action: action,
+        # セキュリティ: メッセージ内容は記録しない（機密情報保護）
+        viewed_at: Time.current,
+        viewer_role: viewer&.role,
+        compliance_reason: details[:access_reason] || "通常閲覧"
+      }),
+      viewer                          # user: 閲覧者
+    )
+  rescue => e
+    # エラー時も記録を試行（ベストエフォート）
+    Rails.logger.error "監査ログ閲覧記録エラー: #{e.message}"
+    nil
   end
 
   # クラスメソッド

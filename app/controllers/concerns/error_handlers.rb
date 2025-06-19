@@ -167,7 +167,7 @@ module ErrorHandlers
       error: exception.class.name,
       message: exception.message,
       request_id: request.request_id,
-      user_id: defined?(current_user) ? current_user&.id : nil,
+      user_id: get_current_user_id,
       path: request.fullpath,
       params: filtered_parameters
     }
@@ -182,7 +182,7 @@ module ErrorHandlers
     #    if status >= 500
     #      Sentry.capture_exception(exception, extra: {
     #        request_id: request.request_id,
-    #        user_id: current_user&.id,
+    #        user_id: get_current_user_id,
     #        path: request.fullpath,
     #        params: filtered_parameters
     #      })
@@ -192,7 +192,7 @@ module ErrorHandlers
     #    Datadog::Tracing.trace("error_handling") do |span|
     #      span.set_tag("http.status_code", status)
     #      span.set_tag("error.type", exception.class.name)
-    #      span.set_tag("user.id", current_user&.id) if current_user
+    #      span.set_tag("user.id", get_current_user_id) if get_current_user_id
     #    end
     #
     # 3. Slack通知連携（重要エラーの即座な通知）
@@ -260,5 +260,18 @@ module ErrorHandlers
   # @return [Hash] フィルタリングされたパラメータ
   def filtered_parameters
     request.filtered_parameters.except(*%w[controller action format])
+  end
+
+  # 🔧 メタ認知: 認証システムに応じた現在ユーザーID取得
+  # 横展開: AdminControllers/StoreControllers/API 全てで動作
+  # ベストプラクティス: SecurityComplianceと同様のパターン適用
+  def get_current_user_id
+    if defined?(current_admin) && respond_to?(:current_admin)
+      current_admin&.id
+    elsif defined?(current_store_user) && respond_to?(:current_store_user)
+      current_store_user&.id
+    else
+      nil
+    end
   end
 end

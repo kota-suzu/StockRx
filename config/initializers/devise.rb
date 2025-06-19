@@ -67,10 +67,21 @@ Devise.setup do |config|
   # config.encryptor = :sha512
 
   # ==> Scopes configuration
-  # 管理者とユーザーで別々のビューを使用
+  # 管理者と店舗ユーザーで別々のビューを使用
   config.scoped_views = true
   config.default_scope = :admin
   config.sign_out_all_scopes = false
+
+  # ==> Multiple Model Support
+  # Phase 2: 店舗別ログインシステム
+  # 管理者と店舗ユーザーで異なる設定を適用
+  config.warden do |manager|
+    # 店舗ユーザー用の認証設定
+    manager.scope_defaults :store_user, strategies: [ :database_authenticatable ]
+
+    # カスタム認証失敗ハンドラーを使用
+    manager.failure_app = CustomFailureApp
+  end
 
   # ==> Navigation configuration
   config.skip_session_storage = [ :http_auth ]

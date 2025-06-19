@@ -1,0 +1,218 @@
+<%# 🏪 店舗情報編集 - Phase 2: Multi-Store Management %>
+<div class="container-fluid py-4">
+  <%# 統一ページヘッダー - UI一貫性向上 %>
+  <% 
+    # 店舗タイプ別のアイコンと色の動的設定
+    store_icon = @store.pharmacy? ? 'bi-hospital' : (@store.warehouse? ? 'bi-building' : 'bi-building-check')
+    store_color = @store.pharmacy? ? 'primary' : (@store.warehouse? ? 'info' : 'success')
+  %>
+  
+  <%= render 'shared/admin/page_header',
+             title: "#{@store.name} の編集",
+             subtitle: "店舗情報を更新します（店舗コード: #{@store.code}）",
+             icon: store_icon,
+             icon_color: store_color,
+             back_path: admin_store_path(@store),
+             back_text: '詳細に戻る',
+             breadcrumbs: [
+               { text: 'ダッシュボード', path: admin_root_path, icon: 'bi-house' },
+               { text: '店舗管理', path: admin_stores_path, icon: 'bi-shop' },
+               { text: @store.name, path: admin_store_path(@store) },
+               { text: '編集', active: true }
+             ],
+             actions: [
+               { text: '詳細表示', path: admin_store_path(@store), icon: 'bi-eye', class: 'btn-outline-primary' },
+               { text: 'ダッシュボード', path: dashboard_admin_store_path(@store), icon: 'bi-graph-up', class: 'btn-outline-info' }
+             ] %>
+
+  <%# 編集注意事項 %>
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="alert alert-warning border-0" role="alert">
+        <div class="d-flex">
+          <div class="flex-shrink-0">
+            <i class="bi bi-exclamation-triangle fs-4" aria-hidden="true"></i>
+          </div>
+          <div class="flex-grow-1 ms-3">
+            <h5 class="alert-heading">編集時の注意事項</h5>
+            <p class="mb-2">店舗情報を変更する際は、以下の点にご注意ください：</p>
+            <ul class="mb-0">
+              <li><strong>店舗コード</strong>の変更は既存の在庫移動履歴に影響する可能性があります</li>
+              <li><strong>店舗種別</strong>の変更は権限・機能制限に影響します</li>
+              <li><strong>非有効化</strong>すると新規在庫移動ができなくなります</li>
+              <li>重要な変更は事前に関係者に通知してください</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# フォーム %>
+  <div class="row">
+    <div class="col-12">
+      <%= render 'form', store: @store %>
+    </div>
+  </div>
+
+  <%# 危険な操作セクション %>
+  <% if current_admin.headquarters_admin? %>
+    <div class="row mt-4">
+      <div class="col-12">
+        <div class="card border-danger">
+          <div class="card-header bg-danger-subtle border-danger">
+            <h6 class="mb-0 fw-bold text-danger">
+              <i class="bi bi-exclamation-triangle me-2" aria-hidden="true"></i>
+              危険な操作
+            </h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-8">
+                <h6 class="fw-bold text-danger">店舗を削除</h6>
+                <p class="text-muted small mb-0">
+                  この操作は取り消すことができません。店舗に関連する在庫データ、移動履歴、管理者情報がすべて削除されます。
+                  削除前に重要なデータをバックアップしてください。
+                </p>
+              </div>
+              <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                <%= link_to admin_store_path(@store),
+                           method: :delete,
+                           class: "btn btn-danger",
+                           data: {
+                             confirm: "本当に「#{@store.name}」を削除しますか？\n\nこの操作は取り消すことができません。\n- 在庫データがすべて削除されます\n- 移動履歴が削除されます\n- 関連する管理者が無効になります\n\n削除する場合は「#{@store.name}」と入力してください。"
+                           } do %>
+                  <i class="bi bi-trash me-1" aria-hidden="true"></i>
+                  店舗を削除
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <%# 関連情報 %>
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-bold">
+            <i class="bi bi-info-circle me-2" aria-hidden="true"></i>
+            関連データ
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-4">
+              <div class="h4 fw-bold text-primary"><%= @store.store_inventories.count %></div>
+              <div class="small text-muted">在庫アイテム</div>
+            </div>
+            <div class="col-4">
+              <div class="h4 fw-bold text-info"><%= @store.admins.count %></div>
+              <div class="small text-muted">管理者</div>
+            </div>
+            <div class="col-4">
+              <div class="h4 fw-bold text-success">
+                <%= @store.outgoing_transfers.count + @store.incoming_transfers.count %>
+              </div>
+              <div class="small text-muted">移動履歴</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-md-6 mt-3 mt-md-0">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-bottom">
+          <h6 class="mb-0 fw-bold">
+            <i class="bi bi-clock-history me-2" aria-hidden="true"></i>
+            更新履歴
+          </h6>
+        </div>
+        <div class="card-body">
+          <div class="small text-muted">
+            <div class="mb-2">
+              <strong>作成日時:</strong> <%= l(@store.created_at, format: :long) %>
+            </div>
+            <div class="mb-2">
+              <strong>最終更新:</strong> <%= l(@store.updated_at, format: :long) %>
+            </div>
+            <% if @store.created_at != @store.updated_at %>
+              <div class="mb-2">
+                <strong>更新回数:</strong> 
+                <%= time_ago_in_words(@store.updated_at) %>前に更新
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# カスタムスタイル %>
+<style>
+  .store-edit-icon {
+    font-size: 48px;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(220, 53, 69, 0.1));
+    border-radius: 50%;
+  }
+  
+  .text-admin-primary {
+    color: var(--admin-primary) !important;
+  }
+  
+  .bg-danger-subtle {
+    background-color: rgba(220, 53, 69, 0.1) !important;
+  }
+</style>
+
+<%# 削除確認の強化 JavaScript %>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // 削除ボタンの追加確認
+    const deleteButton = document.querySelector('[data-confirm*="削除"]');
+    if (deleteButton) {
+      deleteButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const storeName = '<%= @store.name %>';
+        const userInput = prompt(`危険な操作です。削除を続行するには店舗名「${storeName}」を正確に入力してください:`);
+        
+        if (userInput === storeName) {
+          if (confirm('最終確認: この店舗を完全に削除しますか？\n\nこの操作は取り消すことができません。')) {
+            // フォーム送信
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = this.href;
+            
+            const methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            methodInput.value = 'DELETE';
+            
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = 'authenticity_token';
+            tokenInput.value = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            
+            form.appendChild(methodInput);
+            form.appendChild(tokenInput);
+            document.body.appendChild(form);
+            form.submit();
+          }
+        } else if (userInput !== null) {
+          alert('店舗名が正しくありません。削除をキャンセルしました。');
+        }
+      });
+    }
+  });
+</script>

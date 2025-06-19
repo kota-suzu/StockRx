@@ -1,0 +1,158 @@
+<%# テーブル背景色確認用テストページ - 修正済み %>
+<%# 修正内容: カスタムクラス → 標準Bootstrapクラスに変更 %>
+<%# 問題解決: 黒背景 → 明るい背景（table-light使用） %>
+<% content_for :title, "テーブルデザイン確認（修正済み）" %>
+
+<div class="page-header-modern">
+  <h1>テーブル背景色の確認</h1>
+  <div class="breadcrumb-modern">
+    <a href="#">ホーム</a>
+    <span class="separator">/</span>
+    <span>テストページ</span>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-12">
+    <!-- カードとの調和確認 -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h3>カードコンポーネント（比較用）</h3>
+        <p>テーブルと同じ明るい背景色で統一</p>
+      </div>
+      <div class="card-body">
+        <p>これはカードの本文です。テーブルの背景色がこのカードと調和しているか確認してください。</p>
+      </div>
+    </div>
+
+    <!-- 標準Bootstrapテーブル（背景色問題修正） -->
+    <div class="table-responsive mb-4">
+      <table class="table table-hover table-striped table-light">
+        <thead class="table-light">
+          <tr>
+            <th scope="col">商品名</th>
+            <th scope="col">カテゴリ</th>
+            <th scope="col" class="text-end">在庫数</th>
+            <th scope="col" class="text-end">価格</th>
+            <th scope="col" class="text-center">ステータス</th>
+            <th scope="col">アクション</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="fw-bold">アセトアミノフェン錠 500mg</td>
+            <td>解熱鎮痛剤</td>
+            <td class="text-end">150</td>
+            <td class="text-end">¥1,200</td>
+            <td class="text-center">
+              <span class="badge bg-success">在庫あり</span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i></button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-bold">イブプロフェン錠 200mg</td>
+            <td>解熱鎮痛剤</td>
+            <td class="text-end">45</td>
+            <td class="text-end">¥980</td>
+            <td class="text-center">
+              <span class="badge bg-warning">在庫少</span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i></button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-bold">ロキソプロフェンNa錠 60mg</td>
+            <td>解熱鎮痛剤</td>
+            <td class="text-end">0</td>
+            <td class="text-end">¥1,500</td>
+            <td class="text-center">
+              <span class="badge bg-danger">在庫切れ</span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i></button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-bold">ガスター10 錠</td>
+            <td>胃腸薬</td>
+            <td class="text-end">230</td>
+            <td class="text-end">¥2,100</td>
+            <td class="text-center">
+              <span class="badge bg-success">在庫あり</span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i></button>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td class="fw-bold">ビオフェルミンS錠</td>
+            <td>整腸剤</td>
+            <td class="text-end">180</td>
+            <td class="text-end">¥1,800</td>
+            <td class="text-center">
+              <span class="badge bg-success">在庫あり</span>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-pencil"></i></button>
+                <button class="btn btn-outline-secondary btn-sm"><i class="bi bi-eye"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot class="table-light">
+          <tr>
+            <td colspan="2" class="fw-bold">合計</td>
+            <td class="text-end fw-bold">605</td>
+            <td class="text-end fw-bold">¥7,580</td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- ボタンとの調和確認 -->
+    <div class="d-flex gap-3 mb-4">
+      <button class="btn btn-primary">プライマリボタン</button>
+      <button class="btn btn-secondary">セカンダリボタン</button>
+      <button class="btn btn-outline-secondary">ゴーストボタン</button>
+    </div>
+
+    <!-- フォームとの調和確認 -->
+    <div class="card">
+      <div class="card-header">
+        <h3>フォーム要素（比較用）</h3>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label">検索</label>
+          <input type="text" class="form-control" placeholder="商品名で検索...">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">カテゴリ</label>
+          <select class="form-select">
+            <option>すべてのカテゴリ</option>
+            <option>解熱鎮痛剤</option>
+            <option>胃腸薬</option>
+            <option>整腸剤</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

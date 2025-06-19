@@ -1,0 +1,366 @@
+// ============================================
+// モダンボタンコンポーネント
+// ============================================
+// Google Material 3 + Apple HIG inspired
+
+// ベースボタンスタイル
+.btn-modern {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-6);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-tight);
+  text-decoration: none;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-default);
+  position: relative;
+  overflow: hidden;
+  
+  // フォーカススタイル
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  }
+  
+  // 無効化状態
+  &:disabled,
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  
+  // アイコン調整
+  i, svg {
+    flex-shrink: 0;
+    width: 1.25em;
+    height: 1.25em;
+  }
+  
+  // リップルエフェクト用
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+  
+  &:active::before {
+    width: 300px;
+    height: 300px;
+  }
+}
+
+// プライマリボタン
+.btn-primary {
+  @extend .btn-modern;
+  background: var(--text-accent);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-sm);
+  
+  &:hover {
+    background: #{$blue-700};
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    background: #{$blue-800};
+    box-shadow: var(--shadow-sm);
+    transform: translateY(0);
+  }
+}
+
+// セカンダリボタン
+.btn-secondary {
+  @extend .btn-modern;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+  
+  &:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+    box-shadow: var(--shadow-sm);
+  }
+  
+  &:active {
+    background: var(--bg-active);
+  }
+}
+
+// ゴーストボタン
+.btn-ghost {
+  @extend .btn-modern;
+  background: transparent;
+  color: var(--text-accent);
+  border-color: transparent;
+  
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+  
+  &:active {
+    background: var(--bg-active);
+  }
+}
+
+// アウトラインボタン
+.btn-outline {
+  @extend .btn-modern;
+  background: transparent;
+  color: var(--text-accent);
+  border-color: var(--text-accent);
+  
+  &:hover {
+    background: var(--text-accent);
+    color: var(--text-inverse);
+    box-shadow: var(--shadow-sm);
+  }
+  
+  &:active {
+    background: #{$blue-700};
+    border-color: #{$blue-700};
+  }
+}
+
+// 状態別ボタン
+.btn-success {
+  @extend .btn-modern;
+  background: var(--text-success);
+  color: var(--text-inverse);
+  
+  &:hover {
+    background: #{$green-600};
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    background: #{$green-700};
+    transform: translateY(0);
+  }
+}
+
+.btn-warning {
+  @extend .btn-modern;
+  background: var(--text-warning);
+  color: var(--text-inverse);
+  
+  &:hover {
+    background: #{$amber-600};
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    background: #{$amber-700};
+    transform: translateY(0);
+  }
+}
+
+.btn-danger {
+  @extend .btn-modern;
+  background: var(--text-error);
+  color: var(--text-inverse);
+  
+  &:hover {
+    background: #{$red-600};
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    background: #{$red-700};
+    transform: translateY(0);
+  }
+}
+
+// サイズバリエーション
+.btn-sm {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+}
+
+.btn-lg {
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--text-lg);
+  border-radius: var(--radius-lg);
+}
+
+// フルワイドボタン
+.btn-block {
+  display: flex;
+  width: 100%;
+}
+
+// アイコンボタン
+.btn-icon {
+  @extend .btn-modern;
+  padding: var(--space-3);
+  width: 2.75rem;
+  height: 2.75rem;
+  
+  &.btn-sm {
+    padding: var(--space-2);
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  
+  &.btn-lg {
+    padding: var(--space-4);
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+}
+
+// フローティングアクションボタン (FAB)
+.btn-fab {
+  @extend .btn-modern;
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  width: 3.5rem;
+  height: 3.5rem;
+  padding: 0;
+  border-radius: var(--radius-full);
+  background: var(--text-accent);
+  color: var(--text-inverse);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-fixed);
+  
+  &:hover {
+    background: #{$blue-700};
+    box-shadow: var(--shadow-xl);
+    transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  // ミニFAB
+  &.btn-fab-mini {
+    width: 2.75rem;
+    height: 2.75rem;
+    
+    i, svg {
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+}
+
+// ボタングループ
+.btn-group {
+  display: inline-flex;
+  vertical-align: middle;
+  
+  > .btn-modern {
+    &:not(:first-child) {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      margin-left: -1px;
+    }
+    
+    &:not(:last-child) {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+    
+    &:hover,
+    &:focus,
+    &:active {
+      z-index: 1;
+    }
+  }
+}
+
+// ボタン内ローディング
+.btn-loading {
+  color: transparent !important;
+  position: relative;
+  pointer-events: none;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    width: 1.25rem;
+    height: 1.25rem;
+    top: 50%;
+    left: 50%;
+    margin-left: -0.625rem;
+    margin-top: -0.625rem;
+    border: 2px solid;
+    border-radius: 50%;
+    border-color: currentColor;
+    border-right-color: transparent;
+    animation: btn-spin 0.75s linear infinite;
+  }
+}
+
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// モバイルレスポンシブ
+@media (max-width: $breakpoint-sm) {
+  .btn-modern {
+    padding: var(--space-3) var(--space-5);
+    font-size: var(--text-base);
+  }
+  
+  .btn-sm {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+  }
+  
+  .btn-lg {
+    padding: var(--space-4) var(--space-6);
+    font-size: var(--text-base);
+  }
+  
+  .btn-fab {
+    bottom: var(--space-4);
+    right: var(--space-4);
+  }
+}
+
+// タッチデバイス向け最適化
+@media (hover: none) {
+  .btn-modern {
+    &:hover {
+      transform: none;
+      box-shadow: none;
+    }
+    
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+// TODO: ダークモード対応
+// - ボタンカラーの調整
+// - シャドウの調整
+// - ホバー効果の最適化

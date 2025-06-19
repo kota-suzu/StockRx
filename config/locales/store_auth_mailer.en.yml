@@ -1,0 +1,99 @@
+# StoreAuthMailer Internationalization (English)
+# ============================================================================
+# CLAUDE.md Compliant: Consistent translation patterns for global deployment
+# 
+# Design principles:
+# - Professional tone for business users
+# - Security terminology consistency
+# - Clear urgency communication
+# ============================================================================
+
+en:
+  store_auth_mailer:
+    temp_password_notification:
+      # Email subject & basic info
+      subject: "[%{store_name}] Store System Temporary Password"
+      subtitle: "Store System Temporary Password Notification"
+      greeting: "Hello %{name},"
+      
+      # Introduction
+      intro_text: |
+        We are sending you a temporary password required to log into the store system.
+        For security reasons, this temporary password will expire in a short time.
+      
+      # Password related
+      password_label: "Temporary Password"
+      copy_hint: "Copy this password and use it on the login screen"
+      
+      # Expiration
+      expires_label: "Expires At"
+      
+      # Buttons & links
+      login_button: "Login to Store System"
+      login_url_label: "Login URL"
+      
+      # Security warnings
+      security_warning: "Important Security Notice"
+      security_notes:
+        - "This password will automatically expire in %{duration}"
+        - "Do not share this password with others and keep it secure"
+        - "Please change to your regular password after logging in"
+        - "If you notice any suspicious access, contact support immediately"
+        - "If you did not request this, please ignore and delete this email"
+      
+      # Additional information
+      additional_info: "Issuance Information"
+      generated_at_label: "Generated At"
+      store_name_label: "Store Name"
+      user_role_label: "Role"
+      
+      # Troubleshooting
+      troubleshooting_title: "If You Cannot Log In"
+      troubleshooting_steps: "Please try the following steps:"
+      troubleshooting:
+        step1: "Verify you are copying and pasting the password correctly"
+        step2: "Check that the password has not expired"
+        step3: "Clear browser cache and try again"
+        step4: "Contact support if the above steps don't resolve the issue"
+      
+      # Support information
+      support_section: "Support & Contact"
+      support_text: |
+        If you have any questions or encounter any issues,
+        please feel free to contact our support team.
+      support_email: "Support Email"
+      support_website: "Support Website"
+      support_contact: "Contact Support Team"
+      
+      # Footer
+      footer_text: |
+        This email was sent automatically from the store system.
+        This email address is for sending only and cannot receive replies.
+      
+      confidentiality_notice: |
+        This email contains confidential information.
+        If you received this in error, please delete it without reviewing the contents.
+
+  # User role translations
+  user_roles:
+    staff: "Staff"
+    manager: "Manager"
+    admin: "Administrator"
+
+  # Security alert types (for future expansion)
+  security_alerts:
+    multiple_failed_logins:
+      name: "Failed Login Detection"
+      description: "Multiple failed login attempts detected"
+    
+    password_changed:
+      name: "Password Changed"
+      description: "Your password has been changed"
+    
+    suspicious_location:
+      name: "Unusual Access Location"
+      description: "Access from an unusual location detected"
+    
+    account_locked:
+      name: "Account Locked"
+      description: "Account has been locked for security reasons"

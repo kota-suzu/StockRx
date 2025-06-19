@@ -35,7 +35,8 @@ endef
         test-fast test-models test-requests test-jobs test-features test-integration \
         test-failed test-parallel test-coverage test-profile test-skip-heavy \
         test-unit-fast test-models-only \
-        ci ci-github security-scan security-scan-github lint lint-github lint-fix lint-fix-unsafe test-all test-github \
+        ci ci-github ci-fast ci-setup-cached ci-test-fast ci-benchmark \
+        security-scan security-scan-github lint lint-github lint-fix lint-fix-unsafe test-all test-github \
         console routes backup restore help diagnose fix-connection fix-ssl-error \
         perf-generate-csv perf-test-import perf-benchmark-batch test-error-handling
 
@@ -158,6 +159,67 @@ test-models-only:
 	$(call run_rspec,モデル限定, spec/models spec/helpers spec/decorators spec/validators, $(TEST_PROGRESS))
 
 # --------------------------- CI / Lint / Security -------------------------
+# 🚀 最適化版CI実行（推奨）
+ci-fast: ci-setup-cached ci-test-fast
+	@echo "✅ CI最適化版完了"
+
+# キャッシュを活用したセットアップ
+ci-setup-cached:
+	@echo "🚀 === CI最適化版セットアップ開始 ==="
+	@echo "📊 実行時間測定開始..."
+	@time $(MAKE) _ci-setup-internal
+
+_ci-setup-internal:
+	@echo "=== 1. サービス起動（既存利用優先）==="
+	@if ! docker compose ps -q db | grep -q .; then \
+		echo "DBコンテナ起動中..."; \
+		$(COMPOSE) up -d db redis; \
+	else \
+		echo "✅ 既存DBコンテナを利用"; \
+	fi
+	
+	@echo "=== 2. DB接続確認（最適化版）==="
+	@timeout 10 bash -c 'until docker compose exec -T db mysqladmin ping -h localhost -u root -ppassword > /dev/null 2>&1; do sleep 1; done' || true
+	
+	@echo "=== 3. キャッシュ保持型の準備 ==="
+	# Bootsnap/Sprocketsキャッシュは保持
+	@if [ ! -d tmp/cache ]; then mkdir -p tmp/cache; fi
+	@chmod -R 777 tmp/cache tmp/storage tmp/pids tmp/screenshots 2>/dev/null || true
+	
+	@echo "=== 4. DB準備（スキップ可能チェック付き）==="
+	@if ! $(COMPOSE) run --rm -e RAILS_ENV=test -e DATABASE_PASSWORD=password web bin/rails db:version > /dev/null 2>&1; then \
+		echo "DB初期化中..."; \
+		$(COMPOSE) run --rm -e RAILS_ENV=test -e DATABASE_PASSWORD=password -e DISABLE_HOST_AUTHORIZATION=true web bin/rails db:test:prepare; \
+	else \
+		echo "✅ DB準備済み（スキップ）"; \
+	fi
+
+# 高速テスト実行（段階的）
+ci-test-fast:
+	@echo "🏃 === 高速テスト実行（3段階）==="
+	@time $(MAKE) _ci-test-fast-internal
+
+_ci-test-fast-internal:
+	@echo "=== Stage 1: Unit Tests (最速) ==="
+	$(RSPEC) spec/models spec/helpers spec/decorators \
+		--format progress \
+		--profile 5 \
+		--tag ~slow \
+		--tag ~integration \
+		--fail-fast
+	
+	@echo "=== Stage 2: Request/Controller Tests ==="
+	$(RSPEC) spec/requests spec/controllers \
+		--format progress \
+		--tag ~slow
+	
+	@echo "=== Stage 3: Integration Tests (必要時のみ) ==="
+	@if [ "$(CI_FULL_TEST)" = "true" ]; then \
+		$(RSPEC) spec/features spec/jobs --format progress; \
+	else \
+		echo "⏭️  統合テストをスキップ（CI_FULL_TEST=true で有効化）"; \
+	fi
+
 # GitHub Actions完全互換のCIコマンド
 ci-github: bundle-install security-scan-github lint-github test-github
 
@@ -375,6 +437,20 @@ security-audit:
 	@echo "🎯 4. セキュリティテスト実行"
 	$(WEB_RUN) ruby test_security_job_execution.rb
 
+# --------------------------- CI実行時間ベンチマーク --------------------------
+ci-benchmark:
+	@echo "📊 === CI実行時間ベンチマーク ==="
+	@echo "テスト実行時間を測定中..."
+	@echo "1. 最適化版CI (ci-fast):"
+	@{ time $(MAKE) ci-fast > /dev/null 2>&1; } 2>&1 | grep real | awk '{print "   実行時間: " $$2}'
+	@echo "2. 従来版CI (test-github):"
+	@{ time $(MAKE) test-github > /dev/null 2>&1; } 2>&1 | grep real | awk '{print "   実行時間: " $$2}'
+	@echo ""
+	@echo "📊 メタ認知的分析:"
+	@echo "   - なぜ最適化が必要か？→ 開発者の待ち時間削減で生産性向上"
+	@echo "   - より良い方法は？→ Phase 2で並列実行を実装予定"
+	@echo "   - 横展開可能性：他のRailsプロジェクトでも同様の最適化が適用可能"
+
 # --------------------------- その他ユーティリティ --------------------------
 console:
 	$(WEB_RUN) bin/rails console
@@ -414,8 +490,10 @@ help:
 	@echo "  make test-coverage - カバレッジ計測付きテスト"
 	@echo ""
 	@echo "CI/品質管理:"
+	@echo "  make ci-fast       - 🚀 最適化版CI実行（新規・推奨）"
 	@echo "  make ci-github     - 🎯 GitHub Actions完全互換のCIテスト"
 	@echo "  make ci            - 従来のCIチェック実行"
+	@echo "  make ci-benchmark  - CI実行時間の比較測定"
 	@echo "  make security-scan - セキュリティスキャンを実行"
 	@echo "  make lint          - リントチェックを実行"
 	@echo "  make lint-fix      - 安全な自動修正を適用"

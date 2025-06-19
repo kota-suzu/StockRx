@@ -1,0 +1,185 @@
+// ============================================
+// Modern UI v2 - Theme System
+// ============================================
+// ライト/ダークテーマの切り替えと
+// カスタムテーマの基盤を提供
+// ============================================
+
+@import 'tokens';
+
+// ============================================
+// Theme Variables Mapping
+// ============================================
+@mixin theme-light {
+  // Background Colors
+  --bg-primary: var(--color-gray-50);
+  --bg-secondary: var(--color-gray-100);
+  --bg-tertiary: var(--color-gray-200);
+  --bg-inverse: var(--color-gray-900);
+  
+  // Text Colors
+  --text-primary: var(--color-gray-900);
+  --text-secondary: var(--color-gray-700);
+  --text-tertiary: var(--color-gray-500);
+  --text-inverse: var(--color-gray-50);
+  
+  // Border Colors
+  --border-primary: var(--color-gray-300);
+  --border-secondary: var(--color-gray-200);
+  --border-tertiary: var(--color-gray-100);
+  
+  // Component Specific
+  --card-bg: rgba(255, 255, 255, 0.9);
+  --card-border: rgba(0, 0, 0, 0.06);
+  --input-bg: rgba(255, 255, 255, 0.95);
+  --input-border: var(--color-gray-300);
+  --input-focus-border: var(--color-primary-500);
+  
+  // Status Colors
+  --status-success: #10b981;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-info: #3b82f6;
+}
+
+@mixin theme-dark {
+  // Background Colors
+  --bg-primary: var(--color-gray-900);
+  --bg-secondary: var(--color-gray-800);
+  --bg-tertiary: var(--color-gray-700);
+  --bg-inverse: var(--color-gray-50);
+  
+  // Text Colors
+  --text-primary: var(--color-gray-50);
+  --text-secondary: var(--color-gray-200);
+  --text-tertiary: var(--color-gray-400);
+  --text-inverse: var(--color-gray-900);
+  
+  // Border Colors
+  --border-primary: var(--color-gray-700);
+  --border-secondary: var(--color-gray-800);
+  --border-tertiary: var(--color-gray-900);
+  
+  // Component Specific
+  --card-bg: rgba(17, 25, 40, 0.75);
+  --card-border: rgba(255, 255, 255, 0.06);
+  --input-bg: rgba(0, 0, 0, 0.3);
+  --input-border: var(--color-gray-700);
+  --input-focus-border: var(--color-primary-400);
+  
+  // Status Colors
+  --status-success: #34d399;
+  --status-warning: #fbbf24;
+  --status-error: #f87171;
+  --status-info: #60a5fa;
+}
+
+// ============================================
+// Theme Application
+// ============================================
+:root {
+  @include theme-light;
+}
+
+[data-theme="dark"] {
+  @include theme-dark;
+  
+  // Dark mode specific adjustments
+  img {
+    opacity: 0.9;
+    
+    &:hover {
+      opacity: 1;
+    }
+  }
+  
+  // Invert certain UI elements
+  .invert-in-dark {
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
+
+// ============================================
+// Theme Transition
+// ============================================
+.theme-transition {
+  * {
+    transition: 
+      background-color var(--duration-normal) var(--motion-smooth),
+      border-color var(--duration-normal) var(--motion-smooth),
+      color var(--duration-normal) var(--motion-smooth) !important;
+  }
+}
+
+// ============================================
+// Accessibility: Prefers Color Scheme
+// ============================================
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    @include theme-dark;
+  }
+}
+
+// ============================================
+// High Contrast Mode Support
+// ============================================
+@media (prefers-contrast: high) {
+  :root {
+    --glass-blur-sm: 0;
+    --glass-blur-md: 0;
+    --glass-blur-lg: 0;
+    --glass-blur-xl: 0;
+    
+    // Increase contrast ratios
+    --text-primary: black;
+    --bg-primary: white;
+    --border-primary: black;
+  }
+  
+  [data-theme="dark"] {
+    --text-primary: white;
+    --bg-primary: black;
+    --border-primary: white;
+  }
+}
+
+// ============================================
+// Reduced Motion Support
+// ============================================
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+    --duration-slower: 0ms;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// ============================================
+// Theme Utilities
+// ============================================
+.theme-auto {
+  @media (prefers-color-scheme: dark) {
+    @include theme-dark;
+  }
+}
+
+.theme-light {
+  @include theme-light;
+}
+
+.theme-dark {
+  @include theme-dark;
+}
+
+// TODO: Phase 4 - カスタムテーマ機能
+// - ユーザー定義カラーパレット
+// - テーマプリセット（Blue, Green, Purple等）
+// - テーマエクスポート/インポート機能

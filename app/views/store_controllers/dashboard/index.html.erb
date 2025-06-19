@@ -1,0 +1,361 @@
+<% content_for :title, "ダッシュボード" %>
+
+<div class="row mb-4">
+  <div class="col-12">
+    <h1 class="h3 mb-0">
+      <i class="bi bi-speedometer2 me-2"></i>
+      ダッシュボード
+    </h1>
+  </div>
+</div>
+
+<%# 統計カード - シンプルで見やすく %>
+<div class="row mb-4">
+  <div class="col-md-3 mb-3">
+    <div class="card stats-card-1">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted mb-2">総在庫品目</h6>
+            <h3 class="mb-0 text-primary fw-bold"><%= number_with_delimiter(@statistics[:total_items]) %></h3>
+          </div>
+          <div class="text-primary">
+            <i class="bi bi-boxes fa-2x opacity-50"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3 mb-3">
+    <div class="card stats-card-2">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted mb-2">総在庫数</h6>
+            <h3 class="mb-0 text-success fw-bold"><%= number_with_delimiter(@statistics[:total_quantity]) %></h3>
+          </div>
+          <div class="text-success">
+            <i class="bi bi-box-seam fa-2x opacity-50"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3 mb-3">
+    <div class="card stats-card-4">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted mb-2">低在庫</h6>
+            <h3 class="mb-0 text-warning fw-bold"><%= @statistics[:low_stock_items] %></h3>
+          </div>
+          <div class="text-warning">
+            <i class="bi bi-exclamation-triangle fa-2x opacity-50"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-3 mb-3">
+    <div class="card stats-card-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted mb-2">在庫総額</h6>
+            <h3 class="mb-0 text-info fw-bold">¥<%= number_with_delimiter(@statistics[:total_value].to_i) %></h3>
+          </div>
+          <div class="text-info">
+            <i class="bi bi-currency-yen fa-2x opacity-50"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# アラート情報 %>
+<div class="row mb-4">
+  <%# 低在庫アラート %>
+  <div class="col-md-6 mb-3">
+    <div class="card h-100">
+      <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          低在庫商品
+        </h5>
+      </div>
+      <div class="card-body">
+        <% if @low_stock_items.any? %>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>商品名</th>
+                  <th class="text-end">在庫数</th>
+                  <th class="text-end">安全在庫</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @low_stock_items.each do |item| %>
+                  <tr>
+                    <td>
+                      <%= link_to item.inventory.name, 
+                                  store_inventory_path(item.inventory),
+                                  class: "text-decoration-none" %>
+                    </td>
+                    <td class="text-end <%= inventory_level_class(item) %>">
+                      <%= item.quantity %>
+                    </td>
+                    <td class="text-end text-muted">
+                      <%= item.safety_stock_level %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          <div class="text-center">
+            <%# CLAUDE.md準拠: 横展開 - store layoutと同様のルーティング修正 %>
+            <%# ベストプラクティス: 名前衝突回避のため明示的パス使用 %>
+            <%= link_to "すべて見る", 
+                        "/store/inventories?q[stock_level]=low_stock",
+                        class: "btn btn-sm btn-outline-warning" %>
+          </div>
+        <% else %>
+          <p class="text-muted text-center mb-0">
+            <i class="bi bi-check-circle me-1"></i>
+            低在庫商品はありません
+          </p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+  
+  <%# 期限切れ間近 %>
+  <div class="col-md-6 mb-3">
+    <div class="card h-100">
+      <div class="card-header bg-danger text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-clock me-2"></i>
+          期限切れ間近の商品
+        </h5>
+      </div>
+      <div class="card-body">
+        <% if @expiring_items.any? %>
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>商品名</th>
+                  <th>ロット番号</th>
+                  <th class="text-end">期限日</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @expiring_items.each do |item| %>
+                  <tr>
+                    <td>
+                      <%= link_to item.inventory.name, 
+                                  store_inventory_path(item.inventory),
+                                  class: "text-decoration-none" %>
+                    </td>
+                    <td><%= item.lot_code %></td>
+                    <td class="text-end <%= expiration_class(item.expires_on) %>">
+                      <%= item.expires_on.strftime("%Y/%m/%d") %>
+                      <small class="text-muted">
+                        (<%= (item.expires_on - Date.current).to_i %>日)
+                      </small>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% else %>
+          <p class="text-muted text-center mb-0">
+            <i class="bi bi-check-circle me-1"></i>
+            30日以内に期限切れとなる商品はありません
+          </p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# 店舗間移動 %>
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="bi bi-arrow-left-right me-2"></i>
+          店舗間移動
+        </h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <%# 入庫予定 %>
+          <div class="col-md-6">
+            <h6 class="text-muted mb-3">
+              <i class="bi bi-arrow-down-circle text-success me-1"></i>
+              入庫予定 
+              <span class="badge bg-success"><%= @pending_incoming.count %></span>
+            </h6>
+            <% if @pending_incoming.any? %>
+              <ul class="list-unstyled">
+                <% @pending_incoming.each do |transfer| %>
+                  <li class="mb-2">
+                    <%= link_to store_transfer_path(transfer), 
+                                class: "text-decoration-none" do %>
+                      <strong><%= transfer.inventory.name %></strong>
+                      <small class="text-muted">
+                        <%= transfer.quantity %>個 
+                        from <%= transfer.source_store.name %>
+                      </small>
+                    <% end %>
+                  </li>
+                <% end %>
+              </ul>
+            <% else %>
+              <p class="text-muted small">入庫予定はありません</p>
+            <% end %>
+          </div>
+          
+          <%# 出庫予定 %>
+          <div class="col-md-6">
+            <h6 class="text-muted mb-3">
+              <i class="bi bi-arrow-up-circle text-danger me-1"></i>
+              出庫予定
+              <span class="badge bg-danger"><%= @pending_outgoing.count %></span>
+            </h6>
+            <% if @pending_outgoing.any? %>
+              <ul class="list-unstyled">
+                <% @pending_outgoing.each do |transfer| %>
+                  <li class="mb-2">
+                    <%= link_to store_transfer_path(transfer), 
+                                class: "text-decoration-none" do %>
+                      <strong><%= transfer.inventory.name %></strong>
+                      <small class="text-muted">
+                        <%= transfer.quantity %>個 
+                        to <%= transfer.destination_store.name %>
+                      </small>
+                    <% end %>
+                  </li>
+                <% end %>
+              </ul>
+            <% else %>
+              <p class="text-muted small">出庫予定はありません</p>
+            <% end %>
+          </div>
+        </div>
+        
+        <div class="text-center mt-3">
+          <%= link_to "すべての移動を見る", 
+                      store_transfers_path,
+                      class: "btn btn-sm btn-outline-primary" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# グラフ %>
+<div class="row">
+  <%# 在庫推移 %>
+  <div class="col-md-8 mb-3">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="bi bi-graph-up me-2"></i>
+          在庫推移（過去7日間）
+        </h5>
+      </div>
+      <div class="card-body">
+        <canvas id="inventoryTrendChart" height="100"></canvas>
+      </div>
+    </div>
+  </div>
+  
+  <%# カテゴリ別構成 %>
+  <div class="col-md-4 mb-3">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="bi bi-pie-chart me-2"></i>
+          カテゴリ別構成
+        </h5>
+      </div>
+      <div class="card-body">
+        <canvas id="categoryChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 在庫推移グラフ
+  const inventoryTrendCtx = document.getElementById('inventoryTrendChart').getContext('2d');
+  const inventoryTrendData = <%= @inventory_trend_data %>;
+  
+  new Chart(inventoryTrendCtx, {
+    type: 'line',
+    data: {
+      labels: inventoryTrendData.map(d => d.date),
+      datasets: [{
+        label: '在庫数',
+        data: inventoryTrendData.map(d => d.quantity),
+        borderColor: 'rgb(54, 162, 235)',
+        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+        tension: 0.1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+  
+  // カテゴリ別構成グラフ
+  const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+  const categoryData = <%= @category_distribution %>;
+  
+  new Chart(categoryCtx, {
+    type: 'doughnut',
+    data: {
+      labels: categoryData.map(d => d.name),
+      datasets: [{
+        data: categoryData.map(d => d.value),
+        backgroundColor: [
+          'rgba(255, 99, 132, 0.8)',
+          'rgba(54, 162, 235, 0.8)',
+          'rgba(255, 206, 86, 0.8)',
+          'rgba(75, 192, 192, 0.8)',
+          'rgba(153, 102, 255, 0.8)',
+          'rgba(255, 159, 64, 0.8)'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+</script>

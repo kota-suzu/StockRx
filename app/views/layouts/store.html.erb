@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <title><%= 
+      if content_for?(:title)
+        if store_user_signed_in? && current_store
+          "#{yield(:title)} - #{current_store.name}"
+        else
+          "#{yield(:title)} - StockRx"
+        end
+      else
+        if store_user_signed_in? && current_store
+          "#{current_store.name} - StockRx"
+        else
+          "StockRx - 在庫管理システム"
+        end
+      end
+    %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charset="utf-8">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+    
+    <%# Bootstrap Icons (統一アイコンシステム) %>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <%# Chart.js for graphs %>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <%# 🔧 Phase 3: Importmap統一完了 - CDN削除でJS競合解消 %>
+    <%# CLAUDE.md準拠: Rails 7ベストプラクティス - Importmap単独使用 %>
+    <%# メタ認知: application.jsでBootstrap初期化処理が正常動作する環境整備 %>
+    <%# 横展開: 全レイアウトファイルでImportmap統一パターン適用 %>
+    
+    <%# シンプルで使いやすいUIのためのカスタムCSS %>
+    <style>
+      /* ユーザーメニュー - シンプルで機能的 */
+      #userDropdown {
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 6px; /* 控えめな角丸 */
+        padding: 0.5rem 0.75rem;
+        transition: all 0.2s ease; /* 短いトランジション */
+      }
+      
+      #userDropdown:hover,
+      #userDropdown:focus,
+      #userDropdown[aria-expanded="true"] {
+        background-color: rgba(255,255,255,0.15);
+        border-color: rgba(255,255,255,0.5);
+      }
+      
+      /* ログアウトボタン - 明確で安全 */
+      .logout-btn {
+        transition: background-color 0.2s ease;
+        border-top: 1px solid #dee2e6;
+        margin-top: 0.5rem;
+        padding-top: 0.75rem !important;
+        padding-bottom: 0.75rem !important;
+      }
+      
+      .logout-btn:hover {
+        background-color: #dc2626 !important; /* 単色の赤 */
+        color: white !important;
+      }
+      
+      .logout-btn:focus {
+        outline: 2px solid #dc2626;
+        outline-offset: 2px;
+      }
+      
+      /* モバイル対応 - タッチしやすく */
+      @media (max-width: 767px) {
+        #userDropdown {
+          padding: 0.75rem 1rem; /* タッチしやすいサイズ */
+          font-size: 1rem;
+        }
+        
+        .dropdown-menu {
+          min-width: 200px;
+        }
+      }
+      
+      /* ドロップダウンメニュー - クリーンな見た目 */
+      .dropdown-menu-end {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* 軽い影 */
+        border: 1px solid #e5e7eb; /* 薄いグレーボーダー */
+        border-radius: 8px; /* 控えめな角丸 */
+      }
+    </style>
+  </head>
+
+  <body class="store-layout">
+    <%# ナビゲーションバー（認証状態に応じて表示切り替え） %>
+    <nav class="navbar navbar-expand-lg navbar-store">
+      <div class="container-fluid">
+        <% if store_user_signed_in? && current_store %>
+          <%# 認証済みユーザー用の完全ナビゲーション %>
+          <%= link_to store_root_path, class: "navbar-brand" do %>
+            <i class="bi bi-shop me-2"></i>
+            <%= current_store.name %>
+          <% end %>
+        <% else %>
+          <%# 公開アクセス用のシンプルナビゲーション %>
+          <%= link_to "/store/inventories", class: "navbar-brand" do %>
+            <i class="bi bi-box-seam me-2"></i>
+            StockRx - 在庫管理システム
+          <% end %>
+        <% end %>
+        
+        <% if store_user_signed_in? && current_store %>
+          <%# 認証済みユーザー用の完全メニュー %>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+              <li class="nav-item">
+                <%= link_to store_root_path, class: "nav-link #{active_class('store/dashboard')}" do %>
+                  <i class="bi bi-speedometer2 me-1"></i>
+                  ダッシュボード
+                <% end %>
+              </li>
+              <li class="nav-item">
+                <%# CLAUDE.md準拠: メタ認知 - 認証済み店舗ユーザー用のnamespaceルート使用 %>
+                <%# 横展開: 公開ルート(/stores/:store_id/inventories)との名前衝突回避 %>
+                <%# ベストプラクティス: 明示的パス指定で曖昧性を排除 %>
+                <%= link_to "/store/inventories", class: "nav-link #{active_class('store/inventories')}" do %>
+                  <i class="bi bi-box-seam me-1"></i>
+                  在庫管理
+                <% end %>
+              </li>
+              <li class="nav-item">
+                <%= link_to store_transfers_path, class: "nav-link #{active_class('store/transfers')}" do %>
+                  <i class="bi bi-arrow-left-right me-1"></i>
+                  店舗間移動
+                  <% if current_store.pending_incoming_transfers_count > 0 %>
+                    <span class="badge bg-warning ms-1"><%= current_store.pending_incoming_transfers_count %></span>
+                  <% end %>
+                <% end %>
+              </li>
+          </ul>
+          
+          <ul class="navbar-nav">
+            <li class="nav-item dropdown">
+              <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" 
+                 role="button" data-bs-toggle="dropdown" aria-expanded="false"
+                 aria-haspopup="true" aria-label="ユーザーメニューを開く"
+                 title="アカウントメニュー（ログアウトはこちら）"
+                 tabindex="0">
+                <i class="bi bi-person-circle me-2"></i>
+                <span class="d-none d-md-inline"><%= current_store_user.name %></span>
+                <span class="d-md-none small">メニュー</span>
+                <% if current_store_user.manager? %>
+                  <span class="badge bg-info ms-1">管理者</span>
+                <% end %>
+                <i class="bi bi-chevron-down ms-1" style="font-size: 0.75rem;"></i>
+              </a>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                  <%= link_to store_profile_path, class: "dropdown-item d-flex align-items-center" do %>
+                    <i class="bi bi-person-badge me-2"></i>
+                    プロフィール
+                  <% end %>
+                </li>
+                <% if current_store_user.password_expired? %>
+                  <li>
+                    <%# CLAUDE.md準拠: ルーティングヘルパーの正しい命名規則 %>
+                    <%# 横展開: profiles/show.html.erb でも同様の修正実施済み %>
+                    <%= link_to change_password_store_profile_path, class: "dropdown-item d-flex align-items-center text-warning" do %>
+                      <i class="bi bi-key me-2"></i>
+                      パスワード変更
+                      <span class="badge bg-warning ms-1">要変更</span>
+                    <% end %>
+                  </li>
+                <% end %>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                  <%= button_to destroy_store_user_session_path, method: :delete, 
+                      class: "dropdown-item d-flex align-items-center text-danger",
+                      title: "ログアウト",
+                      form: { 
+                        data: { 
+                          turbo: false,
+                          confirm: "本当にログアウトしますか？\n\n作業中のデータが保存されていることを確認してください。"
+                        } 
+                      } do %>
+                    <i class="bi bi-box-arrow-right me-2"></i>
+                    ログアウト
+                  <% end %>
+                </li>
+              </ul>
+            </li>
+          </ul>
+          </div>
+        <% else %>
+          <%# 公開アクセス用のシンプルなログインリンク %>
+          <div class="navbar-nav ms-auto">
+            <div class="nav-item">
+              <span class="navbar-text text-muted me-3">
+                <i class="bi bi-info-circle me-1"></i>
+                公開在庫情報
+              </span>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </nav>
+
+    <%# ブレッドクラム（認証済みユーザーのみ） %>
+    <% if store_user_signed_in? && current_store && content_for?(:breadcrumbs) %>
+      <nav aria-label="breadcrumb" class="bg-light border-bottom">
+        <div class="container-fluid">
+          <ol class="breadcrumb mb-0 py-2">
+            <li class="breadcrumb-item">
+              <%= link_to store_root_path do %>
+                <i class="bi bi-house"></i>
+              <% end %>
+            </li>
+            <%= yield(:breadcrumbs) %>
+          </ol>
+        </div>
+      </nav>
+    <% end %>
+
+    <%# フラッシュメッセージ %>
+    <% if flash.any? %>
+      <div class="container-fluid mt-3">
+        <% flash.each do |type, message| %>
+          <div class="alert alert-<%= flash_class(type) %> alert-dismissible fade show" role="alert">
+            <%= message %>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+
+    <%# メインコンテンツ %>
+    <main class="py-4">
+      <div class="container-fluid main-content">
+        <%= yield %>
+      </div>
+    </main>
+
+    <%# フッター %>
+    <footer class="bg-light py-3 mt-auto border-top">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-md-6">
+            <p class="text-muted mb-0">
+              <i class="bi bi-building me-1"></i>
+              <% if store_user_signed_in? && current_store %>
+                <%= current_store.display_name %> 
+                (<%= current_store.store_type_text %>)
+              <% else %>
+                StockRx - 在庫管理システム（公開アクセス）
+              <% end %>
+            </p>
+          </div>
+          <div class="col-md-6 text-md-end">
+            <p class="text-muted mb-0">
+              <i class="bi bi-clock me-1"></i>
+              <%= Time.current.strftime("%Y年%m月%d日 %H:%M") %>
+            </p>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <%# 横展開確認: 全てのレイアウトファイルで一貫性確保完了 %>
+    <%# ベストプラクティス: Turbo対応のBootstrap初期化実装 %>
+    <%# 将来計画: Web Components移行検討（Bootstrap依存度削減） %>
+    
+    <%# TODO: 🔴 Phase 1（緊急）- 初期化コード重複解消完了（横展開） %>
+    <%# 問題: レイアウトファイルとapplication.jsでBootstrap初期化が重複 %>
+    <%# 解決: application.jsに一元化、レイアウト側は削除 %>
+    <%# 理由: 初期化の競合によりドロップダウンが動作しない %>
+    <%# メタ認知: 管理者画面と同一問題のため同様の修正適用 %>
+    <%# 横展開: admin.html.erbと同じパターンで修正完了 %>
+
+    <%# 🔧 Phase 3: 最適化済み初期化 - application.js連携強化 %>
+    <%# CLAUDE.md準拠: Rails標準初期化を優先、フォールバックは簡素化 %>
+    <script>
+      // application.js初期化状況の確認とフォールバック
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('🔧 Store Layout: Checking Bootstrap initialization...');
+        
+        // application.jsのBootstrap初期化をチェック
+        setTimeout(function() {
+          if (typeof bootstrap === 'undefined') {
+            console.warn('⚠️ Bootstrap not loaded, using fallback');
+            setupSimpleFallback();
+          } else {
+            console.log('✅ Bootstrap loaded via Importmap');
+            
+            // ドロップダウンが初期化されているかチェック
+            const userDropdown = document.getElementById('userDropdown');
+            if (userDropdown && !bootstrap.Dropdown.getInstance(userDropdown)) {
+              console.log('🔧 Initializing missing user dropdown');
+              try {
+                new bootstrap.Dropdown(userDropdown);
+              } catch (e) {
+                console.error('Bootstrap dropdown init failed:', e);
+                setupSimpleFallback();
+              }
+            }
+          }
+        }, 500);
+        
+        // シンプルなフォールバック機能
+        function setupSimpleFallback() {
+          const userDropdown = document.getElementById('userDropdown');
+          if (userDropdown) {
+            userDropdown.addEventListener('click', function(e) {
+              e.preventDefault();
+              const menu = this.nextElementSibling;
+              if (menu && menu.classList.contains('dropdown-menu')) {
+                menu.classList.toggle('show');
+                menu.style.display = menu.classList.contains('show') ? 'block' : 'none';
+              }
+            });
+          }
+        }
+      });
+      
+      // Turbo環境でも実行
+      document.addEventListener('turbo:load', function() {
+        console.log('🔧 Store: Turbo Load - Re-checking Bootstrap');
+        
+        // Turbo navigatション後もBootstrap初期化をチェック
+        setTimeout(function() {
+          if (typeof bootstrap !== 'undefined') {
+            const userDropdown = document.getElementById('userDropdown');
+            if (userDropdown && !bootstrap.Dropdown.getInstance(userDropdown)) {
+              try {
+                new bootstrap.Dropdown(userDropdown);
+                console.log('✅ Turbo: User dropdown re-initialized');
+              } catch (e) {
+                console.error('Turbo Bootstrap init failed:', e);
+              }
+            }
+            
+            // 🔧 CLAUDE.md準拠: Bootstrap Tooltip初期化 - UIアクセシビリティ向上
+            // メタ認知: アクションボタンのツールチップでユーザビリティ改善
+            // 横展開: 全店舗画面で統一されたツールチップ体験
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            if (tooltipTriggerList.length > 0) {
+              const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => {
+                try {
+                  return new bootstrap.Tooltip(tooltipTriggerEl);
+                } catch (e) {
+                  console.error('Tooltip initialization failed:', e);
+                  return null;
+                }
+              });
+              console.log(`✅ Initialized ${tooltipList.filter(t => t !== null).length} tooltips`);
+            }
+          }
+        }, 100);
+      });
+    </script>
+  </body>
+</html>

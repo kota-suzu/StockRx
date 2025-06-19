@@ -1,0 +1,295 @@
+<%# frozen_string_literal: true %>
+<%# ============================================ %>
+<%# Phase 5-2: セキュリティ強化 %>
+<%# 監査ログ一覧画面 %>
+<%# CLAUDE.md準拠: GDPR/PCI DSS対応 %>
+<%# ============================================ %>
+
+<% content_for :title, "監査ログ" %>
+
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="h2 mb-3">
+        <i class="bi bi-shield-check me-2"></i>
+        監査ログ
+      </h1>
+      
+      <%# 統計サマリー %>
+      <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-primary">
+            <div class="card-body">
+              <h5 class="card-title text-muted">総イベント数</h5>
+              <p class="card-text">
+                <span class="h2"><%= number_with_delimiter(@stats[:total_events] || 0) %></span>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-warning">
+            <div class="card-body">
+              <h5 class="card-title text-muted">異常検知</h5>
+              <p class="card-text">
+                <span class="h2 text-warning">
+                  <%= @anomalies&.count || 0 %>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-info">
+            <div class="card-body">
+              <h5 class="card-title text-muted">アクティブユーザー</h5>
+              <p class="card-text">
+                <span class="h2"><%= @stats[:unique_users] || 0 %></span>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-danger">
+            <div class="card-body">
+              <h5 class="card-title text-muted">セキュリティイベント</h5>
+              <p class="card-text">
+                <span class="h2 text-danger">
+                  <%= @stats[:security_events] || 0 %>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# 検索フォーム %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-search me-2"></i>検索・フィルター
+          </h5>
+        </div>
+        <div class="card-body">
+          <%= form_with url: admin_audit_logs_path, method: :get, local: true, class: "row g-3" do |f| %>
+            <div class="col-md-3">
+              <%= f.text_field :user_email, 
+                              value: params[:user_email],
+                              class: "form-control", 
+                              placeholder: "ユーザーメール" %>
+            </div>
+            
+            <div class="col-md-3">
+              <%= f.select :action, 
+                          options_for_select([
+                            ["すべてのアクション", ""],
+                            ["ログイン", "login"],
+                            ["ログアウト", "logout"],
+                            ["作成", "create"],
+                            ["更新", "update"],
+                            ["削除", "delete"],
+                            ["閲覧", "view"],
+                            ["エクスポート", "export"]
+                          ], params[:action]),
+                          {}, 
+                          class: "form-select" %>
+            </div>
+            
+            <div class="col-md-2">
+              <%= f.date_field :start_date, 
+                              value: params[:start_date],
+                              class: "form-control" %>
+            </div>
+            
+            <div class="col-md-2">
+              <%= f.date_field :end_date, 
+                              value: params[:end_date],
+                              class: "form-control" %>
+            </div>
+            
+            <div class="col-md-2">
+              <%= f.submit "検索", class: "btn btn-primary w-100" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%# 監査ログテーブル %>
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            <i class="bi bi-list-ul me-2"></i>監査ログ一覧
+          </h5>
+          <div>
+            <%= link_to admin_audit_logs_path(format: :csv, params: request.query_parameters), 
+                        class: "btn btn-sm btn-outline-secondary" do %>
+              <i class="bi bi-download me-1"></i>CSVエクスポート
+            <% end %>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>日時</th>
+                  <th>ユーザー</th>
+                  <th>アクション</th>
+                  <th>対象</th>
+                  <th>メッセージ</th>
+                  <th>IPアドレス</th>
+                  <th class="text-center" style="min-width: 120px;">
+                    <i class="bi bi-gear me-1" aria-hidden="true"></i>操作
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if @audit_logs.any? %>
+                  <% @audit_logs.each do |log| %>
+                    <tr>
+                      <td><%= l(log.created_at, format: :long) %></td>
+                      <td>
+                        <% if log.user %>
+                          <%= log.user.email %>
+                        <% else %>
+                          <span class="text-muted">システム</span>
+                        <% end %>
+                      </td>
+                      <td>
+                        <span class="badge bg-<%= audit_log_action_color(log.action) %>">
+                          <%= log.action %>
+                        </span>
+                      </td>
+                      <td>
+                        <% if log.auditable %>
+                          <small class="text-muted">
+                            <%= log.auditable_type %>#<%= log.auditable_id %>
+                          </small>
+                        <% else %>
+                          -
+                        <% end %>
+                      </td>
+                      <td><%= truncate(log.message, length: 50) %></td>
+                      <td><small><%= log.ip_address %></small></td>
+                      <td class="text-center" style="min-width: 120px;">
+                        <%# CLAUDE.md準拠: 横展開修正 - 店舗側・他Admin画面との統一 %>
+                        <%# メタ認知: 監査ログ確認の効率化と操作性向上 %>
+                        <div class="btn-group" role="group" aria-label="監査ログ操作">
+                          <%= link_to admin_audit_log_path(log), 
+                                      class: "btn btn-outline-primary btn-sm d-flex align-items-center",
+                                      title: "監査ログの詳細情報と関連データを確認",
+                                      data: { bs_toggle: "tooltip", bs_placement: "top" },
+                                      "aria-label": "監査ログ詳細を表示" do %>
+                            <i class="bi bi-eye me-1" aria-hidden="true"></i>
+                            <span class="d-none d-lg-inline">詳細</span>
+                          <% end %>
+                        </div>
+                      </td>
+                    </tr>
+                  <% end %>
+                <% else %>
+                  <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                      監査ログがありません
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          
+          <% if @audit_logs.any? %>
+            <div class="card-footer">
+              <% begin %>
+                <%= paginate @audit_logs, theme: :custom_bootstrap_5 %>
+              <% rescue => e %>
+                <!-- 緊急時フォールバック: デフォルトページネーション -->
+                <%= paginate @audit_logs %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# 統一されたアクションボタンスタイル（CLAUDE.md準拠） %>
+<style>
+  /* アクションボタンの基本スタイル（inventoriesから継承） */
+  .action-buttons-group {
+    min-width: 120px;
+  }
+  
+  .action-btn {
+    min-width: 38px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease-in-out;
+    position: relative;
+  }
+  
+  /* デスクトップ表示：アイコン + テキスト */
+  @media (min-width: 992px) {
+    .action-btn {
+      min-width: 70px;
+      padding: 0.375rem 0.75rem;
+    }
+  }
+  
+  /* 詳細ボタン */
+  .detail-btn {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+    color: white;
+  }
+  
+  .detail-btn:hover, .detail-btn:focus {
+    background-color: var(--bs-blue);
+    border-color: var(--bs-blue);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+  }
+  
+  /* アクセシビリティ：フォーカス表示の強化 */
+  .action-btn:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+  }
+  
+  /* モバイル対応：タッチデバイスでのタップ領域確保 */
+  @media (max-width: 991.98px) {
+    .action-btn {
+      min-width: 44px;
+      height: 44px;
+      margin: 0 1px;
+    }
+    
+    .btn-text {
+      display: none !important;
+    }
+  }
+  
+  /* TODO: Phase 3 - 監査ログ特有の機能
+   * - セキュリティレベル別の色分け表示
+   * - 異常検知時のアラート表示
+   * - エクスポート機能のプログレス表示
+   */
+</style>
+
+<%# TODO: 🔴 Phase 6（緊急）- リアルタイム監査ログ監視 %>
+<%# 優先度: 高（セキュリティ監視） %>
+<%# 実装内容: %>
+<%#   - ActionCableによるリアルタイム更新 %>
+<%#   - 異常検知アラート %>
+<%#   - 自動ブロック機能 %>
+<%# 期待効果: セキュリティインシデントの早期発見と対応 %>

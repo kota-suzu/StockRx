@@ -3,14 +3,17 @@
 # ============================================
 # 在庫CSVインポートジョブ
 # ============================================
+# CLAUDE.md準拠: セキュリティファーストな非同期CSVインポート
+#
 # 機能:
 #   - 大量の在庫データをCSVファイルから非同期でインポート
 #   - Sidekiqによる3回自動リトライ機能
 #   - リアルタイム進捗通知（ActionCable経由）
 #   - 包括的なセキュリティ検証とエラーハンドリング
+#   - CsvImportable concernとの統合
 #
 # 使用例:
-#   ImportInventoriesJob.perform_later(file_path, admin.id)
+#   ImportInventoriesJob.perform_later(file_path, admin_id, import_options)
 #
 class ImportInventoriesJob < ApplicationJob
   # ============================================
@@ -60,13 +63,15 @@ class ImportInventoriesJob < ApplicationJob
   #
   # @param file_path [String] インポートするCSVファイルのパス
   # @param admin_id [Integer] 実行管理者のID
+  # @param import_options [Hash] インポートオプション
   # @param job_id [String, nil] ジョブ識別子（省略時は自動生成）
   # @return [Hash] インポート結果（valid_count, invalid_records）
   # @raise [StandardError] ファイル検証エラー、インポートエラー
   #
-  def perform(file_path, admin_id, job_id = nil)
+  def perform(file_path, admin_id, import_options = {}, job_id = nil)
     @file_path = file_path
     @admin_id = admin_id
+    @import_options = import_options || {}
     @job_id = job_id || generate_job_id
     @start_time = Time.current
 
@@ -271,8 +276,17 @@ class ImportInventoriesJob < ApplicationJob
   def execute_csv_import
     log_import_start
 
-    # バッチ処理でCSVをインポート
-    result = Inventory.import_from_csv(@file_path, batch_size: IMPORT_BATCH_SIZE) do |progress|
+    # CLAUDE.md準拠: CsvImportableとの統合
+    # メタ認知: 既存のConcernを活用して一貫性を保つ
+    csv_options = {
+      batch_size: IMPORT_BATCH_SIZE,
+      skip_invalid: @import_options[:skip_invalid] || false,
+      update_existing: @import_options[:update_existing] || false,
+      unique_key: @import_options[:unique_key] || "name"
+    }
+
+    # バッチ処理でCSVをインポート（進捗報告付き）
+    result = Inventory.import_from_csv(@file_path, csv_options) do |progress|
       # 進捗更新（PROGRESS_REPORT_INTERVAL%ごとに通知）
       if progress % PROGRESS_REPORT_INTERVAL == 0
         update_import_progress(progress)
@@ -380,18 +394,43 @@ class ImportInventoriesJob < ApplicationJob
   end
 
   def broadcast_progress_update(progress, message = nil)
-    data = {
+    # ActionCable統合による進捗通知
+    progress_data = {
+      status: "progress",
+      progress: progress.round(1),
+      message: message || "CSVデータを処理中...",
+      processed: @processed_count || 0,
+      total: @total_count || 0,
+      job_id: @job_id
+    }
+
+    # ActionCableでリアルタイム進捗通知
+    ImportProgressChannel.broadcast_progress(@admin_id, progress_data)
+
+    # 既存のAdminChannel通知も維持（互換性）
+    legacy_data = {
       type: "csv_import_progress",
       job_id: @job_id,
       progress: progress,
       status_key: @status_key
     }
-    data[:message] = message if message
-
-    broadcast_to_admin(data)
+    legacy_data[:message] = message if message
+    broadcast_to_admin(legacy_data)
   end
 
   def broadcast_import_complete(result)
+    # ActionCable統合による完了通知
+    result_data = {
+      processed: result[:valid_count] + result[:invalid_records].size,
+      successful: result[:valid_count],
+      failed: result[:invalid_records].size,
+      duration: calculate_duration,
+      errors: result[:invalid_records].map { |record| record[:errors]&.full_messages }&.flatten&.compact
+    }
+
+    ImportProgressChannel.broadcast_completion(@admin_id, result_data)
+
+    # 既存のAdminChannel通知も維持（互換性）
     broadcast_to_admin({
       type: "csv_import_complete",
       job_id: @job_id,
@@ -402,12 +441,34 @@ class ImportInventoriesJob < ApplicationJob
   end
 
   def broadcast_import_error(error)
+    # ActionCable統合によるエラー通知
+    error_details = {
+      error_type: determine_error_type(error),
+      line_number: @current_line_number
+    }
+
+    ImportProgressChannel.broadcast_error(@admin_id, error.message, error_details)
+
+    # 既存のAdminChannel通知も維持（互換性）
     broadcast_to_admin({
       type: "csv_import_error",
       job_id: @job_id,
       error_message: error.message,
       error_class: error.class.name
     })
+  end
+
+  def determine_error_type(error)
+    case error
+    when ActiveRecord::RecordInvalid, ActiveModel::ValidationError
+      "validation_error"
+    when CSV::MalformedCSVError
+      "file_error"
+    when SecurityError
+      "security_error"
+    else
+      "processing_error"
+    end
   end
 
   def broadcast_to_admin(data)

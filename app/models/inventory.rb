@@ -23,6 +23,72 @@ class Inventory < ApplicationRecord
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }
 
   # ============================================
+  # Multi-Store関連のアソシエーション
+  # ============================================
+  has_many :store_inventories, dependent: :destroy
+  has_many :stores, through: :store_inventories
+  has_many :inter_store_transfers, dependent: :destroy
+
+  # ============================================
+  # Multi-Store関連のメソッド
+  # ============================================
+
+  # 全店舗での総在庫数
+  def total_quantity_across_stores
+    store_inventories.sum(:quantity)
+  end
+
+  # 全店舗での利用可能在庫数
+  def total_available_quantity_across_stores
+    store_inventories.sum("quantity - reserved_quantity")
+  end
+
+  # 特定店舗での在庫数
+  def quantity_at_store(store)
+    store_inventories.find_by(store: store)&.quantity || 0
+  end
+
+  # 特定店舗での利用可能在庫数
+  def available_quantity_at_store(store)
+    store_inventory = store_inventories.find_by(store: store)
+    return 0 unless store_inventory
+
+    store_inventory.available_quantity
+  end
+
+  # 在庫を持つ店舗のリスト
+  def stores_with_stock
+    stores.joins(:store_inventories)
+          .where("store_inventories.quantity > 0")
+  end
+
+  # 低在庫の店舗のリスト
+  def stores_with_low_stock
+    stores.joins(:store_inventories)
+          .where("store_inventories.quantity <= store_inventories.safety_stock_level")
+  end
+
+  # 在庫移動の提案候補
+  def transfer_suggestions(target_store, required_quantity)
+    # 在庫の多い店舗から移動候補を提案
+    candidate_stores = stores_with_stock
+                      .where.not(id: target_store.id)
+                      .joins(:store_inventories)
+                      .where("store_inventories.quantity - store_inventories.reserved_quantity >= ?", required_quantity)
+                      .includes(:store_inventories)
+                      .order("store_inventories.quantity DESC")
+
+    candidate_stores.map do |store|
+      store_inventory = store.store_inventories.find_by(inventory: self)
+      {
+        store: store,
+        available_quantity: store_inventory.available_quantity,
+        can_fulfill: store_inventory.available_quantity >= required_quantity
+      }
+    end
+  end
+
+  # ============================================
   # TODO: 在庫ログ機能の拡張
   # ============================================
   # 1. アクティビティ分析機能

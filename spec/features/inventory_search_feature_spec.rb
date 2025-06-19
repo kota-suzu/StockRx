@@ -98,7 +98,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   let!(:inventory3) { create(:inventory, name: '別商品C', price: 150, quantity: 0, status: 'archived') }
 
   scenario 'User performs basic search by name' do
-    visit inventories_path
+    visit admin_inventories_path
 
     fill_in 'q', with: 'テスト'
     click_button '検索'
@@ -109,7 +109,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User performs basic search by status' do
-    visit inventories_path
+    visit admin_inventories_path
 
     select 'Active', from: 'status'
     click_button '検索'
@@ -120,7 +120,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User searches for low stock items' do
-    visit inventories_path
+    visit admin_inventories_path
 
     check 'low_stock'
     click_button '検索'
@@ -131,7 +131,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User accesses advanced search' do
-    visit inventories_path
+    visit admin_inventories_path
 
     click_link '高度な検索'
 
@@ -143,7 +143,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User performs advanced search with multiple conditions' do
-    visit inventories_path(advanced_search: 1)
+    visit admin_inventories_path(advanced_search: 1)
 
     fill_in 'キーワード', with: 'テスト'
     select 'Active', from: 'ステータス'
@@ -157,7 +157,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User sees search conditions summary' do
-    visit inventories_path
+    visit admin_inventories_path
 
     fill_in 'q', with: 'テスト'
     select 'Active', from: 'status'
@@ -169,7 +169,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User searches by price range' do
-    visit inventories_path(advanced_search: 1)
+    visit admin_inventories_path(advanced_search: 1)
 
     fill_in '最低価格', with: '150'
     fill_in '最高価格', with: '250'
@@ -182,7 +182,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User searches by stock filter' do
-    visit inventories_path(advanced_search: 1)
+    visit admin_inventories_path(advanced_search: 1)
 
     select '在庫切れ', from: '在庫状態'
 
@@ -194,7 +194,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User sees validation errors for invalid price range' do
-    visit inventories_path(advanced_search: 1)
+    visit admin_inventories_path(advanced_search: 1)
 
     fill_in '最低価格', with: '200'
     fill_in '最高価格', with: '100'
@@ -205,7 +205,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User resets search conditions' do
-    visit inventories_path(advanced_search: 1)
+    visit admin_inventories_path(advanced_search: 1)
 
     fill_in 'キーワード', with: 'テスト'
     select 'Active', from: 'ステータス'
@@ -219,7 +219,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User switches between simple and advanced search' do
-    visit inventories_path
+    visit admin_inventories_path
 
     # シンプル検索から高度な検索へ
     click_link '高度な検索'
@@ -232,7 +232,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User uses date range search', js: true do
-    visit inventories_path(advanced_search: 1)
+    visit admin_inventories_path(advanced_search: 1)
 
     fill_in '開始日', with: Date.current - 1.day
     fill_in '終了日', with: Date.current + 1.day
@@ -246,7 +246,7 @@ RSpec.feature 'Inventory Search', type: :feature do
 
   scenario 'User uses batch (lot) search' do
     # バッチデータがある場合のテスト（実際のデータモデルに応じて調整）
-    visit inventories_path(advanced_search: 1)
+    visit admin_inventories_path(advanced_search: 1)
 
     fill_in 'ロットコード', with: 'LOT001'
 
@@ -257,7 +257,7 @@ RSpec.feature 'Inventory Search', type: :feature do
   end
 
   scenario 'User sorts search results' do
-    visit inventories_path
+    visit admin_inventories_path
 
     click_link '商品名'
 
@@ -269,7 +269,7 @@ RSpec.feature 'Inventory Search', type: :feature do
 
   scenario 'User navigates through paginated results' do
     # 多数のデータがある場合のページネーションテスト
-    visit inventories_path(page: 1)
+    visit admin_inventories_path(page: 1)
 
     expect(page).to have_content('在庫一覧')
     # ページネーションリンクの存在確認（データ量によって変わる）
@@ -277,7 +277,7 @@ RSpec.feature 'Inventory Search', type: :feature do
 
   context 'with low stock threshold settings', js: true do
     scenario 'User adjusts low stock threshold dynamically' do
-      visit inventories_path(advanced_search: 1)
+      visit admin_inventories_path(advanced_search: 1)
 
       select '低在庫', from: '在庫状態'
 
@@ -294,7 +294,7 @@ RSpec.feature 'Inventory Search', type: :feature do
 
   context 'with empty search results' do
     scenario 'User sees appropriate message when no results found' do
-      visit inventories_path
+      visit admin_inventories_path
 
       fill_in 'q', with: '存在しない商品'
       click_button '検索'
@@ -305,7 +305,7 @@ RSpec.feature 'Inventory Search', type: :feature do
 
   context 'with form persistence' do
     scenario 'Search form retains values after search' do
-      visit inventories_path(advanced_search: 1)
+      visit admin_inventories_path(advanced_search: 1)
 
       fill_in 'キーワード', with: 'テスト'
       select 'Active', from: 'ステータス'

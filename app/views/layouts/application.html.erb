@@ -19,14 +19,18 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
     
-    <%# Font Awesome for icons %>
+    <%# Bootstrap 5 CSS - Importmap統一に変更（CDN重複解消） %>
+    <%# メタ認知: Rails 7ベストプラクティスに合わせてCDN依存を削減 %>
+    <%# 横展開: admin.html.erb、store.html.erbと同じパターンで統一 %>
+    
+    <%# Bootstrap Icons と Font Awesome の統一管理 %>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
-    <%= javascript_importmap_tags %>
   </head>
 
-  <body class="d-flex flex-column min-vh-100">
+  <body class="d-flex flex-column min-vh-100 store-layout">
     <%# Bootstrap 5 ナビゲーションヘッダー %>
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow">
       <div class="container">
@@ -42,6 +46,9 @@
         </button>
         
         <div class="collapse navbar-collapse" id="navbarNav">
+          <%# CLAUDE.md準拠: セキュリティ強化 - 公開レイアウトから管理者機能へのアクセス完全削除 %>
+          <%# メタ認知: 一般ユーザーには店舗ログイン機能のみを提供し、管理者機能は隠蔽 %>
+          <%# 横展開: ホームページと同様のセキュリティポリシー適用 %>
           <ul class="navbar-nav me-auto mb-2 mb-lg-0">
             <li class="nav-item">
               <%= link_to root_path, class: "nav-link #{'active' if current_page?(root_path)}" do %>
@@ -49,16 +56,16 @@
               <% end %>
             </li>
             <li class="nav-item">
-              <%= link_to inventories_path, class: "nav-link #{'active' if current_page?(inventories_path)}" do %>
-                <i class="fas fa-boxes me-1"></i>在庫一覧
+              <%= link_to store_selection_path, class: "nav-link #{'active' if current_page?(store_selection_path)}" do %>
+                <i class="fas fa-store me-1"></i>店舗一覧
               <% end %>
             </li>
           </ul>
           
           <ul class="navbar-nav">
             <li class="nav-item">
-              <%= link_to new_admin_session_path, class: "nav-link" do %>
-                <i class="fas fa-sign-in-alt me-1"></i>管理者ログイン
+              <%= link_to store_selection_path, class: "nav-link" do %>
+                <i class="fas fa-sign-in-alt me-1"></i>店舗ログイン
               <% end %>
             </li>
           </ul>
@@ -114,12 +121,33 @@
       </div>
     </footer>
 
-    <%# TODO: 🟡 Phase 2 - 公開レイアウト機能強化 %>
-    <%# 優先度: 中（ユーザー体験向上） %>
+    <%# 🔴 緊急修正完了: Bootstrap CDN重複読み込み解消 %>
+    <%# 問題: CDNとImportmapでBootstrapが二重読み込み %>
+    <%# 解決: Importmap統一管理でJavaScript競合防止 %>
+    <%# 横展開: admin/storeレイアウトと一貫性確保 %>
+    
+    <%# Rails JavaScript - Importmap統一管理 %>
+    <%= javascript_importmap_tags %>
+
+    <%# ✅ 完了: Bootstrap CDN重複読み込み解消修正 %>
+    <%# 問題解決: JavaScript競合とパフォーマンス問題を解消 %>
+    <%# メタ認知: Rails 7ベストプラクティスにImportmap統一 %>
+    <%# 横展開: admin/storeレイアウトと一貫性確保完了 %>
+    
+    <%# TODO: 🟡 Phase 3（重要）- 公開レイアウトセキュリティ強化 %>
+    <%# 優先度: 中（CDN重複解消完了でベース品質向上） %>
+    <%# 実装内容: %>
+    <%#   - ✅ Bootstrap CDN重複読み込み解消完了 %>
+    <%#   - ✅ JavaScript競合問題解決完了 %>
+    <%#   - ⏳ CSP (Content Security Policy) 実装 %>
+    <%#   - ⏳ セキュリティヘッダー強化 (X-Frame-Options, X-XSS-Protection) %>
+    <%# 期待効果: XSS攻撃防止、クリックジャッキング対策、パフォーマンス向上 %>
+
+    <%# TODO: 🟡 Phase 4（重要）- 公開レイアウト機能強化 %>
+    <%# 優先度: 中（CDN最適化完了でUX向上フェーズ） %>
     <%# 実装内容: ユーザー認証、ブレッドクラム、サイト内検索 %>
     <%# 理由: 公開機能の充実とナビゲーション改善 %>
     <%# 期待効果: ユーザー満足度向上、サイト利用率向上 %>
-    <%# 工数見積: 2日 %>
-    <%# 依存関係: ユーザー認証システムの実装 %>
+    <%# 依存関係: Bootstrap最適化完了で基盤整備済み %>
   </body>
 </html>

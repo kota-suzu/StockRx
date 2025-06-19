@@ -38,7 +38,7 @@ gem "redis", ">= 4.0.1"
 # gem "kredis"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
-# gem "bcrypt", "~> 3.1.7"
+gem "bcrypt", "~> 3.1.7"
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[ windows jruby ]
@@ -80,6 +80,10 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+
+  # メール開発用ツール - ブラウザでメール内容確認
+  gem "letter_opener", "~> 1.10"      # メールをブラウザで表示
+  gem "letter_opener_web", "~> 3.0"   # Web UI for sent emails
 end
 
 group :test do
@@ -110,11 +114,15 @@ gem "omniauth-rails_csrf_protection", "~> 1.0"  # CSRF保護
 # gem "attr_encrypted"               # 属性の暗号化
 
 gem "kaminari", "~> 1.2"            # ページネーション
+gem "bootstrap5-kaminari-views", "~> 0.0.1"  # Bootstrap 5対応ページネーション
 
 # Background Job Processing
 gem "sidekiq", "~> 7.2"
 gem "sidekiq-scheduler", "~> 5.0"  # TODO: 将来の定期実行ジョブ用（月次レポート生成など）
 gem "rack-protection", "~> 4.0"   # Sidekiq Web UI のセキュリティ強化
+
+# Date/Time Grouping for Analytics
+gem "groupdate", "~> 6.4"          # 日付・時間による集計機能（監査ログ・分析用）
 
 # TODO: 外部API連携機能（Ruby 3.x対応）- CLAUDE.md参照
 # 外部API連携機能を完全に実装するため、以下のgemの追加が必要：

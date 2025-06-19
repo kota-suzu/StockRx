@@ -1,0 +1,254 @@
+// ============================================
+// StockRx Modern UI v2 - Main Stylesheet
+// ============================================
+// 最新のUIトレンドに対応した新しいデザインシステム
+// Glassmorphism、グラデーション、アニメーション対応
+// ============================================
+
+// ============================================
+// 1. Core Design System
+// ============================================
+@import 'modern_ui_v2/tokens';      // デザイントークン
+@import 'modern_ui_v2/themes';      // テーマシステム
+@import 'modern_ui_v2/animations';  // アニメーション
+@import 'modern_ui_v2/glassmorphism'; // Glassmorphism効果
+@import 'modern_ui_v2/accessibility'; // アクセシビリティ向上
+
+// ============================================
+// 2. Atomic Components
+// ============================================
+@import 'modern_ui_v2/atoms/buttons';  // ボタンコンポーネント
+// @import 'modern_ui_v2/atoms/inputs';   // TODO: フォーム要素
+// @import 'modern_ui_v2/atoms/icons';    // TODO: アイコンシステム
+
+// ============================================
+// 3. Molecule Components
+// ============================================
+// @import 'modern_ui_v2/molecules/cards';     // TODO: カードコンポーネント
+// @import 'modern_ui_v2/molecules/dropdowns'; // TODO: ドロップダウン
+// @import 'modern_ui_v2/molecules/tooltips';  // TODO: ツールチップ
+
+// ============================================
+// 4. Organism Components
+// ============================================
+// @import 'modern_ui_v2/organisms/navigation'; // TODO: ナビゲーション
+// @import 'modern_ui_v2/organisms/tables';     // TODO: データテーブル
+// @import 'modern_ui_v2/organisms/modals';     // TODO: モーダル
+
+// ============================================
+// 5. Feature Components
+// ============================================
+// @import 'modern_ui_v2/features/ai_assistant'; // TODO: AIアシスタント
+// @import 'modern_ui_v2/features/dashboard';    // TODO: ダッシュボード
+
+// ============================================
+// 6. Base Styles
+// ============================================
+
+// Reset & Normalize
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  min-height: 100vh;
+  
+  // Gradient Background Option
+  &.gradient-bg {
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    background-attachment: fixed;
+  }
+  
+  // Mesh Gradient Background
+  &.mesh-gradient-bg {
+    background: 
+      radial-gradient(at 40% 20%, var(--color-primary-200) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, var(--color-secondary-200) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, var(--color-primary-100) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, var(--color-secondary-100) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, var(--color-primary-200) 0px, transparent 50%),
+      var(--bg-primary);
+    background-attachment: fixed;
+  }
+}
+
+// ============================================
+// 7. Layout Utilities
+// ============================================
+
+// Container
+.container-modern {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+  
+  @media (min-width: 768px) {
+    padding: 0 var(--space-6);
+  }
+  
+  @media (min-width: 1024px) {
+    padding: 0 var(--space-8);
+  }
+}
+
+// Grid System
+.grid-modern {
+  display: grid;
+  gap: var(--space-4);
+  
+  &.grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  &.grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  &.grid-cols-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+// Flex Utilities
+.flex-modern {
+  display: flex;
+  
+  &.flex-center {
+    align-items: center;
+    justify-content: center;
+  }
+  
+  &.flex-between {
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  &.flex-col {
+    flex-direction: column;
+  }
+  
+  &.gap-2 { gap: var(--space-2); }
+  &.gap-4 { gap: var(--space-4); }
+  &.gap-6 { gap: var(--space-6); }
+  &.gap-8 { gap: var(--space-8); }
+}
+
+// ============================================
+// 8. Typography
+// ============================================
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 var(--space-4) 0;
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  color: var(--text-primary);
+  
+  &.gradient-text {
+    background: var(--gradient-primary);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+
+h1 { font-size: var(--text-4xl); }
+h2 { font-size: var(--text-3xl); }
+h3 { font-size: var(--text-2xl); }
+h4 { font-size: var(--text-xl); }
+h5 { font-size: var(--text-lg); }
+h6 { font-size: var(--text-base); }
+
+p {
+  margin: 0 0 var(--space-4) 0;
+  color: var(--text-secondary);
+}
+
+// ============================================
+// 9. Utility Classes
+// ============================================
+
+// Text Utilities
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+
+.text-xs { font-size: var(--text-xs); }
+.text-sm { font-size: var(--text-sm); }
+.text-base { font-size: var(--text-base); }
+.text-lg { font-size: var(--text-lg); }
+.text-xl { font-size: var(--text-xl); }
+
+// Color Utilities
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+
+// Spacing Utilities
+.mt-0 { margin-top: 0; }
+.mt-2 { margin-top: var(--space-2); }
+.mt-4 { margin-top: var(--space-4); }
+.mt-6 { margin-top: var(--space-6); }
+.mt-8 { margin-top: var(--space-8); }
+
+.mb-0 { margin-bottom: 0; }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-6 { margin-bottom: var(--space-6); }
+.mb-8 { margin-bottom: var(--space-8); }
+
+.p-0 { padding: 0; }
+.p-2 { padding: var(--space-2); }
+.p-4 { padding: var(--space-4); }
+.p-6 { padding: var(--space-6); }
+.p-8 { padding: var(--space-8); }
+
+// ============================================
+// 10. Responsive Utilities
+// ============================================
+
+// Hide/Show
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+}
+
+@media (min-width: 769px) {
+  .show-mobile { display: none !important; }
+}
+
+// ============================================
+// 11. Print Styles
+// ============================================
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+}
+
+// TODO: Phase 4 - 追加実装予定
+// - カスタムプロパティによる動的テーマ
+// - CSS Grid Advanced Layouts
+// - Container Queries対応
+// - Scroll-driven Animations

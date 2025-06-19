@@ -1,0 +1,28 @@
+<%# ========================================== %>
+<%# フッターブランディング部分 %>
+<%# ========================================== %>
+
+<div class="d-flex align-items-center mb-2">
+  <i class="<%= footer_brand_icon_class %> me-2 <%= footer_brand_icon_color %>"></i>
+  <h5 class="mb-0 fw-bold"><%= footer_brand_text %></h5>
+  <% if content_for?(:footer_badge) %>
+    <span class="badge <%= footer_badge_class %> ms-2"><%= yield(:footer_badge) %></span>
+  <% end %>
+</div>
+
+<p class="text-muted mb-0 <%= footer_description_class %>">
+  <% if content_for?(:footer_description) %>
+    <%= yield(:footer_description) %>
+  <% else %>
+    <%= footer_default_description %>
+  <% end %>
+</p>
+
+<%# バージョン情報（開発環境のみ） %>
+<% if Rails.env.development? && content_for?(:show_version) %>
+  <small class="text-muted opacity-75 d-block mt-1">
+    <i class="bi bi-code-square me-1"></i>
+    v<%= Rails.application.version rescue '1.0.0' %> 
+    (<%= Rails.env %>)
+  </small>
+<% end %>

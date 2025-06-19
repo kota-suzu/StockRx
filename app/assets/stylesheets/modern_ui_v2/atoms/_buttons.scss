@@ -1,0 +1,326 @@
+// ============================================
+// Modern UI v2 - Button Components
+// ============================================
+// グラデーション、Glassmorphism、アニメーション
+// を組み合わせたモダンなボタンスタイル
+// ============================================
+
+@import '../tokens';
+@import '../glassmorphism';
+@import '../animations';
+
+// ============================================
+// Base Button Styles
+// ============================================
+.btn-modern {
+  // Reset & Base
+  appearance: none;
+  border: none;
+  outline: none;
+  background: none;
+  
+  // Layout
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  
+  // Spacing
+  padding: var(--space-3) var(--space-6);
+  
+  // Typography
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  line-height: var(--leading-normal);
+  text-decoration: none;
+  white-space: nowrap;
+  
+  // Styling
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  
+  // Transitions
+  transition: all var(--duration-fast) var(--motion-smooth);
+  
+  // States
+  &:hover {
+    transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  &:focus-visible {
+    outline: 2px solid var(--color-primary-500);
+    outline-offset: 2px;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none !important;
+  }
+}
+
+// ============================================
+// Button Variants
+// ============================================
+
+// Primary Gradient Button
+.btn-primary {
+  background: var(--gradient-primary);
+  color: white;
+  box-shadow: 
+    0 4px 15px rgba(102, 126, 234, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--gradient-primary);
+    filter: blur(20px);
+    opacity: 0.4;
+    z-index: -1;
+    transition: opacity var(--duration-fast) var(--motion-smooth);
+  }
+  
+  &:hover {
+    box-shadow: 
+      0 7px 20px rgba(102, 126, 234, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    
+    &::before {
+      opacity: 0.6;
+    }
+  }
+}
+
+// Secondary Glass Button
+.btn-secondary {
+  @include glassmorphism-base(
+    $blur: var(--glass-blur-sm),
+    $bg: var(--glass-bg)
+  );
+  color: var(--text-primary);
+  
+  &:hover {
+    background: var(--glass-bg-solid);
+    border-color: var(--color-primary-300);
+  }
+}
+
+// Success Button
+.btn-success {
+  background: var(--gradient-success);
+  color: white;
+  box-shadow: 
+    0 4px 15px rgba(19, 206, 102, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  
+  &:hover {
+    box-shadow: 
+      0 7px 20px rgba(19, 206, 102, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+}
+
+// Danger Button
+.btn-danger {
+  background: var(--gradient-danger);
+  color: white;
+  box-shadow: 
+    0 4px 15px rgba(245, 87, 108, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  
+  &:hover {
+    box-shadow: 
+      0 7px 20px rgba(245, 87, 108, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  }
+}
+
+// Ghost Button
+.btn-ghost {
+  background: transparent;
+  color: var(--text-primary);
+  border: 2px solid var(--border-primary);
+  
+  &:hover {
+    background: var(--glass-bg);
+    border-color: var(--color-primary-500);
+    color: var(--color-primary-600);
+  }
+}
+
+// ============================================
+// Button Sizes
+// ============================================
+.btn-sm {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  
+  &.btn-icon-only {
+    padding: var(--space-2);
+  }
+}
+
+.btn-lg {
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--text-lg);
+  
+  &.btn-icon-only {
+    padding: var(--space-4);
+  }
+}
+
+// ============================================
+// Icon Buttons
+// ============================================
+.btn-icon-only {
+  padding: var(--space-3);
+  border-radius: var(--radius-full);
+  
+  i, svg {
+    font-size: 1.25em;
+  }
+}
+
+.btn-icon-left {
+  i, svg {
+    margin-right: var(--space-2);
+  }
+}
+
+.btn-icon-right {
+  i, svg {
+    margin-left: var(--space-2);
+  }
+}
+
+// ============================================
+// Special Button Effects
+// ============================================
+
+// Ripple Effect
+.btn-ripple {
+  position: relative;
+  overflow: hidden;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width var(--duration-slow), height var(--duration-slow);
+  }
+  
+  &:active::after {
+    width: 300px;
+    height: 300px;
+  }
+}
+
+// Glow Effect
+.btn-glow {
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: var(--gradient-primary);
+    border-radius: inherit;
+    opacity: 0;
+    z-index: -1;
+    transition: opacity var(--duration-normal) var(--motion-smooth);
+    filter: blur(8px);
+  }
+  
+  &:hover::before {
+    opacity: 0.7;
+  }
+}
+
+// 3D Effect
+.btn-3d {
+  transform-style: preserve-3d;
+  transition: transform var(--duration-fast) var(--motion-smooth);
+  
+  &:hover {
+    transform: translateY(-2px) rotateX(-10deg);
+  }
+  
+  &:active {
+    transform: translateY(0) rotateX(0);
+  }
+}
+
+// ============================================
+// Button Group
+// ============================================
+.btn-group {
+  display: inline-flex;
+  gap: 0;
+  
+  .btn-modern {
+    border-radius: 0;
+    
+    &:first-child {
+      border-top-left-radius: var(--radius-full);
+      border-bottom-left-radius: var(--radius-full);
+    }
+    
+    &:last-child {
+      border-top-right-radius: var(--radius-full);
+      border-bottom-right-radius: var(--radius-full);
+    }
+    
+    &:not(:last-child) {
+      border-right: 1px solid rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+// ============================================
+// Loading State
+// ============================================
+.btn-loading {
+  color: transparent !important;
+  pointer-events: none;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin var(--duration-slow) linear infinite;
+  }
+}
+
+// TODO: Phase 4 - 高度なボタン機能
+// - マイクロインタラクション強化
+// - サウンドフィードバック
+// - ハプティックフィードバック対応

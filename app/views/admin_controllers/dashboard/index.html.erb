@@ -1,32 +1,32 @@
-<%# モダン管理者ダッシュボード - Bootstrap 5 & Chart.js版 %>
-<div class="container-fluid py-4">
-  <%# ダッシュボードヘッダー %>
+<%# モダン管理者ダッシュボード - ライトテーマ版 %>
+<% content_for :title, "管理ダッシュボード" %>
+
+<div class="container-fluid">
+  <!-- ページヘッダー（WCAG AA準拠の文字色適用） -->
   <div class="row mb-4">
-    <div class="col-12">
-      <div class="dashboard-card border-0 shadow-sm">
-        <div class="card-body p-4">
-          <div class="row align-items-center">
-            <div class="col-lg-8">
-              <div class="d-flex align-items-center mb-2">
-                <div class="icon-lg me-3" style="background: linear-gradient(135deg, var(--admin-primary), var(--admin-accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">📋</div>
-                <div>
-                  <h1 class="h2 mb-1 fw-bold">管理者ダッシュボード</h1>
-                  <p class="text-muted mb-0">ようこそ、<strong class="text-admin-primary"><%= current_admin.email %></strong> さん</p>
-                </div>
-              </div>
-            </div>
-            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
-              <div class="d-flex flex-column align-items-lg-end">
-                <small class="text-muted mb-1">
-                  <i class="bi bi-clock me-1" aria-hidden="true"></i>
-                  最終ログイン: <%= l(current_admin.last_sign_in_at, format: :long) if current_admin.last_sign_in_at.present? %>
-                </small>
-                <div class="badge bg-success mt-1" role="status" aria-label="システム状態">
-                  <i class="bi bi-check-circle me-1" aria-hidden="true"></i>システム正常
-                </div>
-              </div>
-            </div>
-          </div>
+    <div class="col">
+      <div class="d-flex align-items-center">
+        <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+             style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--brand-primary), var(--brand-primary-dark));">
+          <i class="bi bi-speedometer2 text-white fs-4"></i>
+        </div>
+        <div>
+          <h1 class="mb-1" style="color: var(--text-primary); font-weight: var(--font-weight-bold); font-size: var(--font-size-3xl);">
+            管理ダッシュボード
+          </h1>
+          <p class="mb-0" style="color: var(--text-secondary); font-size: var(--font-size-base);">
+            StockRx在庫管理システム - 全体概要
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-auto">
+      <div class="text-end">
+        <div style="color: var(--text-muted); font-size: var(--font-size-sm);">
+          最終更新: <%= Time.current.strftime("%Y年%m月%d日 %H:%M") %>
+        </div>
+        <div style="color: var(--text-accent); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);">
+          <%= current_admin.role_text %>として接続中
         </div>
       </div>
     </div>
@@ -44,41 +44,45 @@
     
     <%# 総商品数 %>
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
           <div class="d-flex justify-content-between align-items-start mb-3">
-            <div class="icon-lg text-primary bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">📦</div>
+            <div class="icon-lg text-primary bg-primary-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-boxes"></i></div>
             <span class="badge bg-primary-subtle text-primary">アクティブ</span>
           </div>
           <h3 class="display-6 fw-bold text-primary mb-1" data-bs-toggle="tooltip" data-bs-placement="top" title="システムに登録されている全商品数">
-            <%= number_with_delimiter(@stats[:total_inventories]) %>
+            <%= number_with_delimiter(@stats[:total_inventories] || 0) %>
           </h3>
           <p class="text-muted mb-2 fw-medium">総商品数</p>
           <div class="progress" style="height: 6px;">
-            <% active_percentage = @stats[:total_inventories] > 0 ? (@stats[:active_inventories].to_f / @stats[:total_inventories] * 100).round(1) : 0 %>
+            <% total_inventories = @stats[:total_inventories] || 0 %>
+            <% active_inventories = @stats[:active_inventories] || 0 %>
+            <% active_percentage = total_inventories > 0 ? (active_inventories.to_f / total_inventories * 100).round(1) : 0 %>
             <div class="progress-bar bg-primary" style="width: <%= active_percentage %>%" title="アクティブ: <%= active_percentage %>%"></div>
           </div>
-          <small class="text-muted mt-1 d-block">アクティブ: <%= @stats[:active_inventories] %>件</small>
+          <small class="text-muted mt-1 d-block">アクティブ: <%= active_inventories %>件</small>
         </div>
       </div>
     </div>
 
     <%# 在庫アラート %>
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100 <%= @stats[:low_stock_count] > 0 ? 'border-warning' : '' %>">
+      <div class="card border-0 shadow-sm h-100 bg-white <%= (@stats[:low_stock_count] || 0) > 0 ? 'border-warning' : '' %>">
         <div class="card-body p-4 text-center">
           <div class="d-flex justify-content-between align-items-start mb-3">
-            <div class="icon-lg text-warning bg-warning-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">⚠️</div>
-            <span class="badge <%= @stats[:low_stock_count] > 0 ? 'bg-warning text-dark' : 'bg-success' %>">
-              <%= @stats[:low_stock_count] > 0 ? '要注意' : '正常' %>
+            <div class="icon-lg text-warning bg-warning-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-exclamation-triangle"></i></div>
+            <% low_stock_count = @stats[:low_stock_count] || 0 %>
+            <span class="badge <%= low_stock_count > 0 ? 'bg-warning text-dark' : 'bg-success' %>">
+              <%= low_stock_count > 0 ? '要注意' : '正常' %>
             </span>
           </div>
           <h3 class="display-6 fw-bold text-warning mb-1" data-bs-toggle="tooltip" data-bs-placement="top" title="在庫が低下している商品数">
-            <%= number_with_delimiter(@stats[:low_stock_count]) %>
+            <%= number_with_delimiter(low_stock_count) %>
           </h3>
           <p class="text-muted mb-2 fw-medium">在庫アラート</p>
           <div class="progress" style="height: 6px;">
-            <% alert_percentage = @stats[:total_inventories] > 0 ? (@stats[:low_stock_count].to_f / @stats[:total_inventories] * 100).round(1) : 0 %>
+            <% total_inventories = @stats[:total_inventories] || 0 %>
+            <% alert_percentage = total_inventories > 0 ? (low_stock_count.to_f / total_inventories * 100).round(1) : 0 %>
             <div class="progress-bar bg-warning" style="width: <%= [alert_percentage, 100].min %>%" title="アラート率: <%= alert_percentage %>%"></div>
           </div>
           <small class="text-muted mt-1 d-block">アラート率: <%= alert_percentage %>%</small>
@@ -88,18 +92,18 @@
 
     <%# 総在庫金額 %>
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
           <div class="d-flex justify-content-between align-items-start mb-3">
-            <div class="icon-lg text-info bg-info-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">💰</div>
+            <div class="icon-lg text-info bg-info-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-currency-yen"></i></div>
             <span class="badge bg-info-subtle text-info">総額</span>
           </div>
           <h3 class="display-6 fw-bold text-info mb-1" data-bs-toggle="tooltip" data-bs-placement="top" title="全在庫の総金額（数量×単価）">
-            ¥<%= number_with_delimiter(@stats[:total_inventory_value]) %>
+            ¥<%= number_with_delimiter(@stats[:total_inventory_value] || 0) %>
           </h3>
           <p class="text-muted mb-2 fw-medium">総在庫金額</p>
           <div class="small text-muted">
-            平均単価: ¥<%= number_with_delimiter(@stats[:average_inventory_value]) %>
+            平均単価: ¥<%= number_with_delimiter(@stats[:average_inventory_value] || 0) %>
           </div>
         </div>
       </div>
@@ -107,18 +111,18 @@
 
     <%# 本日の操作 %>
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
           <div class="d-flex justify-content-between align-items-start mb-3">
-            <div class="icon-lg text-success bg-success-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">📈</div>
+            <div class="icon-lg text-success bg-success-subtle rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;"><i class="bi bi-graph-up"></i></div>
             <span class="badge bg-success-subtle text-success">今日</span>
           </div>
           <h3 class="display-6 fw-bold text-success mb-1" data-bs-toggle="tooltip" data-bs-placement="top" title="今日実行された在庫操作数">
-            <%= number_with_delimiter(@stats[:today_operations]) %>
+            <%= number_with_delimiter(@stats[:today_operations] || 0) %>
           </h3>
           <p class="text-muted mb-2 fw-medium">本日の操作</p>
           <div class="small text-muted">
-            週間: <%= @stats[:weekly_operations] %>件 | 月間: <%= @stats[:monthly_operations] %>件
+            週間: <%= number_with_delimiter(@stats[:weekly_operations] || 0) %>件 | 月間: <%= number_with_delimiter(@stats[:monthly_operations] || 0) %>件
           </div>
         </div>
       </div>
@@ -130,24 +134,24 @@
     <div class="col-12">
       <h3 class="mb-3 fw-bold">
         <i class="bi bi-layer-group me-2 text-info" aria-hidden="true"></i>
-        バッチ・期限管理
+        ロット・期限管理
       </h3>
     </div>
     
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
-          <div class="icon-lg text-secondary bg-secondary-subtle rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 50px; height: 50px;">📦</div>
-          <h4 class="fw-bold text-secondary mb-1"><%= number_with_delimiter(@stats[:total_batches]) %></h4>
-          <p class="text-muted mb-0">総バッチ数</p>
+          <div class="icon-lg text-secondary bg-secondary-subtle rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 50px; height: 50px;"><i class="bi bi-layers"></i></div>
+          <h4 class="fw-bold text-secondary mb-1"><%= number_with_delimiter(@stats[:total_batches] || 0) %></h4>
+          <p class="text-muted mb-0">総ロット数</p>
         </div>
       </div>
     </div>
 
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
-          <div class="icon-lg text-warning bg-warning-subtle rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 50px; height: 50px;">⏰</div>
+          <div class="icon-lg text-warning bg-warning-subtle rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 50px; height: 50px;"><i class="bi bi-clock"></i></div>
           <h4 class="fw-bold text-warning mb-1"><%= number_with_delimiter(@stats[:expiring_batches]) %></h4>
           <p class="text-muted mb-0">期限間近</p>
           <small class="text-muted">(30日以内)</small>
@@ -156,9 +160,9 @@
     </div>
 
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4 text-center">
-          <div class="icon-lg text-danger bg-danger-subtle rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 50px; height: 50px;">❌</div>
+          <div class="icon-lg text-danger bg-danger-subtle rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 50px; height: 50px;"><i class="bi bi-x-circle"></i></div>
           <h4 class="fw-bold text-danger mb-1"><%= number_with_delimiter(@stats[:expired_batches]) %></h4>
           <p class="text-muted mb-0">期限切れ</p>
           <% if @stats[:expired_batches] > 0 %>
@@ -169,7 +173,7 @@
     </div>
 
     <div class="col-sm-6 col-lg-3 mb-3">
-      <div class="dashboard-card border-0 shadow-sm h-100">
+      <div class="card border-0 shadow-sm h-100 bg-white">
         <div class="card-body p-4">
           <h6 class="text-muted mb-3">期限状況</h6>
           <% 
@@ -216,10 +220,10 @@
       </h3>
     </div>
     <div class="col-sm-6 col-lg-3 mb-3">
-      <%= link_to admin_inventories_path, class: "dashboard-card text-decoration-none h-100 border-0 shadow-sm" do %>
+      <%= link_to admin_inventories_path, class: "card text-decoration-none h-100 border-0 shadow-sm bg-white" do %>
         <div class="card-body text-center p-4 h-100 d-flex flex-column justify-content-center">
-          <div class="icon-lg mb-3 text-primary">📦</div>
-          <h5 class="card-title fw-bold mb-2">在庫管理</h5>
+          <div class="icon-lg mb-3 text-primary"><i class="bi bi-boxes"></i></div>
+          <h5 class="card-title fw-bold mb-2 text-dark">在庫管理</h5>
           <p class="card-text text-muted small mb-0">商品の登録・編集・削除</p>
           <div class="mt-auto pt-3">
             <span class="badge bg-primary-subtle text-primary">管理機能</span>
@@ -231,7 +235,7 @@
     <div class="col-sm-6 col-lg-3 mb-3">
       <%= link_to admin_inventories_path(tab: "import"), class: "dashboard-card text-decoration-none h-100 border-0 shadow-sm" do %>
         <div class="card-body text-center p-4 h-100 d-flex flex-column justify-content-center">
-          <div class="icon-lg mb-3 text-info">📊</div>
+          <div class="icon-lg mb-3 text-info"><i class="bi bi-upload"></i></div>
           <h5 class="card-title fw-bold mb-2">CSVインポート</h5>
           <p class="card-text text-muted small mb-0">一括で在庫データを登録</p>
           <div class="mt-auto pt-3">
@@ -242,10 +246,11 @@
     </div>
     
     <div class="col-sm-6 col-lg-3 mb-3">
-      <%= link_to inventory_logs_path, class: "dashboard-card text-decoration-none h-100 border-0 shadow-sm" do %>
+      <%# TODO: 🟡 Phase 3 - inventory_logsパスを/admin/inventory_logsに移行予定 %>
+      <%= link_to inventory_logs_path, class: "card text-decoration-none h-100 border-0 shadow-sm bg-white" do %>
         <div class="card-body text-center p-4 h-100 d-flex flex-column justify-content-center">
-          <div class="icon-lg mb-3 text-success">📋</div>
-          <h5 class="card-title fw-bold mb-2">在庫履歴</h5>
+          <div class="icon-lg mb-3 text-success"><i class="bi bi-journal-text"></i></div>
+          <h5 class="card-title fw-bold mb-2 text-dark">在庫履歴</h5>
           <p class="card-text text-muted small mb-0">入出庫履歴の確認</p>
           <div class="mt-auto pt-3">
             <span class="badge bg-success-subtle text-success">監査機能</span>
@@ -255,10 +260,14 @@
     </div>
     
     <div class="col-sm-6 col-lg-3 mb-3">
-      <%= link_to "/admin/sidekiq", class: "dashboard-card text-decoration-none h-100 border-0 shadow-sm", target: "_blank", rel: "noopener noreferrer" do %>
+      <%# TODO: 🟢 Phase 4（推奨）- Sidekiq Webマウントエンジンのパス管理 %>
+      <%# 優先度: 低（機能的には問題なし） %>
+      <%# 理由: Sidekiq::Webは外部エンジンのため、Railsパスヘルパーが自動生成されない %>
+      <%# 現状: ハードコードパスは正常動作（routes.rbでマウント確認済み） %>
+      <%= link_to "/admin/sidekiq", class: "card text-decoration-none h-100 border-0 shadow-sm bg-white", target: "_blank", rel: "noopener noreferrer" do %>
         <div class="card-body text-center p-4 h-100 d-flex flex-column justify-content-center">
-          <div class="icon-lg mb-3 text-warning">⚙️</div>
-          <h5 class="card-title fw-bold mb-2">ジョブ監視</h5>
+          <div class="icon-lg mb-3 text-warning"><i class="bi bi-gear"></i></div>
+          <h5 class="card-title fw-bold mb-2 text-dark">ジョブ監視</h5>
           <p class="card-text text-muted small mb-0">バックグラウンド処理の状況</p>
           <div class="mt-auto pt-3">
             <span class="badge bg-warning-subtle text-warning">システム監視</span>
@@ -268,116 +277,268 @@
     </div>
   </div>
 
-  <%# 最近のアクティビティ %>
+  <%# 最近のアクティビティ - Enhanced UI %>
   <div class="row">
     <div class="col-lg-8 mb-4">
-      <div class="dashboard-card border-0 shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
+      <div class="card border-0 shadow-sm h-100 bg-white">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
           <h3 class="mb-0 fw-bold">
-            <i class="bi bi-activity me-2 text-primary"></i>最近のアクティビティ
+            <i class="bi bi-activity me-2"></i>最近のアクティビティ
           </h3>
-          <%= link_to inventory_logs_path, class: "btn btn-outline-primary btn-sm" do %>
+          <%# TODO: Phase 3 - inventory_logsパスを/admin/inventory_logsに移行予定 %>
+          <%= link_to inventory_logs_path, class: "btn btn-outline-light btn-sm hover-lift", 
+                      data: { bs_toggle: "tooltip", bs_placement: "top", bs_title: "すべての活動履歴を表示" } do %>
             <i class="bi bi-arrow-right me-1"></i>すべて見る
           <% end %>
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
           <% if @recent_logs.any? %>
-            <% @recent_logs.each_with_index do |log, index| %>
-              <div class="d-flex align-items-center <%= 'border-bottom pb-3 mb-3' if index < @recent_logs.length - 1 %>">
-                <div class="me-3">
-                  <span class="badge rounded-pill fs-6 
-                    <%= case log.operation_type
-                        when 'create' then 'bg-success'
-                        when 'update' then 'bg-primary'
-                        when 'delete' then 'bg-danger'
-                        when 'import' then 'bg-info'
-                        else 'bg-secondary'
-                        end %>">
-                    <%= case log.operation_type
-                        when 'create' then '➕'
-                        when 'update' then '✏️'
-                        when 'delete' then '🗑️'
-                        when 'import' then '📥'
-                        else '📝'
-                        end %>
-                  </span>
+            <div class="activity-timeline">
+              <% @recent_logs.each_with_index do |log, index| %>
+                <div class="activity-item d-flex align-items-start p-3 position-relative 
+                           <%= 'border-bottom' if index < @recent_logs.length - 1 %>
+                           hover-highlight" 
+                     data-aos="fade-up" data-aos-delay="<%= index * 100 %>">
+                  
+                  <!-- Activity Icon with Animation -->
+                  <div class="activity-icon me-3 flex-shrink-0">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center
+                                <%= case log.operation_type
+                                    when 'create' then 'bg-success bg-opacity-10 text-success border border-success border-opacity-25'
+                                    when 'update' then 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25'
+                                    when 'delete' then 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25'
+                                    when 'import' then 'bg-info bg-opacity-10 text-info border border-info border-opacity-25'
+                                    else 'bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25'
+                                    end %>"
+                         style="width: 40px; height: 40px; transition: all 0.3s ease;">
+                      <i class="bi <%= case log.operation_type
+                          when 'create' then 'bi-plus-circle-fill'
+                          when 'update' then 'bi-pencil-square'
+                          when 'delete' then 'bi-trash3-fill'
+                          when 'import' then 'bi-cloud-download-fill'
+                          else 'bi-file-text-fill'
+                          end %> fs-5"></i>
+                    </div>
+                  </div>
+                  
+                  <!-- Activity Content -->
+                  <div class="activity-content flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                      <div>
+                        <h6 class="mb-1 fw-semibold">
+                          <span class="text-dark"><%= log.inventory&.name || '削除済み商品' %></span>
+                          <span class="badge ms-2 
+                            <%= case log.operation_type
+                                when 'create' then 'bg-success bg-opacity-20 text-success'
+                                when 'update' then 'bg-primary bg-opacity-20 text-primary'
+                                when 'delete' then 'bg-danger bg-opacity-20 text-danger'
+                                when 'import' then 'bg-info bg-opacity-20 text-info'
+                                else 'bg-secondary bg-opacity-20 text-secondary'
+                                end %>">
+                            <%= case log.operation_type
+                                when 'create' then '新規登録'
+                                when 'update' then '更新'
+                                when 'delete' then '削除'
+                                when 'import' then 'インポート'
+                                else log.operation_type
+                                end %>
+                          </span>
+                        </h6>
+                        <div class="d-flex align-items-center text-muted small">
+                          <i class="bi bi-clock me-1"></i>
+                          <span><%= time_ago_in_words(log.created_at) %>前</span>
+                          <span class="mx-2">•</span>
+                          <span><%= l(log.created_at, format: :short) %></span>
+                        </div>
+                      </div>
+                      
+                      <!-- Quick Action Button -->
+                      <% if log.inventory.present? %>
+                        <%= link_to admin_inventory_path(log.inventory), 
+                                    class: "btn btn-sm btn-outline-secondary btn-hover-primary ms-2",
+                                    data: { bs_toggle: "tooltip", bs_placement: "left", bs_title: "詳細を表示" } do %>
+                          <i class="bi bi-arrow-right"></i>
+                        <% end %>
+                      <% end %>
+                    </div>
+                    
+                    <!-- Additional Details -->
+                    <% if log.note.present? %>
+                      <p class="mb-0 text-muted small">
+                        <i class="bi bi-chat-left-text me-1"></i>
+                        <%= truncate(log.note, length: 100) %>
+                      </p>
+                    <% end %>
+                  </div>
                 </div>
-                <div class="flex-grow-1">
-                  <h6 class="mb-1">
-                    <strong><%= log.inventory&.name || '削除済み商品' %></strong>
-                    - <%= case log.operation_type
-                            when 'create' then '新規登録'
-                            when 'update' then '更新'
-                            when 'delete' then '削除'
-                            when 'import' then 'インポート'
-                            else log.operation_type
-                            end %>
-                  </h6>
-                  <small class="text-muted">
-                    <i class="bi bi-clock me-1"></i><%= time_ago_in_words(log.created_at) %>前
-                  </small>
-                </div>
-                <div class="text-end">
-                  <small class="text-muted"><%= l(log.created_at, format: :short) %></small>
-                </div>
-              </div>
-            <% end %>
+              <% end %>
+            </div>
           <% else %>
-            <div class="text-center py-5">
+            <div class="empty-state text-center py-5">
               <div class="mb-3">
-                <span style="font-size: 3rem;">📝</span>
+                <div class="d-inline-block p-3 rounded-circle bg-light">
+                  <i class="bi bi-activity text-muted" style="font-size: 2.5rem;"></i>
+                </div>
               </div>
-              <h5 class="text-muted">まだアクティビティがありません</h5>
-              <p class="text-muted">在庫管理を開始して、システムを活用しましょう。</p>
-              <%= link_to "在庫管理を開始", admin_inventories_path, class: "btn btn-admin" %>
+              <h5 class="text-muted mb-2">まだアクティビティがありません</h5>
+              <p class="text-muted mb-3">在庫管理を開始して、システムの活動履歴を確認しましょう。</p>
+              <div class="d-flex justify-content-center gap-2">
+                <%= link_to "在庫管理を開始", admin_inventories_path, 
+                            class: "btn btn-admin btn-hover-shadow" %>
+                <%= link_to "新規商品を追加", new_admin_inventory_path, 
+                            class: "btn btn-outline-primary btn-hover-shadow" %>
+              </div>
             </div>
           <% end %>
         </div>
       </div>
     </div>
 
-    <%# システム状況・クイック情報 %>
+    <%# システム状況・クイック情報 - Enhanced UI %>
     <div class="col-lg-4 mb-4">
-      <div class="dashboard-card border-0 shadow-sm h-100">
-        <div class="card-header">
+      <div class="card border-0 shadow-sm h-100 bg-white">
+        <div class="card-header bg-info text-white">
           <h3 class="mb-0 fw-bold">
-            <i class="bi bi-info-circle me-2 text-info"></i>システム情報
+            <i class="bi bi-gear-wide-connected me-2"></i>システム情報
           </h3>
         </div>
-        <div class="card-body">
-          <div class="mb-4">
-            <h6 class="text-muted mb-2">システム状態</h6>
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span>データベース</span>
-              <span class="badge bg-success">正常</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center mb-2">
-              <span>バックグラウンドジョブ</span>
-              <span class="badge bg-success">稼働中</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-center">
-              <span>最終バックアップ</span>
-              <span class="badge bg-info">実装予定</span>
+        <div class="card-body p-0">
+          
+          <!-- System Status Section -->
+          <div class="system-status p-3 border-bottom">
+            <h6 class="text-muted mb-3 fw-semibold">
+              <i class="bi bi-activity me-1"></i>システム状態
+            </h6>
+            <div class="status-grid">
+              <!-- Database Status -->
+              <div class="status-item d-flex align-items-center justify-content-between mb-3 p-2 rounded bg-light bg-opacity-50">
+                <div class="d-flex align-items-center">
+                  <div class="status-icon me-2">
+                    <i class="bi bi-database text-success"></i>
+                  </div>
+                  <span class="fw-medium">データベース</span>
+                </div>
+                <div class="d-flex align-items-center">
+                  <div class="status-indicator bg-success rounded-circle me-2" style="width: 8px; height: 8px;"></div>
+                  <span class="badge bg-success bg-opacity-20 text-success">正常</span>
+                </div>
+              </div>
+              
+              <!-- Background Jobs Status -->
+              <div class="status-item d-flex align-items-center justify-content-between mb-3 p-2 rounded bg-light bg-opacity-50">
+                <div class="d-flex align-items-center">
+                  <div class="status-icon me-2">
+                    <i class="bi bi-cpu text-success"></i>
+                  </div>
+                  <span class="fw-medium">バックグラウンドジョブ</span>
+                </div>
+                <div class="d-flex align-items-center">
+                  <div class="status-indicator bg-success rounded-circle me-2 animate-pulse" style="width: 8px; height: 8px;"></div>
+                  <span class="badge bg-success bg-opacity-20 text-success">稼働中</span>
+                </div>
+              </div>
+              
+              <!-- Backup Status -->
+              <div class="status-item d-flex align-items-center justify-content-between mb-2 p-2 rounded bg-light bg-opacity-50">
+                <div class="d-flex align-items-center">
+                  <div class="status-icon me-2">
+                    <i class="bi bi-shield-check text-info"></i>
+                  </div>
+                  <span class="fw-medium">最終バックアップ</span>
+                </div>
+                <div class="d-flex align-items-center">
+                  <div class="status-indicator bg-info rounded-circle me-2" style="width: 8px; height: 8px;"></div>
+                  <span class="badge bg-info bg-opacity-20 text-info">実装予定</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="mb-4">
-            <h6 class="text-muted mb-2">本日のサマリー</h6>
-            <div class="alert alert-light">
-              <ul class="mb-0 small">
-                <li>新規商品: <span class="fw-bold">-</span>件</li>
-                <li>在庫更新: <span class="fw-bold"><%= @stats[:today_operations] %></span>件</li>
-                <li>アラート: <span class="fw-bold"><%= @stats[:low_stock_count] %></span>件</li>
-                <li>期限切れ: <span class="fw-bold"><%= @stats[:expired_batches] %></span>件</li>
-              </ul>
+          <!-- Daily Summary Section -->
+          <div class="daily-summary p-3 border-bottom">
+            <h6 class="text-muted mb-3 fw-semibold">
+              <i class="bi bi-calendar-day me-1"></i>本日のサマリー
+            </h6>
+            <div class="summary-grid row g-2">
+              <!-- New Products -->
+              <div class="col-6">
+                <div class="summary-card bg-primary bg-opacity-10 p-2 rounded text-center">
+                  <div class="summary-icon mb-1">
+                    <i class="bi bi-plus-circle text-primary fs-4"></i>
+                  </div>
+                  <div class="summary-value fw-bold text-primary">-</div>
+                  <div class="summary-label small text-muted">新規商品</div>
+                </div>
+              </div>
+              
+              <!-- Inventory Updates -->
+              <div class="col-6">
+                <div class="summary-card bg-success bg-opacity-10 p-2 rounded text-center">
+                  <div class="summary-icon mb-1">
+                    <i class="bi bi-arrow-repeat text-success fs-4"></i>
+                  </div>
+                  <div class="summary-value fw-bold text-success"><%= @stats[:today_operations] %></div>
+                  <div class="summary-label small text-muted">在庫更新</div>
+                </div>
+              </div>
+              
+              <!-- Alerts -->
+              <div class="col-6">
+                <div class="summary-card bg-warning bg-opacity-10 p-2 rounded text-center">
+                  <div class="summary-icon mb-1">
+                    <i class="bi bi-exclamation-triangle text-warning fs-4"></i>
+                  </div>
+                  <div class="summary-value fw-bold text-warning"><%= @stats[:low_stock_count] %></div>
+                  <div class="summary-label small text-muted">アラート</div>
+                </div>
+              </div>
+              
+              <!-- Expired -->
+              <div class="col-6">
+                <div class="summary-card bg-danger bg-opacity-10 p-2 rounded text-center">
+                  <div class="summary-icon mb-1">
+                    <i class="bi bi-clock-history text-danger fs-4"></i>
+                  </div>
+                  <div class="summary-value fw-bold text-danger"><%= @stats[:expired_batches] %></div>
+                  <div class="summary-label small text-muted">期限切れ</div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div>
-            <h6 class="text-muted mb-2">便利なリンク</h6>
-            <div class="d-grid gap-2">
-              <%= link_to "新規商品登録", new_admin_inventory_path, class: "btn btn-outline-primary btn-sm" %>
-              <%= link_to "低在庫商品", admin_inventories_path(filter: "low_stock"), class: "btn btn-outline-warning btn-sm" %>
+          <!-- Quick Actions Section -->
+          <div class="quick-actions p-3">
+            <h6 class="text-muted mb-3 fw-semibold">
+              <i class="bi bi-lightning me-1"></i>クイックアクション
+            </h6>
+            <div class="action-buttons d-grid gap-2">
+              <%= link_to new_admin_inventory_path, 
+                          class: "btn btn-outline-primary btn-sm d-flex align-items-center justify-content-center btn-hover-shadow",
+                          data: { bs_toggle: "tooltip", bs_placement: "top", bs_title: "新しい商品を追加" } do %>
+                <i class="bi bi-plus-circle me-2"></i>新規商品登録
+              <% end %>
+              
+              <%= link_to admin_inventories_path(filter: "low_stock"), 
+                          class: "btn btn-outline-warning btn-sm d-flex align-items-center justify-content-center btn-hover-shadow",
+                          data: { bs_toggle: "tooltip", bs_placement: "top", bs_title: "在庫が少ない商品を確認" } do %>
+                <i class="bi bi-exclamation-triangle me-2"></i>低在庫商品
+                <% if @stats[:low_stock_count] > 0 %>
+                  <span class="badge bg-warning bg-opacity-25 text-warning ms-2"><%= @stats[:low_stock_count] %></span>
+                <% end %>
+              <% end %>
+              
+              <%= link_to admin_inventories_path, 
+                          class: "btn btn-outline-info btn-sm d-flex align-items-center justify-content-center btn-hover-shadow",
+                          data: { bs_toggle: "tooltip", bs_placement: "top", bs_title: "すべての在庫を管理" } do %>
+                <i class="bi bi-box-seam me-2"></i>在庫管理
+              <% end %>
+              
+              <%# TODO: Phase 3 - inventory_logsパスを/admin/inventory_logsに移行予定 %>
+              <%= link_to inventory_logs_path, 
+                          class: "btn btn-outline-secondary btn-sm d-flex align-items-center justify-content-center btn-hover-shadow",
+                          data: { bs_toggle: "tooltip", bs_placement: "top", bs_title: "システムログを確認" } do %>
+                <i class="bi bi-file-text me-2"></i>ログ確認
+              <% end %>
             </div>
           </div>
         </div>

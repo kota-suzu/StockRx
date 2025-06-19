@@ -22,7 +22,7 @@ RSpec.feature 'Inventory UI + API', type: :feature, js: true, skip: 'UIテスト
   end
 
   scenario '在庫一覧ページが表示され、在庫切れ商品が強調表示される' do
-    visit inventories_path
+    visit admin_inventories_path
 
     expect(page).to have_content('在庫一覧')
     expect(page).to have_content('アスピリン')
@@ -40,7 +40,7 @@ RSpec.feature 'Inventory UI + API', type: :feature, js: true, skip: 'UIテスト
   end
 
   scenario '在庫詳細ページで商品情報とロットが表示される' do
-    visit inventory_path(active_inventory)
+    visit admin_inventory_path(active_inventory)
 
     expect(page).to have_content('アスピリン')
     expect(page).to have_content('100')
@@ -56,7 +56,7 @@ RSpec.feature 'Inventory UI + API', type: :feature, js: true, skip: 'UIテスト
   end
 
   scenario '新規在庫を登録できる' do
-    visit inventories_path
+    visit admin_inventories_path
     click_link '新規登録'
 
     within('turbo-frame#modal') do
@@ -72,7 +72,7 @@ RSpec.feature 'Inventory UI + API', type: :feature, js: true, skip: 'UIテスト
   end
 
   scenario '在庫情報を編集できる' do
-    visit inventory_path(active_inventory)
+    visit admin_inventory_path(active_inventory)
     click_link '編集'
 
     within('turbo-frame#modal') do
@@ -86,7 +86,7 @@ RSpec.feature 'Inventory UI + API', type: :feature, js: true, skip: 'UIテスト
 
   scenario 'JSONフォーマットで在庫一覧を取得できる' do
     # APIをテスト
-    visit inventories_path(format: :json)
+    visit admin_inventories_path(format: :json)
 
     # JSONレスポンスを解析
     json = JSON.parse(page.body)

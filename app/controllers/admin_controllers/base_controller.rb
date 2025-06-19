@@ -5,6 +5,11 @@ module AdminControllers
   # 全ての管理者向けコントローラはこのクラスを継承する
   class BaseController < ApplicationController
     include ErrorHandlers
+    include AdminAuthorization  # 🔒 権限チェック機能の統一
+    include SecurityCompliance  # 🛡️ セキュリティコンプライアンス機能
+
+    # AdminControllers用ヘルパーのインクルード
+    helper AdminControllers::ApplicationHelper
 
     before_action :authenticate_admin!
     layout "admin"
@@ -27,9 +32,30 @@ module AdminControllers
     # 3. 新規コントローラ追加時はルーティング順序に注意する
     # 詳細は doc/error_handling_guide.md の「ルーティング順序の問題」を参照
 
+    # ✅ セキュリティ機能強化（Phase 1完了）
+    # - PCI DSS準拠の機密データ保護機能統合
+    # - GDPR準拠の個人情報保護機能統合
+    # - タイミング攻撃対策の自動適用
+    # - 包括的な監査ログ記録機能
+
+    # 機密データアクセス時の監査ログ記録を設定
+    # メタ認知: データ変更・詳細表示アクションのみ監査対象
+    # 横展開: 一覧表示（index）は統計データのため監査対象外
+    audit_sensitive_access :show, :edit, :update, :destroy
+
+    # TODO: 🟡 Phase 3（中）- セキュリティポリシーの細分化
+    # 優先度: 中（現在の一律適用は動作中）
+    # 実装内容:
+    #   - アクション別セキュリティレベル定義
+    #   - 機密度に応じた監査粒度の調整
+    #   - 表示専用コントローラーの自動判定
+    # 理由: セキュリティオーバーヘッドの最適化
+    # 期待効果: パフォーマンス向上、監査ログの品質向上
+    # 工数見積: 1週間
+    # 依存関係: セキュリティポリシー定義書の策定
+
     # TODO: 将来的な機能拡張
     # - 管理者権限レベルによるアクセス制御（role-based authorization）
-    # - 管理操作の監査ログ記録
     # - 共通エラーハンドリング機能の実装
     # - 多言語対応の基盤整備
 

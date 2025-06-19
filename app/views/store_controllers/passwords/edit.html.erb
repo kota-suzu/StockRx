@@ -1,0 +1,101 @@
+<% content_for :title, "新しいパスワードの設定" %>
+
+<h2 class="h4 mb-4 text-center">
+  <i class="fas fa-lock me-2"></i>
+  新しいパスワードを設定
+</h2>
+
+<%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :put }) do |f| %>
+  <%= f.hidden_field :reset_password_token %>
+  
+  <%# エラー表示 %>
+  <%= render "devise/shared/error_messages", resource: resource %>
+
+  <%# 新しいパスワード %>
+  <div class="mb-3">
+    <%= f.label :password, "新しいパスワード", class: "form-label" %>
+    <%= f.password_field :password, 
+                        autofocus: true, 
+                        autocomplete: "new-password",
+                        class: "form-control form-control-lg",
+                        placeholder: "••••••••",
+                        required: true %>
+    <div class="form-text">
+      12文字以上で、大文字・小文字・数字・記号を含めてください
+    </div>
+  </div>
+
+  <%# パスワード確認 %>
+  <div class="mb-4">
+    <%= f.label :password_confirmation, "パスワード（確認）", class: "form-label" %>
+    <%= f.password_field :password_confirmation, 
+                        autocomplete: "new-password",
+                        class: "form-control form-control-lg",
+                        placeholder: "••••••••",
+                        required: true %>
+  </div>
+
+  <%# パスワード強度表示 %>
+  <div class="mb-4">
+    <div class="password-strength-meter">
+      <div class="progress" style="height: 5px;">
+        <div class="progress-bar" role="progressbar" id="password-strength-bar"></div>
+      </div>
+      <small class="text-muted" id="password-strength-text">パスワードを入力してください</small>
+    </div>
+  </div>
+
+  <%# 変更ボタン %>
+  <div class="d-grid">
+    <%= f.submit "パスワードを変更", 
+                 class: "btn btn-primary btn-lg",
+                 data: { turbo: false } %>
+  </div>
+<% end %>
+
+<script>
+  // パスワード強度チェック
+  document.addEventListener('DOMContentLoaded', function() {
+    const passwordField = document.getElementById('store_user_password');
+    const strengthBar = document.getElementById('password-strength-bar');
+    const strengthText = document.getElementById('password-strength-text');
+    
+    if (passwordField) {
+      passwordField.addEventListener('input', function() {
+        const password = this.value;
+        let strength = 0;
+        let strengthClass = '';
+        let strengthMessage = '';
+        
+        // 長さチェック
+        if (password.length >= 12) strength += 25;
+        if (password.length >= 16) strength += 10;
+        
+        // 文字種チェック
+        if (/[a-z]/.test(password)) strength += 15;
+        if (/[A-Z]/.test(password)) strength += 15;
+        if (/[0-9]/.test(password)) strength += 15;
+        if (/[^A-Za-z0-9]/.test(password)) strength += 20;
+        
+        // 強度の評価
+        if (strength < 30) {
+          strengthClass = 'bg-danger';
+          strengthMessage = '弱い';
+        } else if (strength < 60) {
+          strengthClass = 'bg-warning';
+          strengthMessage = '普通';
+        } else if (strength < 80) {
+          strengthClass = 'bg-info';
+          strengthMessage = '強い';
+        } else {
+          strengthClass = 'bg-success';
+          strengthMessage = 'とても強い';
+        }
+        
+        strengthBar.className = 'progress-bar ' + strengthClass;
+        strengthBar.style.width = strength + '%';
+        strengthText.textContent = strengthMessage;
+      });
+    }
+  });
+</script>

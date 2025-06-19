@@ -1,0 +1,9 @@
+<%# Bootstrap 5 前のページリンク %>
+<li class="page-item">
+  <%= link_to_unless current_page.first?, raw(t('views.pagination.previous', default: '&lsaquo; 前')), url, 
+                     rel: 'prev', 
+                     remote: remote, 
+                     class: "page-link",
+                     title: "前のページへ",
+                     data: { bs_toggle: "tooltip", bs_placement: "top" } %>
+</li>

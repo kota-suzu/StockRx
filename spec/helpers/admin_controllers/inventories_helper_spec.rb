@@ -10,7 +10,7 @@ RSpec.describe AdminControllers::InventoriesHelper, type: :helper do
       let(:quantity) { 0 }
 
       it '在庫切れのスタイルクラスを返す' do
-        expect(helper.inventory_row_class(inventory)).to eq('bg-red-50')
+        expect(helper.inventory_row_class(inventory)).to eq('table-danger')
       end
     end
 
@@ -22,7 +22,7 @@ RSpec.describe AdminControllers::InventoriesHelper, type: :helper do
       end
 
       it '在庫不足のスタイルクラスを返す' do
-        expect(helper.inventory_row_class(inventory)).to eq('bg-yellow-50')
+        expect(helper.inventory_row_class(inventory)).to eq('table-warning')
       end
     end
 
@@ -81,7 +81,7 @@ RSpec.describe AdminControllers::InventoriesHelper, type: :helper do
         result = helper.sort_icon_for('name')
         expect(result).to include('fas')
         expect(result).to include('fa-sort-up')
-        expect(result).to include('ml-1')
+        expect(result).to include('ms-1')
       end
     end
 
@@ -94,7 +94,7 @@ RSpec.describe AdminControllers::InventoriesHelper, type: :helper do
         result = helper.sort_icon_for('name')
         expect(result).to include('fas')
         expect(result).to include('fa-sort-down')
-        expect(result).to include('ml-1')
+        expect(result).to include('ms-1')
       end
     end
 
@@ -113,28 +113,28 @@ RSpec.describe AdminControllers::InventoriesHelper, type: :helper do
   describe '#batch_row_class' do
     let(:batch) { build(:batch) }
 
-    context 'バッチが期限切れの場合' do
+    context 'ロットが期限切れの場合' do
       before do
         allow(batch).to receive(:expired?).and_return(true)
       end
 
       it '期限切れのスタイルクラスを返す' do
-        expect(helper.batch_row_class(batch)).to eq('bg-red-50')
+        expect(helper.batch_row_class(batch)).to eq('table-danger')
       end
     end
 
-    context 'バッチが期限切れ間近の場合' do
+    context 'ロットが期限切れ間近の場合' do
       before do
         allow(batch).to receive(:expired?).and_return(false)
         allow(batch).to receive(:expiring_soon?).and_return(true)
       end
 
       it '期限切れ間近のスタイルクラスを返す' do
-        expect(helper.batch_row_class(batch)).to eq('bg-yellow-50')
+        expect(helper.batch_row_class(batch)).to eq('table-warning')
       end
     end
 
-    context 'バッチが正常な場合' do
+    context 'ロットが正常な場合' do
       before do
         allow(batch).to receive(:expired?).and_return(false)
         allow(batch).to receive(:expiring_soon?).and_return(false)
@@ -142,6 +142,100 @@ RSpec.describe AdminControllers::InventoriesHelper, type: :helper do
 
       it '空文字を返す' do
         expect(helper.batch_row_class(batch)).to eq('')
+      end
+    end
+  end
+
+  describe '#lot_status_display' do
+    let(:batch) { build(:batch) }
+
+    context 'ロットが期限切れの場合' do
+      before do
+        allow(batch).to receive(:expired?).and_return(true)
+      end
+
+      it '「期限切れ」を返す' do
+        expect(helper.lot_status_display(batch)).to eq('期限切れ')
+      end
+    end
+
+    context 'ロットが期限間近の場合' do
+      before do
+        allow(batch).to receive(:expired?).and_return(false)
+        allow(batch).to receive(:expiring_soon?).and_return(true)
+      end
+
+      it '「期限間近」を返す' do
+        expect(helper.lot_status_display(batch)).to eq('期限間近')
+      end
+    end
+
+    context 'ロットが正常な場合' do
+      before do
+        allow(batch).to receive(:expired?).and_return(false)
+        allow(batch).to receive(:expiring_soon?).and_return(false)
+      end
+
+      it '「正常」を返す' do
+        expect(helper.lot_status_display(batch)).to eq('正常')
+      end
+    end
+  end
+
+  describe '#lot_quantity_percentage' do
+    let(:batch) { build(:batch, quantity: 25) }
+
+    context '総在庫数が100の場合' do
+      it '正しいパーセンテージを返す' do
+        expect(helper.lot_quantity_percentage(batch, 100)).to eq(25.0)
+      end
+    end
+
+    context '総在庫数が0の場合' do
+      it '0を返す' do
+        expect(helper.lot_quantity_percentage(batch, 0)).to eq(0)
+      end
+    end
+
+    context 'ロット数量が総在庫数より大きい場合' do
+      it '100%を超えるパーセンテージを返す' do
+        expect(helper.lot_quantity_percentage(batch, 20)).to eq(125.0)
+      end
+    end
+  end
+
+  describe '#lot_status_badge_class' do
+    let(:batch) { build(:batch) }
+
+    context 'ロットが期限切れの場合' do
+      before do
+        allow(batch).to receive(:expired?).and_return(true)
+      end
+
+      it 'デンジャーバッジクラスを返す' do
+        expect(helper.lot_status_badge_class(batch)).to eq('bg-danger')
+      end
+    end
+
+    context 'ロットが期限間近の場合' do
+      before do
+        allow(batch).to receive(:expired?).and_return(false)
+        allow(batch).to receive(:expiring_soon?).and_return(true)
+      end
+
+      it 'ワーニングバッジクラスを返す' do
+        expect(helper.lot_status_badge_class(batch)).to eq('bg-warning')
+      end
+    end
+
+    context 'ロットが正常な場合' do
+      before do
+        allow(batch).to receive(:expired?).and_return(false)
+        allow(batch).to receive(:expiring_soon?).and_return(false)
+      end
+
+      it 'サクセスバッジクラスを返す' do
+        expect(helper.lot_status_badge_class(batch)).to eq('bg-success')
       end
     end
   end

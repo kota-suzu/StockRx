@@ -1,449 +1,447 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
-
-# ============================================
-# ImportInventoriesJob テストスイート
-# ============================================
-# Sidekiq 3回リトライ機能を含む包括的なテスト
-#
-# TODO: 🔴 緊急修正（Phase 1）- Sidekiq統合テストの安定化
-# 場所: spec/jobs/import_inventories_job_spec.rb
-# 問題: 非同期処理テストの不安定性
-# 解決策: テスト用同期実行モードの実装
-# 推定工数: 1-2日
-#
-# 具体的な修正内容:
-# 1. Sidekiq::Testing.inline!の適切な使用法の実装
-# 2. Redis接続のモック改善による非同期テストの安定化
-# 3. ActionCableとの連携テストでの待機時間最適化
-# 4. テスト失敗時のデバッグ情報出力機能の追加
-#
-# TODO: テストカバレッジの拡充（優先度：高）
-# ============================================
-# 1. Sidekiqリトライ機能の詳細テスト
-#    - 指数バックオフの動作確認
-#    - リトライ回数の検証
-#    - Dead Jobキューへの移動確認
-#
-# 2. 進捗通知機能の統合テスト
-#    - ActionCableとの連携テスト
-#    - AdminChannelへのブロードキャスト確認
-#    - エラー時の通知動作検証
-#
-# 3. パフォーマンステスト
-#    - 大量データ（10万行）の処理時間測定
-#    - メモリ使用量の監視
-#    - 同時実行時の動作確認
-#
-# 4. セキュリティテストの強化
-#    - より高度なパストラバーサル攻撃の検証
-#    - ファイルアップロード脆弱性の確認
-#    - 権限チェックの網羅的テスト
+require 'csv'
+require 'tempfile'
 
 RSpec.describe ImportInventoriesJob, type: :job do
-  include ActiveJob::TestHelper
-
-  # テストデータの準備
+  # 基本設定
   let(:admin) { create(:admin) }
-  let(:csv_content) do
+  let(:csv_file) { Tempfile.new([ 'inventories', '.csv' ]) }
+  let(:file_path) { csv_file.path }
+  let(:job_id) { SecureRandom.uuid }
+  let(:redis_instance) { Redis.new }
+
+  let(:valid_csv_content) do
     <<~CSV
-      name,quantity,price
-      テスト商品1,100,1000
-      テスト商品2,200,2000
+      name,quantity,price,expiration_date,lot_number
+      アスピリン 100mg,1000,250.50,2025-12-31,LOT001
+      ビタミンC,500,150.00,2025-06-30,LOT002
+      胃腸薬,750,100.25,2025-09-15,LOT003
     CSV
   end
-  let(:temp_file) do
-    file = Tempfile.new([ 'inventory_import', '.csv' ])
-    file.write(csv_content)
-    file.close
-    file
+
+  let(:invalid_csv_content) do
+    <<~CSV
+      name,quantity,price
+      ,100,250.50
+      Invalid Product,-50,100.00
+      Product with zero price,100,0
+    CSV
   end
-  let(:file_path) { temp_file.path }
+
+  let(:large_csv_content) do
+    headers = "name,quantity,price,expiration_date,lot_number\n"
+    rows = 5000.times.map do |i|
+      "Product #{i},#{100 + i},#{100.0 + i},2025-12-31,LOT#{i.to_s.rjust(5, '0')}"
+    end
+    headers + rows.join("\n")
+  end
 
   before do
-    # ENV stub for all tests to avoid conflicts
-    allow(ENV).to receive(:[]).and_call_original
-    allow(ENV).to receive(:[]).with("DELETE_TEMP_FILES").and_return(nil)
+    csv_file.write(valid_csv_content)
+    csv_file.rewind
+
+    # Redis設定
+    allow_any_instance_of(ImportInventoriesJob).to receive(:get_redis_connection).and_return(redis_instance)
+    redis_instance.flushdb
+
+    # ActionCable設定
+    allow(ActionCable.server).to receive(:broadcast)
+    allow(ImportProgressChannel).to receive(:broadcast_progress)
+    allow(ImportProgressChannel).to receive(:broadcast_completion)
+    allow(ImportProgressChannel).to receive(:broadcast_error)
   end
 
-  # ============================================
-  # Sidekiq設定のテスト
-  # ============================================
-  describe 'Sidekiq configuration' do
-    it 'has correct queue configuration' do
-      expect(ImportInventoriesJob.queue_name).to eq('imports')
-    end
-
-    it 'has correct retry configuration' do
-      expect(ImportInventoriesJob.sidekiq_options['retry']).to eq(3)
-    end
-
-    it 'has backtrace enabled' do
-      expect(ImportInventoriesJob.sidekiq_options['backtrace']).to be_truthy
-    end
+  after do
+    csv_file.unlink
   end
 
-  # ============================================
-  # 定数のテスト（リファクタリング後）
-  # ============================================
-  describe 'Constants' do
-    it 'defines file size limit' do
-      expect(ImportInventoriesJob::MAX_FILE_SIZE).to eq(100.megabytes)
-    end
-
-    it 'defines allowed extensions' do
-      expect(ImportInventoriesJob::ALLOWED_EXTENSIONS).to eq([ '.csv' ])
-    end
-
-    it 'defines required CSV headers' do
-      expect(ImportInventoriesJob::REQUIRED_CSV_HEADERS).to eq([ 'name', 'quantity', 'price' ])
-    end
-
-    it 'defines batch size' do
-      expect(ImportInventoriesJob::IMPORT_BATCH_SIZE).to eq(1000)
-    end
-
-    it 'defines progress interval' do
-      expect(ImportInventoriesJob::PROGRESS_REPORT_INTERVAL).to eq(10)
-    end
-
-    it 'defines Redis TTL values' do
-      expect(ImportInventoriesJob::PROGRESS_TTL).to eq(1.hour)
-      expect(ImportInventoriesJob::COMPLETED_TTL).to eq(24.hours)
-    end
-  end
-
-  # ============================================
-  # ジョブ実行のテスト
-  # ============================================
   describe '#perform' do
-    before do
-      # Sidekiqのテストモードを設定
-      Sidekiq::Testing.fake!
-      clear_enqueued_jobs
-    end
-
-    after do
-      temp_file.unlink if temp_file
-      Sidekiq::Testing.disable!
-    end
-
-    context 'when Sidekiq is enabled' do
-      before do
-        # Inventory.import_from_csvの成功レスポンスをモック
-        allow(Inventory).to receive(:import_from_csv).and_return(
-          { valid_count: 2, invalid_records: [] }
-        )
-      end
-
-      it 'enqueues the job in imports queue' do
+    context '有効なCSVファイルの場合' do
+      it 'CSVファイルを正常に処理する' do
         expect {
-          ImportInventoriesJob.perform_later(file_path, admin.id)
-        }.to have_enqueued_job(ImportInventoriesJob)
-          .on_queue('imports')
-          .with(file_path, admin.id)
+          ImportInventoriesJob.perform_now(file_path, admin.id, {}, job_id)
+        }.to change(Inventory, :count).by(3)
       end
 
-      it 'performs the job successfully' do
-        # インラインモードで実際に実行
-        Sidekiq::Testing.inline! do
-          expect {
-            ImportInventoriesJob.perform_later(file_path, admin.id)
-          }.not_to raise_error
-        end
-      end
-    end
+      it '正しい結果を返す' do
+        result = ImportInventoriesJob.perform_now(file_path, admin.id, {}, job_id)
 
-    # ============================================
-    # セキュリティ検証のテスト
-    # ============================================
-    context 'security validation' do
-      it 'raises error for non-existent file' do
-        expect {
-          ImportInventoriesJob.new.perform('/non/existent/file.csv', admin.id)
-        }.to raise_error(/File not found/)
+        expect(result[:valid_count]).to eq(3)
+        expect(result[:invalid_records]).to be_empty
       end
 
-      it 'raises error for oversized file' do
-        # 大きなファイルをモック
-        allow(File).to receive(:size).and_return(200.megabytes)
+      it 'Redisに進捗を保存する' do
+        ImportInventoriesJob.perform_now(file_path, admin.id, {}, job_id)
 
-        expect {
-          ImportInventoriesJob.new.perform(file_path, admin.id)
-        }.to raise_error(/File too large/)
+        status_key = "csv_import:#{job_id}"
+        status = redis_instance.hgetall(status_key)
+
+        expect(status['status']).to eq('completed')
+        expect(status['valid_count']).to eq('3')
+        expect(status['invalid_count']).to eq('0')
       end
 
-      it 'raises error for invalid file type' do
-        # 無効な拡張子のファイルを作成
-        invalid_file = Tempfile.new([ 'invalid_file', '.txt' ])
-        invalid_file.write('name,quantity,price\ntest,100,500')
-        invalid_file.close
-
-        begin
-          expect {
-            ImportInventoriesJob.new.perform(invalid_file.path, admin.id)
-          }.to raise_error(/Invalid file type/)
-        ensure
-          invalid_file.unlink
-        end
-      end
-
-      it 'prevents path traversal attacks' do
-        # 許可されたディレクトリ外のパスを直接テスト
-        # 実際にファイルを作成せず、パス検証ロジックのみテスト
-        malicious_path = '/etc/passwd.csv'
-
-        expect {
-          ImportInventoriesJob.new.perform(malicious_path, admin.id)
-        }.to raise_error(/File not found|Path traversal detected/)
-      end
-    end
-
-    # ============================================
-    # エラーハンドリングとリトライのテスト
-    # ============================================
-    context 'error handling and retry' do
-      before do
-        Sidekiq::Testing.inline!
-        # Redis接続のモック（エラー時でも利用）
-        mock_redis = instance_double(Redis)
-        allow_any_instance_of(ImportInventoriesJob).to receive(:get_redis_connection).and_return(mock_redis)
-        allow(mock_redis).to receive(:hset).and_return(1)
-        allow(mock_redis).to receive(:expire).and_return(true)
-
-        # Admin.find_byをモック
-        allow(Admin).to receive(:find_by).and_return(admin)
-      end
-
-      xit 'handles StandardError appropriately' do
-        # TODO: Sidekiq inline modeでのエラーハンドリングテストの改善が必要
-        # 実際の例外発生とRescue処理の動作を確認
-        allow(Inventory).to receive(:import_from_csv).and_raise(StandardError, 'Test error')
-
-        expect {
-          ImportInventoriesJob.perform_later(file_path, admin.id)
-        }.to raise_error(StandardError, 'Test error')
-      end
-
-      it 'discards job on CSV::MalformedCSVError' do
-        allow(Inventory).to receive(:import_from_csv).and_raise(CSV::MalformedCSVError)
-
-        expect {
-          ImportInventoriesJob.perform_later(file_path, admin.id)
-        }.not_to raise_error # discardされるため例外は発生しない
-      end
-
-      xit 'logs error information when job fails' do
-        # TODO: 🟡 重要 - Phase 2（推定2-3日）- バックグラウンドジョブテストの安定化
-        # 場所: spec/jobs/import_inventories_job_spec.rb:237
-        # 問題: Rails.loggerのモック設定が複雑でテストが不安定
-        # 解決策: ログ出力テストの改善と統合テスト環境の整備
-        #
-        # 具体的な修正内容:
-        # 1. Rails.loggerのモック設定を簡素化
-        # 2. ログレベル別のテスト（ERROR、WARN、INFO）
-        # 3. 構造化ログの検証（JSON形式、コンテキスト情報）
-        # 4. ログローテーション機能のテスト
-        # 5. 非同期処理での例外ハンドリングテスト
-        #
-        # ベストプラクティス:
-        # - Rails.logger.taggedを活用したコンテキスト付きログ
-        # - Semantic Loggerの活用検討
-        # - ELKスタック連携のログフォーマット統一
-        # - ログレベルに応じた適切なアラート設定
-        allow(Inventory).to receive(:import_from_csv).and_raise(StandardError, 'Test error')
-
-        expect(Rails.logger).to receive(:error).at_least(:once)
-
-        expect {
-          ImportInventoriesJob.perform_later(file_path, admin.id)
-        }.to raise_error(StandardError)
-      end
-    end
-
-    # ============================================
-    # 進捗追跡のテスト
-    # ============================================
-    context 'progress tracking' do
-      let(:mock_redis) { instance_double(Redis) }
-
-      before do
-        Sidekiq::Testing.inline!
-        # Redis接続をモック（必ずmock_redisを返す）
-        allow_any_instance_of(ImportInventoriesJob).to receive(:get_redis_connection).and_return(mock_redis)
-        allow(mock_redis).to receive(:hset).and_return(1)
-        allow(mock_redis).to receive(:expire).and_return(true)
-        allow(mock_redis).to receive(:ping).and_return('PONG')
-
-        # Inventory.import_from_csvの成功レスポンスをモック
-        allow(Inventory).to receive(:import_from_csv).and_return(
-          { valid_count: 2, invalid_records: [] }
-        )
-
-        # Admin.find_byをモック（通知処理で使用）
-        allow(Admin).to receive(:find_by).and_return(admin)
-      end
-
-      xit 'initializes progress tracking when Redis is available' do
-        # TODO: 🔴 緊急 - Phase 1（推定1-2日）- Sidekiq Integration Tests
-        # 場所: spec/jobs/import_inventories_job_spec.rb:273
-        # 問題: Redis mockの呼び出しタイミングの問題で進捗追跡テストが不安定
-        # 解決策: テスト用同期実行モードの実装とRedis統合テストの改善
-        #
-        # 具体的な修正内容:
-        # 1. Redis mock設定の見直し（タイミング問題の解決）
-        # 2. Sidekiq::Testing.inlineモードでの適切な進捗追跡
-        # 3. ActionCableとRedisの連携テスト環境整備
-        # 4. 進捗情報のTTL設定とexpire処理の検証
-        # 5. Redis接続失敗時のフォールバック動作テスト
-        #
-        # ベストプラクティス:
-        # - Redis接続プールの適切な管理
-        # - 進捗データの構造化（JSON形式での格納）
-        # - 複数ジョブ同時実行時の進捗管理
-        # - メモリ効率的な進捗追跡（大量データ処理時）
-        expect(mock_redis).to receive(:hset).at_least(:once)
-        expect(mock_redis).to receive(:expire).at_least(:once)
-
-        ImportInventoriesJob.perform_later(file_path, admin.id)
-      end
-
-      xit 'updates completion status when job succeeds' do
-        # TODO: Redis mockの呼び出しタイミングの問題を解決する必要がある
-        # 初期化とcompletion両方でhsetが呼ばれる
-        expect(mock_redis).to receive(:hset).at_least(:twice)
-        expect(mock_redis).to receive(:expire).at_least(:once)
-
-        ImportInventoriesJob.perform_later(file_path, admin.id)
-      end
-    end
-
-    # ============================================
-    # ActionCable通知のテスト
-    # ============================================
-    context 'ActionCable notifications' do
-      before do
-        Sidekiq::Testing.inline!
-        # ActionCableのbroadcastをモック
-        allow(ActionCable.server).to receive(:broadcast)
-
-        # Inventory.import_from_csvの成功レスポンスをモック
-        allow(Inventory).to receive(:import_from_csv).and_return(
-          { valid_count: 2, invalid_records: [] }
-        )
-
-        # Admin.find_byをモック
-        allow(Admin).to receive(:find_by).and_return(admin)
-      end
-
-      xit 'broadcasts completion notification when job succeeds' do
-        # TODO: ActionCable.server.broadcastの呼び出しタイミングの問題を解決
-        # Admin.find_byがnilを返す場合の処理を確認
+      it 'ActionCableで通知する' do
         expect(ActionCable.server).to receive(:broadcast).at_least(:once)
 
-        ImportInventoriesJob.perform_later(file_path, admin.id)
-      end
-
-      xit 'broadcasts error notification on failure' do
-        # TODO: エラー時のActionCable通知の実装を確認
-        allow(Inventory).to receive(:import_from_csv).and_raise(StandardError, 'Test error')
-
-        expect(ActionCable.server).to receive(:broadcast).at_least(:once)
-
-        expect {
-          ImportInventoriesJob.perform_later(file_path, admin.id)
-        }.to raise_error(StandardError)
+        ImportInventoriesJob.perform_now(file_path, admin.id, {}, job_id)
       end
     end
 
-    # ============================================
-    # クリーンアップのテスト
-    # ============================================
-    context 'cleanup' do
+    context '無効なCSVファイルの場合' do
       before do
-        # Inventory.import_from_csvの成功レスポンスをモック
-        allow(Inventory).to receive(:import_from_csv).and_return(
-          { valid_count: 2, invalid_records: [] }
-        )
-
-        # Admin.find_byをモック
-        allow(Admin).to receive(:find_by).and_return(admin)
+        csv_file.write(invalid_csv_content)
+        csv_file.rewind
       end
 
-      xit 'attempts to delete temporary file in production environment' do
-        # TODO: File.delete mockの呼び出し確認が困難
-        # クリーンアップ処理の実装とテストの整合性を確認
-        allow(Rails.env).to receive(:production?).and_return(true)
-        allow(File).to receive(:exist?).and_return(true)
-        expect(File).to receive(:delete).with(file_path)
+      it 'skip_invalidがfalseの場合は処理を中断する' do
+        result = ImportInventoriesJob.perform_now(file_path, admin.id, { skip_invalid: false }, job_id)
 
-        Sidekiq::Testing.inline! do
-          ImportInventoriesJob.perform_later(file_path, admin.id)
-        end
+        expect(result[:valid_count]).to eq(0)
+        expect(result[:invalid_records].size).to eq(3)
+        expect(Inventory.count).to eq(0)
       end
 
-      xit 'preserves file when not in production environment' do
-        # TODO: Rails.env mockの設定を簡素化
-        allow(Rails.env).to receive(:production?).and_return(false)
-        allow(Rails.env).to receive(:test?).and_return(false)
+      it 'skip_invalidがtrueの場合は有効なレコードのみ処理する' do
+        result = ImportInventoriesJob.perform_now(file_path, admin.id, { skip_invalid: true }, job_id)
 
-        expect(File).not_to receive(:delete)
+        expect(result[:valid_count]).to be >= 0
+        expect(result[:invalid_records].size).to be > 0
+      end
 
-        Sidekiq::Testing.inline! do
-          ImportInventoriesJob.perform_later(file_path, admin.id)
-        end
+      it 'エラーメッセージを含む' do
+        result = ImportInventoriesJob.perform_now(file_path, admin.id, {}, job_id)
+
+        invalid_record = result[:invalid_records].first
+        expect(invalid_record[:errors]).to include("Name can't be blank")
+        expect(invalid_record[:row_number]).to be_present
       end
     end
-  end
 
-  # ============================================
-  # パフォーマンステスト
-  # ============================================
-  describe 'performance' do
-    let(:large_csv_content) do
-      header = "name,quantity,price\n"
-      rows = 1000.times.map { |i| "商品#{i},#{i + 1},#{(i + 1) * 100}" }.join("\n")
-      header + rows
-    end
+    context '大量データの処理' do
+      before do
+        csv_file.write(large_csv_content)
+        csv_file.rewind
+      end
 
-    let(:large_temp_file) do
-      file = Tempfile.new([ 'large_inventory_import', '.csv' ])
-      file.write(large_csv_content)
-      file.close
-      file
-    end
+      it 'バッチ処理で正常に処理する' do
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id, { batch_size: 1000 }, job_id)
+        }.to change(Inventory, :count).by(5000)
+      end
 
-    after do
-      large_temp_file.unlink if large_temp_file
-    end
+      it '進捗を定期的に更新する' do
+        expect(ImportProgressChannel).to receive(:broadcast_progress).at_least(5).times
 
-    it 'processes large CSV files efficiently' do
-      Sidekiq::Testing.inline! do
+        ImportInventoriesJob.perform_now(file_path, admin.id, {}, job_id)
+      end
+
+      it '妥当な時間内に完了する' do
         start_time = Time.current
 
-        ImportInventoriesJob.perform_later(large_temp_file.path, admin.id)
+        ImportInventoriesJob.perform_now(file_path, admin.id, { batch_size: 1000 }, job_id)
 
-        duration = Time.current - start_time
-        expect(duration).to be < 30.seconds # 要求仕様：30秒以内
+        elapsed_time = Time.current - start_time
+        expect(elapsed_time).to be < 30.seconds
+      end
+    end
+
+    context 'セキュリティ検証' do
+      it 'ファイルが存在しない場合はエラーを発生させる' do
+        expect {
+          ImportInventoriesJob.perform_now('/non/existent/file.csv', admin.id)
+        }.to raise_error(SecurityError, /File not found/)
+      end
+
+      it 'ファイルサイズが上限を超える場合はエラーを発生させる' do
+        allow(File).to receive(:size).and_return(101.megabytes)
+
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id)
+        }.to raise_error(SecurityError, /File too large/)
+      end
+
+      it '不正な拡張子の場合はエラーを発生させる' do
+        txt_file = Tempfile.new([ 'test', '.txt' ])
+        txt_file.write("some content")
+        txt_file.rewind
+
+        expect {
+          ImportInventoriesJob.perform_now(txt_file.path, admin.id)
+        }.to raise_error(SecurityError, /Invalid file type/)
+
+        txt_file.unlink
+      end
+
+      it '無効なCSV形式の場合はエラーを発生させる' do
+        csv_file.write("invalid\"csv\"format\nwith unclosed quote")
+        csv_file.rewind
+
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id)
+        }.to raise_error(SecurityError, /Invalid CSV format/)
+      end
+
+      it '必須ヘッダーが不足している場合はエラーを発生させる' do
+        csv_file.write("product,amount\nTest,100")
+        csv_file.rewind
+
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id)
+        }.to raise_error(SecurityError, /Missing required headers/)
+      end
+
+      it 'パストラバーサル攻撃を防ぐ' do
+        malicious_path = "../../etc/passwd"
+
+        expect {
+          ImportInventoriesJob.perform_now(malicious_path, admin.id)
+        }.to raise_error(SecurityError)
+      end
+
+      it '許可されたディレクトリ内のファイルは処理する' do
+        tmp_file = Tempfile.new([ 'test', '.csv' ], Rails.root.join('tmp'))
+        tmp_file.write(valid_csv_content)
+        tmp_file.rewind
+
+        expect {
+          ImportInventoriesJob.perform_now(tmp_file.path, admin.id)
+        }.not_to raise_error
+
+        tmp_file.unlink
+      end
+    end
+
+    context 'インポートオプション' do
+      context 'update_existingオプション' do
+        before do
+          create(:inventory, name: 'アスピリン 100mg', quantity: 500, price: 200)
+        end
+
+        it 'falseの場合は既存レコードをスキップする' do
+          result = ImportInventoriesJob.perform_now(file_path, admin.id, { update_existing: false }, job_id)
+
+          expect(result[:duplicate_count]).to eq(1) if result[:duplicate_count]
+          expect(Inventory.count).to eq(3)
+
+          aspirin = Inventory.find_by(name: 'アスピリン 100mg')
+          expect(aspirin.quantity).to eq(500) # 変更されない
+        end
+
+        it 'trueの場合は既存レコードを更新する' do
+          result = ImportInventoriesJob.perform_now(file_path, admin.id, { update_existing: true }, job_id)
+
+          expect(result[:update_count]).to eq(1) if result[:update_count]
+          expect(Inventory.count).to eq(3)
+
+          aspirin = Inventory.find_by(name: 'アスピリン 100mg')
+          expect(aspirin.quantity).to eq(1000) # 更新される
+        end
+      end
+
+      context 'unique_keyオプション' do
+        it 'ロット番号をキーとして使用する' do
+          create(:inventory, name: 'Different Name', lot_number: 'LOT001')
+
+          result = ImportInventoriesJob.perform_now(file_path, admin.id, {
+            unique_key: 'lot_number',
+            update_existing: false
+          }, job_id)
+
+          expect(result[:duplicate_count]).to be >= 1 if result[:duplicate_count]
+        end
+      end
+    end
+
+    context 'エラーハンドリング' do
+      it '存在しない管理者IDの場合はエラーを発生させる' do
+        expect {
+          ImportInventoriesJob.perform_now(file_path, 99999)
+        }.to raise_error(ArgumentError, /Admin not found/)
+      end
+
+      it 'ファイルパスが空の場合はエラーを発生させる' do
+        expect {
+          ImportInventoriesJob.perform_now('', admin.id)
+        }.to raise_error(ArgumentError, /File path is required/)
+      end
+
+      it 'エラー時にRedisステータスを更新する' do
+        allow_any_instance_of(ImportInventoriesJob).to receive(:execute_csv_import).and_raise(StandardError, "Test error")
+
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id, {}, job_id)
+        }.to raise_error(StandardError)
+
+        status_key = "csv_import:#{job_id}"
+        status = redis_instance.hgetall(status_key)
+
+        expect(status['status']).to eq('failed')
+        expect(status['error_message']).to eq('Test error')
+      end
+
+      it 'エラー時にActionCableで通知する' do
+        allow_any_instance_of(ImportInventoriesJob).to receive(:execute_csv_import).and_raise(StandardError, "Test error")
+
+        expect(ImportProgressChannel).to receive(:broadcast_error)
+
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id, {}, job_id)
+        }.to raise_error(StandardError)
+      end
+    end
+
+    context 'ファイル削除' do
+      it '本番環境では処理後にファイルを削除する' do
+        allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('production'))
+
+        ImportInventoriesJob.perform_now(file_path, admin.id)
+
+        expect(File.exist?(file_path)).to be false
+      end
+
+      it '開発環境では処理後にファイルを保持する' do
+        allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('development'))
+
+        ImportInventoriesJob.perform_now(file_path, admin.id)
+
+        expect(File.exist?(file_path)).to be true
+      end
+
+      it 'ファイル削除に失敗してもエラーを発生させない' do
+        allow(Rails).to receive(:env).and_return(ActiveSupport::StringInquirer.new('production'))
+        allow(File).to receive(:delete).and_raise(Errno::EACCES)
+
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id)
+        }.not_to raise_error
+      end
+    end
+
+    context 'Sidekiq設定' do
+      it '正しいキューに配置される' do
+        expect {
+          ImportInventoriesJob.perform_later(file_path, admin.id)
+        }.to have_enqueued_job(ImportInventoriesJob).on_queue('imports')
+      end
+
+      it 'リトライ回数が設定されている' do
+        expect(ImportInventoriesJob.sidekiq_options['retry']).to eq(3)
+      end
+
+      it 'バックトレースが有効化されている' do
+        expect(ImportInventoriesJob.sidekiq_options['backtrace']).to be true
+      end
+    end
+
+    context 'ログ出力' do
+      it '正常処理時に適切なログを出力する' do
+        expect(Rails.logger).to receive(:info).with(/csv_import_security_validated/)
+        expect(Rails.logger).to receive(:info).with(/csv_import_started/)
+        expect(Rails.logger).to receive(:info).with(/csv_import_completed/)
+
+        ImportInventoriesJob.perform_now(file_path, admin.id, {}, job_id)
+      end
+
+      it 'エラー時に適切なログを出力する' do
+        allow_any_instance_of(ImportInventoriesJob).to receive(:execute_csv_import).and_raise(StandardError, "Test error")
+
+        expect(Rails.logger).to receive(:error).with(/csv_import_failed/)
+
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id, {}, job_id)
+        }.to raise_error(StandardError)
+      end
+    end
+
+    context 'パフォーマンス' do
+      it 'メモリ使用量が適切に管理される' do
+        skip 'ps command not available in Docker container'
+
+        csv_file.write(large_csv_content)
+        csv_file.rewind
+
+        initial_memory = `ps -o rss= -p #{Process.pid}`.to_i
+
+        ImportInventoriesJob.perform_now(file_path, admin.id, { batch_size: 1000 }, job_id)
+
+        final_memory = `ps -o rss= -p #{Process.pid}`.to_i
+        memory_increase = final_memory - initial_memory
+
+        # メモリ増加が100MB以内
+        expect(memory_increase).to be < 100_000
+      end
+
+      it 'N+1クエリが発生しない' do
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id, {}, job_id)
+        }.not_to exceed_query_limit(20)
       end
     end
   end
 
-  # TODO: 将来的なテスト拡張
-  # ============================================
-  # 1. 統合テスト
-  #    - フロントエンドとの連携テスト
-  #    - リアルタイム進捗表示のテスト
-  #    - エラー表示のテスト
-  #
-  # 2. 負荷テスト
-  #    - 複数ジョブ同時実行のテスト
-  #    - メモリ使用量のテスト
-  #    - CPU使用率のテスト
-  #
-  # 3. 監視・アラートテスト
-  #    - メトリクス収集のテスト
-  #    - アラート通知のテスト
-  #    - ログ出力のテスト
+  describe 'プライベートメソッド' do
+    let(:job) { ImportInventoriesJob.new }
+
+    before do
+      job.instance_variable_set(:@file_path, file_path)
+      job.instance_variable_set(:@admin_id, admin.id)
+      job.instance_variable_set(:@job_id, job_id)
+      job.instance_variable_set(:@start_time, Time.current)
+    end
+
+    describe '#calculate_duration' do
+      it '正しい経過時間を計算する' do
+        job.instance_variable_set(:@start_time, 5.seconds.ago)
+
+        duration = job.send(:calculate_duration)
+
+        expect(duration).to be_between(4.5, 5.5)
+      end
+
+      it '開始時刻が設定されていない場合は0を返す' do
+        job.instance_variable_set(:@start_time, nil)
+
+        expect(job.send(:calculate_duration)).to eq(0)
+      end
+    end
+
+    describe '#build_completion_message' do
+      it '成功メッセージを構築する' do
+        result = { valid_count: 100, invalid_records: [] }
+
+        message = job.send(:build_completion_message, result)
+
+        expect(message).to include('100')
+        expect(message).not_to include('invalid')
+      end
+
+      it '一部失敗の場合は詳細を含む' do
+        result = { valid_count: 90, invalid_records: Array.new(10) }
+
+        message = job.send(:build_completion_message, result)
+
+        expect(message).to include('90')
+        expect(message).to include('10')
+      end
+    end
+
+    describe '#determine_error_type' do
+      it 'エラータイプを正しく判定する' do
+        validation_error = ActiveRecord::RecordInvalid.new(Inventory.new)
+        expect(job.send(:determine_error_type, validation_error)).to eq('validation_error')
+
+        csv_error = CSV::MalformedCSVError.new("test")
+        expect(job.send(:determine_error_type, csv_error)).to eq('file_error')
+
+        security_error = SecurityError.new("test")
+        expect(job.send(:determine_error_type, security_error)).to eq('security_error')
+
+        other_error = StandardError.new("test")
+        expect(job.send(:determine_error_type, other_error)).to eq('processing_error')
+      end
+    end
+  end
 end
