@@ -79,7 +79,7 @@ end
 # 認可が正しく実装されているか確認するマッチャー
 RSpec::Matchers.define :enforce_authorization do |expected_role|
   match do |controller|
-    controller.class.instance_methods.include?(:authorize_#{expected_role}!) ||
+    controller.class.instance_methods.include?(:"authorize_#{expected_role}!") ||
     controller.class.before_actions.any? { |cb| cb.filter.to_s.include?('authorize') }
   end
 

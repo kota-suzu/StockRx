@@ -321,9 +321,11 @@ RSpec.describe ApplicationHelper, type: :helper do
       it '大量の商品名処理でも高速に動作すること' do
         product_names = Array.new(1000) { |i| "テスト商品#{i}号ビタミン錠" }
 
-        expect {
-          product_names.each { |name| helper.categorize_by_name(name) }
-        }.to perform_under(50).ms
+        start_time = Time.current
+        product_names.each { |name| helper.categorize_by_name(name) }
+        elapsed_time = (Time.current - start_time) * 1000 # ミリ秒に変換
+        
+        expect(elapsed_time).to be < 50
       end
     end
   end
@@ -623,28 +625,144 @@ RSpec.describe ApplicationHelper, type: :helper do
     it '新機能ヘルパーが高速に動作すること' do
       flash_types = %w[notice alert error warning info success]
 
-      expect {
-        1000.times do
-          flash_types.each do |type|
-            helper.flash_alert_class(type)
-            helper.flash_icon_class(type)
-            helper.flash_title_for(type)
-          end
+      start_time = Time.current
+      1000.times do
+        flash_types.each do |type|
+          helper.flash_alert_class(type)
+          helper.flash_icon_class(type)
+          helper.flash_title_for(type)
         end
-      }.to perform_under(100).ms
+      end
+      elapsed_time = (Time.current - start_time) * 1000 # ミリ秒に変換
+      
+      expect(elapsed_time).to be < 100
     end
 
     it 'ブランディングヘルパーが高速に動作すること' do
       allow(helper).to receive(:current_section).and_return('admin')
 
-      expect {
-        1000.times do
-          helper.footer_classes
-          helper.footer_brand_icon_class
-          helper.brand_icon_class
-          helper.brand_text
+      start_time = Time.current
+      1000.times do
+        helper.footer_classes
+        helper.footer_brand_icon_class
+        helper.brand_icon_class
+        helper.brand_text
+      end
+      elapsed_time = (Time.current - start_time) * 1000 # ミリ秒に変換
+      
+      expect(elapsed_time).to be < 50
+    end
+  end
+
+  # ============================================
+  # セキュリティテスト
+  # ============================================
+
+  describe 'security' do
+    context 'XSS対策' do
+      it 'HTMLタグを含む商品名を安全に処理すること' do
+        malicious_names = [
+          '<script>alert("XSS")</script>ビタミン錠',
+          'onclick="alert(1)"注射針',
+          '<img src=x onerror=alert(1)>マスク'
+        ]
+
+        malicious_names.each do |name|
+          result = helper.categorize_by_name(name)
+          expect(%w[医薬品 消耗品 その他]).to include(result)
         end
-      }.to perform_under(50).ms
+      end
+
+      it 'JavaScriptイベントハンドラを含む入力を安全に処理すること' do
+        event_handlers = %w[onload onclick onerror onmouseover onfocus]
+        
+        event_handlers.each do |handler|
+          name = "#{handler}=alert(1) アスピリン錠"
+          result = helper.categorize_by_name(name)
+          expect(result).to eq('医薬品')
+        end
+      end
+    end
+
+    context 'SQLインジェクション対策' do
+      it 'SQL文字を含む入力を安全に処理すること' do
+        sql_injections = [
+          "'; DROP TABLE products; --ビタミン",
+          "1' OR '1'='1 血圧計",
+          "UNION SELECT * FROM users-- マスク"
+        ]
+
+        sql_injections.each do |name|
+          expect { helper.categorize_by_name(name) }.not_to raise_error
+        end
+      end
+    end
+  end
+
+  # ============================================
+  # エッジケーステスト（追加）
+  # ============================================
+
+  describe 'edge cases (extended)' do
+    context '特殊文字の処理' do
+      it 'Unicode文字を含む商品名を正しく処理すること' do
+        unicode_names = {
+          '💊ビタミン錠' => '医薬品',
+          '🩹ガーゼ' => '消耗品',
+          '🌡️体温計' => '医療機器',
+          '🧪プロバイオティクス' => 'サプリメント'
+        }
+
+        unicode_names.each do |name, expected|
+          expect(helper.categorize_by_name(name)).to eq(expected)
+        end
+      end
+
+      it '改行やタブを含む商品名を正しく処理すること' do
+        expect(helper.categorize_by_name("アスピリン\n錠")).to eq('医薬品')
+        expect(helper.categorize_by_name("血圧\t計")).to eq('医療機器')
+        expect(helper.categorize_by_name("マスク\r\n使い捨て")).to eq('消耗品')
+      end
+    end
+
+    context 'メモリ効率' do
+      it '極端に長い商品名でもメモリリークしないこと' do
+        long_name = 'ビタミン' * 10000 + '錠'
+        
+        initial_memory = `ps -o rss= -p #{Process.pid}`.to_i
+        result = helper.categorize_by_name(long_name)
+        final_memory = `ps -o rss= -p #{Process.pid}`.to_i
+        
+        expect(result).to eq('医薬品')
+        expect(final_memory - initial_memory).to be < 1000 # 1MB未満の増加
+      end
+    end
+  end
+
+  # ============================================
+  # 実用的な統合テスト
+  # ============================================
+
+  describe 'practical integration tests' do
+    it '実際の商品データベースのパターンを正しく分類すること' do
+      # 実際によくある商品名パターン
+      real_world_products = {
+        'ロキソニン錠60mg' => '医薬品',
+        'アセトアミノフェン細粒小児用20%' => '医薬品',
+        'オムロン デジタル自動血圧計 HEM-7130' => '医療機器',
+        'テルモ電子体温計C231' => '医療機器',
+        'サージカルマスク50枚入' => '消耗品',
+        'ニトリルグローブ Mサイズ 100枚' => '消耗品',
+        'DHC ビタミンC 60日分' => 'サプリメント',
+        'ネイチャーメイド スーパーフィッシュオイル' => 'サプリメント',
+        '包帯' => 'その他',
+        '綿棒' => 'その他'
+      }
+
+      real_world_products.each do |name, expected|
+        expect(helper.categorize_by_name(name)).to eq(expected), 
+          "商品名 '#{name}' が期待通り '#{expected}' に分類されませんでした"
+      end
     end
   end
 
@@ -652,19 +770,19 @@ RSpec.describe ApplicationHelper, type: :helper do
   # TODO: 将来の機能拡張テスト
   # ============================================
 
-  describe 'future features', :pending do
+  describe 'future features' do
     it 'AI駆動のカテゴリ推定が実装されること' do
-      pending '機械学習によるカテゴリ推定機能は将来実装予定'
+      skip '機械学習によるカテゴリ推定機能は将来実装予定'
       # expect(helper.ai_categorize_by_name('新しい薬品XYZ')).to eq('医薬品')
     end
 
     it 'ローカライゼーション対応が実装されること' do
-      pending '多言語対応は将来実装予定'
+      skip '多言語対応は将来実装予定'
       # expect(helper.categorize_by_name('Medicine', locale: :en)).to eq('Medical')
     end
 
     it 'リスクスコア可視化ヘルパーが実装されること' do
-      pending 'リスクスコア可視化機能は将来実装予定'
+      skip 'リスクスコア可視化機能は将来実装予定'
       # expect(helper.risk_score_badge(0.8)).to include('badge-danger')
     end
   end
