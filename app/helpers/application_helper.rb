@@ -1,4 +1,8 @@
 module ApplicationHelper
+  # Modern UI v2 ヘルパーを含める
+  # CLAUDE.md準拠: 最新UIトレンド対応のためのヘルパー統合
+  include ModernUiHelper
+
   # GitHubアイコンのSVGを生成
   def github_icon(css_class: "github-icon")
     content_tag :svg,

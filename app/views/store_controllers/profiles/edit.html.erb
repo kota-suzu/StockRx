@@ -117,7 +117,10 @@
           <%# ボタン %>
           <div class="d-flex justify-content-between align-items-center">
             <div>
-              <%= link_to "キャンセル", store_profile_path, class: "btn btn-secondary" %>
+              <%= link_to store_profile_path, class: "btn btn-primary d-flex align-items-center justify-content-center" do %>
+                <i class="bi bi-arrow-left me-2"></i>
+                キャンセル
+              <% end %>
             </div>
             <div>
               <%# メタ認知: セキュリティ関連の操作は別画面で行うベストプラクティス %>

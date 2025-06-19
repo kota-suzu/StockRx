@@ -119,14 +119,14 @@ class SearchQuery
       # 在庫数範囲
       if params[:min_quantity].present? || params[:max_quantity].present?
         # 入力検証: 負の数値を0に変換
-        min_quantity = params[:min_quantity].present? ? [params[:min_quantity].to_i, 0].max : nil
-        max_quantity = params[:max_quantity].present? ? [params[:max_quantity].to_i, 0].max : nil
-        
+        min_quantity = params[:min_quantity].present? ? [ params[:min_quantity].to_i, 0 ].max : nil
+        max_quantity = params[:max_quantity].present? ? [ params[:max_quantity].to_i, 0 ].max : nil
+
         # 入力検証: 最小値が最大値より大きい場合は値を入れ替える
         if min_quantity && max_quantity && min_quantity > max_quantity
           min_quantity, max_quantity = max_quantity, min_quantity
         end
-        
+
         query = query.in_range("quantity", min_quantity, max_quantity)
       end
 
@@ -236,14 +236,14 @@ class SearchQuery
       # 在庫数範囲
       if params[:min_quantity].present? || params[:max_quantity].present?
         # 入力検証: 負の数値を0に変換
-        min_quantity = params[:min_quantity].present? ? [params[:min_quantity].to_i, 0].max : nil
-        max_quantity = params[:max_quantity].present? ? [params[:max_quantity].to_i, 0].max : nil
-        
+        min_quantity = params[:min_quantity].present? ? [ params[:min_quantity].to_i, 0 ].max : nil
+        max_quantity = params[:max_quantity].present? ? [ params[:max_quantity].to_i, 0 ].max : nil
+
         # 入力検証: 最小値が最大値より大きい場合は値を入れ替える
         if min_quantity && max_quantity && min_quantity > max_quantity
           min_quantity, max_quantity = max_quantity, min_quantity
         end
-        
+
         query = query.in_range("quantity", min_quantity, max_quantity)
       end
 

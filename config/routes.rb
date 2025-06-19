@@ -19,9 +19,13 @@ Rails.application.routes.draw do
     # ✅ Phase 2完了 - LetterOpenerWeb gem設定修正完了
     # 解決内容: bundle installでletter_opener関連gem追加
     mount LetterOpenerWeb::Engine, at: "/letter_opener"
-    
+
     # Test routes for UI development
     get "test_table_light", to: "store_controllers/test#table_light", as: :test_table_light
+
+    # Modern UI v2 Demo Page
+    # CLAUDE.md準拠: 最新UIトレンドに対応した新デザインシステムのデモ
+    get "modern_ui_demo", to: "static#modern_ui_demo", as: :modern_ui_demo
   end
 
   # ============================================

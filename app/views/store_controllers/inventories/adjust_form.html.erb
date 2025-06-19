@@ -106,8 +106,11 @@
                                       placeholder: "実在庫数を入力",
                                       value: @store_inventory.quantity,
                                       "aria-describedby": "new_quantity_help quantity_addon",
-                                      id: "new_quantity_input" %>
-                  <span class="input-group-text" id="quantity_addon">個</span>
+                                      id: "new_quantity_input",
+                                      style: "border-right: 0;" %>
+                  <span class="input-group-text bg-light" 
+                        id="quantity_addon" 
+                        style="border-left: 0;">個</span>
                 </div>
                 <div id="new_quantity_help" class="form-text">
                   実際に確認した在庫数を入力してください
@@ -119,21 +122,32 @@
 
               <%# 調整差分表示 %>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-bold">調整差分</label>
+                <label class="form-label fw-bold d-flex align-items-center">
+                  <i class="bi bi-calculator me-2 text-info"></i>
+                  調整差分
+                </label>
                 <div class="input-group">
                   <input type="text" 
-                         class="form-control fs-5 text-center" 
+                         class="form-control fs-5 text-center fw-bold" 
                          id="difference_display" 
                          readonly 
                          value="0 個"
-                         style="background-color: #f8f9fa;">
-                  <span class="input-group-text">
-                    <i class="bi bi-arrow-up-down"></i>
+                         style="background-color: #f8f9fa; border-right: 0;">
+                  <span class="input-group-text bg-light d-flex align-items-center justify-content-center" 
+                        style="border-left: 0; min-width: 50px;">
+                    <i class="bi bi-arrow-up-down text-muted" 
+                       id="difference_icon" 
+                       title="調整方向を示すアイコン"
+                       style="transition: all 0.3s ease;"></i>
                   </span>
                 </div>
-                <div class="form-text">
-                  <span class="text-success">プラス: 在庫増加</span> / 
-                  <span class="text-danger">マイナス: 在庫減少</span>
+                <div class="form-text d-flex justify-content-between small">
+                  <span class="text-success">
+                    <i class="bi bi-arrow-up me-1"></i>プラス: 在庫増加
+                  </span>
+                  <span class="text-danger">
+                    <i class="bi bi-arrow-down me-1"></i>マイナス: 在庫減少
+                  </span>
                 </div>
               </div>
             </div>
@@ -329,24 +343,40 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateDifference() {
     const newQuantity = parseInt(newQuantityInput.value) || 0;
     const difference = newQuantity - currentQuantity;
+    const differenceIcon = document.getElementById('difference_icon');
     
     // 差分表示の更新
     let displayText = '';
     let displayClass = '';
+    let iconClass = '';
+    let iconColor = '';
     
     if (difference > 0) {
       displayText = `+${difference} 個 (増加)`;
-      displayClass = 'text-success bg-success bg-opacity-10';
+      displayClass = 'text-success bg-success bg-opacity-10 fw-bold';
+      iconClass = 'bi bi-arrow-up';
+      iconColor = 'text-success';
     } else if (difference < 0) {
       displayText = `${difference} 個 (減少)`;
-      displayClass = 'text-danger bg-danger bg-opacity-10';
+      displayClass = 'text-danger bg-danger bg-opacity-10 fw-bold';
+      iconClass = 'bi bi-arrow-down';
+      iconColor = 'text-danger';
     } else {
       displayText = '0 個 (変更なし)';
-      displayClass = 'text-muted bg-light';
+      displayClass = 'text-muted bg-light fw-bold';
+      iconClass = 'bi bi-arrow-up-down';
+      iconColor = 'text-muted';
     }
     
     differenceDisplay.value = displayText;
     differenceDisplay.className = `form-control fs-5 text-center ${displayClass}`;
+    differenceDisplay.style.cssText = 'background-color: #f8f9fa; border-right: 0;';
+    
+    // アイコンの動的更新
+    if (differenceIcon) {
+      differenceIcon.className = `${iconClass} ${iconColor}`;
+      differenceIcon.style.transition = 'all 0.3s ease';
+    }
     
     // 大幅調整の警告表示
     if (Math.abs(difference) >= 50) {

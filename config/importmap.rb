@@ -9,6 +9,7 @@ pin_all_from "app/javascript/controllers", under: "controllers"
 # 認証画面専用JavaScript - インラインスクリプト外部化
 # CLAUDE.md準拠: CSP対応とメンテナンス性向上
 pin "authentication", to: "authentication.js", preload: true
+pin "realtime_search", to: "realtime_search.js", preload: true
 
 # Bootstrap 5 JavaScript for interactive components
 # CLAUDE.md準拠: メタ認知的アプローチ - Bootstrap JSが必要な理由を明確化
@@ -20,3 +21,7 @@ pin "bootstrap", to: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/boots
 #   - CDN接続失敗時のローカルコピー提供
 #   - ネットワーク分断耐性の向上
 #   - 横展開: 全CDNリソースで適用
+
+# Modern UI v2 Controllers
+# CLAUDE.md準拠: 最新UIトレンド対応のためのモダンコントローラー群
+pin_all_from "app/javascript/modern_ui", under: "modern_ui"

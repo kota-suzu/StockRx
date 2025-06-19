@@ -230,42 +230,23 @@
           <% if @pending_transfers.any? %>
             <div class="list-group list-group-flush">
               <% @pending_transfers.each do |transfer| %>
-                <div class="list-group-item border-0 px-4 py-3">
+                <div class="list-group-item border-0 px-3 py-2">
                   <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
-                      <div class="d-flex align-items-center mb-2">
-                        <div class="fw-bold me-2"><%= transfer.inventory.name %></div>
-                        <span class="badge bg-info small">× <%= transfer.quantity %></span>
-                        <% if transfer.priority != 'normal' %>
-                          <span class="badge bg-<%= transfer.priority == 'emergency' ? 'danger' : 'warning' %> text-dark small ms-1">
-                            <%= transfer.priority_text %>
-                          </span>
-                        <% end %>
+                      <div class="fw-bold small">
+                        <i class="bi bi-arrow-right text-primary me-1"></i>
+                        → <%= transfer.destination_store.name %>
                       </div>
                       <div class="text-muted small">
-                        <i class="bi bi-arrow-right me-1" aria-hidden="true"></i>
-                        移動先: <%= transfer.destination_store.name %>
+                        <%= transfer.inventory.name %> × <%= transfer.quantity %>
                       </div>
                       <div class="text-muted small">
-                        申請者: <%= transfer.requested_by.display_name %> • 
                         <%= time_ago_in_words(transfer.requested_at) %>前
                       </div>
-                      <% if transfer.reason.present? %>
-                        <div class="text-muted small mt-1">
-                          <i class="bi bi-chat-text me-1" aria-hidden="true"></i>
-                          <%= truncate(transfer.reason, length: 80) %>
-                        </div>
-                      <% end %>
                     </div>
-                    <div class="text-end">
-                      <span class="badge bg-warning text-dark">承認待ち</span>
-                      <div class="mt-2">
-                        <%= link_to admin_inter_store_transfer_path(transfer),
-                                   class: "btn btn-sm btn-outline-primary" do %>
-                          詳細
-                        <% end %>
-                      </div>
-                    </div>
+                    <span class="badge bg-warning text-dark small">
+                      承認待ち
+                    </span>
                   </div>
                 </div>
               <% end %>

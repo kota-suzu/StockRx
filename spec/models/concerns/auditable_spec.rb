@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
+require 'support/shared_examples/auditable_examples'
 
 # Phase 5-4: Auditableconcernテスト
 # ============================================
@@ -27,12 +28,18 @@ RSpec.describe Auditable do
       # 監査ログ設定
       auditable except: [ :created_at, :updated_at ],
                 sensitive: [ :api_key ]
+      
+      # auditable_nameメソッドの実装（shared_examplesで必要）
+      def auditable_name
+        name || "TestAuditable##{id}"
+      end
     end
   end
 
   after(:all) do
     # テスト用テーブルを削除
-    ActiveRecord::Base.connection.drop_table :test_auditables
+    ActiveRecord::Base.connection.drop_table :test_auditables if ActiveRecord::Base.connection.table_exists?(:test_auditables)
+    Object.send(:remove_const, :TestAuditable) if defined?(TestAuditable)
   end
 
   # CLAUDE.md準拠: ベストプラクティス - テストデータの確実なクリーンアップ
@@ -48,10 +55,19 @@ RSpec.describe Auditable do
   end
 
   let(:test_record) { TestAuditable.create!(name: "テスト", email: "test@example.com") }
+  let(:admin) { create(:admin) }
+  let(:store_user) { create(:store_user) }
+
+  # 共通のauditableテストを実行
+  it_behaves_like "auditable" do
+    let(:model) { TestAuditable }
+    let(:instance) { test_record }
+  end
 
   describe "監査ログの自動記録" do
     context "レコード作成時" do
       it "作成ログが記録されること" do
+        Current.user = admin
         expect {
           TestAuditable.create!(name: "新規", email: "new@example.com")
         }.to change(AuditLog, :count).by(1)
@@ -59,9 +75,11 @@ RSpec.describe Auditable do
         audit_log = AuditLog.last
         expect(audit_log.action).to eq("create")
         expect(audit_log.message).to include("Test Auditable「新規」を作成しました")
+        expect(audit_log.user).to eq(admin)
       end
 
       it "属性が記録されること" do
+        Current.user = admin
         record = TestAuditable.create!(name: "属性テスト", email: "attr@example.com")
 
         audit_log = record.audit_logs.last
@@ -195,6 +213,7 @@ RSpec.describe Auditable do
       # メタ認知: 他のテストに影響しないよう設定を元に戻す
       TestAuditable.auditable except: [ :created_at, :updated_at ],
                               sensitive: [ :api_key ]
+      Current.reset
     end
 
     it "条件を満たす場合は記録されること" do
@@ -303,6 +322,85 @@ RSpec.describe Auditable do
         expect(summary).to have_key(:user_counts)
         expect(summary).to have_key(:recent_activity_trend)
       end
+    end
+  end
+
+  describe "パフォーマンステスト" do
+    it "大量レコード作成時でもパフォーマンスが維持されること" do
+      Current.user = admin
+      
+      # 100レコードの作成が妥当な時間内に完了すること
+      expect {
+        Benchmark.realtime do
+          100.times { |i| TestAuditable.create!(name: "Bulk #{i}") }
+        end
+      }.to be < 5.0 # 5秒以内
+    end
+
+    it "監査ログ作成がN+1クエリを発生させないこと" do
+      Current.user = admin
+      
+      expect {
+        5.times { |i| TestAuditable.create!(name: "N+1 Test #{i}") }
+      }.not_to exceed_query_limit(15) # 各作成で3クエリ以内
+    end
+  end
+
+  describe "セキュリティ機能" do
+    it "SQLインジェクション攻撃に対して安全であること" do
+      Current.user = admin
+      malicious_name = "'; DROP TABLE audit_logs; --"
+      
+      expect {
+        TestAuditable.create!(name: malicious_name)
+      }.not_to raise_error
+      
+      # テーブルが削除されていないことを確認
+      expect(AuditLog.count).to be > 0
+    end
+
+    it "XSS攻撃用のスクリプトが適切にエスケープされること" do
+      Current.user = admin
+      xss_payload = "<script>alert('XSS')</script>"
+      
+      record = TestAuditable.create!(name: xss_payload)
+      audit_log = record.audit_logs.last
+      
+      # 詳細情報内でHTMLがエスケープされていることを確認
+      expect(audit_log.details).not_to include("<script>")
+      expect(audit_log.message).not_to include("<script>")
+    end
+  end
+
+  describe "エッジケース" do
+    it "nilユーザーでも監査ログが作成されること" do
+      Current.user = nil
+      
+      expect {
+        TestAuditable.create!(name: "No User Test")
+      }.to change(AuditLog, :count).by(1)
+      
+      expect(AuditLog.last.user).to be_nil
+    end
+
+    it "同時更新でもデータ整合性が保たれること" do
+      Current.user = admin
+      record = test_record
+      
+      # 並行更新をシミュレート
+      threads = 5.times.map do |i|
+        Thread.new do
+          ActiveRecord::Base.connection_pool.with_connection do
+            record.reload.update!(name: "Thread #{i}")
+          end
+        end
+      end
+      
+      threads.each(&:join)
+      
+      # 最終的な状態が正しく記録されていること
+      expect(record.reload.name).to match(/Thread \d/)
+      expect(record.audit_logs.where(action: "update").count).to be >= 1
     end
   end
 end

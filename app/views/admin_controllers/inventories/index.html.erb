@@ -448,17 +448,33 @@
         <div class="col-md-6">
           <% if @inventories_raw.total_pages > 1 %>
             <div class="d-flex justify-content-end">
-              <%= paginate @inventories_raw, 
-                          params: { 
-                            q: params[:q], 
-                            status: params[:status], 
-                            sort: params[:sort], 
-                            direction: params[:direction], 
-                            low_stock: params[:low_stock],
-                            min_quantity: params[:min_quantity],
-                            max_quantity: params[:max_quantity],
-                            per_page: params[:per_page]
-                          } %>
+              <% begin %>
+                <%= paginate @inventories_raw, 
+                            theme: :custom_bootstrap_5,
+                            params: { 
+                              q: params[:q], 
+                              status: params[:status], 
+                              sort: params[:sort], 
+                              direction: params[:direction], 
+                              low_stock: params[:low_stock],
+                              min_quantity: params[:min_quantity],
+                              max_quantity: params[:max_quantity],
+                              per_page: params[:per_page]
+                            } %>
+              <% rescue => e %>
+                <!-- フォールバック: デフォルトページネーション -->
+                <%= paginate @inventories_raw, 
+                            params: { 
+                              q: params[:q], 
+                              status: params[:status], 
+                              sort: params[:sort], 
+                              direction: params[:direction], 
+                              low_stock: params[:low_stock],
+                              min_quantity: params[:min_quantity],
+                              max_quantity: params[:max_quantity],
+                              per_page: params[:per_page]
+                            } %>
+              <% end %>
             </div>
           <% end %>
         </div>

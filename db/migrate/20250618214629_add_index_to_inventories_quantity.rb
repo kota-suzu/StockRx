@@ -6,17 +6,17 @@ class AddIndexToInventoriesQuantity < ActiveRecord::Migration[7.2]
     # メタ認知: 在庫数でのフィルタリングは頻繁に使用される機能
     # ベストプラクティス: 範囲検索に最適なB-treeインデックス
     # 横展開: store_inventoriesテーブルには既に同様のインデックスが存在
-    
+
     # 在庫数単体でのインデックス（範囲検索最適化）
-    add_index :inventories, :quantity, 
+    add_index :inventories, :quantity,
               name: "idx_inventories_quantity",
               comment: "在庫数範囲検索最適化（min_quantity/max_quantity フィルター用）"
-    
+
     # 複合インデックス（ステータスと在庫数の組み合わせ検索最適化）
-    add_index :inventories, [:status, :quantity], 
+    add_index :inventories, [ :status, :quantity ],
               name: "idx_inventories_status_quantity",
               comment: "ステータス別在庫数検索最適化"
-    
+
     # TODO: 🟡 Phase 3（重要）- 追加インデックスの検討
     # 優先度: 中（クエリパフォーマンス向上）
     # 実装内容:

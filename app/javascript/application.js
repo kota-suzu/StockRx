@@ -16,6 +16,16 @@ import "bootstrap"
 // メタ認知: 認証機能の分離でメンテナンス性向上
 import "authentication"
 
+// リアルタイム検索機能
+// CLAUDE.md準拠: ユーザビリティ向上とパフォーマンス最適化
+import "realtime_search"
+
+// Modern UI v2 Controllers
+// CLAUDE.md準拠: 最新UIトレンド対応のためのモダンコントローラー群
+import { application } from "./controllers/application"
+import ThemeController from "modern_ui/theme_controller"
+application.register("theme", ThemeController)
+
 // Turboとの互換性確保
 // CLAUDE.md準拠: ベストプラクティス - 確実なBootstrap初期化実装
 document.addEventListener("turbo:load", () => {

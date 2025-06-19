@@ -1,0 +1,8 @@
+<%# Bootstrap 5 最初のページリンク %>
+<li class="page-item">
+  <%= link_to_unless current_page.first?, raw(t('views.pagination.first', default: '&laquo; 最初')), url, 
+                     remote: remote, 
+                     class: "page-link",
+                     title: "最初のページへ",
+                     data: { bs_toggle: "tooltip", bs_placement: "top" } %>
+</li>

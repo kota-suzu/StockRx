@@ -102,47 +102,82 @@
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
-            <table class="table table-hover mb-0">
-              <thead>
+            <table class="table table-hover table-striped mb-0">
+              <thead class="table-dark">
                 <tr>
-                  <th style="width: 100px;">申請日</th>
-                  <th style="width: 80px;">待機時間</th>
-                  <th>優先度</th>
-                  <th>移動元 → 移動先</th>
-                  <th>商品</th>
-                  <th class="text-end" style="width: 80px;">数量</th>
-                  <th>申請者</th>
-                  <th>理由</th>
-                  <th class="text-center" style="width: 150px;">承認操作</th>
+                  <th scope="col" class="text-center" style="width: 120px;">
+                    <i class="bi bi-calendar3 me-1 text-warning"></i>
+                    <span class="fw-semibold">申請日</span>
+                  </th>
+                  <th scope="col" class="text-center" style="width: 100px;">
+                    <i class="bi bi-clock me-1 text-info"></i>
+                    <span class="fw-semibold">待機時間</span>
+                  </th>
+                  <th scope="col" class="text-center" style="width: 100px;">
+                    <i class="bi bi-flag me-1 text-info"></i>
+                    <span class="fw-semibold">優先度</span>
+                  </th>
+                  <th scope="col" style="min-width: 200px;">
+                    <i class="bi bi-arrow-left-right me-1 text-primary"></i>
+                    <span class="fw-semibold">移動元 → 移動先</span>
+                  </th>
+                  <th scope="col" style="min-width: 180px;">
+                    <i class="bi bi-box me-1 text-warning"></i>
+                    <span class="fw-semibold">商品</span>
+                  </th>
+                  <th scope="col" class="text-center" style="width: 100px;">
+                    <i class="bi bi-stack me-1 text-info"></i>
+                    <span class="fw-semibold">数量</span>
+                  </th>
+                  <th scope="col" style="width: 120px;">
+                    <i class="bi bi-person me-1 text-secondary"></i>
+                    <span class="fw-semibold">申請者</span>
+                  </th>
+                  <th scope="col" style="min-width: 150px;">
+                    <i class="bi bi-file-text me-1 text-success"></i>
+                    <span class="fw-semibold">理由</span>
+                  </th>
+                  <th scope="col" class="text-center" style="min-width: 180px;">
+                    <i class="bi bi-gear me-1" aria-hidden="true"></i>
+                    <span class="fw-semibold">承認操作</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 <% if @pending_transfers.any? %>
                   <% @pending_transfers.each do |transfer| %>
-                    <tr class="<%= 'table-danger' if transfer.emergency? %>
+                    <tr class="align-middle <%= 'table-danger' if transfer.emergency? %>
                              <%= 'table-warning' if transfer.urgent? %>">
-                      <td>
-                        <%= l(transfer.requested_at, format: :short) %>
+                      <td class="text-center">
+                        <div class="d-flex flex-column">
+                          <span class="fw-medium text-dark">
+                            <%= l(transfer.requested_at, format: "%m/%d") %>
+                          </span>
+                          <small class="text-muted">
+                            <%= l(transfer.requested_at, format: "%H:%M") %>
+                          </small>
+                        </div>
                       </td>
-                      <td>
+                      <td class="text-center">
                         <% waiting_hours = ((Time.current - transfer.requested_at) / 1.hour).round(1) %>
-                        <span class="<%= 'text-danger' if waiting_hours > 24 %>
-                                   <%= 'text-warning' if waiting_hours > 8 && waiting_hours <= 24 %>">
-                          <%= waiting_hours %>h
+                        <span class="badge <%= 'bg-danger' if waiting_hours > 24 %>
+                                   <%= 'bg-warning text-dark' if waiting_hours > 8 && waiting_hours <= 24 %>
+                                   <%= 'bg-success' if waiting_hours <= 8 %> px-3 py-2">
+                          <i class="bi bi-clock me-1"></i><%= waiting_hours %>h
                         </span>
                       </td>
-                      <td>
+                      <td class="text-center">
                         <% case transfer.priority %>
                         <% when "emergency" %>
-                          <span class="badge bg-danger">
+                          <span class="badge bg-danger px-3 py-2">
                             <i class="bi bi-exclamation-triangle-fill me-1"></i><%= transfer.priority_text %>
                           </span>
                         <% when "urgent" %>
-                          <span class="badge bg-warning text-dark">
+                          <span class="badge bg-warning text-dark px-3 py-2">
                             <i class="bi bi-exclamation-circle-fill me-1"></i><%= transfer.priority_text %>
                           </span>
                         <% else %>
-                          <span class="badge bg-secondary"><%= transfer.priority_text %></span>
+                          <span class="badge bg-secondary px-3 py-2"><%= transfer.priority_text %></span>
                         <% end %>
                       </td>
                       <td>
@@ -164,12 +199,25 @@
                           <%= transfer.inventory.name %>
                         </span>
                       </td>
-                      <td class="text-end">
-                        <%= number_with_delimiter(transfer.quantity) %>
+                      <td class="text-center">
+                        <span class="badge bg-primary fs-6 px-3 py-2">
+                          <%= number_with_delimiter(transfer.quantity) %> 個
+                        </span>
                       </td>
                       <td>
-                        <%= transfer.requested_by.display_name %>
-                        <br><small class="text-muted"><%= transfer.requested_by.role_text %></small>
+                        <div class="d-flex align-items-center">
+                          <div class="me-2">
+                            <i class="bi bi-person-circle text-secondary"></i>
+                          </div>
+                          <div>
+                            <div class="fw-medium text-dark">
+                              <%= transfer.requested_by.display_name %>
+                            </div>
+                            <small class="text-muted">
+                              <%= transfer.requested_by.role_text %>
+                            </small>
+                          </div>
+                        </div>
                       </td>
                       <td>
                         <span class="text-truncate d-inline-block" style="max-width: 200px;"
@@ -184,11 +232,11 @@
                             <%# CLAUDE.md準拠: 横展開修正 - アイコンと文言の統一 %>
                             <%# メタ認知: 管理者業務の効率化とUI一貫性向上 %>
                             <%= link_to admin_inter_store_transfer_path(transfer), 
-                                class: "btn btn-sm btn-outline-primary d-flex align-items-center",
-                                title: "移動申請の詳細情報を確認",
-                                data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                                class: "btn btn-primary btn-sm d-flex align-items-center shadow-sm",
+                                style: "min-width: 70px;",
+                                title: "移動申請詳細情報と履歴を確認" do %>
                               <i class="bi bi-eye me-1"></i>
-                              <span class="d-none d-md-inline">詳細</span>
+                              <span class="d-none d-lg-inline">詳細</span>
                             <% end %>
                             
                             <%# 承認 %>
@@ -233,7 +281,12 @@
         
         <% if @pending_transfers.any? %>
           <div class="card-footer">
-            <%= paginate @pending_transfers %>
+            <% begin %>
+              <%= paginate @pending_transfers, theme: :custom_bootstrap_5 %>
+            <% rescue => e %>
+              <!-- 緊急時フォールバック: デフォルトページネーション -->
+              <%= paginate @pending_transfers %>
+            <% end %>
           </div>
         <% end %>
       </div>

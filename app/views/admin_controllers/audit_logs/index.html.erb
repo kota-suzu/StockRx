@@ -203,7 +203,12 @@
           
           <% if @audit_logs.any? %>
             <div class="card-footer">
-              <%= paginate @audit_logs %>
+              <% begin %>
+                <%= paginate @audit_logs, theme: :custom_bootstrap_5 %>
+              <% rescue => e %>
+                <!-- 緊急時フォールバック: デフォルトページネーション -->
+                <%= paginate @audit_logs %>
+              <% end %>
             </div>
           <% end %>
         </div>

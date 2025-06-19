@@ -177,7 +177,12 @@
           <%= @logs.offset_value + 1 %>-<%= [@logs.offset_value + @logs.limit_value, @logs.total_count].min %>件を表示
         </small>
       </div>
-      <%= paginate @logs %>
+      <% begin %>
+        <%= paginate @logs, theme: :custom_bootstrap_5 %>
+      <% rescue => e %>
+        <!-- 緊急時フォールバック: デフォルトページネーション -->
+        <%= paginate @logs %>
+      <% end %>
     </div>
   <% end %>
 </div>

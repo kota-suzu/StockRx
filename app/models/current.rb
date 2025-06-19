@@ -13,6 +13,9 @@ class Current < ActiveSupport::CurrentAttributes
   attribute :request_id
   attribute :ip_address
 
+  # リクエストオブジェクト（テスト互換性のため）
+  attribute :request
+
   # ユーザーエージェント情報（モバイル連携時に利用）
   attribute :user_agent
 

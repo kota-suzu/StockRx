@@ -15,14 +15,14 @@
   </head>
 
   <body>
-    <%# ヘッダー %>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <%# ヘッダー - シンプルで見やすく %>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
       <div class="container">
-        <%= link_to root_path, class: "navbar-brand" do %>
+        <%= link_to root_path, class: "navbar-brand text-primary" do %>
           <i class="bi bi-boxes me-2"></i>
           StockRx
         <% end %>
-        <span class="navbar-text text-white">
+        <span class="navbar-text text-muted">
           店舗選択
         </span>
       </div>

@@ -52,6 +52,35 @@ class AuditLog < ApplicationRecord
     created_at.strftime("%Y年%m月%d日 %H:%M:%S")
   end
 
+  # 監査ログ閲覧記録メソッド
+  # CLAUDE.md準拠: セキュリティ機能強化 - 監査の監査
+  # メタ認知: 監査ログ自体の閲覧も監査対象とすることでコンプライアンス要件を満たす
+  # 横展開: ComplianceAuditLogでも同様の実装が必要
+  def audit_view(viewer, details = {})
+    # 無限ループ防止: 監査ログの閲覧記録自体は記録しない
+    return if action == "view" && auditable_type == "AuditLog"
+
+    # 監査ログの閲覧は重要なセキュリティイベントとして記録
+    self.class.log_action(
+      self,                           # auditable: この監査ログ自体
+      "view",                         # action: 閲覧アクション
+      "監査ログ(ID: #{id})が閲覧されました",  # message
+      details.merge({                 # 詳細情報
+        viewed_log_id: id,
+        viewed_log_action: action,
+        # セキュリティ: メッセージ内容は記録しない（機密情報保護）
+        viewed_at: Time.current,
+        viewer_role: viewer&.role,
+        compliance_reason: details[:access_reason] || "通常閲覧"
+      }),
+      viewer                          # user: 閲覧者
+    )
+  rescue => e
+    # エラー時も記録を試行（ベストエフォート）
+    Rails.logger.error "監査ログ閲覧記録エラー: #{e.message}"
+    nil
+  end
+
   # クラスメソッド
   class << self
     def log_action(auditable, action, message, details = {}, user = nil)

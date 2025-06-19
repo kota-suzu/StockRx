@@ -21,7 +21,7 @@
           <div class="col-md-6 col-lg-5">
             <%# ロゴ・ヘッダー %>
             <div class="text-center mb-4">
-              <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle mb-3" style="width: 80px; height: 80px;">
+              <div class="d-inline-flex align-items-center justify-content-center bg-light border border-primary border-opacity-25 rounded-circle mb-3" style="width: 80px; height: 80px;">
                 <i class="bi bi-shop fs-1 text-primary"></i>
               </div>
               <h2 class="h3 mb-1 text-dark">StockRx 店舗システム</h2>
@@ -43,8 +43,8 @@
               <% end %>
             <% end %>
 
-            <%# メインコンテンツ %>
-            <div class="card shadow border-0" style="border-radius: 1rem;">
+            <%# メインコンテンツ - シンプルで使いやすく %>
+            <div class="card border border-light" style="border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
               <div class="card-body p-4">
                 <%= yield %>
               </div>

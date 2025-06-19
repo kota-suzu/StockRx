@@ -547,7 +547,7 @@ module StoreControllers
       if search_params[:quantity_gteq].present? || search_params[:quantity_lteq].present?
         min = search_params[:quantity_gteq]&.to_i
         max = search_params[:quantity_lteq]&.to_i
-        
+
         if min && max
           scope = scope.where("store_inventories.quantity BETWEEN ? AND ?", min, max)
         elsif min

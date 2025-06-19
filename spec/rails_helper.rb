@@ -71,14 +71,24 @@ require 'capybara/rspec'
 if ENV['COVERAGE'] == 'true'
   require 'simplecov'
   SimpleCov.start 'rails' do
+    enable_coverage :branch  # C1カバレッジ（分岐カバレッジ）有効化
     add_filter '/bin/'
     add_filter '/db/'
     add_filter '/spec/'
     add_filter '/config/'
     add_filter '/vendor/'
     add_filter '/lib/tasks/'
+
+    # C1カバレッジ目標設定（20%）
+    minimum_coverage branch: 20
+
+    # カバレッジレポートフォーマット拡張
+    formatter SimpleCov::Formatter::MultiFormatter.new([
+      SimpleCov::Formatter::HTMLFormatter,
+      SimpleCov::Formatter::SimpleFormatter
+    ])
   end
-  puts "📊 SimpleCov カバレッジ計測を有効化しました"
+  puts "📊 SimpleCov カバレッジ計測を有効化しました（Branch Coverage対応）"
 else
   puts "⏭️  SimpleCov カバレッジ計測をスキップしました（COVERAGE=true で有効化）"
 end

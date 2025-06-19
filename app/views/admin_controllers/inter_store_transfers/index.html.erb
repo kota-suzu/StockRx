@@ -141,18 +141,24 @@
         <div class="card-body p-0">
           <div class="table-responsive">
             <table class="table table-hover mb-0">
-              <thead>
+              <thead class="table-light">
                 <tr>
-                  <th style="width: 100px;">申請日</th>
-                  <th>優先度</th>
-                  <th>ステータス</th>
-                  <th>移動元 → 移動先</th>
-                  <th>商品</th>
-                  <th class="text-end">数量</th>
-                  <th>申請者</th>
-                  <th class="text-center" style="min-width: 180px;">
-                    <i class="bi bi-gear me-1" aria-hidden="true"></i>操作
+                  <th scope="col">
+                    <i class="bi bi-calendar3 me-2 text-primary"></i>申請日
                   </th>
+                  <th scope="col">
+                    <i class="bi bi-arrow-left-right me-2 text-primary"></i>移動内容
+                  </th>
+                  <th scope="col">
+                    <i class="bi bi-box me-2 text-primary"></i>商品・数量
+                  </th>
+                  <th scope="col">
+                    <i class="bi bi-activity me-2 text-primary"></i>ステータス
+                  </th>
+                  <th scope="col">
+                    <i class="bi bi-person me-2 text-primary"></i>申請者
+                  </th>
+                  <th scope="col" class="text-center">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -160,21 +166,37 @@
                   <% @transfers.each do |transfer| %>
                     <tr>
                       <td>
-                        <%= l(transfer.requested_at, format: :short) %>
+                        <div class="fw-medium">
+                          <%= l(transfer.requested_at, format: "%m/%d") %>
+                        </div>
+                        <small class="text-muted">
+                          <%= l(transfer.requested_at, format: "%H:%M") %>
+                        </small>
                       </td>
                       <td>
-                        <% case transfer.priority %>
-                        <% when "emergency" %>
-                          <span class="badge bg-danger">
-                            <i class="bi bi-exclamation-triangle-fill me-1"></i><%= transfer.priority_text %>
-                          </span>
-                        <% when "urgent" %>
-                          <span class="badge bg-warning text-dark">
-                            <i class="bi bi-exclamation-circle-fill me-1"></i><%= transfer.priority_text %>
-                          </span>
-                        <% else %>
-                          <span class="badge bg-secondary"><%= transfer.priority_text %></span>
+                        <div class="d-flex align-items-center mb-1">
+                          <span class="me-2"><%= transfer.source_store.name %></span>
+                          <i class="bi bi-arrow-right mx-1 text-muted"></i>
+                          <span class="ms-2"><%= transfer.destination_store.name %></span>
+                        </div>
+                        <% if transfer.priority != "normal" %>
+                          <% case transfer.priority %>
+                          <% when "emergency" %>
+                            <span class="badge bg-danger small">
+                              <i class="bi bi-exclamation-triangle-fill me-1"></i><%= transfer.priority_text %>
+                            </span>
+                          <% when "urgent" %>
+                            <span class="badge bg-warning text-dark small">
+                              <i class="bi bi-exclamation-circle me-1"></i><%= transfer.priority_text %>
+                            </span>
+                          <% end %>
                         <% end %>
+                      </td>
+                      <td>
+                        <div class="fw-medium mb-1"><%= transfer.inventory.name %></div>
+                        <span class="badge bg-primary">
+                          <%= number_with_delimiter(transfer.quantity) %> 個
+                        </span>
                       </td>
                       <td>
                         <% case transfer.status %>
@@ -205,57 +227,22 @@
                         <% end %>
                       </td>
                       <td>
-                        <div class="d-flex align-items-center">
-                          <span class="text-truncate" style="max-width: 150px;" 
-                                title="<%= transfer.source_store.name %>">
-                            <%= transfer.source_store.name %>
-                          </span>
-                          <i class="bi bi-arrow-right mx-2 text-muted"></i>
-                          <span class="text-truncate" style="max-width: 150px;"
-                                title="<%= transfer.destination_store.name %>">
-                            <%= transfer.destination_store.name %>
-                          </span>
-                        </div>
+                        <div class="fw-medium"><%= transfer.requested_by.display_name %></div>
+                        <small class="text-muted"><%= transfer.source_store.name %></small>
                       </td>
-                      <td>
-                        <span class="text-truncate d-inline-block" style="max-width: 200px;"
-                              title="<%= transfer.inventory.name %>">
-                          <%= transfer.inventory.name %>
-                        </span>
-                      </td>
-                      <td class="text-end">
-                        <%= number_with_delimiter(transfer.quantity) %>
-                      </td>
-                      <td>
-                        <%= transfer.requested_by.display_name %>
-                      </td>
-                      <td class="text-center" style="min-width: 180px;">
-                        <div class="action-buttons-group d-flex justify-content-center gap-1">
-                          <%# 詳細ボタン %>
+                      <td class="text-center">
+                        <div class="btn-group btn-group-sm">
                           <%= link_to admin_inter_store_transfer_path(transfer), 
-                                      class: "btn btn-primary btn-sm action-btn detail-btn",
-                                      title: "詳細表示",
-                                      data: { 
-                                        bs_toggle: "tooltip",
-                                        bs_placement: "top"
-                                      },
-                                      "aria-label": "移動申請詳細を表示" do %>
-                            <i class="bi bi-eye" aria-hidden="true"></i>
-                            <span class="btn-text d-none d-lg-inline ms-1">詳細</span>
+                                      class: "btn btn-outline-primary",
+                                      title: "詳細表示" do %>
+                            <i class="bi bi-eye"></i>
                           <% end %>
                           
-                          <%# 承認・却下ボタン（権限チェック） %>
                           <% if transfer.pending? && current_admin.can_approve_transfers? %>
                             <%= link_to admin_inter_store_transfer_path(transfer), 
-                                        class: "btn btn-success btn-sm action-btn approval-btn",
-                                        title: "承認・却下",
-                                        data: { 
-                                          bs_toggle: "tooltip",
-                                          bs_placement: "top"
-                                        },
-                                        "aria-label": "移動申請を承認・却下" do %>
-                              <i class="bi bi-check-lg" aria-hidden="true"></i>
-                              <span class="btn-text d-none d-lg-inline ms-1">承認</span>
+                                        class: "btn btn-outline-success",
+                                        title: "承認・却下" do %>
+                              <i class="bi bi-check-lg"></i>
                             <% end %>
                           <% end %>
                         </div>
@@ -264,7 +251,7 @@
                   <% end %>
                 <% else %>
                   <tr>
-                    <td colspan="8" class="text-center py-4 text-muted">
+                    <td colspan="6" class="text-center py-4 text-muted">
                       <i class="bi bi-inbox display-4 d-block mb-2"></i>
                       移動申請がありません
                     </td>
@@ -277,7 +264,12 @@
         
         <% if @transfers.any? %>
           <div class="card-footer">
-            <%= paginate @transfers %>
+            <% begin %>
+              <%= paginate @transfers, theme: :custom_bootstrap_5 %>
+            <% rescue => e %>
+              <!-- 緊急時フォールバック: デフォルトページネーション -->
+              <%= paginate @transfers %>
+            <% end %>
           </div>
         <% end %>
       </div>
@@ -285,86 +277,3 @@
   </div>
 </div>
 
-<%# 統一されたアクションボタンスタイル（CLAUDE.md準拠） %>
-<style>
-  /* アクションボタンの基本スタイル（inventoriesから継承） */
-  .action-buttons-group {
-    min-width: 180px;
-  }
-  
-  .action-btn {
-    min-width: 38px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.375rem 0.5rem;
-    font-size: 0.875rem;
-    border-radius: 0.375rem;
-    transition: all 0.15s ease-in-out;
-    position: relative;
-  }
-  
-  /* デスクトップ表示：アイコン + テキスト */
-  @media (min-width: 992px) {
-    .action-btn {
-      min-width: 80px;
-      padding: 0.375rem 0.75rem;
-    }
-  }
-  
-  /* 詳細ボタン */
-  .detail-btn {
-    background-color: var(--bs-primary);
-    border-color: var(--bs-primary);
-    color: white;
-  }
-  
-  .detail-btn:hover, .detail-btn:focus {
-    background-color: var(--bs-blue);
-    border-color: var(--bs-blue);
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
-  }
-  
-  /* 承認ボタン */
-  .approval-btn {
-    background-color: var(--bs-success);
-    border-color: var(--bs-success);
-    color: white;
-  }
-  
-  .approval-btn:hover, .approval-btn:focus {
-    background-color: #198754;
-    border-color: #157347;
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 0.125rem 0.25rem rgba(25, 135, 84, 0.3);
-  }
-  
-  /* アクセシビリティ：フォーカス表示の強化 */
-  .action-btn:focus {
-    outline: 2px solid var(--bs-primary);
-    outline-offset: 2px;
-  }
-  
-  /* モバイル対応：タッチデバイスでのタップ領域確保 */
-  @media (max-width: 991.98px) {
-    .action-btn {
-      min-width: 44px;
-      height: 44px;
-      margin: 0 1px;
-    }
-    
-    .btn-text {
-      display: none !important;
-    }
-  }
-  
-  /* TODO: Phase 3 - 店舗間移動特有の機能
-   * - 優先度別のボタン色分け（緊急移動は赤色等）
-   * - ステータス変更アニメーション
-   * - 一括承認・却下機能
-   */
-</style>

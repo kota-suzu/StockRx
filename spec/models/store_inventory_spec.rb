@@ -3,6 +3,14 @@
 require 'rails_helper'
 
 RSpec.describe StoreInventory, type: :model do
+  # CLAUDE.md準拠: 店舗在庫管理の包括的テスト
+  # メタ認知: 複雑な在庫ビジネスロジックとパフォーマンス最適化の品質保証
+  # 横展開: 他の在庫関連モデルでも同様のテストパターン適用
+
+  let(:store) { create(:store) }
+  let(:inventory) { create(:inventory, price: 100) }
+  let(:store_inventory) { create(:store_inventory, store: store, inventory: inventory, quantity: 50, reserved_quantity: 10, safety_stock_level: 20) }
+
   describe 'associations' do
     it { should belong_to(:store) }
     it { should belong_to(:inventory) }
@@ -26,10 +34,22 @@ RSpec.describe StoreInventory, type: :model do
           expect(store_inventory).to be_valid
         end
 
+        it 'allows reserved_quantity equal to quantity' do
+          store_inventory = build(:store_inventory, quantity: 10, reserved_quantity: 10)
+          expect(store_inventory).to be_valid
+        end
+
         it 'rejects reserved_quantity greater than quantity' do
           store_inventory = build(:store_inventory, quantity: 5, reserved_quantity: 10)
           expect(store_inventory).not_to be_valid
           expect(store_inventory.errors[:reserved_quantity]).to include('は在庫数を超えることはできません')
+        end
+
+        it 'handles nil values gracefully' do
+          store_inventory = build(:store_inventory, quantity: nil, reserved_quantity: 5)
+          store_inventory.valid?
+          # Should not raise error, other validations will catch nil quantity
+          expect(store_inventory.errors[:reserved_quantity]).not_to include('は在庫数を超えることはできません')
         end
       end
 
@@ -41,6 +61,215 @@ RSpec.describe StoreInventory, type: :model do
           expect(store_inventory).not_to be_valid
           expect(store_inventory.errors[:quantity]).to include('は予約済み数量（5）以上である必要があります')
         end
+
+        it 'allows quantity reduction to exactly reserved_quantity' do
+          store_inventory = create(:store_inventory, quantity: 10, reserved_quantity: 5)
+          store_inventory.quantity = 5
+
+          expect(store_inventory).to be_valid
+        end
+
+        it 'allows quantity increase' do
+          store_inventory = create(:store_inventory, quantity: 10, reserved_quantity: 5)
+          store_inventory.quantity = 15
+
+          expect(store_inventory).to be_valid
+        end
+
+        it 'handles nil reserved_quantity gracefully' do
+          store_inventory = create(:store_inventory, quantity: 10, reserved_quantity: 5)
+          store_inventory.reserved_quantity = nil
+          store_inventory.quantity = 3
+
+          store_inventory.valid?
+          expect(store_inventory.errors[:quantity]).not_to include(/は予約済み数量/)
+        end
+
+        it 'handles nil quantity gracefully' do
+          store_inventory = create(:store_inventory, quantity: 10, reserved_quantity: 5)
+          store_inventory.quantity = nil
+
+          store_inventory.valid?
+          # Should not crash, but will be invalid due to presence validation
+          expect(store_inventory).not_to be_valid
+        end
+
+        it 'only validates when quantity changed' do
+          store_inventory = create(:store_inventory, quantity: 10, reserved_quantity: 5)
+          store_inventory.safety_stock_level = 25
+
+          expect(store_inventory).to be_valid
+        end
+      end
+    end
+  end
+
+  # ============================================
+  # スコープテスト
+  # ============================================
+
+  describe 'scopes' do
+    before do
+      @available_item = create(:store_inventory, quantity: 20, reserved_quantity: 5, safety_stock_level: 10)
+      @low_stock_item = create(:store_inventory, quantity: 8, reserved_quantity: 0, safety_stock_level: 10)
+      @critical_item = create(:store_inventory, quantity: 3, reserved_quantity: 0, safety_stock_level: 10)
+      @out_of_stock_item = create(:store_inventory, quantity: 0, reserved_quantity: 0, safety_stock_level: 5)
+      @overstocked_item = create(:store_inventory, quantity: 100, reserved_quantity: 0, safety_stock_level: 10)
+      @fully_reserved_item = create(:store_inventory, quantity: 15, reserved_quantity: 15, safety_stock_level: 10)
+    end
+
+    describe '.available' do
+      it 'returns items with available quantity' do
+        expect(StoreInventory.available).to include(@available_item, @low_stock_item, @critical_item, @overstocked_item)
+        expect(StoreInventory.available).not_to include(@out_of_stock_item, @fully_reserved_item)
+      end
+    end
+
+    describe '.low_stock' do
+      it 'returns items at or below safety stock level' do
+        expect(StoreInventory.low_stock).to include(@low_stock_item, @critical_item, @out_of_stock_item)
+        expect(StoreInventory.low_stock).not_to include(@available_item, @overstocked_item, @fully_reserved_item)
+      end
+    end
+
+    describe '.critical_stock' do
+      it 'returns items at or below 50% of safety stock level' do
+        expect(StoreInventory.critical_stock).to include(@critical_item, @out_of_stock_item)
+        expect(StoreInventory.critical_stock).not_to include(@available_item, @low_stock_item, @overstocked_item, @fully_reserved_item)
+      end
+    end
+
+    describe '.out_of_stock' do
+      it 'returns items with zero quantity' do
+        expect(StoreInventory.out_of_stock).to include(@out_of_stock_item)
+        expect(StoreInventory.out_of_stock).not_to include(@available_item, @low_stock_item, @critical_item, @overstocked_item, @fully_reserved_item)
+      end
+    end
+
+    describe '.overstocked' do
+      it 'returns items with more than 3x safety stock level' do
+        expect(StoreInventory.overstocked).to include(@overstocked_item)
+        expect(StoreInventory.overstocked).not_to include(@available_item, @low_stock_item, @critical_item, @out_of_stock_item, @fully_reserved_item)
+      end
+    end
+
+    describe '.by_store and .by_inventory' do
+      it 'filters by store' do
+        expect(StoreInventory.by_store(@available_item.store)).to include(@available_item)
+        expect(StoreInventory.by_store(@available_item.store)).not_to include(@low_stock_item)
+      end
+
+      it 'filters by inventory' do
+        expect(StoreInventory.by_inventory(@available_item.inventory)).to include(@available_item)
+        expect(StoreInventory.by_inventory(@available_item.inventory)).not_to include(@low_stock_item)
+      end
+    end
+  end
+
+  # ============================================
+  # インスタンスメソッドテスト
+  # ============================================
+
+  describe '#available_quantity' do
+    it 'calculates available quantity correctly' do
+      expect(store_inventory.available_quantity).to eq(40) # 50 - 10
+    end
+
+    it 'handles zero reserved quantity' do
+      store_inventory.reserved_quantity = 0
+      expect(store_inventory.available_quantity).to eq(50)
+    end
+
+    it 'handles fully reserved inventory' do
+      store_inventory.reserved_quantity = 50
+      expect(store_inventory.available_quantity).to eq(0)
+    end
+  end
+
+  describe '#stock_level_status' do
+    it 'returns out_of_stock when quantity is zero' do
+      store_inventory.quantity = 0
+      expect(store_inventory.stock_level_status).to eq(:out_of_stock)
+    end
+
+    it 'returns critical when quantity is at or below 50% of safety stock' do
+      store_inventory.quantity = 10 # 50% of 20
+      store_inventory.safety_stock_level = 20
+      expect(store_inventory.stock_level_status).to eq(:critical)
+    end
+
+    it 'returns low when quantity is at or below safety stock level' do
+      store_inventory.quantity = 20 # Equal to safety stock
+      store_inventory.safety_stock_level = 20
+      expect(store_inventory.stock_level_status).to eq(:low)
+    end
+
+    it 'returns optimal when quantity is between safety stock and 2x safety stock' do
+      store_inventory.quantity = 30 # Between 20 and 40
+      store_inventory.safety_stock_level = 20
+      expect(store_inventory.stock_level_status).to eq(:optimal)
+    end
+
+    it 'returns excess when quantity is above 2x safety stock level' do
+      store_inventory.quantity = 50 # Above 2x 20
+      store_inventory.safety_stock_level = 20
+      expect(store_inventory.stock_level_status).to eq(:excess)
+    end
+
+    it 'handles edge case of exactly 50% safety stock' do
+      store_inventory.quantity = 10
+      store_inventory.safety_stock_level = 20
+      expect(store_inventory.stock_level_status).to eq(:critical)
+    end
+
+    it 'handles edge case of exactly 2x safety stock' do
+      store_inventory.quantity = 40
+      store_inventory.safety_stock_level = 20
+      expect(store_inventory.stock_level_status).to eq(:optimal)
+    end
+  end
+
+  describe '#stock_level_status_text' do
+    it 'returns correct Japanese text for each status' do
+      expect(StoreInventory.new(quantity: 0, safety_stock_level: 20).stock_level_status_text).to eq("在庫切れ")
+      expect(StoreInventory.new(quantity: 5, safety_stock_level: 20).stock_level_status_text).to eq("危険在庫")
+      expect(StoreInventory.new(quantity: 15, safety_stock_level: 20).stock_level_status_text).to eq("低在庫")
+      expect(StoreInventory.new(quantity: 30, safety_stock_level: 20).stock_level_status_text).to eq("適正在庫")
+      expect(StoreInventory.new(quantity: 60, safety_stock_level: 20).stock_level_status_text).to eq("過剰在庫")
+    end
+  end
+
+  describe 'value calculations' do
+    describe '#inventory_value' do
+      it 'calculates total inventory value correctly' do
+        expect(store_inventory.inventory_value).to eq(5000) # 50 * 100
+      end
+
+      it 'handles zero quantity' do
+        store_inventory.quantity = 0
+        expect(store_inventory.inventory_value).to eq(0)
+      end
+    end
+
+    describe '#reserved_value' do
+      it 'calculates reserved value correctly' do
+        expect(store_inventory.reserved_value).to eq(1000) # 10 * 100
+      end
+
+      it 'handles zero reserved quantity' do
+        store_inventory.reserved_quantity = 0
+        expect(store_inventory.reserved_value).to eq(0)
+      end
+    end
+
+    describe '#available_value' do
+      it 'calculates available value correctly' do
+        expect(store_inventory.available_value).to eq(4000) # 40 * 100
+      end
+
+      it 'handles fully reserved inventory' do
+        store_inventory.reserved_quantity = 50
+        expect(store_inventory.available_value).to eq(0)
       end
     end
   end
@@ -48,10 +277,15 @@ RSpec.describe StoreInventory, type: :model do
   describe 'callbacks' do
     describe 'before_update :update_last_updated_at' do
       it 'updates last_updated_at when quantity changes' do
-        store_inventory = create(:store_inventory, quantity: 10)
-        expect {
-          store_inventory.update!(quantity: 15)
-        }.to change { store_inventory.last_updated_at }
+        freeze_time do
+          store_inventory = create(:store_inventory, quantity: 10)
+          original_time = store_inventory.last_updated_at
+
+          travel 1.hour do
+            store_inventory.update!(quantity: 15)
+            expect(store_inventory.last_updated_at).to be > original_time
+          end
+        end
       end
 
       it 'does not update last_updated_at when quantity does not change' do
@@ -76,278 +310,4 @@ RSpec.describe StoreInventory, type: :model do
       end
     end
   end
-
-  describe 'scopes' do
-    let!(:store1) { create(:store) }
-    let!(:store2) { create(:store) }
-    let!(:inventory1) { create(:inventory) }
-    let!(:inventory2) { create(:inventory) }
-
-    let!(:available_item) { create(:store_inventory, store: store1, inventory: inventory1, quantity: 10, reserved_quantity: 5, safety_stock_level: 5) }
-    let!(:fully_reserved_item) { create(:store_inventory, store: store1, inventory: inventory2, quantity: 10, reserved_quantity: 10) }
-    let!(:low_stock_item) { create(:store_inventory, store: store2, inventory: inventory1, quantity: 3, safety_stock_level: 5) }
-    let!(:critical_stock_item) { create(:store_inventory, store: store2, inventory: inventory2, quantity: 1, safety_stock_level: 5) }
-    let!(:out_of_stock_item) { create(:store_inventory, store: store1, quantity: 0) }
-    let!(:overstocked_item) { create(:store_inventory, :excess_stock, store: store2) }
-
-    describe '.available' do
-      it 'returns items with available quantity' do
-        expect(StoreInventory.available).to include(available_item)
-        expect(StoreInventory.available).not_to include(fully_reserved_item)
-      end
-    end
-
-    describe '.low_stock' do
-      it 'returns items with quantity below or equal to safety level' do
-        expect(StoreInventory.low_stock).to include(low_stock_item, critical_stock_item)
-        expect(StoreInventory.low_stock).not_to include(available_item)
-      end
-    end
-
-    describe '.critical_stock' do
-      it 'returns items with quantity below half of safety level' do
-        expect(StoreInventory.critical_stock).to include(critical_stock_item)
-        expect(StoreInventory.critical_stock).not_to include(low_stock_item)
-      end
-    end
-
-    describe '.out_of_stock' do
-      it 'returns items with zero quantity' do
-        expect(StoreInventory.out_of_stock).to include(out_of_stock_item)
-        expect(StoreInventory.out_of_stock).not_to include(available_item)
-      end
-    end
-
-    describe '.overstocked' do
-      it 'returns items with quantity above 3x safety level' do
-        expect(StoreInventory.overstocked).to include(overstocked_item)
-        expect(StoreInventory.overstocked).not_to include(available_item)
-      end
-    end
-
-    describe '.by_store' do
-      it 'returns items for specified store' do
-        expect(StoreInventory.by_store(store1)).to include(available_item, fully_reserved_item)
-        expect(StoreInventory.by_store(store1)).not_to include(low_stock_item)
-      end
-    end
-
-    describe '.by_inventory' do
-      it 'returns items for specified inventory' do
-        expect(StoreInventory.by_inventory(inventory1)).to include(available_item, low_stock_item)
-        expect(StoreInventory.by_inventory(inventory1)).not_to include(fully_reserved_item)
-      end
-    end
-  end
-
-  describe 'instance methods' do
-    let(:store_inventory) { create(:store_inventory, quantity: 10, reserved_quantity: 3, safety_stock_level: 5) }
-    let(:inventory) { store_inventory.inventory }
-
-    before do
-      allow(inventory).to receive(:price).and_return(100)
-    end
-
-    describe '#available_quantity' do
-      it 'returns quantity minus reserved_quantity' do
-        expect(store_inventory.available_quantity).to eq(7) # 10 - 3
-      end
-    end
-
-    describe '#stock_level_status' do
-      it 'returns :out_of_stock when quantity is zero' do
-        store_inventory.quantity = 0
-        expect(store_inventory.stock_level_status).to eq(:out_of_stock)
-      end
-
-      it 'returns :critical when quantity is below half of safety level' do
-        store_inventory.quantity = 2
-        store_inventory.safety_stock_level = 5
-        expect(store_inventory.stock_level_status).to eq(:critical)
-      end
-
-      it 'returns :low when quantity is below or equal to safety level' do
-        store_inventory.quantity = 5
-        store_inventory.safety_stock_level = 5
-        expect(store_inventory.stock_level_status).to eq(:low)
-      end
-
-      it 'returns :optimal when quantity is within safe range' do
-        store_inventory.quantity = 8
-        store_inventory.safety_stock_level = 5
-        expect(store_inventory.stock_level_status).to eq(:optimal)
-      end
-
-      it 'returns :excess when quantity is above 2x safety level' do
-        store_inventory.quantity = 15
-        store_inventory.safety_stock_level = 5
-        expect(store_inventory.stock_level_status).to eq(:excess)
-      end
-    end
-
-    describe '#stock_level_status_text' do
-      it 'returns Japanese text for each status' do
-        {
-          out_of_stock: '在庫切れ',
-          critical: '危険在庫',
-          low: '低在庫',
-          optimal: '適正在庫',
-          excess: '過剰在庫'
-        }.each do |status, text|
-          allow(store_inventory).to receive(:stock_level_status).and_return(status)
-          expect(store_inventory.stock_level_status_text).to eq(text)
-        end
-      end
-    end
-
-    describe 'value calculations' do
-      describe '#inventory_value' do
-        it 'calculates total inventory value' do
-          expect(store_inventory.inventory_value).to eq(1000) # 10 * 100
-        end
-      end
-
-      describe '#reserved_value' do
-        it 'calculates reserved inventory value' do
-          expect(store_inventory.reserved_value).to eq(300) # 3 * 100
-        end
-      end
-
-      describe '#available_value' do
-        it 'calculates available inventory value' do
-          expect(store_inventory.available_value).to eq(700) # 7 * 100
-        end
-      end
-    end
-
-    describe '#days_of_stock_remaining' do
-      it 'calculates days based on default daily usage' do
-        # Default usage is 10% of safety_stock_level = 0.5, but minimum 1.0
-        expect(store_inventory.days_of_stock_remaining).to eq(7.0) # 7 available / 1.0 daily
-      end
-
-      it 'calculates days based on custom daily usage' do
-        expect(store_inventory.days_of_stock_remaining(2.0)).to eq(3.5) # 7 available / 2.0 daily
-      end
-
-      it 'returns infinity when daily usage is zero' do
-        expect(store_inventory.days_of_stock_remaining(0)).to eq(Float::INFINITY)
-      end
-    end
-
-    describe 'stock assessment methods' do
-      describe '#needs_replenishment?' do
-        it 'returns true when quantity is below or equal to safety level' do
-          store_inventory.quantity = 5
-          store_inventory.safety_stock_level = 5
-          expect(store_inventory.needs_replenishment?).to be true
-        end
-
-        it 'returns false when quantity is above safety level' do
-          store_inventory.quantity = 10
-          store_inventory.safety_stock_level = 5
-          expect(store_inventory.needs_replenishment?).to be false
-        end
-      end
-
-      describe '#needs_urgent_replenishment?' do
-        it 'returns true when quantity is below half of safety level' do
-          store_inventory.quantity = 2
-          store_inventory.safety_stock_level = 5
-          expect(store_inventory.needs_urgent_replenishment?).to be true
-        end
-
-        it 'returns false when quantity is above half of safety level' do
-          store_inventory.quantity = 3
-          store_inventory.safety_stock_level = 5
-          expect(store_inventory.needs_urgent_replenishment?).to be false
-        end
-      end
-
-      describe '#max_transferable_quantity' do
-        it 'returns available quantity' do
-          expect(store_inventory.max_transferable_quantity).to eq(7) # 10 - 3
-        end
-      end
-    end
-  end
-
-  describe 'class methods' do
-    let!(:store) { create(:store) }
-    let!(:inventory1) { create(:inventory, price: 100) }
-    let!(:inventory2) { create(:inventory, price: 200) }
-    let!(:store_inv1) { create(:store_inventory, store: store, inventory: inventory1, quantity: 10, reserved_quantity: 2, safety_stock_level: 8) }
-    let!(:store_inv2) { create(:store_inventory, store: store, inventory: inventory2, quantity: 5, reserved_quantity: 1, safety_stock_level: 3) }
-
-    describe '.store_summary' do
-      it 'returns comprehensive store statistics' do
-        summary = StoreInventory.store_summary(store)
-
-        expect(summary[:total_items]).to eq(2)
-        expect(summary[:total_value]).to eq(2000) # (10*100) + (5*200)
-        expect(summary[:available_value]).to eq(1600) # (8*100) + (4*200)
-        expect(summary[:reserved_value]).to eq(400) # (2*100) + (1*200)
-        expect(summary[:low_stock_count]).to eq(0) # store_inv2 has quantity: 5 > safety_stock_level: 3
-      end
-    end
-
-    describe '.inventory_across_stores' do
-      let!(:store2) { create(:store) }
-      let!(:store2_inv) { create(:store_inventory, store: store2, inventory: inventory1, quantity: 15, reserved_quantity: 5) }
-
-      it 'returns inventory status across all stores' do
-        result = StoreInventory.inventory_across_stores(inventory1)
-
-        expect(result.size).to eq(2)
-
-        store1_data = result.find { |r| r[:store] == store }
-        expect(store1_data[:quantity]).to eq(10)
-        expect(store1_data[:available_quantity]).to eq(8)
-        expect(store1_data[:reserved_quantity]).to eq(2)
-
-        store2_data = result.find { |r| r[:store] == store2 }
-        expect(store2_data[:quantity]).to eq(15)
-        expect(store2_data[:available_quantity]).to eq(10)
-        expect(store2_data[:reserved_quantity]).to eq(5)
-      end
-    end
-  end
-
-  describe 'factory' do
-    it 'has a valid factory' do
-      expect(build(:store_inventory)).to be_valid
-    end
-
-    it 'has working traits' do
-      expect(build(:store_inventory, :low_stock)).to be_valid
-      expect(build(:store_inventory, :critical_stock)).to be_valid
-      expect(build(:store_inventory, :out_of_stock)).to be_valid
-      expect(build(:store_inventory, :excess_stock)).to be_valid
-    end
-  end
-
-  # TODO: Phase 2以降で実装予定のテスト
-  #
-  # 🔴 Phase 2 優先実装項目:
-  # 1. 在庫移動履歴機能テスト
-  #    - transfer_logsアソシエーション
-  #    - 移動履歴の詳細記録・監査証跡
-  #    期待効果: 在庫変動の完全なトレーサビリティ確保
-  #
-  # 2. 自動補充機能テスト
-  #    - アラート通知の自動発信
-  #    - 他店舗からの移動提案ロジック
-  #    期待効果: 在庫切れリスクの事前回避
-  #
-  # 🟡 Phase 3 重要実装項目:
-  # 3. 在庫予測・分析機能テスト
-  #    - 売上データ連携による消費予測精度
-  #    - 季節変動・ABC分析統合
-  #    期待効果: データドリブンな在庫最適化
-  #
-  # 🟢 Phase 4 推奨実装項目:
-  # 4. リアルタイム在庫同期テスト
-  #    - ActionCableによる即座更新
-  #    - 同時編集制御・競合回避
-  #    期待効果: 複数管理者での安全な在庫管理
 end

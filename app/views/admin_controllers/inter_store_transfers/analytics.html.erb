@@ -238,36 +238,43 @@
               </h5>
             </div>
             <div class="card-body">
-              <% @trend_data[:status_distribution].each do |status, count| %>
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <span class="small">
-                    <% case status %>
-                    <% when "pending" %>
-                      <span class="badge bg-warning text-dark me-2">承認待ち</span>
-                    <% when "approved" %>
-                      <span class="badge bg-info text-dark me-2">承認済み</span>
-                    <% when "in_transit" %>
-                      <span class="badge bg-primary me-2">移動中</span>
-                    <% when "completed" %>
-                      <span class="badge bg-success me-2">完了</span>
-                    <% when "rejected" %>
-                      <span class="badge bg-danger me-2">却下</span>
-                    <% when "cancelled" %>
-                      <span class="badge bg-secondary me-2">キャンセル</span>
-                    <% end %>
-                  </span>
-                  <span class="fw-bold"><%= count %></span>
-                </div>
-                <div class="progress mb-3" style="height: 5px;">
-                  <% total_requests = @analytics[:total_requests] || 1 %>
-                  <% percentage = total_requests > 0 ? (count.to_f / total_requests * 100) : 0 %>
-                  <div class="progress-bar 
-                       <%= status == 'completed' ? 'bg-success' : 
-                           status == 'pending' ? 'bg-warning' : 
-                           status == 'rejected' ? 'bg-danger' : 'bg-info' %>" 
-                       role="progressbar" 
-                       style="width: <%= percentage %>%">
+              <% if @trend_data[:status_distribution].present? %>
+                <% @trend_data[:status_distribution].each do |status, count| %>
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="small">
+                      <% case status %>
+                      <% when "pending" %>
+                        <span class="badge bg-warning text-dark me-2">承認待ち</span>
+                      <% when "approved" %>
+                        <span class="badge bg-info text-dark me-2">承認済み</span>
+                      <% when "in_transit" %>
+                        <span class="badge bg-primary me-2">移動中</span>
+                      <% when "completed" %>
+                        <span class="badge bg-success me-2">完了</span>
+                      <% when "rejected" %>
+                        <span class="badge bg-danger me-2">却下</span>
+                      <% when "cancelled" %>
+                        <span class="badge bg-secondary me-2">キャンセル</span>
+                      <% end %>
+                    </span>
+                    <span class="fw-bold"><%= count %></span>
                   </div>
+                  <div class="progress mb-3" style="height: 5px;">
+                    <% total_requests = @analytics[:total_requests] || 1 %>
+                    <% percentage = total_requests > 0 ? (count.to_f / total_requests * 100) : 0 %>
+                    <div class="progress-bar 
+                         <%= status == 'completed' ? 'bg-success' : 
+                             status == 'pending' ? 'bg-warning' : 
+                             status == 'rejected' ? 'bg-danger' : 'bg-info' %>" 
+                         role="progressbar" 
+                         style="width: <%= percentage %>%">
+                    </div>
+                  </div>
+                <% end %>
+              <% else %>
+                <div class="text-center text-muted py-3">
+                  <i class="bi bi-info-circle me-2"></i>
+                  ステータス分布データがありません
                 </div>
               <% end %>
             </div>
@@ -281,7 +288,8 @@
               </h5>
             </div>
             <div class="card-body">
-              <% @trend_data[:priority_distribution].each do |priority, count| %>
+              <% if @trend_data[:priority_distribution].present? %>
+                <% @trend_data[:priority_distribution].each do |priority, count| %>
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <span class="small">
                     <% case priority %>
@@ -303,7 +311,13 @@
                            priority == 'urgent' ? 'bg-warning' : 'bg-secondary' %>" 
                        role="progressbar" 
                        style="width: <%= percentage %>%">
+                    </div>
                   </div>
+                <% end %>
+              <% else %>
+                <div class="text-center text-muted py-3">
+                  <i class="bi bi-info-circle me-2"></i>
+                  優先度分布データがありません
                 </div>
               <% end %>
             </div>

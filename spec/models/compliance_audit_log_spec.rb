@@ -57,9 +57,9 @@ RSpec.describe ComplianceAuditLog, type: :model do
       end
 
       it 'rejects invalid compliance standards' do
-        subject.compliance_standard = 'INVALID_STANDARD'
-        expect(subject).not_to be_valid
-        expect(subject.errors[:compliance_standard]).to include('は有効なコンプライアンス標準である必要があります')
+        expect {
+          subject.compliance_standard = 'INVALID_STANDARD'
+        }.to raise_error(ArgumentError, "'INVALID_STANDARD' is not a valid compliance_standard")
       end
     end
 
@@ -72,9 +72,9 @@ RSpec.describe ComplianceAuditLog, type: :model do
       end
 
       it 'rejects invalid severity levels' do
-        subject.severity = 'invalid_severity'
-        expect(subject).not_to be_valid
-        expect(subject.errors[:severity]).to include('は有効な重要度レベルである必要があります')
+        expect {
+          subject.severity = 'invalid_severity'
+        }.to raise_error(ArgumentError, "'invalid_severity' is not a valid severity")
       end
     end
   end

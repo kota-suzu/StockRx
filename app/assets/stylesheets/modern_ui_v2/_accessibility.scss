@@ -1,0 +1,276 @@
+// ============================================
+// Modern UI v2 - Accessibility Enhancements
+// ============================================
+// WCAG 2.1 AAA準拠のためのアクセシビリティ向上
+// ============================================
+
+@import 'tokens';
+
+// ============================================
+// Focus Indicators - 明確なフォーカス表示
+// ============================================
+
+// すべてのインタラクティブ要素に統一されたフォーカススタイル
+:focus-visible {
+  outline: 3px solid var(--color-primary-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+// Glassmorphism要素用の特別なフォーカススタイル
+.glass-card:focus-visible,
+.glass-button:focus-visible,
+.glass-input:focus-visible {
+  outline: 3px solid var(--color-primary-400);
+  outline-offset: 3px;
+  box-shadow: 
+    var(--glass-shadow-lg),
+    0 0 0 6px rgba(var(--color-primary-500), 0.2);
+}
+
+// ダークモードでのフォーカス調整
+[data-theme="dark"] {
+  :focus-visible {
+    outline-color: var(--color-primary-400);
+  }
+}
+
+// ============================================
+// Contrast Enhancements - コントラスト強化
+// ============================================
+
+// Glassmorphism背景でのテキストコントラスト確保
+.glass-surface {
+  // テキストシャドウで可読性向上
+  * {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  // ダークモードでの調整
+  [data-theme="dark"] & {
+    * {
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+  }
+}
+
+// 高コントラストモード対応
+@media (prefers-contrast: high) {
+  // 背景とテキストの強化
+  .glass-card {
+    background: var(--bg-primary) !important;
+    border: 2px solid var(--text-primary) !important;
+    backdrop-filter: none !important;
+  }
+  
+  // ボタンのコントラスト強化
+  .btn-modern {
+    border: 2px solid currentColor !important;
+    font-weight: var(--font-bold) !important;
+  }
+  
+  // フォーカス表示の強化
+  :focus-visible {
+    outline-width: 4px !important;
+    outline-style: solid !important;
+  }
+}
+
+// ============================================
+// Motion Preferences - 動作設定の尊重
+// ============================================
+
+@media (prefers-reduced-motion: reduce) {
+  // すべてのアニメーションを無効化
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-delay: 0ms !important;
+  }
+  
+  // スクロール動作の簡素化
+  html {
+    scroll-behavior: auto !important;
+  }
+  
+  // Glassmorphism効果の静的化
+  .glass-surface {
+    backdrop-filter: none !important;
+    background: var(--card-bg) !important;
+  }
+}
+
+// ============================================
+// Screen Reader Utilities - スクリーンリーダー対応
+// ============================================
+
+// 視覚的に隠すが、スクリーンリーダーには読み上げられる
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// フォーカス時のみ表示（スキップリンクなど）
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+// ============================================
+// ARIA Live Regions - 動的コンテンツの通知
+// ============================================
+
+// ステータスメッセージ用
+[role="status"] {
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    left: -10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 80%;
+    background: var(--color-primary-500);
+    border-radius: var(--radius-sm);
+  }
+}
+
+// アラートメッセージ用
+[role="alert"] {
+  font-weight: var(--font-semibold);
+  
+  &::before {
+    content: '⚠️ ';
+    margin-right: var(--space-2);
+  }
+}
+
+// ============================================
+// Keyboard Navigation - キーボードナビゲーション
+// ============================================
+
+// タブ順序の可視化（開発時のみ）
+.show-tab-order {
+  [tabindex]:focus::after {
+    content: attr(tabindex);
+    position: absolute;
+    top: -20px;
+    left: 0;
+    background: var(--color-primary-500);
+    color: white;
+    padding: 2px 6px;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-sm);
+  }
+}
+
+// スキップリンク
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--color-primary-500);
+  color: white;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  z-index: var(--z-tooltip);
+  
+  &:focus {
+    top: var(--space-2);
+  }
+}
+
+// ============================================
+// Form Accessibility - フォームアクセシビリティ
+// ============================================
+
+// 必須フィールドの明示
+.form-control[required],
+.form-control[aria-required="true"] {
+  border-left: 3px solid var(--color-primary-500);
+  
+  &:invalid {
+    border-left-color: var(--status-error);
+  }
+}
+
+// エラーメッセージの関連付け
+.form-error {
+  color: var(--status-error);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+  
+  &::before {
+    content: '❌ ';
+    margin-right: var(--space-1);
+  }
+}
+
+// ============================================
+// Color Blind Support - 色覚異常対応
+// ============================================
+
+// 色だけに依存しないステータス表示
+.status-indicator {
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-right: var(--space-2);
+    border-radius: var(--radius-full);
+    border: 2px solid currentColor;
+  }
+  
+  &.status-success::before {
+    background: var(--status-success);
+    content: '✓';
+    color: white;
+    text-align: center;
+    line-height: 8px;
+    font-size: 8px;
+  }
+  
+  &.status-error::before {
+    background: var(--status-error);
+    content: '×';
+    color: white;
+    text-align: center;
+    line-height: 8px;
+    font-size: 8px;
+  }
+  
+  &.status-warning::before {
+    background: var(--status-warning);
+    content: '!';
+    color: black;
+    text-align: center;
+    line-height: 8px;
+    font-size: 8px;
+    font-weight: bold;
+  }
+}
+
+// TODO: Phase 5 - 追加のアクセシビリティ機能
+// - 音声ガイダンス対応
+// - タッチターゲットサイズの最適化（48x48px）
+// - カスタムフォーカストラップ実装
+// - ARIAライブリージョンの自動管理

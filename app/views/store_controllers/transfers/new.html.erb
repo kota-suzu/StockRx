@@ -42,8 +42,9 @@
       </div>
       
       <div>
-        <%= link_to store_transfers_path, class: "btn btn-secondary" do %>
-          <i class="bi bi-arrow-left me-1"></i>一覧に戻る
+        <%= link_to store_transfers_path, class: "btn btn-primary d-flex align-items-center justify-content-center" do %>
+          <i class="bi bi-arrow-left me-2"></i>
+          一覧に戻る
         <% end %>
       </div>
     </div>
@@ -53,15 +54,15 @@
 <% if @transfer.present? %>
   <div class="row justify-content-center">
     <div class="col-lg-8">
-      <div class="card">
+      <div class="card shadow-sm bg-white">
         <div class="card-header bg-primary text-white">
           <h5 class="card-title mb-0">
             <i class="bi bi-form me-2"></i>申請フォーム
           </h5>
         </div>
         
-        <div class="card-body">
-          <%= form_with model: [@transfer], url: store_transfers_path, local: true do |f| %>
+        <div class="card-body bg-white">
+          <%= form_with model: [@transfer], url: store_transfers_path, local: true, class: "bg-white" do |f| %>
             <%# エラー表示 %>
             <% if @transfer.errors.any? %>
               <div class="alert alert-danger">
@@ -74,10 +75,10 @@
               </div>
             <% end %>
 
-            <div class="row g-3">
+            <div class="row g-3 bg-white p-3 rounded">
               <%# 商品選択 %>
               <div class="col-md-6">
-                <%= f.label :inventory_id, "商品", class: "form-label" %>
+                <%= f.label :inventory_id, "商品", class: "form-label fw-bold" %>
                 <% if defined?(@available_inventories) && @available_inventories.present? %>
                   <%# 🔧 修正: StoreInventoryから関連先のInventoryデータを正しく取得 %>
                   <%# CLAUDE.md準拠: 関連データの適切なアクセス方法実装 %>
@@ -103,7 +104,7 @@
 
               <%# 送付先店舗 %>
               <div class="col-md-6">
-                <%= f.label :destination_store_id, "送付先店舗", class: "form-label" %>
+                <%= f.label :destination_store_id, "送付先店舗", class: "form-label fw-bold" %>
                 <% if defined?(@destination_stores) && @destination_stores.present? %>
                   <%= f.select :destination_store_id,
                                options_from_collection_for_select(@destination_stores, :id, :name, @transfer.destination_store_id),
@@ -118,7 +119,7 @@
 
               <%# 数量 %>
               <div class="col-md-6">
-                <%= f.label :quantity, "数量", class: "form-label" %>
+                <%= f.label :quantity, "数量", class: "form-label fw-bold" %>
                 <%= f.number_field :quantity, 
                                    class: "form-control", 
                                    min: 1, 
@@ -128,7 +129,7 @@
 
               <%# 優先度 %>
               <div class="col-md-6">
-                <%= f.label :priority, "優先度", class: "form-label" %>
+                <%= f.label :priority, "優先度", class: "form-label fw-bold" %>
                 <%= f.select :priority,
                              options_for_select([
                                ['通常', 'normal'],
@@ -141,7 +142,7 @@
 
               <%# 希望配送日 %>
               <div class="col-md-6">
-                <%= f.label :requested_delivery_date, "希望配送日", class: "form-label" %>
+                <%= f.label :requested_delivery_date, "希望配送日", class: "form-label fw-bold" %>
                 <%= f.date_field :requested_delivery_date, 
                                  class: "form-control",
                                  min: Date.tomorrow %>
@@ -150,7 +151,7 @@
 
               <%# 理由 %>
               <div class="col-12">
-                <%= f.label :reason, "移動理由", class: "form-label" %>
+                <%= f.label :reason, "移動理由", class: "form-label fw-bold" %>
                 <%= f.select :reason,
                              options_for_select([
                                ['在庫不足', '在庫不足'],
@@ -165,7 +166,7 @@
 
               <%# 備考 %>
               <div class="col-12">
-                <%= f.label :notes, "備考", class: "form-label" %>
+                <%= f.label :notes, "備考", class: "form-label fw-bold" %>
                 <%= f.text_area :notes, 
                                 class: "form-control", 
                                 rows: 3,

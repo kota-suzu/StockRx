@@ -225,7 +225,12 @@
           
           <% if @activities.any? %>
             <div class="card-footer">
-              <%= paginate @activities %>
+              <% begin %>
+                <%= paginate @activities, theme: :custom_bootstrap_5 %>
+              <% rescue => e %>
+                <!-- 緊急時フォールバック: デフォルトページネーション -->
+                <%= paginate @activities %>
+              <% end %>
             </div>
           <% end %>
         </div>

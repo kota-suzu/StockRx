@@ -156,8 +156,10 @@ module AuditLogViewer
                      .sort_by { |_, count| -count }
                      .first(10)
                      .map { |user_id, count|
+                       user = resolve_user_for_stats(user_id)
                        {
-                         user: User.find_by(id: user_id),
+                         user: user,
+                         user_display: user&.display_name || "不明なユーザー",
                          count: count
                        }
                      }
@@ -211,6 +213,29 @@ module AuditLogViewer
     end
 
     anomalies
+  end
+
+  private
+
+  # ユーザー統計用のユーザー解決メソッド
+  # CLAUDE.md準拠: 多態性ユーザーモデル対応
+  def resolve_user_for_stats(user_id)
+    # メタ認知: AuditLogは通常Adminのみを参照するため、Admin.find_byが適切
+    # 将来のComplianceAuditLog対応も考慮した拡張可能な設計
+    # 横展開: 他のログ系機能での統一的なユーザー解決パターン
+    return nil if user_id.blank? || !user_id.is_a?(Integer)
+
+    # セキュリティ: 削除済み・無効なAdminは除外
+    # 通常のAuditLogの場合はAdminを検索
+    # TODO: 🟡 Phase 4（重要）- 真の多態性ログ対応
+    #   - ComplianceAuditLogなど他のログタイプのサポート
+    #   - user_typeカラムの活用
+    #   - 統一的なログ管理インターフェースの構築
+    #   - キャッシュ機能の追加（大量ユーザー対応）
+    Admin.find_by(id: user_id)&.tap do |admin|
+      # 追加のセキュリティチェック（必要に応じて）
+      # admin if admin.active?
+    end
   end
 end
 

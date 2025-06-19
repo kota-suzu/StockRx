@@ -19,16 +19,16 @@
   @include smooth-transition();
   @include high-contrast-support();
   
-  // 強化された影とボーダー
-  box-shadow: var(--shadow-md) !important;
-  border: 1px solid var(--border-primary) !important;
+  // 軽減された影とボーダー
+  box-shadow: var(--shadow-sm) !important;
+  border: 1px solid var(--border-light) !important;
   background-color: var(--bg-card) !important;
   
-  // ホバー時の強化効果
+  // ホバー時の軽減効果
   &:hover {
-    box-shadow: var(--shadow-lg) !important;
-    transform: translateY(-2px);
-    border-color: var(--border-secondary);
+    box-shadow: var(--shadow-md) !important;
+    transform: translateY(-1px);
+    border-color: var(--border-primary);
   }
   
   // カードボディの統一スタイル
@@ -77,20 +77,20 @@
 // カードバリアント（特定用途向け）
 // ========================================
 
-// ダッシュボード用統計カード
+// ダッシュボード用統計カード（軽減版）
 .dashboard-card {
   @include card-base();
-  @include card-hover-effect(translateY(-4px), var(--shadow-xl));
+  @include card-hover-effect(translateY(-2px), var(--shadow-md));
   @include smooth-transition();
   
   cursor: pointer;
-  border-left: 4px solid var(--section-primary);
-  box-shadow: var(--shadow-md);
+  border-left: 3px solid var(--section-primary);
+  box-shadow: var(--shadow-sm);
   background-color: var(--bg-card);
   
   &:hover {
-    box-shadow: var(--shadow-xl);
-    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
   }
   
   .card-body {

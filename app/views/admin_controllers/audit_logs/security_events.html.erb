@@ -185,7 +185,12 @@
           
           <% if @security_events.any? %>
             <div class="card-footer">
-              <%= paginate @security_events %>
+              <% begin %>
+                <%= paginate @security_events, theme: :custom_bootstrap_5 %>
+              <% rescue => e %>
+                <!-- 緊急時フォールバック: デフォルトページネーション -->
+                <%= paginate @security_events %>
+              <% end %>
             </div>
           <% end %>
         </div>

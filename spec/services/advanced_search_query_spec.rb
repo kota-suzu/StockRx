@@ -563,7 +563,7 @@ RSpec.describe AdvancedSearchQuery, "在庫数範囲フィルター" do
         results = described_class.build
                                .in_range("quantity", 10, nil)
                                .results
-        
+
         expect(results).to include(inventory_medium, inventory_high)
         expect(results).not_to include(inventory_low, inventory_zero)
       end
@@ -572,7 +572,7 @@ RSpec.describe AdvancedSearchQuery, "在庫数範囲フィルター" do
         results = described_class.build
                                .in_range("quantity", nil, 100)
                                .results
-        
+
         expect(results).to include(inventory_low, inventory_medium, inventory_zero)
         expect(results).not_to include(inventory_high)
       end
@@ -581,7 +581,7 @@ RSpec.describe AdvancedSearchQuery, "在庫数範囲フィルター" do
         results = described_class.build
                                .in_range("quantity", 10, 100)
                                .results
-        
+
         expect(results).to include(inventory_medium)
         expect(results).not_to include(inventory_low, inventory_high, inventory_zero)
       end
@@ -590,7 +590,7 @@ RSpec.describe AdvancedSearchQuery, "在庫数範囲フィルター" do
         results = described_class.build
                                .in_range("quantity", 0, 50)
                                .results
-        
+
         expect(results).to include(inventory_low, inventory_medium, inventory_zero)
         expect(results).not_to include(inventory_high)
       end
@@ -599,10 +599,10 @@ RSpec.describe AdvancedSearchQuery, "在庫数範囲フィルター" do
     context "他の検索条件との組み合わせ" do
       it "キーワード検索と在庫数範囲を組み合わせて使用できる" do
         results = described_class.build
-                               .search_keywords("Stock", fields: [:name])
+                               .search_keywords("Stock", fields: [ :name ])
                                .in_range("quantity", 10, 100)
                                .results
-        
+
         expect(results).to include(inventory_medium)
         expect(results).not_to include(inventory_low, inventory_high, inventory_zero)
       end
@@ -612,7 +612,7 @@ RSpec.describe AdvancedSearchQuery, "在庫数範囲フィルター" do
                                .in_range("price", 1000, 2500)
                                .in_range("quantity", 5, 100)
                                .results
-        
+
         expect(results).to include(inventory_low, inventory_medium)
         expect(results).not_to include(inventory_high, inventory_zero)
       end
@@ -623,7 +623,7 @@ RSpec.describe AdvancedSearchQuery, "在庫数範囲フィルター" do
         results = described_class.build
                                .in_range("quantity", 50, 50)
                                .results
-        
+
         expect(results).to include(inventory_medium)
         expect(results).not_to include(inventory_low, inventory_high, inventory_zero)
       end
@@ -632,7 +632,7 @@ RSpec.describe AdvancedSearchQuery, "在庫数範囲フィルター" do
         results = described_class.build
                                .in_range("quantity", 300, 500)
                                .results
-        
+
         expect(results).to be_empty
       end
     end

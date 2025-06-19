@@ -24,7 +24,8 @@ module AdminControllers
     end
 
     def show
-      # 🔍 店舗詳細情報: 関連データ事前ロード
+      # 🔍 店舗詳細情報: 関連データ事前ロード（N+1問題解決）
+      # Bullet gemの指摘に基づく最適化：必要な関連データのみを事前読み込み
       @store_inventories = @store.store_inventories
                                  .includes(:inventory)
                                  .page(params[:page])
@@ -33,7 +34,7 @@ module AdminControllers
       # 📊 店舗固有統計
       @store_stats = calculate_store_detailed_stats(@store)
 
-      # 📋 最近の移動履歴
+      # 📋 最近の移動履歴（N+1問題解決済み）
       @recent_transfers = load_recent_transfers(@store)
     end
 
@@ -144,8 +145,12 @@ module AdminControllers
       # CLAUDE.md準拠: パフォーマンス最適化 - アクション別に必要な関連データのみを読み込み
       # メタ認知: show/editアクションは関連データが必要、update/destroyは基本情報のみで十分
       case action_name
-      when "show", "edit", "dashboard"
-        # 詳細表示・編集・ダッシュボード: 関連データを含む包括的なデータを読み込み
+      when "show"
+        # showアクション: パフォーマンス最適化のためminimal includesを使用
+        # Bulletgemの指摘に基づき、不要なincludesを除去
+        @store = Store.find(params[:id])
+      when "edit", "dashboard"
+        # 編集・ダッシュボード: 関連データを含む包括的なデータを読み込み
         @store = Store.includes(:store_inventories, :admins, :outgoing_transfers, :incoming_transfers)
                       .find(params[:id])
       else
@@ -279,8 +284,15 @@ module AdminControllers
 
     def load_recent_transfers(store)
       # 📋 最近の移動履歴（出入庫両方）
-      outgoing = store.outgoing_transfers.recent.limit(3)
-      incoming = store.incoming_transfers.recent.limit(3)
+      # N+1問題解決: source_store, destination_store, inventoryを事前読み込み
+      outgoing = store.outgoing_transfers
+                     .includes(:source_store, :destination_store, :inventory)
+                     .recent
+                     .limit(3)
+      incoming = store.incoming_transfers
+                     .includes(:source_store, :destination_store, :inventory)
+                     .recent
+                     .limit(3)
 
       (outgoing + incoming).sort_by(&:requested_at).reverse.first(5)
     end

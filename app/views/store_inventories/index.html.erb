@@ -82,23 +82,49 @@
     </div>
   </div>
 
-  <%# 検索フォーム %>
+  <%# リアルタイム検索フォーム %>
   <div class="card mb-4 shadow-sm">
     <div class="card-body">
-      <%= form_with url: store_inventories_path(@store), method: :get, local: true, class: "row g-3" do |f| %>
-        <div class="col-md-8">
-          <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <%= text_field_tag :q, params[:q], 
-                class: "form-control", 
-                placeholder: "商品名・SKUで検索...",
-                autocomplete: "off" %>
+      <div class="search-results-container">
+        <%= form_with url: store_inventories_path(@store), method: :get, local: true, class: "row g-3" do |f| %>
+          <div class="col-md-8">
+            <div class="input-group position-relative">
+              <span class="input-group-text"><i class="bi bi-search search-icon"></i></span>
+              <%= text_field_tag :q, params[:q], 
+                  class: "form-control", 
+                  placeholder: "商品名・SKUで検索... (リアルタイム検索対応)",
+                  autocomplete: "off",
+                  data: { 
+                    realtime_search: "input",
+                    search_endpoint: store_inventories_path(@store)
+                  } %>
+            </div>
+            
+            <%# リアルタイム検索結果表示エリア %>
+            <div class="search-results-dropdown" data-realtime-search="results" aria-hidden="true">
+              <%# JavaScriptで動的に更新 %>
+            </div>
+            
+            <%# ローディング表示 %>
+            <div class="search-loading-indicator d-none" data-realtime-search="loading">
+              <div class="d-flex align-items-center text-muted p-3">
+                <div class="spinner-border spinner-border-sm me-2" role="status">
+                  <span class="visually-hidden">検索中...</span>
+                </div>
+                検索中...
+              </div>
+            </div>
           </div>
-        </div>
-        <div class="col-md-4">
-          <%= submit_tag "検索", class: "btn btn-primary w-100" %>
-        </div>
-      <% end %>
+          <div class="col-md-4">
+            <%= submit_tag "検索", class: "btn btn-primary w-100" %>
+            <small class="form-text text-muted mt-1">
+              <%# リアルタイム検索の使用説明 %>
+              <i class="bi bi-info-circle"></i>
+              入力と同時に検索結果を表示
+            </small>
+          </div>
+        <% end %>
+      </div>
     </div>
   </div>
 
@@ -158,7 +184,12 @@
         
         <%# ページネーション %>
         <div class="card-footer">
-          <%= paginate @store_inventories %>
+          <% begin %>
+            <%= paginate @store_inventories, theme: :custom_bootstrap_5 %>
+          <% rescue => e %>
+            <!-- 緊急時フォールバック: デフォルトページネーション -->
+            <%= paginate @store_inventories %>
+          <% end %>
         </div>
       <% else %>
         <div class="p-5 text-center">

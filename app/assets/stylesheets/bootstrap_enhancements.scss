@@ -36,6 +36,27 @@
 .min-vh-50 { min-height: 50vh !important; }
 .min-vh-75 { min-height: 75vh !important; }
 
+/* テキストカラークラスのオーバーライド - WCAG AA準拠 */
+/* CLAUDE.md準拠: コントラスト比4.5:1以上を確保 */
+.text-muted {
+  color: var(--text-muted) !important;  /* CSS変数を使用して一元管理 */
+}
+
+.text-secondary {
+  color: var(--text-secondary) !important;  /* CSS変数を使用して一元管理 */
+}
+
+/* ダークモードでの調整 */
+[data-theme="dark"] {
+  .text-muted {
+    color: var(--text-muted) !important;
+  }
+  
+  .text-secondary {
+    color: var(--text-secondary) !important;
+  }
+}
+
 /* ガター（間隔）システム拡張 */
 .g-xs { gap: var(--bs-spacing-xs) !important; }
 .g-sm { gap: var(--bs-spacing-sm) !important; }

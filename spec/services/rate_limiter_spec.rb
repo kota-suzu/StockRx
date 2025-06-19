@@ -12,6 +12,8 @@ RSpec.describe RateLimiter do
   before do
     # テスト前にRedisをクリーンアップ
     redis.flushdb
+    # Redisのモック設定
+    allow(Redis).to receive(:new).and_return(redis)
   end
 
   after do

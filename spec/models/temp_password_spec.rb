@@ -345,7 +345,7 @@ RSpec.describe TempPassword, type: :model do
     describe ".generate_secure_password" do
       it "generates password of default length" do
         password = TempPassword.generate_secure_password
-        expect(password.length).to eq(8)
+        expect(password.length).to eq(6) # デフォルトは6桁に変更済み
         expect(password).to match(/\A\d+\z/)
       end
 

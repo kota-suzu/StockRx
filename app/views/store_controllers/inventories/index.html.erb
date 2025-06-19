@@ -1,507 +1,634 @@
-<%# 店舗在庫一覧ビュー %>
-<%# CLAUDE.md準拠: ベストプラクティス - 店舗ユーザー向けの直感的な在庫管理画面 %>
-<%# メタ認知: 管理者画面とは異なり、店舗運営に必要な機能のみに特化 %>
-<%# 横展開: 他の店舗一覧画面でも同様のUIパターンを適用 %>
+<%# 店舗在庫一覧ビュー - Bootstrap Modern UI %>
+<%# CLAUDE.md準拠: 最新Bootstrap 5 + モダンUIデザインシステム %>
+<%# メタ認知: 店舗スタッフの作業効率とユーザビリティを重視 %>
+<%# 横展開: 全店舗画面で統一されたモダンUI体験 %>
 
 <% content_for :title, "在庫管理" %>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <h1 class="h3 mb-1">
-      <i class="bi bi-box-seam me-2"></i>在庫管理
-    </h1>
-    <p class="text-muted mb-0">
-      <% if @authenticated_access && current_store %>
-        <%= current_store.name %> の在庫状況
-      <% else %>
-        公開在庫情報
-      <% end %>
-    </p>
-  </div>
-  
-  <div class="d-flex gap-2">
-    <%# CLAUDE.md準拠: CSV出力機能実装完了 %>
-    <%# メタ認知: 店舗業務の効率化とデータ活用促進 %>
-    <%# セキュリティ: 認証済みユーザーのみアクセス可能 %>
-    <%# 横展開: 他の一覧画面でも同様のCSV出力パターン適用可能 %>
-    <% if @authenticated_access && current_store %>
-      <%= link_to "/store/inventories.csv?#{request.query_string}", 
-                  class: "btn btn-outline-success",
-                  title: "在庫データをCSVファイルでダウンロード",
-                  data: { 
-                    bs_toggle: "tooltip", 
-                    bs_placement: "bottom",
-                    confirm: "在庫データ（#{@store_inventories.total_count}件）をCSVでダウンロードしますか？"
-                  } do %>
-        <i class="bi bi-download me-1"></i>CSV出力
-      <% end %>
-    <% else %>
-      <button class="btn btn-outline-success" disabled title="ログインが必要です">
-        <i class="bi bi-download me-1"></i>CSV出力
-      </button>
-    <% end %>
-    
-    <%# TODO: 🟡 Phase 3（重要）- 在庫調整機能 %>
-    <%# 優先度: 中（棚卸し対応） %>
-    <%# 実装内容: 実在庫数と帳簿在庫数の調整機能 %>
-    <%# メタ認知: 日常的な店舗業務で必須の機能 %>
-    <button class="btn btn-primary" disabled>
-      <i class="bi bi-clipboard-check me-1"></i>在庫調整
-    </button>
-  </div>
-</div>
-
-<%# 統計サマリー（認証済みのみ表示） %>
-<% if @authenticated_access && @statistics %>
-<div class="row g-3 mb-4">
-  <div class="col-sm-6 col-lg-3">
-    <div class="card bg-primary text-white">
-      <div class="card-body">
-        <div class="d-flex align-items-center">
-          <div class="me-3">
-            <i class="bi bi-boxes display-6"></i>
-          </div>
-          <div>
-            <div class="h4 mb-0"><%= @statistics[:total_items] %></div>
-            <div class="small">商品種類</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="col-sm-6 col-lg-3">
-    <div class="card bg-success text-white">
-      <div class="card-body">
-        <div class="d-flex align-items-center">
-          <div class="me-3">
-            <i class="bi bi-stack display-6"></i>
-          </div>
-          <div>
-            <div class="h4 mb-0"><%= number_with_delimiter(@statistics[:total_quantity]) %></div>
-            <div class="small">総在庫数</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="col-sm-6 col-lg-3">
-    <div class="card bg-info text-white">
-      <div class="card-body">
-        <div class="d-flex align-items-center">
-          <div class="me-3">
-            <i class="bi bi-currency-yen display-6"></i>
-          </div>
-          <div>
-            <div class="h4 mb-0">¥<%= number_with_delimiter(@statistics[:total_value]) %></div>
-            <div class="small">総在庫金額</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <div class="col-sm-6 col-lg-3">
-    <div class="card bg-warning text-dark">
-      <div class="card-body">
-        <div class="d-flex align-items-center">
-          <div class="me-3">
-            <i class="bi bi-exclamation-triangle display-6"></i>
-          </div>
-          <div>
-            <div class="h4 mb-0"><%= @statistics[:low_stock_percentage] %>%</div>
-            <div class="small">低在庫率</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-<% end %>
-
-<%# 検索・フィルター %>
-<div class="card mb-4">
-  <div class="card-header">
-    <h5 class="card-title mb-0">
-      <i class="bi bi-funnel me-2"></i>検索・フィルター
-    </h5>
-  </div>
-  <div class="card-body">
-    <%# CLAUDE.md準拠: 横展開 - ルーティング衝突問題の解決 %>
-    <%# メタ認知: 公開ルート(/stores/:store_id/inventories)と認証済みルート(/store/inventories)の区別 %>
-    <%# ベストプラクティス: 明示的パス指定で曖昧性を排除 %>
-    <%# CLAUDE.md準拠: ransack削除後の代替実装 %>
-    <%# メタ認知: search_form_forはransack固有のため、標準的なform_withを使用 %>
-    <%# ベストプラクティス: 検索パラメータをqハッシュで構造化して互換性維持 %>
-    <%# 横展開: 他の検索フォームでも同様の修正適用必要 %>
-    <%# TODO: 🟡 Phase 3（重要）- 高度な検索機能の実装 %>
-    <%# 優先度: 中（ユーザビリティ向上） %>
-    <%# 実装内容: %>
-    <%#   - リアルタイム検索（Stimulus/Turbo Frames活用） %>
-    <%#   - 検索履歴・お気に入り検索条件保存 %>
-    <%#   - 複数条件のAND/OR組み合わせ %>
-    <%#   - CSVエクスポートに検索条件反映 %>
-    <%# 期待効果: 検索効率50%向上、業務時間短縮 %>
-    <%= form_with url: "/store/inventories", method: :get, local: true, class: "row g-3" do |f| %>
-      <div class="col-md-3">
-        <%= f.text_field "q[name_cont]", 
-                         placeholder: "商品名で検索", 
-                         class: "form-control", 
-                         value: params.dig(:q, :name_cont) %>
-      </div>
-      
-      <div class="col-md-2">
-        <%= f.select "q[manufacturer_eq]", 
-                     options_for_select([['メーカーを選択', '']] + @manufacturers.map { |m| [m, m] },
-                                       params.dig(:q, :manufacturer_eq)),
-                     {},
-                     { class: "form-select" } %>
-      </div>
-      
-      <div class="col-md-2">
-        <%= f.select "q[stock_level_eq]", 
-                     options_for_select([['在庫状態を選択', '']] + @stock_levels,
-                                       params.dig(:q, :stock_level_eq)),
-                     {},
-                     { class: "form-select" } %>
-      </div>
-      
-      <div class="col-md-3">
-        <div class="input-group">
-          <%= f.number_field "q[quantity_gteq]", 
-                             placeholder: "最小在庫数", 
-                             class: "form-control",
-                             value: params.dig(:q, :quantity_gteq) %>
-          <span class="input-group-text">〜</span>
-          <%= f.number_field "q[quantity_lteq]", 
-                             placeholder: "最大在庫数", 
-                             class: "form-control",
-                             value: params.dig(:q, :quantity_lteq) %>
-        </div>
-      </div>
-      
-      <div class="col-md-2">
-        <div class="d-flex gap-2">
-          <%= f.submit "検索", class: "btn btn-primary" %>
-          <%# 横展開: 同様のルーティング修正 %>
-          <%= link_to "クリア", "/store/inventories", class: "btn btn-outline-secondary" %>
-        </div>
-      </div>
-    <% end %>
-  </div>
-</div>
-
-<%# 在庫一覧テーブル %>
-<div class="card">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <h5 class="card-title mb-0">
-      <i class="bi bi-list me-2"></i>在庫一覧
-    </h5>
-    <small class="text-muted">
-      <%= @store_inventories.total_count %>件中 
-      <%= @store_inventories.offset_value + 1 %>-<%= [@store_inventories.offset_value + @store_inventories.limit_value, @store_inventories.total_count].min %>件を表示
-    </small>
-  </div>
-  
-  <div class="card-body p-0">
-    <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>
-              <%# 横展開: ソートリンクも同様にルーティング修正 %>
-              <%= link_to "/store/inventories?#{params.permit!.merge(sort: 'inventories.name', direction: sort_direction == 'asc' ? 'desc' : 'asc').to_query}", 
-                          class: "text-decoration-none" do %>
-                <i class="bi bi-box me-1"></i>商品名
-                <% if params[:sort] == 'inventories.name' %>
-                  <i class="bi bi-chevron-<%= sort_direction == 'asc' ? 'up' : 'down' %>"></i>
+<!-- ページヘッダー - Bootstrap 5 モダンデザイン -->
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <!-- ページタイトルエリア - 高コントラスト対応 -->
+      <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center mb-4 p-4 bg-primary bg-opacity-5 rounded-3 border border-primary border-opacity-25" style="background: linear-gradient(135deg, #f8faff 0%, #f1f5ff 100%) !important; border-left: 4px solid #2563eb !important;">
+        <div class="mb-3 mb-lg-0">
+          <div class="d-flex align-items-center mb-2">
+            <div class="icon-wrapper bg-primary text-white rounded-circle p-3 me-3 shadow-sm">
+              <i class="bi bi-box-seam fs-4"></i>
+            </div>
+            <div>
+              <h1 class="h2 mb-1 fw-bold text-primary">在庫管理</h1>
+              <p class="text-secondary mb-0 fs-6 fw-medium">
+                <i class="bi bi-geo-alt me-1"></i>
+                <% if @authenticated_access && current_store %>
+                  <%= current_store.name %> の在庫状況
+                <% else %>
+                  公開在庫情報
                 <% end %>
-              <% end %>
-            </th>
-            <th>
-              <%# 横展開: 在庫数ソートリンクも同様に修正 %>
-              <%= link_to "/store/inventories?#{params.permit!.merge(sort: 'quantity', direction: sort_direction == 'asc' ? 'desc' : 'asc').to_query}", 
-                          class: "text-decoration-none" do %>
-                <i class="bi bi-stack me-1"></i>在庫数
-                <% if params[:sort] == 'quantity' %>
-                  <i class="bi bi-chevron-<%= sort_direction == 'asc' ? 'up' : 'down' %>"></i>
-                <% end %>
-              <% end %>
-            </th>
-            <th class="text-center">
-              <i class="bi bi-shield-check me-1 text-primary"></i>
-              <span class="fw-bold">安全在庫</span>
-            </th>
-            <th><i class="bi bi-currency-yen me-1"></i>単価</th>
-            <th><i class="bi bi-traffic-light me-1"></i>状態</th>
-            <th><i class="bi bi-clock me-1"></i>回転日数</th>
-            <th class="text-end"><i class="bi bi-gear me-1"></i>アクション</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% if @store_inventories.present? %>
-            <% @store_inventories.each do |store_inventory| %>
-              <tr>
-                <td>
-                  <div class="d-flex align-items-center">
-                    <div>
-                      <div class="fw-bold">
-                        <%# 横展開: 個別在庫詳細リンクも修正 %>
-                        <%= link_to store_inventory.inventory.name, 
-                                    "/store/inventories/#{store_inventory.inventory.id}", 
-                                    class: "text-decoration-none" %>
-                      </div>
-                      <% if store_inventory.inventory.manufacturer.present? %>
-                        <small class="text-muted">
-                          <i class="bi bi-building me-1"></i><%= store_inventory.inventory.manufacturer %>
-                        </small>
-                      <% end %>
-                    </div>
-                  </div>
-                </td>
-                
-                <td>
-                  <span class="badge bg-secondary fs-6">
-                    <%= store_inventory.quantity %> 個
-                  </span>
-                  <% if store_inventory.quantity > 0 %>
-                    <div class="progress mt-1" style="height: 4px;">
-                      <% percentage = [(store_inventory.quantity.to_f / (store_inventory.safety_stock_level * 2) * 100), 100].min %>
-                      <div class="progress-bar bg-info" style="width: <%= percentage %>%"></div>
-                    </div>
-                  <% end %>
-                </td>
-                
-                <td class="text-center">
-                  <%# CLAUDE.md準拠: 視認性向上 - 安全在庫の表示を明確化 %>
-                  <%# メタ認知: ユーザビリティ改善により業務効率向上 %>
-                  <%# ベストプラクティス: 在庫レベルによる視覚的フィードバック %>
-                  <%# 横展開: 他の重要情報表示でも同様の視認性重視のスタイル適用 %>
-                  <% 
-                    safety_level = store_inventory.safety_stock_level
-                    badge_class = case safety_level
-                                  when 0..5 then "bg-danger text-white"
-                                  when 6..10 then "bg-warning text-dark"
-                                  when 11..20 then "bg-info text-white"
-                                  else "bg-success text-white"
-                                  end
-                  %>
-                  <span class="badge <%= badge_class %> fw-bold px-3 py-2" style="font-size: 0.875rem;">
-                    <i class="bi bi-shield-check me-1"></i><%= safety_level %> 個
-                  </span>
-                </td>
-                
-                <td>
-                  <span class="text-success fw-bold">
-                    ¥<%= number_with_delimiter(store_inventory.inventory.price) %>
-                  </span>
-                </td>
-                
-                <td>
-                  <% badge = stock_level_badge(store_inventory) %>
-                  <span class="<%= badge[:class] %>"><%= badge[:text] %></span>
-                </td>
-                
-                <td>
-                  <span class="badge bg-light text-dark">
-                    <%= turnover_days(store_inventory) %> 日
-                  </span>
-                </td>
-                
-                <td class="text-end">
-                  <%# CLAUDE.md準拠: アクセシビリティとユーザビリティ向上 %>
-                  <%# メタ認知: 文言追加により操作内容が明確化、業務効率向上 %>
-                  <%# ベストプラクティス: レスポンシブ対応と直感的なUI設計 %>
-                  <div class="btn-group-vertical btn-group-sm d-md-none" role="group" aria-label="在庫アクション（モバイル）">
-                    <%# モバイル表示: 縦並びで文言付き %>
-                    <%= link_to "/store/inventories/#{store_inventory.inventory.id}", 
-                                class: "btn btn-outline-primary btn-sm",
-                                title: "在庫詳細情報と履歴を確認",
-                                data: { bs_toggle: "tooltip", bs_placement: "left" } do %>
-                      <i class="bi bi-eye me-1"></i>詳細
-                    <% end %>
-                    
-                    <%# ✅ Phase 3（完了）- 在庫調整機能実装完了 %>
-                    <%# 優先度: 高（業務効率化） %>
-                    <%# 実装内容: 実在庫数と帳簿在庫数の調整・棚卸し機能 %>
-                    <%# 期待効果: 正確な在庫管理と業務効率向上 %>
-                    <% if @authenticated_access && current_store %>
-                      <%= link_to adjust_form_store_inventory_path(store_inventory.inventory),
-                                  class: "btn btn-outline-warning btn-sm",
-                                  title: "在庫数量を調整（棚卸し対応）",
-                                  data: { bs_toggle: "tooltip", bs_placement: "left" } do %>
-                        <i class="bi bi-pencil me-1"></i>調整
-                      <% end %>
-                    <% else %>
-                      <button class="btn btn-outline-warning btn-sm" 
-                              disabled 
-                              title="ログインが必要です"
-                              data-bs-toggle="tooltip" 
-                              data-bs-placement="left">
-                        <i class="bi bi-pencil me-1"></i>調整
-                      </button>
-                    <% end %>
-                    
-                    <%# ✅ Phase 3（完了）- 移動申請機能実装完了 %>
-                    <%# 優先度: 高（店舗間連携強化） %>
-                    <%# 実装内容: 他店舗への在庫移動申請・承認ワークフロー %>
-                    <%# 期待効果: 店舗間の在庫最適化と顧客満足度向上 %>
-                    <% if @authenticated_access && current_store %>
-                      <%= link_to request_transfer_form_store_inventory_path(store_inventory.inventory),
-                                  class: "btn btn-outline-info btn-sm",
-                                  title: "他店舗への移動申請を作成",
-                                  data: { bs_toggle: "tooltip", bs_placement: "left" } do %>
-                        <i class="bi bi-arrow-left-right me-1"></i>移動
-                      <% end %>
-                    <% else %>
-                      <button class="btn btn-outline-info btn-sm" 
-                              disabled 
-                              title="ログインが必要です"
-                              data-bs-toggle="tooltip" 
-                              data-bs-placement="left">
-                        <i class="bi bi-arrow-left-right me-1"></i>移動
-                      </button>
-                    <% end %>
-                  </div>
-                  
-                  <div class="btn-group d-none d-md-flex" role="group" aria-label="在庫アクション（デスクトップ）">
-                    <%# デスクトップ表示: 横並びで文言付き %>
-                    <%= link_to "/store/inventories/#{store_inventory.inventory.id}", 
-                                class: "btn btn-outline-primary btn-sm d-flex align-items-center",
-                                title: "在庫詳細情報と履歴を確認",
-                                data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
-                      <i class="bi bi-eye me-1"></i>
-                      <span class="d-none d-lg-inline">詳細</span>
-                    <% end %>
-                    
-                    <%# ✅ Phase 3（完了）- 在庫調整機能実装完了 %>
-                    <% if @authenticated_access && current_store %>
-                      <%= link_to adjust_form_store_inventory_path(store_inventory.inventory),
-                                  class: "btn btn-outline-warning btn-sm d-flex align-items-center",
-                                  title: "在庫数量を調整（棚卸し対応）",
-                                  data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
-                        <i class="bi bi-pencil me-1"></i>
-                        <span class="d-none d-lg-inline">調整</span>
-                      <% end %>
-                    <% else %>
-                      <button class="btn btn-outline-warning btn-sm d-flex align-items-center" 
-                              disabled 
-                              title="ログインが必要です"
-                              data-bs-toggle="tooltip" 
-                              data-bs-placement="top">
-                        <i class="bi bi-pencil me-1"></i>
-                        <span class="d-none d-lg-inline">調整</span>
-                      </button>
-                    <% end %>
-                    
-                    <%# ✅ Phase 3（完了）- 移動申請機能実装完了 %>
-                    <% if @authenticated_access && current_store %>
-                      <%= link_to request_transfer_form_store_inventory_path(store_inventory.inventory),
-                                  class: "btn btn-outline-info btn-sm d-flex align-items-center",
-                                  title: "他店舗への移動申請を作成",
-                                  data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
-                        <i class="bi bi-arrow-left-right me-1"></i>
-                        <span class="d-none d-lg-inline">移動</span>
-                      <% end %>
-                    <% else %>
-                      <button class="btn btn-outline-info btn-sm d-flex align-items-center" 
-                              disabled 
-                              title="ログインが必要です"
-                              data-bs-toggle="tooltip" 
-                              data-bs-placement="top">
-                        <i class="bi bi-arrow-left-right me-1"></i>
-                        <span class="d-none d-lg-inline">移動</span>
-                      </button>
-                    <% end %>
-                  </div>
-                </td>
-              </tr>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- アクションボタングループ -->
+        <div class="d-flex flex-column flex-sm-row gap-2">
+          <!-- CSVエクスポートボタン -->
+          <% if @authenticated_access && current_store %>
+            <%= link_to "/store/inventories.csv?#{request.query_string}", 
+                        class: "btn btn-success d-flex align-items-center",
+                        title: "在庫データをCSVファイルでダウンロード",
+                        data: { 
+                          bs_toggle: "tooltip", 
+                          bs_placement: "bottom",
+                          confirm: "在庫データ（#{@store_inventories.total_count}件）をCSVでダウンロードしますか？"
+                        } do %>
+              <i class="bi bi-download me-2"></i>
+              <span>CSVエクスポート</span>
             <% end %>
           <% else %>
-            <tr>
-              <td colspan="7" class="text-center py-5">
-                <div class="text-muted">
-                  <i class="bi bi-box display-4 mb-3"></i>
-                  <h6>在庫データがありません</h6>
-                  <p class="mb-0">条件を変更して再度検索してください</p>
-                </div>
-              </td>
-            </tr>
+            <button class="btn btn-success d-flex align-items-center" disabled title="ログインが必要です">
+              <i class="bi bi-download me-2"></i>
+              <span>CSVエクスポート</span>
+            </button>
           <% end %>
-        </tbody>
-      </table>
-    </div>
-    
-    <%# CLAUDE.md準拠: ユーザビリティ向上 - 安全在庫レベルの説明 %>
-    <%# メタ認知: 色分けの意味を明確化することで誤解を防止 %>
-    <%# ベストプラクティス: アクセシビリティとユーザー体験の向上 %>
-    <div class="card-footer bg-light">
-      <div class="row">
-        <div class="col-12">
-          <small class="text-muted">
-            <strong>安全在庫レベル:</strong>
-            <span class="badge bg-danger text-white mx-1">0-5個</span>
-            <span class="badge bg-warning text-dark mx-1">6-10個</span>
-            <span class="badge bg-info text-white mx-1">11-20個</span>
-            <span class="badge bg-success text-white mx-1">21個以上</span>
-            - 色分けで在庫管理の優先度を表示
-          </small>
+          
         </div>
       </div>
     </div>
   </div>
-  
-  <%# ページネーション %>
-  <% if @store_inventories.present? %>
-    <div class="card-footer">
-      <%# CLAUDE.md準拠: Bootstrap 5テーマ復活 - bootstrap5-kaminari-views gem追加完了 %>
-      <%# CLAUDE.md準拠: 緊急修正 - Bootstrap 5テーマ問題の暫定対応 %>
-      <%# メタ認知: ページネーション機能の安定性を最優先し、見た目は後で調整 %>
-      <%# 横展開: 全ページネーション箇所で同様修正適用 %>
-      <%# TODO: 🟡 Phase 5（改善）- Bootstrap 5対応Kaminari設定の適切な実装 %>
-      <%#   優先度: 中（UI改善） %>
-      <%#   実装内容: bootstrap5-kaminari-views gem設定またはカスタムテンプレート作成 %>
-      <%#   期待効果: Bootstrap 5スタイルによる統一されたページネーション %>
-      <% begin %>
-        <% if @store_inventories.respond_to?(:current_page) %>
-          <%= paginate @store_inventories %>
-        <% else %>
-          <div class="text-muted text-center">
-            ページネーション機能は認証後利用可能
+
+  <!-- 統計サマリーカード - モダンデザイン -->
+  <% if @authenticated_access && @statistics %>
+  <div class="row g-4 mb-4">
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm h-100 position-relative overflow-hidden" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center">
+            <div class="me-3">
+              <div class="bg-white text-primary rounded-circle p-3 shadow-sm">
+                <i class="bi bi-boxes fs-3"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <div class="h3 mb-1 fw-bold text-white"><%= number_with_delimiter(@statistics[:total_items]) %></div>
+              <div class="text-white text-opacity-75 fw-medium">商品種類</div>
+              <div class="progress mt-2" style="height: 4px;">
+                <div class="progress-bar bg-primary" style="width: 100%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="position-absolute bottom-0 end-0 p-3 opacity-25">
+          <i class="bi bi-boxes" style="font-size: 3rem;"></i>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm h-100 position-relative overflow-hidden" style="background: linear-gradient(135deg, #16a34a 0%, #15803d 100%) !important;">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center">
+            <div class="me-3">
+              <div class="bg-white text-success rounded-circle p-3 shadow-sm">
+                <i class="bi bi-stack fs-3"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <div class="h3 mb-1 fw-bold text-white"><%= number_with_delimiter(@statistics[:total_quantity]) %></div>
+              <div class="text-white text-opacity-75 fw-medium">総在庫数</div>
+              <div class="progress mt-2" style="height: 4px;">
+                <div class="progress-bar bg-success" style="width: 85%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="position-absolute bottom-0 end-0 p-3 opacity-25">
+          <i class="bi bi-stack" style="font-size: 3rem;"></i>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm h-100 position-relative overflow-hidden" style="background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%) !important;">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center">
+            <div class="me-3">
+              <div class="bg-white text-info rounded-circle p-3 shadow-sm">
+                <i class="bi bi-currency-yen fs-3"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <div class="h3 mb-1 fw-bold text-white">¥<%= number_with_delimiter(@statistics[:total_value]) %></div>
+              <div class="text-white text-opacity-75 fw-medium">総在庫金額</div>
+              <div class="progress mt-2" style="height: 4px;">
+                <div class="progress-bar bg-info" style="width: 70%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="position-absolute bottom-0 end-0 p-3 opacity-25">
+          <i class="bi bi-currency-yen" style="font-size: 3rem;"></i>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-sm-6 col-xl-3">
+      <div class="card border-0 shadow-sm h-100 position-relative overflow-hidden" style="background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%) !important;">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center">
+            <div class="me-3">
+              <div class="bg-white text-warning rounded-circle p-3 shadow-sm">
+                <i class="bi bi-exclamation-triangle fs-3"></i>
+              </div>
+            </div>
+            <div class="flex-grow-1">
+              <div class="h3 mb-1 fw-bold text-white"><%= @statistics[:low_stock_percentage] %>%</div>
+              <div class="text-white text-opacity-75 fw-medium">低在庫率</div>
+              <div class="progress mt-2" style="height: 4px;">
+                <div class="progress-bar bg-warning" style="width: <%= @statistics[:low_stock_percentage] %>%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="position-absolute bottom-0 end-0 p-3 opacity-25">
+          <i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+  <% end %>
+
+  <!-- 検索・フィルターカード - モダンデザイン -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header border-bottom" style="background: linear-gradient(135deg, #f8faff 0%, #f1f5ff 100%) !important; border-left: 3px solid #2563eb !important;">
+          <div class="d-flex align-items-center">
+            <div class="bg-primary text-white rounded-circle p-2 me-3 shadow-sm">
+              <i class="bi bi-funnel fs-5"></i>
+            </div>
+            <div class="flex-grow-1">
+              <h5 class="card-title mb-0 fw-bold text-primary">検索・フィルター</h5>
+              <small class="text-secondary fw-medium">商品名、メーカー、在庫数で絞り込み</small>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-4">
+            <%= form_with url: "/store/inventories", method: :get, local: true, class: "row g-3", data: { turbo_frame: "inventory_list" } do |f| %>
+              <div class="col-lg-4">
+                <label class="form-label fw-medium text-dark">
+                  <i class="bi bi-search me-1"></i>商品名検索
+                </label>
+                <%= f.text_field "q[name_cont]", 
+                                 placeholder: "商品名を入力...", 
+                                 class: "form-control bg-white text-dark", 
+                                 style: "background-color: #ffffff !important; color: #1a1a1a !important;",
+                                 value: params.dig(:q, :name_cont) %>
+              </div>
+              
+              <div class="col-lg-3">
+                <label class="form-label fw-medium text-dark">
+                  <i class="bi bi-building me-1"></i>メーカー
+                </label>
+                <%= f.select "q[manufacturer_eq]", 
+                             options_for_select([['すべてのメーカー', '']] + @manufacturers.map { |m| [m, m] },
+                                               params.dig(:q, :manufacturer_eq)),
+                             {},
+                             { class: "form-select bg-white text-dark", 
+                               style: "background-color: #ffffff !important; color: #1a1a1a !important;" } %>
+              </div>
+              
+              <div class="col-lg-3">
+                <label class="form-label fw-medium text-dark">
+                  <i class="bi bi-traffic-light me-1"></i>在庫状態
+                </label>
+                <%= f.select "q[stock_level_eq]", 
+                             options_for_select([['すべての状態', '']] + @stock_levels,
+                                               params.dig(:q, :stock_level_eq)),
+                             {},
+                             { class: "form-select bg-white text-dark", 
+                               style: "background-color: #ffffff !important; color: #1a1a1a !important;" } %>
+              </div>
+              
+              <div class="col-lg-3">
+                <label class="form-label fw-medium text-dark">
+                  <i class="bi bi-stack me-1"></i>在庫数範囲
+                </label>
+                <div class="d-flex align-items-center gap-2">
+                  <%= f.number_field "q[quantity_gteq]", 
+                                     placeholder: "最小値", 
+                                     class: "form-control bg-white text-dark",
+                                     style: "background-color: #ffffff !important; color: #1a1a1a !important; min-width: 80px;",
+                                     value: params.dig(:q, :quantity_gteq) %>
+                  <span class="text-muted fw-medium px-1">〜</span>
+                  <%= f.number_field "q[quantity_lteq]", 
+                                     placeholder: "最大値", 
+                                     class: "form-control bg-white text-dark",
+                                     style: "background-color: #ffffff !important; color: #1a1a1a !important; min-width: 80px;",
+                                     value: params.dig(:q, :quantity_lteq) %>
+                </div>
+              </div>
+              
+              <div class="col-12">
+                <div class="d-flex flex-column flex-sm-row gap-2 pt-3 border-top">
+                  <div class="flex-grow-1">
+                    <small class="text-muted">
+                      <i class="bi bi-info-circle me-1"></i>
+                      リアルタイム検索に対応しています
+                    </small>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <%= f.submit "検索実行", class: "btn btn-primary d-flex align-items-center", 
+                                                    data: { bs_toggle: "tooltip", title: "現在の条件で検索" } do %>
+                      <i class="bi bi-search me-2"></i>検索
+                    <% end %>
+                    <%= link_to "/store/inventories", class: "btn btn-outline-secondary d-flex align-items-center",
+                                                       data: { bs_toggle: "tooltip", title: "すべての条件をクリア" } do %>
+                      <i class="bi bi-arrow-counterclockwise me-2"></i>リセット
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 在庫一覧テーブル - モダンデザイン -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header border-bottom" style="background: linear-gradient(135deg, #f8faff 0%, #f1f5ff 100%) !important; border-left: 3px solid #2563eb !important;">
+          <div class="d-flex flex-column flex-lg-row justify-content-between align-items-start align-items-lg-center">
+            <div class="d-flex align-items-center mb-2 mb-lg-0">
+              <div class="bg-primary text-white rounded-circle p-2 me-3 shadow-sm">
+                <i class="bi bi-list fs-5"></i>
+              </div>
+              <div>
+                <h5 class="card-title mb-0 fw-bold text-primary">在庫一覧</h5>
+                <small class="text-secondary fw-medium">
+                  <i class="bi bi-info-circle me-1"></i>
+                  <%= @store_inventories.total_count %>件中 
+                  <%= @store_inventories.offset_value + 1 %>-<%= [@store_inventories.offset_value + @store_inventories.limit_value, @store_inventories.total_count].min %>件を表示
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0 table-modern">
+              <thead class="bg-light">
+                <tr>
+                  <th class="border-0 py-3 px-4">
+                    <%= link_to "/store/inventories?#{params.permit!.merge(sort: 'inventories.name', direction: sort_direction == 'asc' ? 'desc' : 'asc').to_query}", 
+                                class: "text-decoration-none d-flex align-items-center fw-semibold" do %>
+                      <i class="bi bi-box me-2 text-primary"></i>商品名
+                      <% if params[:sort] == 'inventories.name' %>
+                        <i class="bi bi-chevron-<%= sort_direction == 'asc' ? 'up' : 'down' %> ms-1 text-primary"></i>
+                      <% else %>
+                        <i class="bi bi-chevron-expand ms-1 text-muted opacity-50"></i>
+                      <% end %>
+                    <% end %>
+                  </th>
+                  <th class="border-0 py-3 px-4">
+                    <%= link_to "/store/inventories?#{params.permit!.merge(sort: 'quantity', direction: sort_direction == 'asc' ? 'desc' : 'asc').to_query}", 
+                                class: "text-decoration-none d-flex align-items-center fw-semibold" do %>
+                      <i class="bi bi-stack me-2 text-success"></i>在庫数
+                      <% if params[:sort] == 'quantity' %>
+                        <i class="bi bi-chevron-<%= sort_direction == 'asc' ? 'up' : 'down' %> ms-1 text-primary"></i>
+                      <% else %>
+                        <i class="bi bi-chevron-expand ms-1 text-muted opacity-50"></i>
+                      <% end %>
+                    <% end %>
+                  </th>
+                  <th class="border-0 py-3 px-4 text-center">
+                    <div class="d-flex align-items-center justify-content-center">
+                      <i class="bi bi-shield-check me-2 text-info"></i>
+                      <span class="fw-semibold">安全在庫</span>
+                    </div>
+                  </th>
+                  <th class="border-0 py-3 px-4">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-currency-yen me-2 text-warning"></i>
+                      <span class="fw-semibold">単価</span>
+                    </div>
+                  </th>
+                  <th class="border-0 py-3 px-4">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-traffic-light me-2 text-danger"></i>
+                      <span class="fw-semibold">状態</span>
+                    </div>
+                  </th>
+                  <th class="border-0 py-3 px-4">
+                    <div class="d-flex align-items-center">
+                      <i class="bi bi-clock me-2 text-secondary"></i>
+                      <span class="fw-semibold">回転日数</span>
+                    </div>
+                  </th>
+                  <th class="border-0 py-3 px-4 text-end">
+                    <div class="d-flex align-items-center justify-content-end">
+                      <i class="bi bi-gear me-2 text-secondary"></i>
+                      <span class="fw-semibold">アクション</span>
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if @store_inventories.present? %>
+                  <% @store_inventories.each_with_index do |store_inventory, index| %>
+                    <tr class="border-bottom">
+                      <td class="py-3 px-4">
+                        <div class="d-flex align-items-center">
+                          <div class="bg-light text-primary rounded-circle p-2 me-3 border border-primary border-opacity-25">
+                            <i class="bi bi-box text-primary"></i>
+                          </div>
+                          <div class="flex-grow-1">
+                            <div class="fw-bold text-dark mb-1">
+                              <%= link_to store_inventory.inventory.name, 
+                                          "/store/inventories/#{store_inventory.inventory.id}", 
+                                          class: "text-decoration-none text-dark hover-text-primary" %>
+                            </div>
+                            <% if store_inventory.inventory.manufacturer.present? %>
+                              <div class="d-flex align-items-center text-muted small">
+                                <i class="bi bi-building me-1"></i>
+                                <span><%= store_inventory.inventory.manufacturer %></span>
+                              </div>
+                            <% end %>
+                            <% if index < 3 %>
+                              <span class="badge bg-warning bg-opacity-10 text-warning small mt-1">HOT</span>
+                            <% end %>
+                          </div>
+                        </div>
+                      </td>
+                      
+                      <td class="py-3 px-4">
+                        <div class="d-flex align-items-center">
+                          <div class="me-3">
+                            <div class="h5 mb-0 fw-bold text-success">
+                              <%= number_with_delimiter(store_inventory.quantity) %>
+                            </div>
+                            <small class="text-muted">個</small>
+                          </div>
+                          <div class="flex-grow-1">
+                            <% if store_inventory.quantity > 0 %>
+                              <% percentage = [(store_inventory.quantity.to_f / ([store_inventory.safety_stock_level * 2, 1].max) * 100), 100].min %>
+                              <div class="progress" style="height: 6px;">
+                                <% 
+                                  bar_class = case percentage
+                                  when 0..30 then "bg-danger"
+                                  when 31..60 then "bg-warning"
+                                  else "bg-success"
+                                  end
+                                %>
+                                <div class="progress-bar <%= bar_class %>" style="width: <%= percentage %>%"></div>
+                              </div>
+                              <small class="text-muted"><%= percentage.round(1) %>% 安全水準</small>
+                            <% else %>
+                              <div class="progress" style="height: 6px;">
+                                <div class="progress-bar bg-danger" style="width: 100%"></div>
+                              </div>
+                              <small class="text-danger">在庫切れ</small>
+                            <% end %>
+                          </div>
+                        </div>
+                      </td>
+                      
+                      <td class="py-3 px-4 text-center">
+                        <% 
+                          safety_level = store_inventory.safety_stock_level
+                          badge_data = case safety_level
+                                       when 0..5 then { class: "bg-danger", icon: "exclamation-triangle", text: "低水準" }
+                                       when 6..10 then { class: "bg-warning", icon: "dash-circle", text: "注意" }
+                                       when 11..20 then { class: "bg-info", icon: "check-circle", text: "適正" }
+                                       else { class: "bg-success", icon: "shield-check", text: "十分" }
+                                       end
+                        %>
+                        <div class="d-flex flex-column align-items-center">
+                          <span class="badge <%= badge_data[:class] %> bg-opacity-10 text-<%= badge_data[:class].split('-').last %> fw-bold px-3 py-2 mb-2">
+                            <i class="bi bi-<%= badge_data[:icon] %> me-1"></i><%= number_with_delimiter(safety_level) %> 個
+                          </span>
+                          <small class="text-muted"><%= badge_data[:text] %></small>
+                        </div>
+                      </td>
+                      
+                      <td class="py-3 px-4">
+                        <div class="d-flex flex-column justify-content-center">
+                          <span class="h6 mb-0 fw-bold text-success">
+                            ¥<%= number_with_delimiter(store_inventory.inventory.price.to_i) %>
+                          </span>
+                        </div>
+                      </td>
+                      
+                      <td class="py-3 px-4">
+                        <% badge = stock_level_badge(store_inventory) %>
+                        <span class="<%= badge[:class] %> fw-medium"><%= badge[:text] %></span>
+                      </td>
+                      
+                      <td class="py-3 px-4">
+                        <div class="d-flex flex-column">
+                          <span class="fw-bold text-dark">
+                            <%= turnover_days(store_inventory) %>
+                          </span>
+                          <small class="text-muted">日</small>
+                        </div>
+                      </td>
+                      
+                      <td class="py-3 px-4 text-end">
+                        <div class="d-flex gap-2 justify-content-end">
+                          <!-- 詳細ボタン -->
+                          <%= link_to "/store/inventories/#{store_inventory.inventory.id}", 
+                                      class: "btn btn-primary btn-sm d-flex align-items-center shadow-sm",
+                                      style: "min-width: 70px;",
+                                      title: "在庫詳細情報と履歴を確認",
+                                      data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                            <i class="bi bi-eye me-1"></i>
+                            <span class="d-none d-lg-inline">詳細</span>
+                          <% end %>
+                          
+                          <!-- 調整ボタン -->
+                          <% if @authenticated_access && current_store %>
+                            <%= link_to adjust_form_store_inventory_path(store_inventory.inventory),
+                                        class: "btn btn-warning btn-sm d-flex align-items-center shadow-sm text-white",
+                                        style: "min-width: 70px;",
+                                        title: "在庫数量を調整（棚卸し対応）",
+                                        data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                              <i class="bi bi-pencil me-1"></i>
+                              <span class="d-none d-lg-inline">調整</span>
+                            <% end %>
+                          <% else %>
+                            <button class="btn btn-secondary btn-sm d-flex align-items-center opacity-50" 
+                                    style="min-width: 70px;"
+                                    disabled 
+                                    title="ログインが必要です"
+                                    data-bs-toggle="tooltip" 
+                                    data-bs-placement="top">
+                              <i class="bi bi-pencil me-1"></i>
+                              <span class="d-none d-lg-inline">調整</span>
+                            </button>
+                          <% end %>
+                          
+                          <!-- 移動ボタン -->
+                          <% if @authenticated_access && current_store %>
+                            <%= link_to request_transfer_form_store_inventory_path(store_inventory.inventory),
+                                        class: "btn btn-info btn-sm d-flex align-items-center shadow-sm text-white",
+                                        style: "min-width: 70px;",
+                                        title: "他店舗への移動申請を作成",
+                                        data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                              <i class="bi bi-arrow-left-right me-1"></i>
+                              <span class="d-none d-lg-inline">移動</span>
+                            <% end %>
+                          <% else %>
+                            <button class="btn btn-secondary btn-sm d-flex align-items-center opacity-50" 
+                                    style="min-width: 70px;"
+                                    disabled 
+                                    title="ログインが必要です"
+                                    data-bs-toggle="tooltip" 
+                                    data-bs-placement="top">
+                              <i class="bi bi-arrow-left-right me-1"></i>
+                              <span class="d-none d-lg-inline">移動</span>
+                            </button>
+                          <% end %>
+                        </div>
+                      </td>
+                    </tr>
+                  <% end %>
+                <% else %>
+                  <tr>
+                    <td colspan="7" class="text-center py-5">
+                      <div class="py-5">
+                        <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                          <i class="bi bi-box text-muted" style="font-size: 2rem;"></i>
+                        </div>
+                        <h5 class="text-muted mb-2">在庫データがありません</h5>
+                        <p class="text-muted mb-3">条件を変更して再度検索してください</p>
+                        <button class="btn btn-outline-primary" onclick="document.getElementById('searchFilters').scrollIntoView()">
+                          <i class="bi bi-funnel me-2"></i>検索条件を変更
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+          
+          <!-- カードフッター - サマリー情報 -->
+          <div class="card-footer bg-light border-top">
+            <div class="row align-items-center">
+              <div class="col-lg-8">
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                  <small class="text-muted fw-medium">
+                    <i class="bi bi-info-circle me-1"></i>安全在庫レベル:
+                  </small>
+                  <div class="d-flex flex-wrap gap-2">
+                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-2 py-1">
+                      <i class="bi bi-exclamation-triangle me-1"></i>0-5個 (低水準)
+                    </span>
+                    <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 px-2 py-1">
+                      <i class="bi bi-dash-circle me-1"></i>6-10個 (注意)
+                    </span>
+                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-2 py-1">
+                      <i class="bi bi-check-circle me-1"></i>11-20個 (適正)
+                    </span>
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-2 py-1">
+                      <i class="bi bi-shield-check me-1"></i>21個以上 (十分)
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="col-lg-4 text-lg-end mt-2 mt-lg-0">
+                <small class="text-muted">
+                  <i class="bi bi-clock me-1"></i>最終更新: <%= Time.current.strftime("%Y/%m/%d %H:%M") %>
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- ページネーション -->
+        <% if @store_inventories.present? %>
+          <div class="card-footer bg-white">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-center">
+              <div class="mb-3 mb-lg-0">
+                <small class="text-muted">
+                  全 <%= @store_inventories.total_count %> 件中 
+                  <%= @store_inventories.offset_value + 1 %>-<%= [@store_inventories.offset_value + @store_inventories.limit_value, @store_inventories.total_count].min %> 件を表示
+                </small>
+              </div>
+              <div class="pagination-wrapper">
+                <% begin %>
+                  <% if @store_inventories.respond_to?(:current_page) %>
+                    <%= paginate @store_inventories, theme: :custom_bootstrap_5 %>
+                  <% else %>
+                    <div class="text-muted text-center">
+                      ページネーション機能は認証後利用可能
+                    </div>
+                  <% end %>
+                <% rescue => e %>
+                  <!-- 緊急時フォールバック: デフォルトページネーション -->
+                  <% if @store_inventories.respond_to?(:current_page) %>
+                    <%= paginate @store_inventories %>
+                  <% else %>
+                    <div class="text-muted text-center">
+                      ページネーション処理中にエラーが発生: <%= e.message %>
+                    </div>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
           </div>
         <% end %>
-      <% rescue => e %>
-        <div class="text-muted text-center">
-          ページネーション処理中にエラーが発生しました: <%= e.message %>
-        </div>
-      <% end %>
+      </div>
     </div>
-  <% end %>
+  </div>
 </div>
 
-<%# TODO: 🟡 Phase 3（重要）- 店舗在庫管理機能の拡張 %>
-<%# 優先度: 中（業務効率化） %>
-<%# 実装内容: %>
-<%#   - 在庫調整（棚卸し）機能 %>
-<%#   - 店舗間移動申請機能 %>
-<%#   - CSV出力機能 %>
-<%#   - 在庫アラート設定 %>
-<%#   - リアルタイム在庫更新 %>
-<%# 期待効果: 店舗業務の大幅な効率化、正確な在庫管理 %>
-<%# 横展開: 他の店舗機能でも同様のUIパターンとワークフローを適用 %>
 
-<%# TODO: 🟢 Phase 5（推奨）- UIアクセシビリティとユーザビリティ向上 %>
-<%# 優先度: 中（品質向上） %>
-<%# 実装内容: %>
-<%#   - キーボードナビゲーション対応（Tab移動、Enter/Space操作） %>
-<%#   - スクリーンリーダー対応（aria-label完全実装） %>
-<%#   - 色覚障害対応（色だけに依存しない情報伝達） %>
-<%#   - 一括操作機能（複数商品の同時調整） %>
-<%#   - ショートカットキー実装（Ctrl+F検索、Ctrl+E編集等） %>
-<%#   - モバイル最適化（タッチ操作、スワイプジェスチャー） %>
-<%# 期待効果: 誰でも使いやすいインターフェース、作業効率50%向上 %>
-<%# 横展開: 全ページで統一されたアクセシビリティ標準の確立 %>
-<%# 参考: WCAG 2.1 AA準拠、JIS X 8341-3:2016準拠 %>
+<!-- Bootstrap 5 JavaScript初期化 -->
+<script>
+  // Tooltip初期化
+  document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+  });
+</script>
 
-<%# Bootstrap Tooltip初期化スクリプト %>
+<style>
+  /* カスタムスタイル */
+  .hover-text-primary:hover {
+    color: var(--bs-primary) !important;
+  }
+  
+  .icon-wrapper {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .table-modern tbody tr {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .table-modern tbody tr:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  }
+  
+  .pagination-wrapper .pagination {
+    margin-bottom: 0;
+  }
+  
+  @media (max-width: 768px) {
+    .table-modern th span,
+    .table-modern td span.d-none.d-xl-inline {
+      display: none !important;
+    }
+  }
+</style>

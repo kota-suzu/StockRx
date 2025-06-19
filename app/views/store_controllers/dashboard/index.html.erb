@@ -9,15 +9,15 @@
   </div>
 </div>
 
-<%# 統計カード %>
+<%# 統計カード - シンプルで見やすく %>
 <div class="row mb-4">
   <div class="col-md-3 mb-3">
-    <div class="card border-primary">
+    <div class="card stats-card-1">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h6 class="text-muted mb-2">総在庫品目</h6>
-            <h3 class="mb-0"><%= number_with_delimiter(@statistics[:total_items]) %></h3>
+            <h3 class="mb-0 text-primary fw-bold"><%= number_with_delimiter(@statistics[:total_items]) %></h3>
           </div>
           <div class="text-primary">
             <i class="bi bi-boxes fa-2x opacity-50"></i>
@@ -28,12 +28,12 @@
   </div>
   
   <div class="col-md-3 mb-3">
-    <div class="card border-success">
+    <div class="card stats-card-2">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h6 class="text-muted mb-2">総在庫数</h6>
-            <h3 class="mb-0"><%= number_with_delimiter(@statistics[:total_quantity]) %></h3>
+            <h3 class="mb-0 text-success fw-bold"><%= number_with_delimiter(@statistics[:total_quantity]) %></h3>
           </div>
           <div class="text-success">
             <i class="bi bi-box-seam fa-2x opacity-50"></i>
@@ -44,12 +44,12 @@
   </div>
   
   <div class="col-md-3 mb-3">
-    <div class="card border-warning">
+    <div class="card stats-card-4">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h6 class="text-muted mb-2">低在庫</h6>
-            <h3 class="mb-0"><%= @statistics[:low_stock_items] %></h3>
+            <h3 class="mb-0 text-warning fw-bold"><%= @statistics[:low_stock_items] %></h3>
           </div>
           <div class="text-warning">
             <i class="bi bi-exclamation-triangle fa-2x opacity-50"></i>
@@ -60,12 +60,12 @@
   </div>
   
   <div class="col-md-3 mb-3">
-    <div class="card border-info">
+    <div class="card stats-card-3">
       <div class="card-body">
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h6 class="text-muted mb-2">在庫総額</h6>
-            <h3 class="mb-0">¥<%= number_with_delimiter(@statistics[:total_value].to_i) %></h3>
+            <h3 class="mb-0 text-info fw-bold">¥<%= number_with_delimiter(@statistics[:total_value].to_i) %></h3>
           </div>
           <div class="text-info">
             <i class="bi bi-currency-yen fa-2x opacity-50"></i>

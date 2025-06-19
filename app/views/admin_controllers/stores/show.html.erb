@@ -235,7 +235,12 @@
                   <%# CLAUDE.md準拠: 緊急修正 - Bootstrap 5テーマ問題の暫定対応 %>
                   <%# メタ認知: 管理者画面の一貫性確保とUI向上 %>
                   <%# TODO: 🟡 Phase 5（改善）- Bootstrap 5対応Kaminari設定の適切な実装 %>
-                  <%= paginate @store_inventories %>
+                  <% begin %>
+                    <%= paginate @store_inventories, theme: :custom_bootstrap_5 %>
+                  <% rescue => e %>
+                    <!-- 緊急時フォールバック: デフォルトページネーション -->
+                    <%= paginate @store_inventories %>
+                  <% end %>
                 </div>
               </div>
             <% end %>

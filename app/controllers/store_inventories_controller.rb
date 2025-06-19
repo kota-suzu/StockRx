@@ -10,6 +10,9 @@ class StoreInventoriesController < ApplicationController
   # セキュリティ対策
   include SecurityHeaders
 
+  # 店舗用レイアウトを使用
+  layout "store"
+
   # 認証不要（公開情報）
   # CLAUDE.md準拠: 公開APIは認証不要だが、セキュリティ対策は必須
   # Note: ApplicationControllerには認証フィルターがないため、skip不要
@@ -44,7 +47,28 @@ class StoreInventoriesController < ApplicationController
 
     respond_to do |format|
       format.html
-      format.json { render json: public_inventory_json }
+      format.json {
+        # リアルタイム検索用のJSONレスポンス
+        render json: {
+          inventories: @store_inventories.map do |store_inventory|
+            {
+              id: store_inventory.id,
+              name: store_inventory.inventory.name,
+              sku: store_inventory.inventory.sku,
+              manufacturer: store_inventory.inventory.manufacturer,
+              unit: store_inventory.inventory.unit,
+              quantity: store_inventory.quantity,
+              updated_at: store_inventory.updated_at
+            }
+          end,
+          statistics: @statistics,
+          pagination: {
+            current_page: @store_inventories.current_page,
+            total_pages: @store_inventories.total_pages,
+            total_count: @store_inventories.total_count
+          }
+        }
+      }
     end
   end
 

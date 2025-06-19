@@ -42,6 +42,12 @@ ja:
       words_connector: "、"
       two_words_connector: "、"
       last_word_connector: "、"
+
+  # アプリケーション固有のメッセージ
+  messages:
+    transfer_requested: "移動申請を受け付けました"
+    transfer_cancelled: "移動申請をキャンセルしました"
+    profile_updated: "プロフィールを更新しました"
       
   # アクティブモデルのエラーメッセージ
   activemodel:

@@ -1,7 +1,22 @@
-<%# ============================================ %>
-<%# Modern UI v2 - Demo Page %>
-<%# 新しいUIコンポーネントのショーケース %>
-<%# ============================================ %>
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StockRx - Modern UI v2 Demo</title>
+  
+  <%# Bootstrap 5 CSS %>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <%# Bootstrap Icons %>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+  
+  <%# Rails スタイルシート %>
+  <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+  
+  <%# Rails JavaScript %>
+  <%= javascript_importmap_tags %>
+</head>
+<body>
 
 <div class="mesh-gradient-bg" style="min-height: 100vh; padding: 2rem 0;">
   <%= modern_container do %>
@@ -236,3 +251,6 @@
     padding: 1.5rem !important;
   }
 </style>
+
+</body>
+</html>
