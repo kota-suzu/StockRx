@@ -359,7 +359,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
     context 'パフォーマンス' do
       it 'メモリ使用量が適切に管理される' do
         skip 'ps command not available in Docker container'
-        
+
         csv_file.write(large_csv_content)
         csv_file.rewind
 
