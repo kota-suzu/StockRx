@@ -63,7 +63,7 @@ group :development, :test do
   gem "rubocop-rails-omakase", require: false
 
   # RSpec for testing
-  gem "rspec-rails", "~> 6.1.0"        # RSpecテストフレームワーク
+  gem "rspec-rails", "~> 8.0.1"        # RSpecテストフレームワーク
   gem "factory_bot_rails"              # テストデータ作成
   gem "shoulda-matchers", "~> 6.0"     # RSpecマッチャー拡張
   gem "faker"                          # ダミーデータ生成
