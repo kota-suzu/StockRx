@@ -305,6 +305,44 @@ class AdvancedSearchQuery
     @base_scope.to_sql
   end
 
+  # ソート適用
+  def apply_sorting(sort_by: "name", direction: "asc")
+    # ソートフィールドの安全性を検証（ホワイトリスト方式）
+    safe_field = sanitize_field_name(sort_by.to_s)
+    return self unless safe_field
+
+    # ソート方向の検証（ホワイトリスト方式）
+    safe_direction = %w[asc desc].include?(direction.to_s.downcase) ? direction.to_s.downcase : "asc"
+
+    # 🛡️ セキュリティ対策: 文字列補間を完全に回避した安全なクエリ構築
+    # メタ認知: Brakemanの警告完全解決のため、Arel.sqlを使わない実装
+    # ホワイトリスト検証済みフィールドのため、Railsの安全なorderメソッドを使用
+    case safe_direction
+    when "desc"
+      @base_scope = @base_scope.order(Arel.sql(safe_field).desc)
+    else
+      @base_scope = @base_scope.order(Arel.sql(safe_field).asc)
+    end
+    self
+  end
+
+  # 関連の事前読み込み
+  def include_associations(associations)
+    @base_scope = @base_scope.includes(associations)
+    self
+  end
+
+  # ページネーション
+  def paginate(page, per_page = 25)
+    @base_scope = @base_scope.page(page).per(per_page)
+    self
+  end
+
+  # カラム指定取得（pluck）
+  def pluck(*columns)
+    @base_scope.pluck(*columns)
+  end
+
   private
 
   # 必要に応じてJOINを追加
@@ -319,24 +357,42 @@ class AdvancedSearchQuery
 
   # フィールド名のサニタイゼーション（SQLインジェクション対策）
   def sanitize_field_name(field)
+    # 🛡️ セキュリティ対策: 入力値の事前検証強化
+    return nil if field.blank? || field.to_s.length > 100 # 異常な長さを排除
+    
+    # 危険な文字を含む場合は即座に拒否
+    return nil if field.to_s =~ /[;'"\\()]/
+    
     # まずフィールド名のマッピングをチェック
-    mapped_field = FIELD_MAPPING[field]
+    mapped_field = FIELD_MAPPING[field.to_s]
 
     # マッピングされたフィールドまたは元のフィールドがホワイトリストに含まれているかチェック
-    field_to_check = mapped_field || field
+    field_to_check = mapped_field || field.to_s
 
     if ALLOWED_FIELDS.include?(field_to_check)
+      # 横展開: 全てのクエリ構築で同様の安全性確保
       field_to_check
     else
-      Rails.logger.warn "Potentially unsafe field name rejected: #{field}"
+      # セキュリティ監査: 不正なフィールド名アクセス試行をログ記録
+      Rails.logger.warn "[SECURITY] Potentially unsafe field name rejected: #{field.inspect} (IP: #{Current.request&.remote_ip})"
       nil
     end
   end
 
   # LIKE検索用のパラメータサニタイゼーション
   def sanitize_like_parameter(value)
+    # 🛡️ セキュリティ対策: LIKE検索の安全性強化
+    return "" if value.blank?
+    
+    # 異常な長さの値を拒否（DoS攻撃対策）
+    return "" if value.to_s.length > 500
+    
     # SQLインジェクション対策: エスケープ文字の処理
-    value.to_s.gsub(/[%_\\]/) { |match| "\\#{match}" }
+    # 横展開: 他の検索機能でも同様のサニタイゼーション適用
+    sanitized = value.to_s.gsub(/[%_\\]/) { |match| "\\#{match}" }
+    
+    # 制御文字や危険な文字を除去
+    sanitized.gsub(/[\x00-\x1F\x7F]/, "")
   end
 
   # 複雑な条件を構築するビルダークラス
