@@ -6,6 +6,8 @@ FactoryBot.define do
     quantity { 100 }
     price { 1000 }
     status { 'active' }
+    safety_stock_level { 10 }
+    reserved_quantity { 0 }
 
     # 価格別のファクトリ
     trait :low_price do
@@ -23,6 +25,23 @@ FactoryBot.define do
     # ステータス別のファクトリ
     trait :archived do
       status { 'archived' }
+    end
+
+    # 在庫レベル別のファクトリ
+    trait :low_stock do
+      quantity { 5 }
+      safety_stock_level { 10 }
+    end
+
+    trait :out_of_stock do
+      quantity { 0 }
+      safety_stock_level { 10 }
+    end
+
+    trait :heavily_reserved do
+      quantity { 50 }
+      reserved_quantity { 45 }
+      safety_stock_level { 10 }
     end
 
     # 特定の商品カテゴリ

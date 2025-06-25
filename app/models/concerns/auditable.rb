@@ -13,7 +13,7 @@ module Auditable
     # コールバック
     after_create :log_create_action
     after_update :log_update_action
-    after_destroy :log_destroy_action
+    before_destroy :log_destroy_action
 
     # 関連
     # CLAUDE.md準拠: 監査ログの永続保存（GDPR/PCI DSS対応）
@@ -140,6 +140,21 @@ module Auditable
   # インスタンスメソッド
   # ============================================
 
+  # 監査ユーザーの取得
+  def audit_user
+    Current.user || Current.admin || Current.store_user
+  end
+
+  # 監査用の変更内容取得
+  def audit_changes
+    saved_changes.except("updated_at", "created_at")
+  end
+
+  # 監査ログ記録対象となる識別名
+  def auditable_name
+    model_display_name
+  end
+
   # 手動での監査ログ記録
   def audit_log(action, message, details = {})
     return unless audit_enabled
@@ -196,7 +211,8 @@ module Auditable
       {
         attributes: sanitized_attributes,
         model_class: self.class.name
-      }
+      },
+      audit_user
     )
   rescue => e
     handle_audit_error(e)
@@ -218,7 +234,8 @@ module Auditable
         changes: sanitized_changes,
         model_class: self.class.name,
         changed_fields: meaningful_changes.keys
-      }
+      },
+      audit_user
     )
   rescue => e
     handle_audit_error(e)
@@ -235,7 +252,8 @@ module Auditable
       {
         attributes: sanitized_attributes,
         model_class: self.class.name
-      }
+      },
+      audit_user
     )
   rescue => e
     handle_audit_error(e)

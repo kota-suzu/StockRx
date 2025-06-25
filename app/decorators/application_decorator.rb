@@ -12,7 +12,7 @@ class ApplicationDecorator < Draper::Decorator
   def h
     @h ||= ActionController::Base.helpers
   end
-  
+
   def helpers
     h
   end
@@ -23,24 +23,25 @@ class ApplicationDecorator < Draper::Decorator
   #   default: nil日付時のデフォルト値（デフォルト: 'N/A'）
   #   include_time: 時刻を含めるか（デフォルト: false）
   def formatted_date(date, options = {})
-    return options[:default] || 'N/A' if date.nil?
-    
+    return options[:default] || "N/A" if date.nil?
+
     format = options[:format] || :default
-    
+
     # テスト環境では英語フォーマットを使用
     if Rails.env.test?
       if format == :short
-        formatted = date.strftime('%-d %b')
+        formatted = date.strftime("%-d %b")
       elsif format == :long
-        formatted = date.strftime('%B %-d, %Y')
+        formatted = date.strftime("%B %-d, %Y")
       elsif format.is_a?(Symbol)
-        formatted = date.strftime('%Y-%m-%d')
+        formatted = date.strftime("%Y-%m-%d")
       else
-        formatted = date.strftime(format)
+        # カスタムフォーマット文字列をそのまま使用
+        return date.strftime(format)
       end
-      
+
       if options[:include_time]
-        time_format = options[:time_format] || '%H:%M'
+        time_format = options[:time_format] || "%H:%M"
         formatted + " " + date.strftime(time_format)
       else
         formatted
@@ -48,7 +49,7 @@ class ApplicationDecorator < Draper::Decorator
     else
       # 本番環境ではI18nを使用
       if options[:include_time]
-        time_format = options[:time_format] || '%H:%M'
+        time_format = options[:time_format] || "%H:%M"
         if format.is_a?(Symbol)
           I18n.l(date, format: format) + " " + date.strftime(time_format)
         else
@@ -76,12 +77,12 @@ class ApplicationDecorator < Draper::Decorator
   #   unit: 通貨単位（デフォルト: '¥'）
   #   default: nil金額時のデフォルト値（デフォルト: '¥0'）
   def formatted_currency(amount, options = {})
-    default_value = options[:default] || '¥0'
+    default_value = options[:default] || "¥0"
     return default_value if amount.nil?
-    
+
     h.number_to_currency(
       amount,
-      unit: options[:unit] || '¥',
+      unit: options[:unit] || "¥",
       precision: options[:precision] || 0
     )
   end
@@ -93,36 +94,36 @@ class ApplicationDecorator < Draper::Decorator
   def status_badge(options = {})
     # モデルからstatusを取得（引数なしでも動作）
     status = object.respond_to?(:status) ? object.status : nil
-    
+
     # カスタムラベルまたはstatusのhumanize
-    label_text = options[:label] || (status ? status.to_s.humanize : '')
-    
+    label_text = options[:label] || (status ? status.to_s.humanize : "")
+
     # 基本のbadgeクラス
-    css_classes = ['badge']
-    
+    css_classes = [ "badge" ]
+
     # ステータスに応じたバリアントクラス
     variant_class = case status.to_s.downcase
-    when 'active', 'normal'
-      'badge-success'
-    when 'pending', 'warning', 'expiring_soon'
-      'badge-warning'
-    when 'cancelled', 'rejected', 'expired'
-      'badge-danger'
-    when 'completed'
-      'badge-info'
-    when 'processing'
-      'badge-primary'
+    when "active", "normal"
+      "badge-success"
+    when "pending", "warning", "expiring_soon"
+      "badge-warning"
+    when "cancelled", "rejected", "expired"
+      "badge-danger"
+    when "completed"
+      "badge-info"
+    when "processing"
+      "badge-primary"
     else
-      'badge-secondary'
+      "badge-secondary"
     end
-    
+
     css_classes << variant_class
-    
+
     # カスタムCSSクラスを追加
     css_classes << options[:css_class] if options[:css_class]
-    
+
     # HTMLセーフティを確保しつつタグを生成
-    h.content_tag(:span, label_text, class: css_classes.join(' ')).html_safe
+    h.content_tag(:span, label_text, class: css_classes.join(" ")).html_safe
   end
 
   # リンクが存在する場合のみリンクを生成
@@ -131,20 +132,21 @@ class ApplicationDecorator < Draper::Decorator
   #   target: リンクターゲット（デフォルト: '_blank'）
   #   その他のHTML属性
   def link_if_present(url, text, options = {})
-    return 'N/A' if url.nil? && text.nil?
-    return h.content_tag(:span, text || '').html_safe if url.blank?
-    
+    return "N/A" if url.nil? && text.nil?
+    return text || "" if url.blank?
+
     # URL形式の基本検証
     unless url.to_s.match?(/\Ahttps?:\/\//)
-      return h.content_tag(:span, text || url).html_safe
+      return text || url
     end
-    
+
     # デフォルトオプション
     link_options = {
-      target: '_blank',
-      rel: 'noopener'
+      href: url,
+      target: "_blank",
+      rel: "noopener"
     }.merge(options)
-    
+
     h.link_to(text || url, url, link_options).html_safe
   end
 
@@ -153,22 +155,22 @@ class ApplicationDecorator < Draper::Decorator
   #   length: 最大文字数（デフォルト: 50）
   #   omission: 省略記号（デフォルト: '...'）
   def truncated_text(text, options = {})
-    return '' if text.nil?
-    
+    return "" if text.nil?
+
     length = options[:length] || 50
-    omission = options[:omission] || '...'
-    
+    omission = options[:omission] || "..."
+
     # テスト環境では単純な切り詰め処理
     if Rails.env.test?
       if text.length > length
-        truncated = text[0...(length - omission.length)] + omission
+        truncated = text[0...length] + omission
       else
         truncated = text
       end
     else
       truncated = h.truncate(text, length: length, omission: omission)
     end
-    
+
     # 元のテキストがhtml_safeだった場合は保持
     text.html_safe? ? truncated.html_safe : truncated
   end
@@ -185,26 +187,26 @@ class ApplicationDecorator < Draper::Decorator
   def boolean_icon(value, options = {})
     icon_class = case value
     when true
-      options[:true_icon] || 'fa-check'
+      options[:true_icon] || "fa-check"
     when false
-      options[:false_icon] || 'fa-times'
+      options[:false_icon] || "fa-times"
     else
-      options[:nil_icon] || 'fa-minus'
+      options[:nil_icon] || "fa-minus"
     end
-    
+
     color_class = case value
     when true
-      options[:true_class] || 'text-success'
+      options[:true_class] || "text-success"
     when false
-      options[:false_class] || 'text-danger'
+      options[:false_class] || "text-danger"
     else
-      options[:nil_class] || 'text-muted'
+      options[:nil_class] || "text-muted"
     end
-    
-    css_classes = ['fa', icon_class, color_class]
+
+    css_classes = [ "fa", icon_class, color_class ]
     css_classes << options[:class] if options[:class]
-    
-    h.content_tag(:i, '', class: css_classes.join(' ')).html_safe
+
+    h.content_tag(:i, "", class: css_classes.join(" ")).html_safe
   end
 
   # プログレスバーを生成（Bootstrap互換）
@@ -215,42 +217,42 @@ class ApplicationDecorator < Draper::Decorator
   #   label: カスタムラベルテキスト
   def progress_bar(percentage, options = {})
     # パーセンテージを0-100の範囲に制限
-    percentage = [[percentage.to_f, 0].max, 100].min
-    
+    percentage = [ [ percentage.to_f, 0 ].max, 100 ].min
+
     # 自動色分け（colorオプションがない場合）
     color = options[:color] || case percentage
-    when 0..30
-      'danger'
-    when 31..70
-      'warning'
-    else
-      'success'
-    end
-    
+                               when 0..30
+                                 "danger"
+                               when 31..70
+                                 "warning"
+                               else
+                                 "success"
+                               end
+
     # プログレスバーのクラス
-    progress_class = ['progress-bar', "bg-#{color}"]
+    progress_class = [ "progress-bar", "bg-#{color}" ]
     progress_class << options[:class] if options[:class]
-    
+
     # ラベルテキスト
     label = if options[:show_label] == false
-      ''
+      ""
     else
       options[:label] || "#{percentage.to_i}%"
     end
-    
+
     # プログレスバーHTML
-    progress_bar_html = h.content_tag(:div, 
+    progress_bar_html = h.content_tag(:div,
       label,
-      class: progress_class.join(' '),
-      style: "width: #{percentage}%",
-      role: 'progressbar',
-      'aria-valuenow': percentage,
+      class: progress_class.join(" "),
+      style: "width: #{percentage.to_i}%",
+      role: "progressbar",
+      'aria-valuenow': percentage.to_i,
       'aria-valuemin': 0,
       'aria-valuemax': 100
     )
-    
+
     # プログレスコンテナ
-    h.content_tag(:div, progress_bar_html, class: 'progress')
+    h.content_tag(:div, progress_bar_html, class: "progress")
   end
 
   # TODO: 🟡 Phase 3（重要）- 追加UIヘルパーメソッドの実装

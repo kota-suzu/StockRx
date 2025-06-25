@@ -2,7 +2,7 @@
 
 module StoreControllers
   # テスト用コントローラー（開発環境のみ）
-  class TestController < ApplicationController
+  class TestController < BaseController
     skip_before_action :authenticate_store_user!, if: -> { action_name == "table_light" }
 
     def table_light

@@ -9,7 +9,9 @@
 
 class StaticController < ApplicationController
   # 認証をスキップ（デモページアクセスのため）
-  skip_before_action :authenticate_admin!, if: -> { action_name == "modern_ui_demo" }
+  # NOTE: ApplicationControllerにauthenticate_admin!が定義されていないため、
+  # skip_before_actionはコメントアウトしています
+  # skip_before_action :authenticate_admin!, if: -> { action_name == "modern_ui_demo" }
 
   # Modern UI v2 デモページ
   # CLAUDE.md準拠: 最新UIトレンドに対応した新デザインシステムのショーケース

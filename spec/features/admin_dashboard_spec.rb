@@ -40,15 +40,15 @@ RSpec.describe 'Admin Dashboard', type: :feature do
       end
 
       it 'ダッシュボードが正常に表示されること', :js do
-        visit admin_dashboard_path
+        visit admin_root_path
 
-        expect(page).to have_current_path(admin_dashboard_path)
+        expect(page).to have_current_path(admin_root_path)
         expect(page).to have_content('管理者ダッシュボード')
         expect(page).to have_content('システム概要')
       end
 
       it '統計情報が正確に表示されること' do
-        visit admin_dashboard_path
+        visit admin_root_path
 
         # 在庫統計の確認
         expect(page).to have_content('総在庫商品数')
@@ -62,7 +62,7 @@ RSpec.describe 'Admin Dashboard', type: :feature do
       end
 
       it '低在庫アラートが適切に表示されること' do
-        visit admin_dashboard_path
+        visit admin_root_path
 
         # 低在庫商品の詳細確認
         within('.low-stock-alerts') do
@@ -77,7 +77,7 @@ RSpec.describe 'Admin Dashboard', type: :feature do
       end
 
       it '最近のアクティビティが表示されること' do
-        visit admin_dashboard_path
+        visit admin_root_path
 
         # アクティビティログの確認
         within('.recent-activities') do
@@ -90,7 +90,7 @@ RSpec.describe 'Admin Dashboard', type: :feature do
       end
 
       it 'ナビゲーションメニューが機能すること', :js do
-        visit admin_dashboard_path
+        visit admin_root_path
 
         # メインナビゲーション
         expect(page).to have_link('在庫管理', href: admin_inventories_path)
@@ -108,7 +108,7 @@ RSpec.describe 'Admin Dashboard', type: :feature do
         it 'モバイル表示でも適切に表示されること', :js do
           # ビューポートをモバイルサイズに変更
           page.driver.browser.manage.window.resize_to(375, 667)
-          visit admin_dashboard_path
+          visit admin_root_path
 
           expect(page).to have_content('管理者ダッシュボード')
           expect(page).to have_css('.mobile-responsive', visible: true)
@@ -117,7 +117,7 @@ RSpec.describe 'Admin Dashboard', type: :feature do
         it 'タブレット表示でも適切に表示されること', :js do
           # ビューポートをタブレットサイズに変更
           page.driver.browser.manage.window.resize_to(768, 1024)
-          visit admin_dashboard_path
+          visit admin_root_path
 
           expect(page).to have_content('管理者ダッシュボード')
           expect(page).to have_css('.tablet-responsive', visible: true)
@@ -126,7 +126,7 @@ RSpec.describe 'Admin Dashboard', type: :feature do
 
       context 'リアルタイム更新' do
         it '新しい在庫ログが自動で表示されること', :js do
-          visit admin_dashboard_path
+          visit admin_root_path
 
           # 新しいログを作成
           inventory = create(:inventory, name: '新商品')
@@ -143,7 +143,7 @@ RSpec.describe 'Admin Dashboard', type: :feature do
           # データベースエラーをシミュレート
           allow(Inventory).to receive(:count).and_raise(ActiveRecord::ConnectionTimeoutError)
 
-          visit admin_dashboard_path
+          visit admin_root_path
 
           expect(page).to have_content('データの読み込み中にエラーが発生しました')
           expect(page).to have_content('再試行してください')
@@ -153,7 +153,7 @@ RSpec.describe 'Admin Dashboard', type: :feature do
 
     context '未認証ユーザーの場合' do
       it 'ログインページにリダイレクトされること' do
-        visit admin_dashboard_path
+        visit admin_root_path
 
         expect(page).to have_current_path(admin_sign_in_path)
         expect(page).to have_content('ログインしてください')
@@ -215,7 +215,7 @@ RSpec.describe 'Admin Dashboard', type: :feature do
       end
 
       it '大量データでも適切に表示されること' do
-        visit admin_dashboard_path
+        visit admin_root_path
 
         expect(page).to have_content('管理者ダッシュボード')
         expect(page).to have_content('総在庫商品数')

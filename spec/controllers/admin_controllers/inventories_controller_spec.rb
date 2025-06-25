@@ -703,9 +703,9 @@ RSpec.describe AdminControllers::InventoriesController, type: :controller do
           create_list(:batch, 3, inventory: inventory)
 
           expect {
-            patch :update, params: { 
-              id: inventory.id, 
-              inventory: { name: "Updated" } 
+            patch :update, params: {
+              id: inventory.id,
+              inventory: { name: "Updated" }
             }
           }.not_to exceed_query_limit(4) # 更新クエリも最小限
         end
@@ -797,9 +797,9 @@ RSpec.describe AdminControllers::InventoriesController, type: :controller do
       let(:csv_injection_content) do
         "=cmd|'/c calc.exe'!A1,quantity,price,status\n商品A,100,1000,active"
       end
-      
+
       let(:csv_injection_file) do
-        file = Tempfile.new(['injection', '.csv'])
+        file = Tempfile.new([ 'injection', '.csv' ])
         file.write(csv_injection_content)
         file.rewind
 
@@ -813,11 +813,11 @@ RSpec.describe AdminControllers::InventoriesController, type: :controller do
 
       it "CSV Injectionを含むファイルは安全に処理される" do
         allow(ImportInventoriesJob).to receive(:perform_later).and_return(true)
-        
+
         expect {
           post :import, params: { csv_file: csv_injection_file }
         }.not_to raise_error
-        
+
         expect(response).to redirect_to(admin_job_status_path(assigns(:job_id)))
       end
     end
@@ -854,7 +854,7 @@ RSpec.describe AdminControllers::InventoriesController, type: :controller do
 
     context "ディスク容量不足（CSV保存時）" do
       let(:csv_file) do
-        file = Tempfile.new(['test', '.csv'])
+        file = Tempfile.new([ 'test', '.csv' ])
         file.write("name,quantity,price\n商品A,100,1000")
         file.rewind
 
@@ -922,14 +922,14 @@ RSpec.describe AdminControllers::InventoriesController, type: :controller do
   end
 
   # ============================================
-  # アクセシビリティ・ユーザビリティテスト  
+  # アクセシビリティ・ユーザビリティテスト
   # ============================================
 
   describe "accessibility tests" do
     it "一覧ページでのスクリーンリーダー対応" do
       create_list(:inventory, 3)
       get :index
-      
+
       expect(response.body).to include('role=') if response.body.present?
       expect(response).to be_successful
     end

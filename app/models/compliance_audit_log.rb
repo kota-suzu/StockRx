@@ -22,6 +22,17 @@ class ComplianceAuditLog < ApplicationRecord
   # ============================================================================
   belongs_to :user, polymorphic: true, optional: true  # 実行ユーザー（admin/store_user、システム処理の場合はnil）
 
+  # CLAUDE.md準拠: ベストプラクティス - 意味的に正しい関連付け名の提供
+  # メタ認知: コンプライアンス監査の操作者は管理者（admin）なので、adminエイリアスが意味的に適切
+  # 横展開: AuditLog・InventoryLogと同様のパターン適用で一貫性確保
+  def admin
+    user if user_type == "Admin"
+  end
+
+  def store_user
+    user if user_type == "StoreUser"
+  end
+
   # ============================================================================
   # バリデーション
   # ============================================================================

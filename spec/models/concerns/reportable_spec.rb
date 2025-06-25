@@ -79,7 +79,7 @@ RSpec.describe Reportable do
 
       def nearest_expiry_date
         return nil if @batches.empty?
-        @batches.map(&:expiration_date).compact.min
+        @batches.map(&:expires_on).compact.min
       end
     end
   end
@@ -129,8 +129,8 @@ RSpec.describe Reportable do
 
     context 'with batches' do
       it 'includes batch count' do
-        batch1 = double(expiration_date: 1.month.from_now)
-        batch2 = double(expiration_date: 2.months.from_now)
+        batch1 = double(expires_on: 1.month.from_now)
+        batch2 = double(expires_on: 2.months.from_now)
         test_instance.instance_variable_set(:@batches, [ batch1, batch2 ])
 
         report = test_instance.generate_stock_report
@@ -377,7 +377,7 @@ RSpec.describe Reportable do
 
     it 'handles items with expiry dates' do
       item = test_class.new
-      batch = double(expiration_date: Date.parse("2024-12-31"))
+      batch = double(expires_on: Date.parse("2024-12-31"))
       item.instance_variable_set(:@batches, [ batch ])
       allow(test_class).to receive(:all).and_return([ item ])
 

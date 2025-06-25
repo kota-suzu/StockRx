@@ -12,15 +12,32 @@ class Inventory < ApplicationRecord
   include InventoryStatistics
   include Reportable
   include ShipmentManagement
+  include QueryOptimization  # 🚀 クエリ最適化機能
 
   # ステータス定義（Rails 8.0向けに更新）
   enum :status, { active: 0, archived: 1 }
   STATUSES = statuses.keys.freeze # 不変保証
 
+  # CLAUDE.md準拠: QueryOptimization設定
+  # メタ認知: インデックス画面では大きなテキストカラムは不要
+  def self.unnecessary_columns_for_index
+    %w[description notes]
+  end
+
+  # 詳細画面で必要な全関連
+  def self.all_associations_for_show
+    [ :batches, :inventory_logs, :receipts, :shipments, :store_inventories, :stores ]
+  end
+
   # バリデーション
   validates :name, presence: true
   validates :price, numericality: { greater_than_or_equal_to: 0 }
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }
+  validates :reserved_quantity, numericality: { greater_than_or_equal_to: 0 }
+  validates :safety_stock_level, numericality: { greater_than: 0 }
+
+  # カスタムバリデーション - 予約済み在庫が総在庫を超えないようにする
+  validate :reserved_quantity_within_available_quantity
 
   # ============================================
   # Multi-Store関連のアソシエーション
@@ -85,6 +102,30 @@ class Inventory < ApplicationRecord
         available_quantity: store_inventory.available_quantity,
         can_fulfill: store_inventory.available_quantity >= required_quantity
       }
+    end
+  end
+
+  # 低在庫判定メソッド
+  # CLAUDE.md準拠: ベストプラクティス適用 - safety_stock_levelカラム追加完了
+  def low_stock?
+    quantity <= safety_stock_level
+  end
+
+  # 利用可能在庫数（総在庫 - 予約済み）
+  def available_quantity
+    quantity - reserved_quantity
+  end
+
+  # 在庫状況レベル判定
+  def stock_status
+    if quantity <= 0
+      :out_of_stock
+    elsif quantity <= safety_stock_level
+      :low_stock
+    elsif available_quantity <= safety_stock_level
+      :reserved_heavy
+    else
+      :normal
     end
   end
 
@@ -330,4 +371,14 @@ class Inventory < ApplicationRecord
   #    - シャーディング対応
   #    - インメモリキャッシュ最適化
   #    - データアーカイブ機能
+
+  private
+
+  def reserved_quantity_within_available_quantity
+    return if reserved_quantity.nil? || quantity.nil?
+
+    if reserved_quantity > quantity
+      errors.add(:reserved_quantity, "cannot exceed available quantity")
+    end
+  end
 end

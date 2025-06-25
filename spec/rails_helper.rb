@@ -128,30 +128,57 @@ RSpec.configure do |config|
   # データパッチシステム関連クラスの事前読み込み（テスト環境用）
   # NOTE: Rails 8.0のautoloading問題対策
   config.before(:suite) do
-    # データパッチシステムの基底クラスとレジストリを事前に読み込み
-    require Rails.root.join('app/services/data_patch_registry')
-    require Rails.root.join('app/services/batch_processor')
-    require Rails.root.join('app/services/data_patch_executor')
-
-    # DataPatchレジストリの初期化
-    DataPatchRegistry.instance.send(:load_registered_patches)
+    # 条件付きデータパッチシステム読み込み（高速化）
+    # TODO: データパッチテストのみで実行するよう最適化
+    if ENV['LOAD_DATA_PATCHES'] == 'true' || RSpec.configuration.filter[:data_patch]
+      require Rails.root.join('app/services/data_patch_registry')
+      require Rails.root.join('app/services/batch_processor')
+      require Rails.root.join('app/services/data_patch_executor')
+      DataPatchRegistry.instance.send(:load_registered_patches)
+    end
   end
 
-  # TODO: テストアイソレーション強化（優先度：最高）
-  # ベストプラクティス: 各テストの完全な独立性を保証
+  # テストアイソレーション強化（CLAUDE.md準拠）
+  # メタ認知: 高速化とテスト独立性のバランス最適化
+  # 横展開: 他のRailsプロジェクトでも同様の最適化適用可能
 
-  # Factory Bot sequence management for test isolation
+  # MySQLトランザクションエラー対策（2025年6月25日実装）
+  # エラー: "Table definition has changed, please retry transaction"
+  # 原因: MySQLの背景統計更新とテストトランザクションの競合
   config.before(:suite) do
-    # テストスイート開始時にシーケンスをリセット
-    FactoryBot.rewind_sequences
+    # スキーマキャッシュの事前クリア
+    if ActiveRecord::Base.connection.adapter_name == 'Mysql2'
+      ActiveRecord::Base.connection.schema_cache.clear!
+
+      # InnoDB統計情報の強制更新（競合回避）
+      ActiveRecord::Base.connection.execute('SET GLOBAL innodb_stats_auto_recalc = OFF')
+      ActiveRecord::Base.connection.execute('SET SESSION innodb_lock_wait_timeout = 5')
+    end
+  rescue => e
+    Rails.logger.warn "MySQL設定警告: #{e.message}"
   end
 
-  # TODO: データベースクリーンアップ戦略（優先度：高）
-  # 各テストタイプに適した独立性確保手法を実装
+  # テスト実行前のスキーマキャッシュクリア
+  config.before(:each, type: :controller) do
+    if ActiveRecord::Base.connection.adapter_name == 'Mysql2'
+      ActiveRecord::Base.connection.schema_cache.clear! if rand < 0.1  # 10%の確率でクリア
+    end
+  end
+
+  # Factory Bot sequence management - 高速化版
+  config.before(:suite) do
+    # 条件付きシーケンスリセット（高速化）
+    FactoryBot.rewind_sequences if ENV['RESET_SEQUENCES'] == 'true'
+  end
+
+  # データベースクリーンアップ戦略（最適化版）
+  # 各テストタイプに適した独立性確保手法
   config.before(:each, type: :request) do
-    # リクエストテスト用：テストデータのリセット（選択的）
-    # 注意：全削除は遅いため、必要な場合のみ使用
-    # ActiveRecord::Base.connection.truncate_tables(*ActiveRecord::Base.connection.tables.reject { |t| t == 'schema_migrations' || t == 'ar_internal_metadata' })
+    # リクエストテスト用：高速データリセット
+    # メタ認知: 全テーブル削除は遅いため、必要な場合のみ実行
+    if ENV['CLEAN_DATABASE'] == 'true'
+      ActiveRecord::Base.connection.execute('TRUNCATE TABLE inventories, stores, store_inventories RESTART IDENTITY CASCADE')
+    end
   end
 
   config.around(:each, isolation: true) do |example|
@@ -207,6 +234,9 @@ RSpec.configure do |config|
   # Include FactoryBot syntax
   config.include FactoryBot::Syntax::Methods
 
+  # Include Rails time helpers for travel_to and freeze_time
+  config.include ActiveSupport::Testing::TimeHelpers
+
   # Rails Controller Testing (assigns, etc.)
   config.include Rails::Controller::Testing::TestProcess, type: :controller
   config.include Rails::Controller::Testing::TemplateAssertions, type: :controller
@@ -241,6 +271,8 @@ RSpec.configure do |config|
     Sidekiq::Worker.clear_all
     # ActiveJobキューのクリア
     ActiveJob::Base.queue_adapter.enqueued_jobs.clear if defined?(ActiveJob) && ActiveJob::Base.queue_adapter.respond_to?(:enqueued_jobs)
+    # Current属性のリセット（テスト間の独立性確保）
+    Current.reset
   end
 
   # Background job テスト用ヘルパー
@@ -355,18 +387,37 @@ rescue => e
   end
 end
 
+# 動的ポート割り当て（競合回避）
+def find_available_port(start_port = 3001)
+  port = start_port
+  begin
+    # ポートが使用中かチェック
+    socket = Socket.new(:INET, :STREAM, 0)
+    socket.bind(Addrinfo.tcp("127.0.0.1", port))
+    socket.close
+    port
+  rescue Errno::EADDRINUSE
+    port += 1
+    retry if port < start_port + 100  # 最大100ポート試行
+    raise "No available port found in range #{start_port}-#{start_port + 100}"
+  rescue => e
+    Rails.logger.warn "Port check error: #{e.message}"
+    start_port  # エラー時はデフォルトポートを返す
+  end
+end
+
 # Capybara基本設定（パフォーマンス重視）
 Capybara.configure do |config|
   # CI環境対応
   if ENV['CI'].present?
     config.server_host = ENV['CAPYBARA_SERVER_HOST'] || '0.0.0.0'
-    config.server_port = ENV['CAPYBARA_SERVER_PORT']&.to_i || 3001
+    config.server_port = ENV['CAPYBARA_SERVER_PORT']&.to_i || find_available_port(3001)
     config.app_host = "http://#{config.server_host}:#{config.server_port}"
     config.default_max_wait_time = 10  # CI環境では長めに設定
   else
     config.app_host = "http://localhost"
     config.server_host = "localhost"
-    config.server_port = 3001
+    config.server_port = find_available_port(3001)
     config.default_max_wait_time = 3  # デフォルト2秒から3秒に短縮
   end
 

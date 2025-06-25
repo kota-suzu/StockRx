@@ -75,6 +75,9 @@ class ImportInventoriesJob < ApplicationJob
     @job_id = job_id || generate_job_id
     @start_time = Time.current
 
+    # Redis接続と基本情報を事前に設定（エラー時でもステータス更新のため）
+    setup_basic_tracking
+
     with_error_handling do
       validate_and_import_csv
     end
@@ -89,8 +92,8 @@ class ImportInventoriesJob < ApplicationJob
     # 1. セキュリティ検証
     validate_file_security
 
-    # 2. 進捗追跡の初期化
-    setup_progress_tracking
+    # 2. 進捗追跡の本格初期化
+    update_status_to_running
 
     # 3. CSVインポート実行
     result = execute_csv_import
@@ -150,18 +153,35 @@ class ImportInventoriesJob < ApplicationJob
     end
   end
 
-  # CSV形式とヘッダー検証
+  # CSV形式とヘッダー検証（多言語対応）
   def validate_csv_format
     CSV.open(@file_path, "r", headers: true) do |csv|
-      headers = csv.first&.headers&.map(&:downcase) || []
-      missing_headers = REQUIRED_CSV_HEADERS - headers
+      # nilヘッダーに対する安全な処理
+      raw_headers = csv.first&.headers&.compact || []
+      normalized_headers = normalize_csv_headers(raw_headers)
+      missing_headers = REQUIRED_CSV_HEADERS - normalized_headers
 
       if missing_headers.any?
-        raise CSV::MalformedCSVError, "Missing required headers: #{missing_headers.join(', ')}"
+        # 詳細なエラーメッセージを生成（CsvHeaderNormalizerを使用）
+        error_message = CsvHeaderNormalizer.detailed_error_message(
+          raw_headers, "inventory", REQUIRED_CSV_HEADERS
+        )
+
+        # TODO: [Phase 4] - CSVエラー専用のカスタム例外クラスの実装を検討
+        # 現在はSecurityErrorを使用しているが、より詳細なエラー分類のため
+        # CustomError::CsvValidationError等の実装を検討
+        raise SecurityError, error_message
       end
     end
   rescue CSV::MalformedCSVError => e
     raise SecurityError, "Invalid CSV format: #{e.message}"
+  end
+
+  # CSVヘッダーの多言語対応正規化（CsvHeaderNormalizerを使用）
+  # @param raw_headers [Array<String>] CSVファイルの元ヘッダー
+  # @return [Array<String>] 正規化されたヘッダー（英語カラム名）
+  def normalize_csv_headers(raw_headers)
+    CsvHeaderNormalizer.normalize(raw_headers, "inventory", REQUIRED_CSV_HEADERS)
   end
 
   # パストラバーサル攻撃の防止
@@ -171,7 +191,22 @@ class ImportInventoriesJob < ApplicationJob
       Rails.root.join("tmp").to_s,
       Rails.root.join("storage").to_s,
       "/tmp"
-    ].map { |dir| File.expand_path(dir) }
+    ]
+
+    # テスト環境では一時ディレクトリも許可（セキュリティ制限付き）
+    if Rails.env.test?
+      test_tmp_dirs = [
+        Dir.tmpdir,           # システム一時ディレクトリ
+        ENV["TMPDIR"]         # 環境変数の一時ディレクトリ
+      ].compact
+
+      # macOSの場合のみ /var/folders を許可
+      test_tmp_dirs << "/var/folders" if RUBY_PLATFORM.include?("darwin")
+
+      allowed_directories += test_tmp_dirs
+    end
+
+    allowed_directories = allowed_directories.map { |dir| File.expand_path(dir) }
 
     unless allowed_directories.any? { |dir| normalized_path.start_with?(dir) }
       raise SecurityError, "Unauthorized file location: #{@file_path}"
@@ -235,12 +270,39 @@ class ImportInventoriesJob < ApplicationJob
   # ============================================
   # 進捗追跡
   # ============================================
-  def setup_progress_tracking
+  # 基本的なRedis接続とキー設定（エラー時にも利用）
+  def setup_basic_tracking
     @redis = get_redis_connection
     @status_key = "csv_import:#{@job_id}"
 
-    initialize_progress_in_redis if @redis
+    if @redis
+      # 基本情報のみ設定（ステータスは初期化しない）
+      @redis.hset(@status_key,
+        "job_id", @job_id,
+        "admin_id", @admin_id,
+        "file_name", File.basename(@file_path),
+        "created_at", @start_time.iso8601
+      )
+      @redis.expire(@status_key, PROGRESS_TTL)
+    end
+  end
+
+  # 進捗追跡の本格初期化（セキュリティ検証後）
+  def update_status_to_running
+    return unless @redis
+
+    @redis.hset(@status_key,
+      "status", "running",
+      "started_at", @start_time.iso8601,
+      "progress", 0
+    )
+
     broadcast_import_started
+  end
+
+  def setup_progress_tracking
+    # 互換性のため残す（削除予定）
+    update_status_to_running
   end
 
   def initialize_progress_in_redis
@@ -425,7 +487,7 @@ class ImportInventoriesJob < ApplicationJob
       successful: result[:valid_count],
       failed: result[:invalid_records].size,
       duration: calculate_duration,
-      errors: result[:invalid_records].map { |record| record[:errors]&.full_messages }&.flatten&.compact
+      errors: result[:invalid_records].map { |record| record[:errors] }&.flatten&.compact
     }
 
     ImportProgressChannel.broadcast_completion(@admin_id, result_data)

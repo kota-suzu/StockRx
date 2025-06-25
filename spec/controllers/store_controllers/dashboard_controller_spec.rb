@@ -175,7 +175,7 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
         pending_outgoing = assigns(:pending_outgoing)
         recent_completed = assigns(:recent_completed)
 
-        [pending_incoming, pending_outgoing, recent_completed].each do |transfers|
+        [ pending_incoming, pending_outgoing, recent_completed ].each do |transfers|
           transfers.each do |transfer|
             expect(transfer.association(:source_store)).to be_loaded
             expect(transfer.association(:destination_store)).to be_loaded
@@ -195,7 +195,7 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
         recent_inventory_changes = assigns(:recent_inventory_changes)
 
         expect(recent_inventory_changes.count).to eq(3)
-        
+
         # 店舗が扱う商品のログのみが含まれている
         recent_inventory_changes.each do |log|
           expect(store.inventories.pluck(:id)).to include(log.inventory_id)
@@ -448,33 +448,33 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
 
     describe "#expiration_class" do
       it "7日以内の期限切れはtext-dangerを返す" do
-        expiration_date = Date.current + 5.days
-        expect(controller.send(:expiration_class, expiration_date)).to eq("text-danger")
+        expires_on = Date.current + 5.days
+        expect(controller.send(:expiration_class, expires_on)).to eq("text-danger")
 
-        expiration_date = Date.current + 7.days
-        expect(controller.send(:expiration_class, expiration_date)).to eq("text-danger")
+        expires_on = Date.current + 7.days
+        expect(controller.send(:expiration_class, expires_on)).to eq("text-danger")
       end
 
       it "8-14日の期限切れはtext-warningを返す" do
-        expiration_date = Date.current + 10.days
-        expect(controller.send(:expiration_class, expiration_date)).to eq("text-warning")
+        expires_on = Date.current + 10.days
+        expect(controller.send(:expiration_class, expires_on)).to eq("text-warning")
 
-        expiration_date = Date.current + 14.days
-        expect(controller.send(:expiration_class, expiration_date)).to eq("text-warning")
+        expires_on = Date.current + 14.days
+        expect(controller.send(:expiration_class, expires_on)).to eq("text-warning")
       end
 
       it "15日以上の期限切れはtext-infoを返す" do
-        expiration_date = Date.current + 30.days
-        expect(controller.send(:expiration_class, expiration_date)).to eq("text-info")
+        expires_on = Date.current + 30.days
+        expect(controller.send(:expiration_class, expires_on)).to eq("text-info")
 
-        expiration_date = Date.current + 15.days
-        expect(controller.send(:expiration_class, expiration_date)).to eq("text-info")
+        expires_on = Date.current + 15.days
+        expect(controller.send(:expiration_class, expires_on)).to eq("text-info")
       end
 
       it "過去の日付でもエラーにならない" do
-        expiration_date = Date.current - 5.days
+        expires_on = Date.current - 5.days
         expect {
-          controller.send(:expiration_class, expiration_date)
+          controller.send(:expiration_class, expires_on)
         }.not_to raise_error
       end
     end
@@ -875,8 +875,8 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
 
       it "低在庫アイテム取得でのArel.sql最適化" do
         create_list(:inventory, 8) do |inventory|
-          create(:store_inventory, 
-                 store: store, 
+          create(:store_inventory,
+                 store: store,
                  inventory: inventory,
                  quantity: 5,
                  safety_stock_level: 10)
@@ -902,7 +902,7 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
       it "移動データ読み込みでのincludes最適化" do
         create_list(:inter_store_transfer, 5, source_store: store, status: :pending)
         create_list(:inter_store_transfer, 3, destination_store: store, status: :pending)
-        create_list(:inter_store_transfer, 4, source_store: store, status: :completed, 
+        create_list(:inter_store_transfer, 4, source_store: store, status: :completed,
                     completed_at: 2.days.ago)
 
         expect {
@@ -913,7 +913,7 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
       it "グラフデータ準備での日別集計最適化" do
         # 過去7日間のトレンドデータ生成
         (1..7).each do |days_ago|
-          create_list(:inter_store_transfer, 2, 
+          create_list(:inter_store_transfer, 2,
                       source_store: store,
                       requested_at: days_ago.days.ago)
           create_list(:inter_store_transfer, 1,
@@ -956,9 +956,9 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
 
       it "複雑なカテゴリ分析でのパフォーマンス" do
         # 様々なカテゴリの商品を大量作成
-        medicine_names = ["アスピリン錠", "パラセタモール", "オメプラゾール", "インスリン注射液"]
-        device_names = ["血圧計", "体温計", "パルスオキシメーター", "聴診器"]
-        supply_names = ["マスク", "手袋", "アルコール", "ガーゼ"]
+        medicine_names = [ "アスピリン錠", "パラセタモール", "オメプラゾール", "インスリン注射液" ]
+        device_names = [ "血圧計", "体温計", "パルスオキシメーター", "聴診器" ]
+        supply_names = [ "マスク", "手袋", "アルコール", "ガーゼ" ]
 
         (medicine_names + device_names + supply_names).each_with_index do |name, index|
           inventory = create(:inventory, name: "#{name}#{index}")
@@ -1066,7 +1066,7 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
 
       it "商品名のXSSスクリプトがエスケープされる" do
         get :index
-        
+
         # JSONデータ内でXSSスクリプトがエスケープされている
         category_distribution = assigns(:category_distribution)
         expect(category_distribution).not_to include("<script>")
@@ -1158,13 +1158,13 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
     context "極端な値での処理" do
       before do
         # 極端な値のテストデータ
-        create(:store_inventory, 
-               store: store, 
+        create(:store_inventory,
+               store: store,
                inventory: inventory1,
                quantity: 0,
                safety_stock_level: 0)
-        create(:store_inventory, 
-               store: store, 
+        create(:store_inventory,
+               store: store,
                inventory: inventory2,
                quantity: 999999,
                safety_stock_level: 1)
@@ -1262,7 +1262,7 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
 
         category_distribution = assigns(:category_distribution)
         parsed_data = JSON.parse(category_distribution)
-        
+
         # 「顆粒」キーワードにより医薬品に分類される
         medicine_category = parsed_data.find { |cat| cat["name"] == "医薬品" }
         expect(medicine_category).to be_present
@@ -1283,7 +1283,7 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
 
         category_distribution = assigns(:category_distribution)
         parsed_data = JSON.parse(category_distribution)
-        
+
         # 「その他」カテゴリに分類される
         other_category = parsed_data.find { |cat| cat["name"] == "その他" }
         expect(other_category).to be_present
@@ -1305,7 +1305,7 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
 
         category_distribution = assigns(:category_distribution)
         parsed_data = JSON.parse(category_distribution)
-        
+
         # 空文字は「その他」カテゴリに分類される
         other_category = parsed_data.find { |cat| cat["name"] == "その他" }
         expect(other_category).to be_present
@@ -1353,13 +1353,13 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
 
   def setup_transfer_summary_data
     # 保留中の移動
-    create(:inter_store_transfer, 
+    create(:inter_store_transfer,
            source_store: other_store,
            destination_store: store,
            status: :pending,
            requested_at: 1.day.ago)
 
-    create(:inter_store_transfer, 
+    create(:inter_store_transfer,
            source_store: other_store,
            destination_store: store,
            status: :pending,
@@ -1387,7 +1387,7 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
 
   def setup_recent_activities_data
     admin = create(:admin)
-    
+
     # 在庫変動ログ
     create(:inventory_log, inventory: inventory1, admin: admin, created_at: 1.hour.ago)
     create(:inventory_log, inventory: inventory2, admin: admin, created_at: 2.hours.ago)
@@ -1426,8 +1426,8 @@ RSpec.describe StoreControllers::DashboardController, type: :controller do
     # パフォーマンステスト用データ
     inventories = create_list(:inventory, 10)
     inventories.each_with_index do |inv, index|
-      create(:store_inventory, 
-             store: store, 
+      create(:store_inventory,
+             store: store,
              inventory: inv,
              quantity: (index + 1) * 10,
              safety_stock_level: 20)

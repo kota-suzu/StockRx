@@ -37,6 +37,10 @@ FactoryBot.define do
       must_change_password { true }
     end
 
+    trait :password_change_required do
+      must_change_password { true }
+    end
+
     trait :with_login_history do
       sign_in_count { 10 }
       current_sign_in_at { 1.hour.ago }

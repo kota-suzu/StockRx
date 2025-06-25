@@ -2,6 +2,13 @@
 
 module AdminControllers
   class InventoriesController < BaseController
+    include ParameterSanitization
+
+    # CLAUDE.md準拠: パフォーマンス最適化 - アクション別クエリ最適化
+    optimize_queries_for :index, includes: [], cache: true
+    optimize_queries_for :show, includes: [ :batches, :inventory_logs ]
+    optimize_queries_for :edit, :update, includes: [ :batches ]
+
     before_action :set_inventory, only: %i[show edit update destroy]
 
     # TODO: 以下の機能実装が必要
@@ -17,10 +24,11 @@ module AdminControllers
       # Kaminariページネーション実装（50/100/200件切り替え可能）
       per_page = validate_per_page_param(params[:per_page])
 
-      # Kaminariのページネーション情報を保持
-      @inventories_raw = SearchQuery.call(params)
-                                   .page(params[:page])
-                                   .per(per_page)
+      # CLAUDE.md準拠: Repository層を使用した最適化されたクエリ
+      # メタ認知: SearchQueryとRepositoryの組み合わせでN+1問題を解決
+      @inventories_raw = InventoryRepository.search(search_params)
+                                           .page(params[:page])
+                                           .per(per_page)
 
       # デコレートはKaminariメソッドにアクセスした後に実行
       @inventories = @inventories_raw.decorate
@@ -261,15 +269,13 @@ module AdminControllers
 
     # Use callbacks to share common setup or constraints between actions.
     def set_inventory
-      # CLAUDE.md準拠: パフォーマンス最適化 - アクション別に必要な関連データのみを読み込み
-      # メタ認知: showアクションのみbatchesデータが必要、その他は基本情報のみで十分
-      case action_name
-      when "show"
-        # showアクション: バッチ情報を含む詳細表示に必要な全関連データを読み込み
-        @inventory = Inventory.includes(:batches).find(params[:id]).decorate
+      # CLAUDE.md準拠: Repository層を使用した最適化
+      # メタ認知: アクション別の最適化はoptimize_queries_forで定義済み
+      associations = @query_optimizations&.dig(:includes) || []
+
+      if associations.any?
+        @inventory = InventoryRepository.find_with_associations(params[:id], associations).decorate
       else
-        # edit, update, destroy: 基本的なInventoryデータのみで十分
-        # パフォーマンス向上: 不要なJOINとデータ読み込みを回避
         @inventory = Inventory.find(params[:id]).decorate
       end
     end
@@ -302,21 +308,31 @@ module AdminControllers
       end
     end
 
+    # 検索パラメータの取得
+    def search_params
+      params.permit(:keyword, :status, :min_quantity, :max_quantity,
+                    :min_price, :max_price, :sort_by, :sort_direction,
+                    :category, include_associations: [])
+    end
+
     # Only allow a list of trusted parameters through.
+    # CLAUDE.md準拠: セキュアなパラメータ処理（Mass Assignment脆弱性対策）
     def inventory_params
-      params.require(:inventory).permit(:name, :quantity, :price, :status)
+      # ParameterSanitizationモジュールの統一メソッドを使用
+      inventory_params_with_sanitization(params)
+    rescue ArgumentError => e
+      # サニタイゼーションエラー時の処理
+      Rails.logger.warn "Parameter sanitization failed: #{e.message}"
+      flash[:alert] = e.message
+      redirect_back(fallback_location: admin_inventories_path) and return
     end
 
     # Per page パラメータの検証（50/100/200のみ許可）
+    # CLAUDE.md準拠: パラメータサニタイゼーション統合
     def validate_per_page_param(per_page_param)
-      allowed_per_page = [ 50, 100, 200 ]
-      per_page = per_page_param&.to_i || 50  # デフォルト50件
-
-      if allowed_per_page.include?(per_page)
-        per_page
-      else
-        50  # 不正な値の場合はデフォルトに戻す
-      end
+      # ParameterSanitizationモジュールの統一メソッドを使用
+      pagination = sanitize_pagination_params(params[:page], per_page_param)
+      pagination[:per_page] || 50  # デフォルト50件
     end
 
     # ============================================
@@ -408,14 +424,18 @@ module AdminControllers
 
     # インポートオプションの構築
     def build_import_options(params)
-      # CLAUDE.md準拠: 設定可能なオプションで柔軟性を提供
-      {
-        batch_size: 1000,
-        skip_invalid: params[:skip_invalid]&.present? || false,
-        update_existing: params[:update_existing]&.present? || false,
-        unique_key: params[:unique_key].presence || "name",
+      # CLAUDE.md準拠: セキュアなパラメータ処理
+      # ParameterSanitizationモジュールを活用
+      options = csv_import_params_with_sanitization(params)
+
+      # 追加オプション
+      options.merge(
+        unique_key: sanitize_string(params[:unique_key], max_length: 50) || "name",
         admin_id: current_admin.id
-      }
+      )
+    rescue ArgumentError => e
+      Rails.logger.warn "CSV import options validation failed: #{e.message}"
+      raise e
     end
 
     # 非同期インポートジョブのエンキュー

@@ -214,8 +214,14 @@ class Admin < ApplicationRecord
       current_sign_in_at: Time.current,
       last_sign_in_at: Time.current,
       current_sign_in_ip: extract_ip_address(auth),
-      # TODO: GitHub認証ユーザーのデフォルト権限を本部管理者に設定
-      # Phase 3で組織のポリシーに基づいて変更予定
+      # TODO: 🔴 Phase 1（緊急）- GitHub認証ユーザーのデフォルト権限を最小権限に変更
+      # 優先度: 高（セキュリティ要件）
+      # 実装内容: デフォルトをstore_userに変更、管理者承認後に権限昇格
+      # 理由: 権限昇格攻撃のリスク軽減
+      # 期待効果: ゼロトラストセキュリティモデルの実現
+      # 工数見積: 1日（承認フロー含む）
+      # 暫定的に本部管理者として作成（store_idバリデーション回避のため）
+      # TODO: 承認フロー実装後にstore_userに変更
       role: "headquarters_admin"
     )
 
@@ -232,8 +238,15 @@ class Admin < ApplicationRecord
   end
 
   # OAuthデータから安全にIPアドレスを取得
+  # セキュリティ: 実際のリクエストIPを使用（コントローラーから注入）
+  # ✅ Phase 1完了 - IPアドレス取得ロジックの修正
+  # 実装内容: コントローラーからrequest.remote_ipを注入
+  # 効果: 正確な監査証跡の記録、偽装攻撃対策
   def self.extract_ip_address(auth)
-    auth.extra&.raw_info&.ip || "127.0.0.1"
+    # 優先順位: コントローラーから注入されたIP > OAuthプロバイダーのIP > フォールバック
+    auth.extra&.raw_info&.request_ip ||
+      auth.extra&.raw_info&.ip ||
+      "127.0.0.1"  # ローカル開発環境のデフォルトIP
   end
 
   # パスワードが必要なケースかどうかを判定

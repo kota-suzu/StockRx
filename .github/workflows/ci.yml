@@ -73,11 +73,11 @@ jobs:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
-      # redis:
-      #   image: redis
-      #   ports:
-      #     - 6379:6379
-      #   options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis
+        ports:
+          - 6379:6379
+        options: --health-cmd "redis-cli ping" --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
       - name: Install packages
@@ -130,7 +130,7 @@ jobs:
           RAILS_ENV: test
           DATABASE_URL: mysql2://root:@127.0.0.1:3306/app_test
           DATABASE_PASSWORD: ""
-          # REDIS_URL: redis://localhost:6379/0
+          REDIS_URL: redis://localhost:6379/0
           DISABLE_DATABASE_ENVIRONMENT_CHECK: 1
           # Host Authorization完全無効化（ローカル環境との統一）
           DISABLE_HOST_AUTHORIZATION: true

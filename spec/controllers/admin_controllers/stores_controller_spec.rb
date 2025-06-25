@@ -7,7 +7,7 @@ RSpec.describe AdminControllers::StoresController, type: :controller do
   # メタ認知: 権限管理と複雑な分岐ロジックのBranch Coverage向上
   # 横展開: 他の管理系コントローラーでも同様のテストパターン適用
 
-  let(:headquarters_admin) { create(:admin, role: :headquarters_admin) }
+  let(:headquarters_admin) { create(:admin, role: :headquarters_admin, store: nil) }
   let(:store_admin) { create(:admin, role: :store_admin) }
   let(:store) { create(:store) }
   let(:other_store) { create(:store) }
@@ -603,8 +603,8 @@ RSpec.describe AdminControllers::StoresController, type: :controller do
         it "低在庫アイテム取得最適化" do
           inventories = create_list(:inventory, 8)
           inventories.each do |inventory|
-            create(:store_inventory, 
-                   store: store, 
+            create(:store_inventory,
+                   store: store,
                    inventory: inventory,
                    quantity: 5,
                    safety_stock_level: 10)
@@ -829,7 +829,7 @@ RSpec.describe AdminControllers::StoresController, type: :controller do
     context "JSON APIレスポンス（将来実装準備）" do
       it "index画面のJSON対応準備" do
         create_list(:store, 3)
-        
+
         # TODO: Phase 4 - JSON API実装時のテスト
         get :index, format: :html
         expect(response).to be_successful
@@ -857,18 +857,18 @@ RSpec.describe AdminControllers::StoresController, type: :controller do
         # テストデータセットアップ
         stores = create_list(:store, 3, active: true)
         create(:store, active: false) # 非アクティブ店舗
-        
+
         stores.each_with_index do |s, index|
           inventory = create(:inventory, price: 1000)
-          create(:store_inventory, 
-                 store: s, 
+          create(:store_inventory,
+                 store: s,
                  inventory: inventory,
                  quantity: (index + 1) * 10,
                  safety_stock_level: 5)
         end
 
         create_list(:inter_store_transfer, 2, status: :pending)
-        create_list(:inter_store_transfer, 3, status: :completed, 
+        create_list(:inter_store_transfer, 3, status: :completed,
                     completed_at: Date.current.beginning_of_day)
       end
 

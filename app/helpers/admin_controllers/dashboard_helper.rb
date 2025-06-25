@@ -33,7 +33,7 @@ module AdminControllers::DashboardHelper
 
   # 操作種別の日本語表示
   def operation_type_label(operation_type)
-    case operation_type.to_s
+    result = case operation_type.to_s
     when "create"
       "新規登録"
     when "update"
@@ -45,6 +45,9 @@ module AdminControllers::DashboardHelper
     else
       operation_type.to_s.humanize
     end
+
+    # XSS対策：HTMLエスケープして安全な文字列として返す
+    h(result)
   end
 
   # システム状況のステータス表示
@@ -147,7 +150,7 @@ module AdminControllers::DashboardHelper
   def alert_level_class(count, warning_threshold = 5, danger_threshold = 10)
     return "success" if count == 0
     return "warning" if count < warning_threshold
-    return "danger" if count >= danger_threshold
+    return "danger" if count >= warning_threshold
     "info"
   end
 

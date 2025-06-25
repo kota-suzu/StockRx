@@ -3,20 +3,28 @@
 class AuditLog < ApplicationRecord
   # ポリモーフィック関連
   belongs_to :auditable, polymorphic: true
-  belongs_to :user, optional: true, class_name: "Admin"
+
+  # CLAUDE.md準拠: ポリモーフィックuser関連（Admin/StoreUser両対応）
+  # メタ認知: 監査ログはAdmin/StoreUserどちらからも記録される可能性がある
+  belongs_to :user, polymorphic: true, optional: true
 
   # CLAUDE.md準拠: ベストプラクティス - 意味的に正しい関連付け名の提供
   # メタ認知: 監査ログの操作者は管理者（admin）なので、adminエイリアスが意味的に適切
   # 横展開: InventoryLogと同様のパターン適用で一貫性確保
-  # TODO: 🟡 Phase 3（重要）- ログ系モデル関連付け統一設計
-  #   - user_idカラム名をadmin_idに統一するマイグレーション
-  #   - InventoryLogとの一貫性確保
-  #   - 監査ログ統合インターフェースの設計
-  belongs_to :admin, optional: true, class_name: "Admin", foreign_key: "user_id"
+  def admin
+    user if user_type == "Admin"
+  end
+
+  def store_user
+    user if user_type == "StoreUser"
+  end
 
   # バリデーション
   validates :action, presence: true
   validates :message, presence: true
+  # Fix: Add polymorphic user validation
+  validates :user_type, presence: true, if: -> { user_id.present? }
+  validates :user_type, inclusion: { in: %w[Admin StoreUser] }, allow_nil: true
 
   # スコープ
   scope :recent, -> { order(created_at: :desc) }
@@ -84,12 +92,16 @@ class AuditLog < ApplicationRecord
   # クラスメソッド
   class << self
     def log_action(auditable, action, message, details = {}, user = nil)
+      # CLAUDE.md準拠: ポリモーフィックuser関連の適切な設定
+      # メタ認知: Current.userはAdmin/StoreUserの可能性があるため動的に判定
+      user ||= Current.user || Current.admin || Current.store_user
+
       create!(
         auditable: auditable,
         action: action,
         message: message,
         details: details.to_json,
-        user: user || Current.user,
+        user: user,
         ip_address: Current.ip_address,
         user_agent: Current.user_agent
       )

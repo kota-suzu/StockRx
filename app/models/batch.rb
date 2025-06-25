@@ -2,15 +2,28 @@
 
 class Batch < ApplicationRecord
   include InventoryStatistics
+  include Auditable
 
   belongs_to :inventory, counter_cache: true
+  has_many :batch_movements, dependent: :destroy
+  has_many :store_inventories, through: :batch_movements
 
   # バリデーション
   validates :lot_code, presence: true
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }
+  validates :initial_quantity, numericality: { greater_than: 0 }, allow_nil: true
 
   # ロットコードと在庫IDの組み合わせでユニーク（DBレベルでも制約あり）
   validates :lot_code, uniqueness: { scope: :inventory_id, case_sensitive: false }
+
+  # カスタムバリデーション
+  validate :expiration_date_must_be_in_future, on: :create
+  validate :quantity_cannot_exceed_initial
+
+  # コールバック
+  before_validation :normalize_lot_code
+  before_create :set_initial_quantity
+  after_update :log_quantity_change, if: :saved_change_to_quantity?
 
   # スコープ
   scope :expired, -> { where("expires_on < ?", Date.current) }
@@ -18,6 +31,9 @@ class Batch < ApplicationRecord
   scope :expiring_soon, ->(days = 30) { where("expires_on BETWEEN ? AND ?", Date.current, Date.current + days.days) }
   scope :out_of_stock, -> { where(quantity: 0) }
   scope :low_stock, ->(threshold = nil) { where("quantity > 0 AND quantity <= ?", threshold || 5) }
+  scope :with_stock, -> { where("quantity > 0") }
+  scope :by_expiry, -> { order(Arel.sql("CASE WHEN expires_on IS NULL THEN 1 ELSE 0 END, expires_on ASC")) }
+  scope :by_lot_code, -> { order(:lot_code) }
 
   # TODO: 期限切れアラート機能の実装
   # TODO: バッチ詳細表示機能の追加
@@ -99,5 +115,151 @@ class Batch < ApplicationRecord
   # 在庫アラート閾値の設定（将来的には設定から取得するなど拡張予定）
   def low_stock_threshold
     5 # デフォルト値
+  end
+
+  # 期限までの日数を計算
+  def days_until_expiry
+    return nil if expires_on.blank?
+    (expires_on - Date.current).to_i
+  end
+
+  # 期限ステータスを返す
+  def expiry_status
+    return :no_expiry if expires_on.blank?
+    return :expired if expired?
+    return :expiring_soon if expiring_soon?
+    :valid
+  end
+
+  # 在庫消費（減少）処理
+  def consume(amount)
+    return false if amount > quantity
+
+    ActiveRecord::Base.transaction do
+      self.quantity -= amount
+      if save
+        # InventoryLogの作成はafter_updateコールバックで処理される
+        true
+      else
+        errors.add(:base, "Failed to update quantity")
+        raise ActiveRecord::Rollback
+      end
+    end
+  rescue => e
+    errors.add(:base, "Insufficient quantity in batch #{lot_code}")
+    false
+  end
+
+  # 在庫補充処理
+  def replenish(amount)
+    new_quantity = quantity + amount
+
+    if initial_quantity && new_quantity > initial_quantity
+      errors.add(:base, "Cannot exceed initial quantity of #{initial_quantity}")
+      return false
+    end
+
+    ActiveRecord::Base.transaction do
+      self.quantity = new_quantity
+      save
+    end
+  end
+
+  # 使用率の計算
+  def usage_percentage
+    return 0 if initial_quantity.nil? || initial_quantity.zero?
+    ((initial_quantity - quantity).to_f / initial_quantity * 100).round(2)
+  end
+
+  # 店舗への移動処理
+  def move_to_store(store, amount)
+    return false if amount > quantity
+
+    ActiveRecord::Base.transaction do
+      # BatchMovementが定義されていればそれを使用
+      if defined?(BatchMovement)
+        BatchMovement.create!(
+          batch: self,
+          store: store,
+          quantity: amount,
+          movement_date: Date.current
+        )
+      end
+
+      consume(amount)
+    end
+  end
+
+  # 現在の配布先店舗と数量
+  def current_locations
+    return {} unless defined?(BatchMovement)
+
+    batch_movements
+      .joins(:store)
+      .group(:store)
+      .sum(:quantity)
+  end
+
+  # バッチの価値計算
+  def calculate_value
+    return 0 unless inventory&.price
+    (quantity * inventory.price).to_f
+  end
+
+  # FIFO優先度（期限が近い、または作成日が古いものが優先）
+  def fifo_priority
+    # 期限がある場合は期限日を基準に、ない場合は作成日を基準に
+    if expires_on.present?
+      # 期限が近いほど高い優先度（小さい値）
+      -expires_on.to_time.to_i
+    else
+      # 作成日が古いほど高い優先度（小さい値）
+      -created_at.to_i
+    end
+  end
+
+  private
+
+  # バリデーションメソッド
+  def expiration_date_must_be_in_future
+    return unless expires_on.present? && new_record?
+
+    if expires_on < Date.current
+      errors.add(:expires_on, "must be in the future")
+    end
+  end
+
+  def quantity_cannot_exceed_initial
+    return unless initial_quantity.present? && quantity.present?
+
+    if quantity > initial_quantity
+      errors.add(:quantity, "cannot exceed initial quantity")
+    end
+  end
+
+  # コールバックメソッド
+  def normalize_lot_code
+    self.lot_code = lot_code.to_s.strip.upcase if lot_code.present?
+  end
+
+  def set_initial_quantity
+    self.initial_quantity ||= quantity
+  end
+
+  def log_quantity_change
+    return unless inventory.present?
+
+    delta = quantity - quantity_before_last_save
+    return if delta.zero?
+
+    InventoryLog.create!(
+      inventory: inventory,
+      operation_type: "adjust",
+      delta: delta,
+      user: Current.user || Current.admin,
+      note: "Batch #{lot_code} quantity adjusted",
+      previous_quantity: quantity_before_last_save || 0,
+      current_quantity: quantity || 0
+    )
   end
 end

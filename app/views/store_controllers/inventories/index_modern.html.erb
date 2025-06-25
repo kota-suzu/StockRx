@@ -311,7 +311,7 @@
               <thead class="bg-light">
                 <tr>
                   <th class="border-0 py-3 px-4">
-                    <%= link_to "/store/inventories?#{params.permit!.merge(sort: 'inventories.name', direction: sort_direction == 'asc' ? 'desc' : 'asc').to_query}", 
+                    <%= link_to "/store/inventories?#{params.permit(:q, :sort, :direction, :page, q: [:name_cont, :manufacturer_eq, :stock_level_eq, :quantity_gteq, :quantity_lteq]).merge(sort: 'inventories.name', direction: sort_direction == 'asc' ? 'desc' : 'asc').to_query}", 
                                 class: "text-decoration-none d-flex align-items-center fw-semibold" do %>
                       <i class="bi bi-box me-2 text-primary"></i>商品名
                       <% if params[:sort] == 'inventories.name' %>
@@ -322,7 +322,7 @@
                     <% end %>
                   </th>
                   <th class="border-0 py-3 px-4">
-                    <%= link_to "/store/inventories?#{params.permit!.merge(sort: 'quantity', direction: sort_direction == 'asc' ? 'desc' : 'asc').to_query}", 
+                    <%= link_to "/store/inventories?#{params.permit(:q, :sort, :direction, :page, q: [:name_cont, :manufacturer_eq, :stock_level_eq, :quantity_gteq, :quantity_lteq]).merge(sort: 'quantity', direction: sort_direction == 'asc' ? 'desc' : 'asc').to_query}", 
                                 class: "text-decoration-none d-flex align-items-center fw-semibold" do %>
                       <i class="bi bi-stack me-2 text-success"></i>在庫数
                       <% if params[:sort] == 'quantity' %>

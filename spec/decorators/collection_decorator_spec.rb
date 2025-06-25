@@ -11,13 +11,21 @@ RSpec.describe CollectionDecorator do
   class TestModel
     attr_accessor :id, :name
 
-    def initialize(id:, name:)
-      @id = id
-      @name = name
+    def initialize(attributes = {})
+      if attributes.is_a?(Hash)
+        @id = attributes[:id] || attributes['id'] || 0
+        @name = attributes[:name] || attributes['name'] || "Item #{@id}"
+      else
+        # 後方互換性のためのフォールバック
+        @id = 0
+        @name = attributes.to_s
+      end
     end
   end
 
   class TestModelDecorator < Draper::Decorator
+    delegate_all
+
     def decorated_name
       "Decorated: #{object.name}"
     end
@@ -26,8 +34,17 @@ RSpec.describe CollectionDecorator do
   class AnotherModel
     attr_accessor :value
 
-    def initialize(value:)
-      @value = value
+    def initialize(attributes = {})
+      if attributes.is_a?(Hash)
+        @value = attributes[:value] || attributes['value'] || "default"
+      else
+        @value = attributes.to_s
+      end
+    end
+
+    # Draperとの互換性のためにdecorateメソッドを定義
+    def decorate
+      self
     end
   end
 

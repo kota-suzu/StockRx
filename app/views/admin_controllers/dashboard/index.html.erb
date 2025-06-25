@@ -1,7 +1,7 @@
 <%# モダン管理者ダッシュボード - ライトテーマ版 %>
-<% content_for :title, "管理ダッシュボード" %>
+<% content_for :title, "管理者ダッシュボード" %>
 
-<div class="container-fluid">
+<div class="container-fluid admin-dashboard">
   <!-- ページヘッダー（WCAG AA準拠の文字色適用） -->
   <div class="row mb-4">
     <div class="col">
@@ -12,7 +12,7 @@
         </div>
         <div>
           <h1 class="mb-1" style="color: var(--text-primary); font-weight: var(--font-weight-bold); font-size: var(--font-size-3xl);">
-            管理ダッシュボード
+            管理者ダッシュボード
           </h1>
           <p class="mb-0" style="color: var(--text-secondary); font-size: var(--font-size-base);">
             StockRx在庫管理システム - 全体概要
@@ -344,7 +344,7 @@
                                 end %>
                           </span>
                         </h6>
-                        <div class="d-flex align-items-center text-muted small">
+                        <div class="d-flex align-items-center text-secondary small">
                           <i class="bi bi-clock me-1"></i>
                           <span><%= time_ago_in_words(log.created_at) %>前</span>
                           <span class="mx-2">•</span>
@@ -353,18 +353,27 @@
                       </div>
                       
                       <!-- Quick Action Button -->
+                      <%# TODO: 🟢 Phase 3（推奨） - アクションボタンの統一パーシャル化 %>
+                      <%# 理由: shared/admin/_action_buttonsパーシャルを活用してUI統一性向上 %>
+                      <%# タスク内容: render 'shared/admin/action_buttons', resource: log.inventory, buttons: [:detail] %>
                       <% if log.inventory.present? %>
                         <%= link_to admin_inventory_path(log.inventory), 
-                                    class: "btn btn-sm btn-outline-secondary btn-hover-primary ms-2",
-                                    data: { bs_toggle: "tooltip", bs_placement: "left", bs_title: "詳細を表示" } do %>
-                          <i class="bi bi-arrow-right"></i>
+                                    class: "btn btn-primary btn-sm action-btn detail-btn ms-2",
+                                    title: "詳細表示",
+                                    data: { 
+                                      bs_toggle: "tooltip",
+                                      bs_placement: "top"
+                                    },
+                                    "aria-label": "#{truncate(log.inventory.name, length: 50)}の詳細を表示" do %>
+                          <i class="bi bi-eye" aria-hidden="true"></i>
+                          <span class="btn-text d-none d-lg-inline ms-1">詳細</span>
                         <% end %>
                       <% end %>
                     </div>
                     
                     <!-- Additional Details -->
                     <% if log.note.present? %>
-                      <p class="mb-0 text-muted small">
+                      <p class="mb-0 text-secondary small">
                         <i class="bi bi-chat-left-text me-1"></i>
                         <%= truncate(log.note, length: 100) %>
                       </p>
@@ -377,11 +386,11 @@
             <div class="empty-state text-center py-5">
               <div class="mb-3">
                 <div class="d-inline-block p-3 rounded-circle bg-light">
-                  <i class="bi bi-activity text-muted" style="font-size: 2.5rem;"></i>
+                  <i class="bi bi-activity text-secondary" style="font-size: 2.5rem;"></i>
                 </div>
               </div>
-              <h5 class="text-muted mb-2">まだアクティビティがありません</h5>
-              <p class="text-muted mb-3">在庫管理を開始して、システムの活動履歴を確認しましょう。</p>
+              <h5 class="text-secondary mb-2">まだアクティビティがありません</h5>
+              <p class="text-secondary mb-3">在庫管理を開始して、システムの活動履歴を確認しましょう。</p>
               <div class="d-flex justify-content-center gap-2">
                 <%= link_to "在庫管理を開始", admin_inventories_path, 
                             class: "btn btn-admin btn-hover-shadow" %>

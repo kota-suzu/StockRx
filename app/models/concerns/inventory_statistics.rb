@@ -9,6 +9,7 @@ module InventoryStatistics
     scope :normal_stock, ->(threshold = 5) { where("quantity > ?", threshold) }
     scope :active, -> { where(status: :active) }
     scope :search_by_name, ->(query) { where("name LIKE ?", "%#{query}%") }
+    scope :by_name, ->(query) { where("name LIKE ?", "%#{query}%") }
     scope :search_by_code, ->(code) { where(code: code) }
   end
 

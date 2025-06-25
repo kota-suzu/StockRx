@@ -14,7 +14,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
 
   let(:valid_csv_content) do
     <<~CSV
-      name,quantity,price,expiration_date,lot_number
+      name,quantity,price,expires_on,lot_number
       アスピリン 100mg,1000,250.50,2025-12-31,LOT001
       ビタミンC,500,150.00,2025-06-30,LOT002
       胃腸薬,750,100.25,2025-09-15,LOT003
@@ -31,7 +31,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
   end
 
   let(:large_csv_content) do
-    headers = "name,quantity,price,expiration_date,lot_number\n"
+    headers = "name,quantity,price,expires_on,lot_number\n"
     rows = 5000.times.map do |i|
       "Product #{i},#{100 + i},#{100.0 + i},2025-12-31,LOT#{i.to_s.rjust(5, '0')}"
     end
@@ -116,7 +116,21 @@ RSpec.describe ImportInventoriesJob, type: :job do
 
         invalid_record = result[:invalid_records].first
         expect(invalid_record[:errors]).to include("Name can't be blank")
-        expect(invalid_record[:row_number]).to be_present
+        expect(invalid_record[:row]).to be_present
+      end
+
+      it 'ArgumentErrorを適切に処理する' do
+        csv_file.write("name,quantity,price,status\nTest Product,100,200,invalid_status\n")
+        csv_file.rewind
+
+        # enum値が無効な場合のArgumentErrorをシミュレート
+        allow_any_instance_of(Inventory).to receive(:valid?).and_raise(
+          ArgumentError.new("'invalid_status' is not a valid status")
+        )
+
+        result = ImportInventoriesJob.perform_now(file_path, admin.id, { skip_invalid: true })
+
+        expect(result[:invalid_records].first[:errors]).to include("'invalid_status' is not a valid status")
       end
     end
 
@@ -191,6 +205,29 @@ RSpec.describe ImportInventoriesJob, type: :job do
         expect {
           ImportInventoriesJob.perform_now(file_path, admin.id)
         }.to raise_error(SecurityError, /Missing required headers/)
+      end
+
+      it '複数の必須ヘッダーが不足している場合に詳細なエラーメッセージを含む' do
+        csv_file.write("product\nTest Product")
+        csv_file.rewind
+
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id)
+        }.to raise_error(SecurityError) do |error|
+          expect(error.message).to include('Missing required headers:')
+          expect(error.message).to include('quantity')
+          expect(error.message).to include('price')
+        end
+      end
+
+      it 'ヘッダーの大文字小文字を正しく処理する' do
+        csv_file.write("NAME,QUANTITY,PRICE\nTest,100,250.50")
+        csv_file.rewind
+
+        # 大文字のヘッダーでも正常に処理される（downcaseで正規化）
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id)
+        }.not_to raise_error
       end
 
       it 'パストラバーサル攻撃を防ぐ' do
@@ -338,6 +375,7 @@ RSpec.describe ImportInventoriesJob, type: :job do
 
     context 'ログ出力' do
       it '正常処理時に適切なログを出力する' do
+        allow(Rails.logger).to receive(:info) # 全てのinfo呼び出しを許可
         expect(Rails.logger).to receive(:info).with(/csv_import_security_validated/)
         expect(Rails.logger).to receive(:info).with(/csv_import_started/)
         expect(Rails.logger).to receive(:info).with(/csv_import_completed/)
@@ -347,6 +385,8 @@ RSpec.describe ImportInventoriesJob, type: :job do
 
       it 'エラー時に適切なログを出力する' do
         allow_any_instance_of(ImportInventoriesJob).to receive(:execute_csv_import).and_raise(StandardError, "Test error")
+        allow(Rails.logger).to receive(:info) # 全てのinfo呼び出しを許可
+        allow(Rails.logger).to receive(:error) # 全てのerror呼び出しを許可
 
         expect(Rails.logger).to receive(:error).with(/csv_import_failed/)
 
@@ -358,20 +398,28 @@ RSpec.describe ImportInventoriesJob, type: :job do
 
     context 'パフォーマンス' do
       it 'メモリ使用量が適切に管理される' do
-        skip 'ps command not available in Docker container'
-
+        # Docker環境対応: Ruby標準のGC.statを使用してメモリ監視
         csv_file.write(large_csv_content)
         csv_file.rewind
 
-        initial_memory = `ps -o rss= -p #{Process.pid}`.to_i
+        # ガベージコレクションを実行してベースライン確立
+        GC.start
+        initial_heap_size = GC.stat(:heap_allocated_pages)
+        initial_object_count = ObjectSpace.count_objects[:T_OBJECT]
 
         ImportInventoriesJob.perform_now(file_path, admin.id, { batch_size: 1000 }, job_id)
 
-        final_memory = `ps -o rss= -p #{Process.pid}`.to_i
-        memory_increase = final_memory - initial_memory
+        # ガベージコレクション後の状態確認
+        GC.start
+        final_heap_size = GC.stat(:heap_allocated_pages)
+        final_object_count = ObjectSpace.count_objects[:T_OBJECT]
 
-        # メモリ増加が100MB以内
-        expect(memory_increase).to be < 100_000
+        heap_increase = final_heap_size - initial_heap_size
+        object_increase = final_object_count - initial_object_count
+
+        # 大量CSVインポート後でもheapとobject増加が制限範囲内
+        expect(heap_increase).to be < 1000  # ページ単位での増加制限
+        expect(object_increase).to be < 50_000  # オブジェクト数増加制限
       end
 
       it 'N+1クエリが発生しない' do
@@ -433,7 +481,8 @@ RSpec.describe ImportInventoriesJob, type: :job do
         validation_error = ActiveRecord::RecordInvalid.new(Inventory.new)
         expect(job.send(:determine_error_type, validation_error)).to eq('validation_error')
 
-        csv_error = CSV::MalformedCSVError.new("test")
+        # CSV::MalformedCSVError は lineno と line の2つの引数が必要
+        csv_error = CSV::MalformedCSVError.new("test", 1)
         expect(job.send(:determine_error_type, csv_error)).to eq('file_error')
 
         security_error = SecurityError.new("test")
@@ -441,6 +490,89 @@ RSpec.describe ImportInventoriesJob, type: :job do
 
         other_error = StandardError.new("test")
         expect(job.send(:determine_error_type, other_error)).to eq('processing_error')
+      end
+    end
+  end
+
+  describe 'コールバックとバリデーション' do
+    describe 'before_perform :validate_job_arguments' do
+      it '無効な引数で実行時にエラーを発生させる' do
+        expect {
+          ImportInventoriesJob.perform_now(nil, admin.id)
+        }.to raise_error(ArgumentError, /File path is required/)
+
+        expect {
+          ImportInventoriesJob.perform_now(file_path, nil)
+        }.to raise_error(ArgumentError, /Admin ID is required/)
+
+        expect {
+          ImportInventoriesJob.perform_now(file_path, 99999)
+        }.to raise_error(ArgumentError, /Admin not found/)
+      end
+    end
+  end
+
+  describe 'セキュリティ定数' do
+    it 'センシティブパラメータが定義されている' do
+      expect(ImportInventoriesJob::SENSITIVE_IMPORT_PARAMS).to include(
+        'file_path', 'admin_id', 'user_email'
+      )
+    end
+
+    it 'ファイル制限が適切に定義されている' do
+      expect(ImportInventoriesJob::MAX_FILE_SIZE).to eq(100.megabytes)
+      expect(ImportInventoriesJob::ALLOWED_EXTENSIONS).to eq(%w[.csv])
+      expect(ImportInventoriesJob::REQUIRED_CSV_HEADERS).to eq(%w[name quantity price])
+    end
+
+    it 'バッチ処理設定が定義されている' do
+      expect(ImportInventoriesJob::IMPORT_BATCH_SIZE).to eq(1000)
+      expect(ImportInventoriesJob::PROGRESS_REPORT_INTERVAL).to eq(10)
+    end
+
+    it 'Redis TTL設定が定義されている' do
+      expect(ImportInventoriesJob::PROGRESS_TTL).to eq(1.hour.to_i)
+      expect(ImportInventoriesJob::COMPLETED_TTL).to eq(24.hours.to_i)
+    end
+  end
+
+  describe 'エッジケース' do
+    context 'ジョブIDが省略された場合' do
+      it '自動的にジョブIDを生成する' do
+        expect(SecureRandom).to receive(:uuid).and_return('auto_generated_id')
+
+        result = ImportInventoriesJob.perform_now(file_path, admin.id)
+        expect(result).to be_present
+      end
+    end
+
+    context 'import_optionsがnilの場合' do
+      it 'デフォルトオプションで処理する' do
+        expect {
+          ImportInventoriesJob.perform_now(file_path, admin.id, nil)
+        }.not_to raise_error
+      end
+    end
+
+    context 'CSVファイルに特殊文字が含まれる場合' do
+      let(:unicode_csv_content) do
+        <<~CSV
+          name,quantity,price
+          "製品 🎯",100,250.50
+          "Pröd‹ct with émojî 😊",200,150.00
+          "製品,カンマ入り",300,350.00
+        CSV
+      end
+
+      it 'Unicode文字を正しく処理する' do
+        csv_file.write(unicode_csv_content)
+        csv_file.rewind
+
+        result = ImportInventoriesJob.perform_now(file_path, admin.id)
+
+        expect(result[:valid_count]).to eq(3)
+        expect(Inventory.find_by(name: '製品 🎯')).to be_present
+        expect(Inventory.find_by(name: 'Pröd‹ct with émojî 😊')).to be_present
       end
     end
   end

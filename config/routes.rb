@@ -187,7 +187,7 @@ Rails.application.routes.draw do
              controllers: {
                sessions: "admin_controllers/sessions",
                passwords: "admin_controllers/passwords",
-               omniauth_callbacks: "admin_controllers/omniauth_callbacks"
+               omniauth_callbacks: "admins/omniauth_callbacks"
              }
 
   # ============================================
@@ -209,6 +209,10 @@ Rails.application.routes.draw do
     # ダッシュボードをルートに設定
     root "dashboard#index"
 
+    # OAuth Debug Routes (TEMPORARY - Remove after fixing OAuth issues)
+    get "oauth_debug", to: "oauth_debug#show"
+    get "oauth_debug/callback_info", to: "oauth_debug#callback_info"
+
     # 在庫管理
     resources :inventories do
       collection do
@@ -228,7 +232,8 @@ Rails.application.routes.draw do
 
       # 店舗別在庫管理（管理者用）
       # CLAUDE.md準拠: 管理者は全店舗の詳細在庫情報にアクセス可能
-      resources :inventories, only: [ :index ], controller: "admin_controllers/store_inventories" do
+      # 注意: namespace内では"admin_controllers/"プレフィックス不要（module: :admin_controllersで自動解決）
+      resources :inventories, only: [ :index ], controller: "store_inventories" do
         member do
           get :details  # 詳細情報（価格・仕入先含む）
         end
@@ -249,7 +254,7 @@ Rails.application.routes.draw do
     # CLAUDE.md準拠: ルーティング構造の整理とコンテキスト統一
     # メタ認知: ネストルーティングと独立ルーティングの役割分担明確化
     # 🛠️ 修正: edit/update アクション追加（コントローラー実装済み、ビュー要求に対応）
-    resources :inter_store_transfers, path: :transfers, only: [ :index, :show, :new, :create, :edit, :update ] do
+    resources :inter_store_transfers, path: :transfers, only: [ :index, :show, :new, :create, :edit, :update, :destroy ] do
       collection do
         get :pending      # 承認待ち一覧
         get :analytics    # 移動分析

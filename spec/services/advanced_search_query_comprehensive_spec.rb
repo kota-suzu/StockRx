@@ -12,11 +12,11 @@ RSpec.describe AdvancedSearchQuery do
 
   let!(:inventory1) { create(:inventory, name: "#{test_prefix}_Medicine A", quantity: 100, price: 500, status: 'active') }
   let!(:inventory2) { create(:inventory, name: "#{test_prefix}_Equipment B", quantity: 5, price: 10000, status: 'active') }
-  let!(:inventory3) { create(:inventory, name: "#{test_prefix}_Supply C", quantity: 0, price: 100, status: 'discontinued') }
+  let!(:inventory3) { create(:inventory, name: "#{test_prefix}_Supply C", quantity: 0, price: 100, status: 'archived') }
 
-  let!(:batch1) { create(:batch, inventory: inventory1, lot_code: 'LOT001', expiration_date: 30.days.from_now) }
-  let!(:batch2) { create(:batch, inventory: inventory1, lot_code: 'LOT002', expiration_date: 5.days.from_now) }
-  let!(:batch3) { create(:batch, inventory: inventory2, lot_code: 'LOT003', expiration_date: 1.year.from_now) }
+  let!(:batch1) { create(:batch, inventory: inventory1, lot_code: 'LOT001', expires_on: 30.days.from_now) }
+  let!(:batch2) { create(:batch, inventory: inventory1, lot_code: 'LOT002', expires_on: 5.days.from_now) }
+  let!(:batch3) { create(:batch, inventory: inventory2, lot_code: 'LOT003', expires_on: 1.year.from_now) }
 
   describe '.build' do
     it 'creates new instance with default scope' do
@@ -61,7 +61,7 @@ RSpec.describe AdvancedSearchQuery do
       end
 
       it 'filters by multiple statuses' do
-        result = query.filter(status: [ 'active', 'discontinued' ]).execute
+        result = query.filter(status: [ 'active', 'archived' ]).execute
         expect(result).to include(inventory1, inventory2, inventory3)
       end
     end
@@ -128,7 +128,7 @@ RSpec.describe AdvancedSearchQuery do
         .or
         .filter(price: 10000)
         .or
-        .filter(status: 'discontinued')
+        .filter(status: 'archived')
         .execute
 
       expect(result).to include(inventory1, inventory2, inventory3)
@@ -307,7 +307,7 @@ RSpec.describe AdvancedSearchQuery do
 
     it 'handles association sorting' do
       result = query.apply_sorting(
-        sort_by: 'batches.expiration_date',
+        sort_by: 'batches.expires_on',
         direction: 'asc'
       ).execute
 

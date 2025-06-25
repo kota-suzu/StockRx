@@ -1,421 +1,369 @@
 # frozen_string_literal: true
 
 require 'rails_helper'
-require 'support/shared_examples/auditable_examples'
 
-# Phase 5-4: Auditableconcernテスト
+# Auditable Concernの包括的テスト
 # ============================================
-# 監査ログ自動記録機能のテスト
+# CLAUDE.md準拠: 監査ログ機能の完全テスト実装
+# メタ認知: コールバック動作・監査ログ生成・パフォーマンスを検証
 # ============================================
 RSpec.describe Auditable do
-  # テスト用のモデルを定義
-  before(:all) do
-    # テスト用テーブルを作成
-    ActiveRecord::Base.connection.create_table :test_auditables, force: true do |t|
-      t.string :name
-      t.string :email
-      t.string :credit_card
-      t.string :secret_data
-      t.string :api_key
-      t.timestamps
-    end
-
-    # テスト用モデル
-    class TestAuditable < ApplicationRecord
-      self.table_name = 'test_auditables'
+  # テスト用のモデルクラスを定義
+  let(:test_class) do
+    Class.new(ApplicationRecord) do
+      self.table_name = 'inventories'
       include Auditable
 
-      # 監査ログ設定
-      auditable except: [ :created_at, :updated_at ],
-                sensitive: [ :api_key ]
-
-      # auditable_nameメソッドの実装（shared_examplesで必要）
-      def auditable_name
-        name || "TestAuditable##{id}"
-      end
+      # 監査オプションの設定
+      auditable except: [ :updated_at, :created_at ],
+                sensitive: [ :price ],
+                if: -> { name != 'Skip Audit' }
     end
   end
 
-  after(:all) do
-    # テスト用テーブルを削除
-    ActiveRecord::Base.connection.drop_table :test_auditables if ActiveRecord::Base.connection.table_exists?(:test_auditables)
-    Object.send(:remove_const, :TestAuditable) if defined?(TestAuditable)
-  end
-
-  # CLAUDE.md準拠: ベストプラクティス - テストデータの確実なクリーンアップ
-  # メタ認知: letはbeforeブロックの後に評価されるようにする
-  before(:each) do
-    # 各テスト前にAuditLogをクリア
-    AuditLog.destroy_all
-    TestAuditable.destroy_all
-
-    # デフォルトの監査設定にリセット
-    TestAuditable.auditable except: [ :created_at, :updated_at ],
-                            sensitive: [ :api_key ]
-  end
-
-  let(:test_record) { TestAuditable.create!(name: "テスト", email: "test@example.com") }
+  let(:test_model) { test_class.new(name: 'Test Item', price: 100, quantity: 50) }
   let(:admin) { create(:admin) }
-  let(:store_user) { create(:store_user) }
 
-  # 共通のauditableテストを実行
-  it_behaves_like "auditable" do
-    let(:model) { TestAuditable }
-    let(:instance) { test_record }
+  before do
+    Current.admin = admin
   end
 
-  describe "監査ログの自動記録" do
-    context "レコード作成時" do
-      it "作成ログが記録されること" do
-        Current.user = admin
+  after do
+    Current.reset
+  end
+
+  describe '基本的な監査ログ機能' do
+    describe '#log_create_action' do
+      it '作成時に監査ログを記録する' do
         expect {
-          TestAuditable.create!(name: "新規", email: "new@example.com")
+          test_model.save!
         }.to change(AuditLog, :count).by(1)
 
         audit_log = AuditLog.last
-        expect(audit_log.action).to eq("create")
-        expect(audit_log.message).to include("Test Auditable「新規」を作成しました")
-        expect(audit_log.user).to eq(admin)
+        expect(audit_log.action).to eq('create')
+        expect(audit_log.auditable).to eq(test_model)
+        expect(audit_log.user_id).to eq(admin.id)
+        expect(audit_log.user_type).to eq('Admin')
+        expect(audit_log.message).to include('作成しました')
       end
 
-      it "属性が記録されること" do
-        Current.user = admin
-        record = TestAuditable.create!(name: "属性テスト", email: "attr@example.com")
-
-        audit_log = record.audit_logs.last
-        details = JSON.parse(audit_log.details)
-
-        expect(details["attributes"]["name"]).to eq("属性テスト")
-        expect(details["attributes"]["email"]).to eq("attr@example.com")
-        expect(details["attributes"]).not_to have_key("created_at")
-      end
-    end
-
-    context "レコード更新時" do
-      it "更新ログが記録されること" do
-        # レコード作成時のログをクリア
-        test_record
-        AuditLog.destroy_all
-
-        expect {
-          test_record.update!(name: "更新後")
-        }.to change(AuditLog, :count).by(1)
+      it '機密フィールドをマスキングする' do
+        test_model.save!
 
         audit_log = AuditLog.last
-        expect(audit_log.action).to eq("update")
-        expect(audit_log.message).to include("Test Auditable「更新後」を更新しました")
-      end
-
-      it "変更内容が記録されること" do
-        # レコード作成時のログをクリア
-        test_record
-        AuditLog.destroy_all
-
-        test_record.update!(name: "変更後", email: "changed@example.com")
-
-        audit_log = test_record.audit_logs.where(action: "update").last
         details = JSON.parse(audit_log.details)
-
-        expect(details["changes"]["name"]).to eq([ "テスト", "変更後" ])
-        expect(details["changes"]["email"]).to eq([ "test@example.com", "changed@example.com" ])
+        expect(details['attributes']['price']).to eq('[FILTERED]')
+        expect(details['attributes']['name']).to eq('Test Item')
       end
 
-      it "updated_atのみの変更では記録されないこと" do
-        # レコード作成時のログをクリア
-        test_record
-        AuditLog.destroy_all
+      it '条件に応じて監査をスキップする' do
+        test_model.name = 'Skip Audit'
 
         expect {
-          test_record.touch
+          test_model.save!
         }.not_to change(AuditLog, :count)
       end
     end
 
-    context "レコード削除時" do
-      it "削除ログが記録されること" do
-        # CLAUDE.md準拠: メタ認知 - dependent: :restrict_with_errorを考慮
-        # 削除前に関連するaudit_logsをクリア
-        record = TestAuditable.create!(name: "削除対象")
-        record.audit_logs.destroy_all  # 削除制約を回避
+    describe '#log_update_action' do
+      before { test_model.save! }
 
+      it '更新時に監査ログを記録する' do
         expect {
-          record.destroy!
+          test_model.update!(quantity: 100)
         }.to change(AuditLog, :count).by(1)
 
         audit_log = AuditLog.last
-        expect(audit_log.action).to eq("delete")
-        expect(audit_log.message).to include("Test Auditable「削除対象」を削除しました")
+        expect(audit_log.action).to eq('update')
+        expect(audit_log.message).to include('更新しました')
+        expect(audit_log.message).to include('quantity')
+      end
+
+      it '変更内容を記録する' do
+        test_model.update!(quantity: 100, price: 200)
+
+        audit_log = AuditLog.last
+        details = JSON.parse(audit_log.details)
+        expect(details['changes']['quantity']).to eq([ 50, 100 ])
+        expect(details['changes']['price']).to eq([ '[FILTERED]', '[FILTERED]' ])
+      end
+
+      it 'updated_atのみの変更は監査対象外' do
+        expect {
+          test_model.touch
+        }.not_to change(AuditLog, :count)
+      end
+    end
+
+    describe '#log_destroy_action' do
+      before { test_model.save! }
+
+      it '削除時に監査ログを記録する' do
+        expect {
+          test_model.destroy!
+        }.to change(AuditLog, :count).by(1)
+
+        audit_log = AuditLog.last
+        expect(audit_log.action).to eq('delete')
+        expect(audit_log.message).to include('削除しました')
+      end
+
+      it '削除前の属性を保存する' do
+        test_model.destroy!
+
+        audit_log = AuditLog.last
+        details = JSON.parse(audit_log.details)
+        expect(details['attributes']['name']).to eq('Test Item')
+        expect(details['attributes']['quantity']).to eq(50)
       end
     end
   end
 
-  describe "機密情報のマスキング" do
-    it "設定された機密フィールドがマスキングされること" do
-      record = TestAuditable.create!(
-        name: "機密テスト",
-        api_key: "secret-api-key-12345"
-      )
-
-      audit_log = record.audit_logs.last
-      details = JSON.parse(audit_log.details)
-
-      expect(details["attributes"]["api_key"]).to eq("[FILTERED]")
+  describe 'クラスメソッド' do
+    describe '.auditable' do
+      it 'オプションを設定できる' do
+        expect(test_class.audit_options[:except]).to include(:updated_at, :created_at)
+        expect(test_class.audit_options[:sensitive]).to include(:price)
+      end
     end
 
-    it "クレジットカード番号が自動マスキングされること" do
-      record = TestAuditable.create!(
-        name: "カードテスト",
-        credit_card: "4111-1111-1111-1111"
-      )
+    describe '.without_auditing' do
+      it '一時的に監査を無効化できる' do
+        expect {
+          test_class.without_auditing do
+            test_model.save!
+            test_model.update!(quantity: 200)
+            test_model.destroy!
+          end
+        }.not_to change(AuditLog, :count)
+      end
 
-      audit_log = record.audit_logs.last
-      details = JSON.parse(audit_log.details)
-
-      expect(details["attributes"]["credit_card"]).to eq("[CARD_NUMBER]")
-    end
-
-    it "メールアドレスは通常マスキングされないこと" do
-      # CLAUDE.md準拠: ベストプラクティス - 通常のメールアドレスは監査ログに表示
-      # メタ認知: 過度なマスキングは監査ログの有用性を損なう
-      record = TestAuditable.create!(
-        name: "メールテスト",
-        email: "longusername@example.com"
-      )
-
-      audit_log = record.audit_logs.last
-      details = JSON.parse(audit_log.details)
-
-      # メールアドレスはマスキングされない
-      expect(details["attributes"]["email"]).to eq("longusername@example.com")
-    end
-
-    it "マイナンバーがマスキングされること" do
-      record = TestAuditable.create!(
-        name: "マイナンバーテスト",
-        secret_data: "1234 5678 9012"
-      )
-
-      audit_log = record.audit_logs.last
-      details = JSON.parse(audit_log.details)
-
-      expect(details["attributes"]["secret_data"]).to eq("[MY_NUMBER]")
-    end
-  end
-
-  describe "条件付き監査" do
-    before do
-      # 条件付き監査の設定
-      TestAuditable.auditable if: -> { name != "無視" }
-    end
-
-    after do
-      # CLAUDE.md準拠: ベストプラクティス - テスト後の設定リセット
-      # メタ認知: 他のテストに影響しないよう設定を元に戻す
-      TestAuditable.auditable except: [ :created_at, :updated_at ],
-                              sensitive: [ :api_key ]
-      Current.reset
-    end
-
-    it "条件を満たす場合は記録されること" do
-      expect {
-        TestAuditable.create!(name: "記録対象")
-      }.to change(AuditLog, :count).by(1)
-    end
-
-    it "条件を満たさない場合は記録されないこと" do
-      expect {
-        TestAuditable.create!(name: "無視")
-      }.not_to change(AuditLog, :count)
-    end
-  end
-
-  describe "監査の一時無効化" do
-    it "without_auditingブロック内では記録されないこと" do
-      expect {
-        TestAuditable.without_auditing do
-          TestAuditable.create!(name: "無効化テスト")
-          test_record.update!(name: "更新無効化")
-          test_record.destroy
+      it 'ブロック実行後に監査を再有効化する' do
+        test_class.without_auditing do
+          test_model.save!
         end
-      }.not_to change(AuditLog, :count)
+
+        expect {
+          test_class.create!(name: 'New Item', price: 150, quantity: 30)
+        }.to change(AuditLog, :count).by(1)
+      end
+    end
+
+    describe '.audit_trail' do
+      before do
+        3.times do |i|
+          model = test_class.create!(name: "Item #{i}", price: 100 + i * 10, quantity: 50)
+          model.update!(quantity: 60)
+          model.destroy!
+        end
+      end
+
+      it '監査ログの履歴を取得できる' do
+        trail = test_class.audit_trail
+        expect(trail.count).to eq(9) # 3 creates + 3 updates + 3 deletes
+      end
+
+      it 'アクションでフィルタリングできる' do
+        trail = test_class.audit_trail(action: 'create')
+        expect(trail.count).to eq(3)
+        expect(trail.pluck(:action).uniq).to eq([ 'create' ])
+      end
+
+      it '期間でフィルタリングできる' do
+        start_date = 1.hour.ago
+        end_date = Time.current
+
+        trail = test_class.audit_trail(start_date: start_date, end_date: end_date)
+        expect(trail.where(created_at: start_date..end_date).count).to eq(trail.count)
+      end
+    end
+
+    describe '.audit_summary' do
+      before do
+        5.times { test_class.create!(name: 'Item', price: 100, quantity: 50) }
+        3.times { test_class.first.update!(quantity: rand(100)) }
+        test_class.last.destroy!
+      end
+
+      it '監査サマリーを取得できる' do
+        summary = test_class.audit_summary
+
+        expect(summary[:total_count]).to be > 0
+        expect(summary[:action_counts]).to include('create', 'update', 'delete')
+        expect(summary[:recent_activity_trend]).to have_key(:current_week_count)
+        expect(summary[:latest]).to respond_to(:each)
+      end
     end
   end
 
-  describe "手動監査ログ記録" do
-    it "audit_logメソッドで手動記録できること" do
-      # レコード作成時のログをクリア
-      test_record
-      AuditLog.destroy_all
+  describe 'インスタンスメソッド' do
+    before { test_model.save! }
 
+    describe '#audit_log' do
+      it '手動で監査ログを記録できる' do
+        expect {
+          test_model.audit_log('custom_action', 'カスタムアクションを実行しました', extra_data: 'test')
+        }.to change(AuditLog, :count).by(1)
+
+        audit_log = AuditLog.last
+        expect(audit_log.action).to eq('custom_action')
+        expect(audit_log.message).to eq('カスタムアクションを実行しました')
+        expect(JSON.parse(audit_log.details)['extra_data']).to eq('test')
+      end
+    end
+
+    describe '#audit_view' do
+      it '参照ログを記録できる' do
+        viewer = create(:admin)
+
+        expect {
+          test_model.audit_view(viewer)
+        }.to change(AuditLog, :count).by(1)
+
+        audit_log = AuditLog.last
+        expect(audit_log.action).to eq('view')
+        expect(JSON.parse(audit_log.details)['viewer_id']).to eq(viewer.id)
+      end
+    end
+
+    describe '#audit_export' do
+      it 'エクスポートログを記録できる' do
+        expect {
+          test_model.audit_export('csv', file_size: '1MB')
+        }.to change(AuditLog, :count).by(1)
+
+        audit_log = AuditLog.last
+        expect(audit_log.action).to eq('export')
+        expect(JSON.parse(audit_log.details)['export_format']).to eq('csv')
+      end
+    end
+
+    describe '#audit_security_event' do
+      it 'セキュリティイベントを記録できる' do
+        expect {
+          test_model.audit_security_event(
+            'unauthorized_access',
+            '不正なアクセスを検出しました',
+            ip_address: '192.168.1.1',
+            severity: 'high'
+          )
+        }.to change(AuditLog, :count).by(1)
+
+        audit_log = AuditLog.last
+        details = JSON.parse(audit_log.details)
+        expect(details['security_event']).to be true
+        expect(details['severity']).to eq('high')
+        expect(details['ip_address']).to eq('192.168.1.1')
+      end
+    end
+  end
+
+  describe 'パフォーマンステスト' do
+    it '監査ログ記録のオーバーヘッドが許容範囲内' do
+      # 監査なしの実行時間
+      time_without_audit = Benchmark.realtime do
+        test_class.without_auditing do
+          100.times { test_class.create!(name: 'Perf Test', price: 100, quantity: 50) }
+        end
+      end
+
+      # 監査ありの実行時間
+      time_with_audit = Benchmark.realtime do
+        100.times { test_class.create!(name: 'Perf Test', price: 100, quantity: 50) }
+      end
+
+      # オーバーヘッドが50%以下であることを確認
+      overhead_ratio = (time_with_audit - time_without_audit) / time_without_audit
+      expect(overhead_ratio).to be < 0.5
+    end
+  end
+
+  describe 'エラーハンドリング' do
+    it '監査ログ記録に失敗しても主処理は継続する' do
+      # AuditLogの保存をモックして失敗させる
+      allow(AuditLog).to receive(:create!).and_raise(StandardError, 'DB Error')
+
+      # エラーが発生してもモデルの保存は成功する
       expect {
-        test_record.audit_log("security_event", "カスタムアクション実行", { custom_data: "test" })
-      }.to change(AuditLog, :count).by(1)
+        test_model.save!
+      }.not_to raise_error
+
+      expect(test_model).to be_persisted
+    end
+
+    it 'エラーログを出力する' do
+      allow(AuditLog).to receive(:create!).and_raise(StandardError, 'DB Error')
+
+      expect(Rails.logger).to receive(:error).with(/監査ログ記録エラー/)
+
+      test_model.save!
+    end
+  end
+
+  describe '機密情報のマスキング' do
+    let(:sensitive_model) do
+      Class.new(ApplicationRecord) do
+        self.table_name = 'inventories'
+        include Auditable
+
+        auditable sensitive: [ :credit_card_number, :ssn, :my_number ]
+
+        attr_accessor :credit_card_number, :ssn, :my_number, :email, :phone
+      end
+    end
+
+    it 'クレジットカード番号をマスキングする' do
+      model = sensitive_model.new(
+        name: 'Test',
+        credit_card_number: '4111-1111-1111-1111',
+        price: 100,
+        quantity: 50
+      )
+      model.save!
 
       audit_log = AuditLog.last
-      expect(audit_log.action).to eq("security_event")
-      expect(audit_log.message).to eq("カスタムアクション実行")
+      details = JSON.parse(audit_log.details)
+      expect(details['attributes']['credit_card_number']).to eq('[FILTERED]')
     end
 
-    it "特定アクション用メソッドが使えること" do
-      skip "特定アクション用メソッドは将来実装予定"
-    end
-  end
+    it 'パターンマッチングで機密情報を検出してマスキングする' do
+      model = sensitive_model.new(
+        name: 'Test with card 4111-1111-1111-1111 and SSN 123-45-6789',
+        price: 100,
+        quantity: 50
+      )
 
-  describe "エラーハンドリング" do
-    it "監査ログ記録に失敗しても本処理は継続すること" do
-      # AuditLogの保存を失敗させる
-      allow(AuditLog).to receive(:log_action).and_raise(StandardError, "DB Error")
-      allow(Rails.logger).to receive(:error)
-
-      # エラーが発生しても作成は成功する
-      expect {
-        TestAuditable.create!(name: "エラーテスト")
-      }.not_to raise_error
-
-      # エラーログが記録される
-      expect(Rails.logger).to have_received(:error).with(/監査ログ記録エラー/)
-    end
-  end
-
-  describe "クラスメソッド" do
-    before do
-      # テストデータ作成
-      user = create(:admin)
-      Current.user = user
-
-      5.times do |i|
-        TestAuditable.create!(name: "データ#{i}")
-      end
-    end
-
-    describe ".audit_history" do
-      it "ユーザーの監査履歴を取得できること" do
-        user_id = Current.user.id
-        history = TestAuditable.audit_history(user_id)
-
-        expect(history.count).to be >= 5
-        expect(history.pluck(:user_id).uniq).to eq([ user_id ])
-      end
-    end
-
-    describe ".audit_trail" do
-      it "モデルの監査証跡を取得できること" do
-        trail = TestAuditable.audit_trail
-
-        expect(trail.pluck(:auditable_type).uniq).to eq([ "TestAuditable" ])
-      end
-
-      it "オプションでフィルタリングできること" do
-        record = TestAuditable.first
-        trail = TestAuditable.audit_trail(id: record.id)
-
-        expect(trail.pluck(:auditable_id).uniq).to eq([ record.id ])
-      end
-    end
-
-    describe ".audit_summary" do
-      it "監査サマリーを取得できること" do
-        summary = TestAuditable.audit_summary
-
-        expect(summary).to have_key(:total_count)
-        expect(summary).to have_key(:action_counts)
-        expect(summary).to have_key(:user_counts)
-        expect(summary).to have_key(:recent_activity_trend)
-      end
-    end
-  end
-
-  describe "パフォーマンステスト" do
-    it "大量レコード作成時でもパフォーマンスが維持されること" do
-      Current.user = admin
-
-      # 100レコードの作成が妥当な時間内に完了すること
-      expect {
-        Benchmark.realtime do
-          100.times { |i| TestAuditable.create!(name: "Bulk #{i}") }
-        end
-      }.to be < 5.0 # 5秒以内
-    end
-
-    it "監査ログ作成がN+1クエリを発生させないこと" do
-      Current.user = admin
-
-      expect {
-        5.times { |i| TestAuditable.create!(name: "N+1 Test #{i}") }
-      }.not_to exceed_query_limit(15) # 各作成で3クエリ以内
-    end
-  end
-
-  describe "セキュリティ機能" do
-    it "SQLインジェクション攻撃に対して安全であること" do
-      Current.user = admin
-      malicious_name = "'; DROP TABLE audit_logs; --"
-
-      expect {
-        TestAuditable.create!(name: malicious_name)
-      }.not_to raise_error
-
-      # テーブルが削除されていないことを確認
-      expect(AuditLog.count).to be > 0
-    end
-
-    it "XSS攻撃用のスクリプトが適切にエスケープされること" do
-      Current.user = admin
-      xss_payload = "<script>alert('XSS')</script>"
-
-      record = TestAuditable.create!(name: xss_payload)
-      audit_log = record.audit_logs.last
-
-      # 詳細情報内でHTMLがエスケープされていることを確認
-      expect(audit_log.details).not_to include("<script>")
-      expect(audit_log.message).not_to include("<script>")
-    end
-  end
-
-  describe "エッジケース" do
-    it "nilユーザーでも監査ログが作成されること" do
-      Current.user = nil
-
-      expect {
-        TestAuditable.create!(name: "No User Test")
-      }.to change(AuditLog, :count).by(1)
-
-      expect(AuditLog.last.user).to be_nil
-    end
-
-    it "同時更新でもデータ整合性が保たれること" do
-      Current.user = admin
-      record = test_record
-
-      # 並行更新をシミュレート
-      threads = 5.times.map do |i|
-        Thread.new do
-          ActiveRecord::Base.connection_pool.with_connection do
-            record.reload.update!(name: "Thread #{i}")
-          end
+      # secret_dataフィールドでのマスキングテスト
+      model.instance_eval do
+        def attributes
+          super.merge('secret_data' => 'Card: 4111-1111-1111-1111, SSN: 123-45-6789')
         end
       end
 
-      threads.each(&:join)
+      model.save!
 
-      # 最終的な状態が正しく記録されていること
-      expect(record.reload.name).to match(/Thread \d/)
-      expect(record.audit_logs.where(action: "update").count).to be >= 1
+      audit_log = AuditLog.last
+      details = JSON.parse(audit_log.details)
+
+      # secret_dataフィールドの内容がマスキングされていることを確認
+      expect(details['attributes']['secret_data']).to include('[CARD_NUMBER]')
+      expect(details['attributes']['secret_data']).to include('[SSN]')
+    end
+  end
+
+  describe '関連レコードの削除制限' do
+    before { test_model.save! }
+
+    it '監査ログが存在する場合、レコードを削除できない' do
+      # 監査ログが作成されている
+      expect(test_model.audit_logs.count).to be > 0
+
+      # restrict_with_errorにより削除が制限される
+      expect {
+        test_model.destroy
+      }.not_to change { test_class.count }
+
+      expect(test_model.errors[:base]).to include(/関連するレコードが存在/)
     end
   end
 end
-
-# ============================================
-# TODO: Phase 5-5以降の拡張予定
-# ============================================
-# 1. 🔴 パフォーマンステスト
-#    - 大量レコード操作時の監査ログ記録速度
-#    - バックグラウンド記録の実装
-#
-# 2. 🟡 暗号化・署名
-#    - 監査ログの暗号化保存
-#    - デジタル署名による改ざん防止
-#
-# 3. 🟢 分析機能
-#    - 異常パターンの自動検出
-#    - 統計レポート生成

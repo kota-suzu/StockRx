@@ -30,7 +30,8 @@ module AdminControllers
         average_inventory_value: calculate_average_inventory_value,
         total_batches: calculate_total_batches,
         expiring_batches: calculate_expiring_batches,
-        expired_batches: calculate_expired_batches
+        expired_batches: calculate_expired_batches,
+        low_stock_items: load_low_stock_items
       }
     end
 
@@ -92,6 +93,18 @@ module AdminControllers
       Batch.joins(:inventory)
            .where("expires_on < ?", Date.current)
            .count
+    end
+
+    def load_low_stock_items
+      # 低在庫商品の詳細情報を取得
+      Inventory.low_stock.map do |item|
+        {
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price
+        }
+      end
     end
 
     # TODO: 🟡 Phase 2（中）- 高度な統計機能実装

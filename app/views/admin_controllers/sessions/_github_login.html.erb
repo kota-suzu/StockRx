@@ -1,0 +1,29 @@
+<%# GitHub OAuth認証ボタン - シンプルで確実な実装 %>
+<% if Devise.omniauth_configs[:github].present? %>
+  <%= link_to admin_github_omniauth_authorize_path, 
+      data: { turbo: false },
+      class: "btn btn-outline-dark btn-lg w-100 py-3 text-decoration-none github-login-btn",
+      style: "border: 2px solid #333; transition: all 0.3s ease; display: block; text-align: center;" do %>
+    <i class="fab fa-github me-2"></i>GitHubでログイン
+  <% end %>
+<% else %>
+  <div class="alert alert-info small">
+    <i class="fas fa-info-circle me-1"></i>
+    GitHub認証は現在設定されていません。
+  </div>
+<% end %>
+
+<style>
+  .github-login-btn {
+    transition: all 0.3s ease !important;
+  }
+  .github-login-btn:hover {
+    background-color: #333 !important;
+    color: white !important;
+    transform: translateY(-2px);
+    border-color: #333 !important;
+  }
+  .github-login-btn:active {
+    transform: translateY(0);
+  }
+</style>

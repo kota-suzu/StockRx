@@ -79,6 +79,18 @@ local_infile = 1                      # LOCAL INFILE許可（テスト用）
 performance_schema = OFF              # パフォーマンススキーマ無効（メモリ節約）
 
 # ============================================
+# トランザクション・ロック最適化設定
+# 問題: Lock wait timeout exceeded エラー対策
+# ============================================
+innodb_lock_wait_timeout = 5         # ロック待機タイムアウトを短縮（デフォルト50s→5s）
+innodb_rollback_on_timeout = ON      # タイムアウト時のロールバック有効化
+innodb_table_locks = 0               # テーブルレベルロック無効化（行レベルロックのみ）
+innodb_adaptive_hash_index = OFF     # アダプティブハッシュインデックス無効化
+innodb_stats_auto_recalc = OFF       # 自動統計再計算無効化（背景更新停止）
+innodb_stats_on_metadata = OFF       # メタデータアクセス時の統計更新無効化
+innodb_stats_persistent = OFF        # 永続統計無効化（テスト環境では不要）
+
+# ============================================
 # MyISAMテーブル設定（使用している場合）
 # ============================================
 concurrent_insert = 2

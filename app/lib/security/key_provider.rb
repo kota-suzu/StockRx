@@ -185,11 +185,19 @@ module Security
         # 横展開確認: 全ての暗号化キー取得箇所で同様の実装
 
         if version == :latest
-          key_data = Rails.application.credentials.dig(*credential_path.split(".").map(&:to_sym))
+          key_data = if Rails.application.respond_to?(:safe_credentials)
+                       Rails.application.safe_credentials.dig(*credential_path.split(".").map(&:to_sym))
+          else
+                       Rails.application.credentials.dig(*credential_path.split(".").map(&:to_sym))
+          end
         else
           # TODO: Phase 2 - バージョン管理対応
           credential_path = "#{credential_path}.v#{version}"
-          key_data = Rails.application.credentials.dig(*credential_path.split(".").map(&:to_sym))
+          key_data = if Rails.application.respond_to?(:safe_credentials)
+                       Rails.application.safe_credentials.dig(*credential_path.split(".").map(&:to_sym))
+          else
+                       Rails.application.credentials.dig(*credential_path.split(".").map(&:to_sym))
+          end
         end
 
         if key_data.nil? && config.fallback_to_derived_keys

@@ -3,8 +3,8 @@
 FactoryBot.define do
   factory :store do
     sequence(:name) { |n| "薬局#{n}" }
-    sequence(:code) { |n| "ST#{(Time.current.to_i + n).to_s[-6, 6]}" }
-    sequence(:slug) { |n| "st#{(Time.current.to_i + n).to_s[-6, 6]}".downcase }
+    sequence(:code) { |n| "ST#{Time.current.to_i}#{n}".last(8) }  # Fix: Better uniqueness
+    sequence(:slug) { |n| "st#{Time.current.to_i}#{n}".downcase }
     store_type { 'pharmacy' }
     region { '東京都' }
     address { '東京都港区赤坂1-1-1' }
@@ -28,8 +28,13 @@ FactoryBot.define do
     trait :headquarters do
       store_type { 'headquarters' }
       name { '本部' }
-      sequence(:code) { |n| "HQ#{(Time.current.to_i + n).to_s[-6, 6]}" }
+      sequence(:code) { |n| "HQ#{Time.current.to_i}#{n}".last(8) }  # Fix: Better uniqueness
       manager_name { '本部長' }
+    end
+
+    # アクティブ店舗（デフォルトだが明示的定義）
+    trait :active do
+      active { true }
     end
 
     # 非アクティブ店舗

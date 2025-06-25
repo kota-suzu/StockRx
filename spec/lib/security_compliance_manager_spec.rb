@@ -15,7 +15,9 @@ RSpec.describe SecurityComplianceManager do
   before(:each) do
     Rails.cache.clear
     # テスト用の暗号化キー設定
-    allow(Rails.application.credentials).to receive(:dig).and_return('test_encryption_key_32_bytes_long!')
+    # 32バイトの暗号化キーを設定（AES-256-GCM用）
+    test_key = 'a' * 32  # 正確に32バイトのキー
+    allow(Rails.application.credentials).to receive(:dig).and_return(test_key)
   end
 
   after(:each) do
@@ -85,7 +87,7 @@ RSpec.describe SecurityComplianceManager do
           start_time = Time.current
           manager.mask_credit_card('4111111111111111')
           end_time = Time.current
-          
+
           # 最小実行時間が保証されていることを確認
           expect(end_time - start_time).to be >= 0.1
         end
@@ -126,10 +128,10 @@ RSpec.describe SecurityComplianceManager do
       context 'successful encryption/decryption' do
         it 'encrypts and decrypts data successfully' do
           encrypted = manager.encrypt_sensitive_data(test_data)
-          
+
           expect(encrypted).not_to eq(test_data)
           expect(encrypted).to match(/^[A-Za-z0-9+\/]+=*$/) # Base64 format
-          
+
           decrypted = manager.decrypt_sensitive_data(encrypted)
           expect(decrypted).to eq(test_data)
         end
@@ -137,21 +139,21 @@ RSpec.describe SecurityComplianceManager do
         it 'produces different ciphertext for same plaintext (due to random IV)' do
           encrypted1 = manager.encrypt_sensitive_data(test_data)
           encrypted2 = manager.encrypt_sensitive_data(test_data)
-          
+
           expect(encrypted1).not_to eq(encrypted2)
         end
 
         it 'uses different keys for different contexts' do
           contexts = %w[default card_data personal_data audit_logs]
           encrypted_values = {}
-          
+
           contexts.each do |context|
             encrypted_values[context] = manager.encrypt_sensitive_data(test_data, context: context)
           end
-          
+
           # 各コンテキストで異なる暗号文が生成される
           expect(encrypted_values.values.uniq.size).to eq(contexts.size)
-          
+
           # 各コンテキストで正しく復号化できる
           contexts.each do |context|
             decrypted = manager.decrypt_sensitive_data(encrypted_values[context], context: context)
@@ -163,7 +165,7 @@ RSpec.describe SecurityComplianceManager do
           large_data = 'A' * 10000
           encrypted = manager.encrypt_sensitive_data(large_data)
           decrypted = manager.decrypt_sensitive_data(encrypted)
-          
+
           expect(decrypted).to eq(large_data)
         end
 
@@ -171,14 +173,14 @@ RSpec.describe SecurityComplianceManager do
           unicode_data = '機密データ 🔐 秘密の情報'
           encrypted = manager.encrypt_sensitive_data(unicode_data)
           decrypted = manager.decrypt_sensitive_data(encrypted)
-          
+
           expect(decrypted).to eq(unicode_data)
         end
       end
 
       context 'error handling' do
         it 'raises EncryptionError for blank data' do
-          ['', nil].each do |blank_data|
+          [ '', nil ].each do |blank_data|
             expect {
               manager.encrypt_sensitive_data(blank_data)
             }.to raise_error(SecurityComplianceManager::EncryptionError, 'データが空です')
@@ -195,7 +197,7 @@ RSpec.describe SecurityComplianceManager do
           encrypted = manager.encrypt_sensitive_data(test_data)
           # 暗号文を改ざん
           tampered = Base64.strict_encode64(Base64.strict_decode64(encrypted) + 'tampered')
-          
+
           expect {
             manager.decrypt_sensitive_data(tampered)
           }.to raise_error(SecurityComplianceManager::EncryptionError, '復号化に失敗しました')
@@ -203,7 +205,7 @@ RSpec.describe SecurityComplianceManager do
 
         it 'raises EncryptionError for wrong context' do
           encrypted = manager.encrypt_sensitive_data(test_data, context: 'card_data')
-          
+
           expect {
             manager.decrypt_sensitive_data(encrypted, context: 'personal_data')
           }.to raise_error(SecurityComplianceManager::EncryptionError, '復号化に失敗しました')
@@ -211,7 +213,7 @@ RSpec.describe SecurityComplianceManager do
 
         it 'handles OpenSSL errors gracefully' do
           allow(OpenSSL::Cipher).to receive(:new).and_raise(OpenSSL::Cipher::CipherError, 'Test error')
-          
+
           expect {
             manager.encrypt_sensitive_data(test_data)
           }.to raise_error(SecurityComplianceManager::EncryptionError, '暗号化に失敗しました')
@@ -233,14 +235,14 @@ RSpec.describe SecurityComplianceManager do
         expect {
           manager.log_pci_dss_event('card_data_access', admin_user, event_details)
         }.to change(ComplianceAuditLog, :count).by(1)
-        
+
         log = ComplianceAuditLog.last
         expect(log.event_type).to eq('card_data_access')
         expect(log.compliance_standard).to eq('pci_dss')
         expect(log.user).to eq(admin_user)
         expect(log.severity).to eq('medium')
         expect(log.encrypted_details).to be_present
-        
+
         # 暗号化されたデータを復号化して検証
         decrypted_details = JSON.parse(
           manager.decrypt_sensitive_data(log.encrypted_details, context: 'audit_logs')
@@ -254,14 +256,14 @@ RSpec.describe SecurityComplianceManager do
           password: 'secret123',
           password_confirmation: 'secret123'
         )
-        
+
         manager.log_pci_dss_event('authentication', admin_user, sensitive_details)
-        
+
         log = ComplianceAuditLog.last
         decrypted = JSON.parse(
           manager.decrypt_sensitive_data(log.encrypted_details, context: 'audit_logs')
         )
-        
+
         expect(decrypted['details']).not_to have_key('password')
         expect(decrypted['details']).not_to have_key('password_confirmation')
       end
@@ -272,7 +274,7 @@ RSpec.describe SecurityComplianceManager do
           { action: 'card_data_access', expected: 'medium' },
           { action: 'view_masked_card', expected: 'low' }
         ]
-        
+
         severity_tests.each do |test|
           manager.log_pci_dss_event(test[:action], admin_user, {})
           log = ComplianceAuditLog.last
@@ -284,10 +286,10 @@ RSpec.describe SecurityComplianceManager do
         allow(ComplianceAuditLog).to receive(:create!).and_raise(
           ActiveRecord::RecordInvalid.new(ComplianceAuditLog.new)
         )
-        
+
         expect(Rails.logger).to receive(:error).at_least(:once)
         expect(Rails.logger).to receive(:warn).with(/PCI_DSS_AUDIT_FALLBACK/)
-        
+
         expect {
           manager.log_pci_dss_event('card_data_access', admin_user, event_details)
         }.to raise_error(SecurityComplianceManager::ComplianceError, /PCI DSS監査ログの作成に失敗しました/)
@@ -312,10 +314,10 @@ RSpec.describe SecurityComplianceManager do
       context 'successful anonymization' do
         it 'anonymizes all personal data fields' do
           result = manager.anonymize_personal_data(user)
-          
+
           expect(result[:success]).to be true
           expect(result[:anonymized_fields]).to include('name', 'email')
-          
+
           user.reload
           expect(user.name).to match(/^匿名ユーザー[a-f0-9]{8}$/)
           expect(user.email).to match(/^anonymized_[a-f0-9]{16}@example\.com$/)
@@ -325,7 +327,7 @@ RSpec.describe SecurityComplianceManager do
           expect {
             manager.anonymize_personal_data(user)
           }.to change(ComplianceAuditLog, :count).by(1)
-          
+
           log = ComplianceAuditLog.last
           expect(log.event_type).to eq('data_anonymization')
           expect(log.compliance_standard).to eq('gdpr')
@@ -334,15 +336,15 @@ RSpec.describe SecurityComplianceManager do
         it 'preserves original data hash for verification' do
           original_name = user.name
           original_email = user.email
-          
+
           manager.anonymize_personal_data(user)
-          
+
           # ログから元データのハッシュを確認できる
           log = ComplianceAuditLog.last
           decrypted = JSON.parse(
             manager.decrypt_sensitive_data(log.encrypted_details, context: 'audit_logs')
           )
-          
+
           expect(decrypted['details']['anonymized_fields']).to include('name', 'email')
         end
       end
@@ -350,16 +352,16 @@ RSpec.describe SecurityComplianceManager do
       context 'error handling' do
         it 'returns error for nil user' do
           result = manager.anonymize_personal_data(nil)
-          
+
           expect(result[:success]).to be false
           expect(result[:error]).to eq('ユーザーが見つかりません')
         end
 
         it 'handles database errors gracefully' do
           allow(user).to receive(:update_column).and_raise(ActiveRecord::ActiveRecordError, 'DB error')
-          
+
           result = manager.anonymize_personal_data(user)
-          
+
           expect(result[:success]).to be false
           expect(result[:error]).to eq('DB error')
         end
@@ -406,31 +408,31 @@ RSpec.describe SecurityComplianceManager do
       context 'successful deletion request' do
         it 'processes deletion request according to retention policies' do
           result = manager.process_data_deletion_request(user)
-          
+
           expect(result[:success]).to be true
           expect(result[:summary][:user_id]).to eq(user.id)
           expect(result[:summary][:request_type]).to eq('right_to_erasure')
-          
+
           # 保持期間内のログは匿名化
           expect(result[:summary][:anonymized_records]).to include(
             "inventory_log_#{recent_logs.first.id}",
             "inventory_log_#{recent_logs.second.id}",
             "inventory_log_#{recent_logs.third.id}"
           )
-          
+
           # 保持期間外のログは削除
           expect(result[:summary][:deleted_records]).to include(
             "inventory_log_#{old_logs.first.id}",
             "inventory_log_#{old_logs.second.id}"
           )
-          
+
           # ビジネス要件により店舗データは保持
           expect(result[:summary][:retained_records]).to include('stores (business requirement)')
         end
 
         it 'anonymizes personal information in retained logs' do
           manager.process_data_deletion_request(user)
-          
+
           recent_logs.each do |log|
             log.reload
             expect(log.admin_id).to be_nil
@@ -442,7 +444,7 @@ RSpec.describe SecurityComplianceManager do
           expect {
             manager.process_data_deletion_request(user)
           }.to change(InventoryLog, :count).by(-2)
-          
+
           expect(InventoryLog.where(id: old_logs.map(&:id))).to be_empty
         end
 
@@ -450,7 +452,7 @@ RSpec.describe SecurityComplianceManager do
           expect {
             manager.process_data_deletion_request(user)
           }.to change(ComplianceAuditLog, :count).by(1)
-          
+
           log = ComplianceAuditLog.last
           expect(log.event_type).to eq('data_deletion')
           expect(log.compliance_standard).to eq('gdpr')
@@ -460,7 +462,7 @@ RSpec.describe SecurityComplianceManager do
       context 'with different request types' do
         it 'handles data_retention_expired request type' do
           result = manager.process_data_deletion_request(user, request_type: 'data_retention_expired')
-          
+
           expect(result[:success]).to be true
           expect(result[:summary][:request_type]).to eq('data_retention_expired')
         end
@@ -469,7 +471,7 @@ RSpec.describe SecurityComplianceManager do
       context 'error handling' do
         it 'returns error for nil user' do
           result = manager.process_data_deletion_request(nil)
-          
+
           expect(result[:success]).to be false
           expect(result[:error]).to eq('ユーザーが見つかりません')
         end
@@ -478,9 +480,9 @@ RSpec.describe SecurityComplianceManager do
           allow_any_instance_of(InventoryLog).to receive(:destroy!).and_raise(
             ActiveRecord::ActiveRecordError, 'Cannot delete'
           )
-          
+
           result = manager.process_data_deletion_request(user)
-          
+
           expect(result[:success]).to be false
           expect(result[:error]).to eq('Cannot delete')
         end
@@ -490,7 +492,7 @@ RSpec.describe SecurityComplianceManager do
     describe '#log_gdpr_event' do
       let(:event_details) do
         {
-          anonymized_fields: ['name', 'email'],
+          anonymized_fields: [ 'name', 'email' ],
           reason: 'user_request',
           legal_basis: 'consent'
         }
@@ -500,12 +502,12 @@ RSpec.describe SecurityComplianceManager do
         expect {
           manager.log_gdpr_event('data_anonymization', admin_user, event_details)
         }.to change(ComplianceAuditLog, :count).by(1)
-        
+
         log = ComplianceAuditLog.last
         expect(log.event_type).to eq('data_anonymization')
         expect(log.compliance_standard).to eq('gdpr')
         expect(log.user).to eq(admin_user)
-        
+
         # 暗号化されたデータを復号化して検証
         decrypted = JSON.parse(
           manager.decrypt_sensitive_data(log.encrypted_details, context: 'audit_logs')
@@ -515,7 +517,7 @@ RSpec.describe SecurityComplianceManager do
 
       it 'uses default legal basis when not provided' do
         manager.log_gdpr_event('data_export', admin_user, {})
-        
+
         log = ComplianceAuditLog.last
         decrypted = JSON.parse(
           manager.decrypt_sensitive_data(log.encrypted_details, context: 'audit_logs')
@@ -564,7 +566,7 @@ RSpec.describe SecurityComplianceManager do
             manager.secure_compare('aaaaaaaaaaaa', 'bbbbbbbbbbbb')
             times1 << (Time.current - start)
           end
-          
+
           # 最後の文字が異なる場合
           times2 = []
           10.times do
@@ -572,10 +574,10 @@ RSpec.describe SecurityComplianceManager do
             manager.secure_compare('aaaaaaaaaaaa', 'aaaaaaaaaaab')
             times2 << (Time.current - start)
           end
-          
+
           avg_time1 = times1.sum / times1.length
           avg_time2 = times2.sum / times2.length
-          
+
           # 実行時間の差が5%以内であることを確認
           time_diff_percentage = ((avg_time1 - avg_time2).abs / avg_time1) * 100
           expect(time_diff_percentage).to be < 5
@@ -585,7 +587,7 @@ RSpec.describe SecurityComplianceManager do
           start_time = Time.current
           manager.secure_compare('a', 'b')
           end_time = Time.current
-          
+
           # 最小実行時間が保証されている
           expect(end_time - start_time).to be >= 0.0001 # minimum_execution_time / 1000
         end
@@ -608,7 +610,7 @@ RSpec.describe SecurityComplianceManager do
             else
               expect(manager).not_to receive(:sleep)
             end
-            
+
             manager.apply_authentication_delay(test_case[:attempt], 'test_user')
           end
         end
@@ -624,7 +626,7 @@ RSpec.describe SecurityComplianceManager do
           'authentication_delay',
           hash_including(:attempt_count, :delay_applied, :identifier)
         )
-        
+
         manager.apply_authentication_delay(3, 'test_user')
       end
 
@@ -633,14 +635,14 @@ RSpec.describe SecurityComplianceManager do
           expect(details[:identifier]).to match(/^[a-f0-9]{64}$/) # SHA256 hash
           expect(details[:identifier]).not_to eq('test_user@example.com')
         end
-        
+
         manager.apply_authentication_delay(2, 'test_user@example.com')
       end
     end
 
     describe '#within_rate_limit?' do
       before { Rails.cache.clear }
-      
+
       context 'rate limit enforcement' do
         [
           { action: 'login_attempts', limit: 5, period: 15.minutes },
@@ -649,13 +651,13 @@ RSpec.describe SecurityComplianceManager do
         ].each do |limit_config|
           it "enforces rate limit for #{limit_config[:action]}" do
             identifier = "user_#{SecureRandom.hex(8)}"
-            
+
             # 制限内のリクエスト
             limit_config[:limit].times do |i|
               result = manager.within_rate_limit?(limit_config[:action], identifier)
               expect(result).to be true, "Request #{i+1} should be allowed"
             end
-            
+
             # 制限を超えたリクエスト
             result = manager.within_rate_limit?(limit_config[:action], identifier)
             expect(result).to be false
@@ -667,11 +669,11 @@ RSpec.describe SecurityComplianceManager do
         it 'resets counter after period expires' do
           identifier = 'test_user'
           action = 'password_reset'
-          
+
           # 制限まで使用
           3.times { manager.within_rate_limit?(action, identifier) }
           expect(manager.within_rate_limit?(action, identifier)).to be false
-          
+
           # 期間経過後
           travel_to 61.minutes.from_now do
             expect(manager.within_rate_limit?(action, identifier)).to be true
@@ -682,16 +684,16 @@ RSpec.describe SecurityComplianceManager do
       context 'multiple identifiers' do
         it 'tracks rate limits separately per identifier' do
           action = 'login_attempts'
-          
+
           # User 1: 3 attempts
           3.times { manager.within_rate_limit?(action, 'user1') }
-          
+
           # User 2: Should still have full limit
           5.times do
             expect(manager.within_rate_limit?(action, 'user2')).to be true
           end
           expect(manager.within_rate_limit?(action, 'user2')).to be false
-          
+
           # User 1: Still has 2 attempts left
           2.times do
             expect(manager.within_rate_limit?(action, 'user1')).to be true
@@ -712,10 +714,10 @@ RSpec.describe SecurityComplianceManager do
         it 'logs rate limit violations' do
           identifier = 'test_user'
           action = 'password_reset'
-          
+
           # 制限まで使用
           3.times { manager.within_rate_limit?(action, identifier) }
-          
+
           expect(Rails.logger).to receive(:info).with(/rate_limit_exceeded/)
           manager.within_rate_limit?(action, identifier)
         end
@@ -730,7 +732,7 @@ RSpec.describe SecurityComplianceManager do
     describe 'PCI_DSS_CONFIG' do
       it 'has required configuration keys' do
         config = SecurityComplianceManager::PCI_DSS_CONFIG
-        
+
         expect(config).to include(
           :card_number_mask_pattern,
           :masked_format,
@@ -753,7 +755,7 @@ RSpec.describe SecurityComplianceManager do
     describe 'GDPR_CONFIG' do
       it 'has required configuration keys' do
         config = SecurityComplianceManager::GDPR_CONFIG
-        
+
         expect(config).to include(
           :personal_data_fields,
           :data_retention_periods,
@@ -763,7 +765,7 @@ RSpec.describe SecurityComplianceManager do
 
       it 'defines appropriate retention periods' do
         periods = SecurityComplianceManager::GDPR_CONFIG[:data_retention_periods]
-        
+
         expect(periods[:customer_data]).to eq(3.years)
         expect(periods[:employee_data]).to eq(7.years)
         expect(periods[:transaction_logs]).to eq(1.year)
@@ -772,7 +774,7 @@ RSpec.describe SecurityComplianceManager do
 
       it 'identifies all personal data fields' do
         fields = SecurityComplianceManager::GDPR_CONFIG[:personal_data_fields]
-        
+
         expect(fields).to include(
           'name', 'email', 'phone_number', 'address',
           'birth_date', 'identification_number'
@@ -783,7 +785,7 @@ RSpec.describe SecurityComplianceManager do
     describe 'TIMING_ATTACK_CONFIG' do
       it 'has required configuration keys' do
         config = SecurityComplianceManager::TIMING_ATTACK_CONFIG
-        
+
         expect(config).to include(
           :minimum_execution_time,
           :authentication_delays,
@@ -793,7 +795,7 @@ RSpec.describe SecurityComplianceManager do
 
       it 'has progressive authentication delays' do
         delays = SecurityComplianceManager::TIMING_ATTACK_CONFIG[:authentication_delays]
-        
+
         expect(delays[:first_attempt]).to eq(0.seconds)
         expect(delays[:second_attempt]).to eq(1.second)
         expect(delays[:third_attempt]).to eq(3.seconds)
@@ -803,7 +805,7 @@ RSpec.describe SecurityComplianceManager do
 
       it 'defines appropriate rate limits' do
         limits = SecurityComplianceManager::TIMING_ATTACK_CONFIG[:rate_limits]
-        
+
         expect(limits[:login_attempts]).to eq({ count: 5, period: 15.minutes })
         expect(limits[:password_reset]).to eq({ count: 3, period: 1.hour })
         expect(limits[:api_requests]).to eq({ count: 100, period: 1.minute })
@@ -824,7 +826,7 @@ RSpec.describe SecurityComplianceManager do
     describe '#check_pci_dss_compliance' do
       it 'checks for required PCI DSS features' do
         status = manager.send(:check_pci_dss_compliance)
-        expect(status).to be_in([true, false])
+        expect(status).to be_in([ true, false ])
       end
 
       it 'requires encryption keys' do
@@ -836,7 +838,7 @@ RSpec.describe SecurityComplianceManager do
     describe '#check_gdpr_compliance' do
       it 'checks for required GDPR features' do
         status = manager.send(:check_gdpr_compliance)
-        expect(status).to be_in([true, false])
+        expect(status).to be_in([ true, false ])
       end
 
       it 'requires personal data encryption key' do
@@ -861,18 +863,18 @@ RSpec.describe SecurityComplianceManager do
       it 'falls back to default key for unknown contexts' do
         encrypted = manager.encrypt_sensitive_data('test', context: 'unknown_context')
         decrypted = manager.decrypt_sensitive_data(encrypted, context: 'unknown_context')
-        
+
         expect(decrypted).to eq('test')
       end
 
       it 'generates key if none provided' do
         allow(Rails.application.credentials).to receive(:dig).and_return(nil)
         allow(ENV).to receive(:[]).with('SECURITY_ENCRYPTION_KEY').and_return(nil)
-        
+
         # 新しいインスタンスで初期化をトリガー
         new_manager = described_class.instance
         new_manager.send(:initialize_encryption_keys)
-        
+
         # キーが生成されていることを確認
         key = new_manager.send(:get_encryption_key, 'default')
         expect(key).to be_present
@@ -885,7 +887,7 @@ RSpec.describe SecurityComplianceManager do
         identifier = 'concurrent_user'
         action = 'login_attempts'
         results = []
-        
+
         # 並行アクセスをシミュレート
         threads = 10.times.map do
           Thread.new do
@@ -893,9 +895,9 @@ RSpec.describe SecurityComplianceManager do
             results << result
           end
         end
-        
+
         threads.each(&:join)
-        
+
         # 最大5つのtrueが含まれていることを確認
         true_count = results.count(true)
         expect(true_count).to be <= 5
@@ -907,17 +909,17 @@ RSpec.describe SecurityComplianceManager do
       it 'handles very long strings in secure_compare' do
         long_string1 = 'A' * 10000
         long_string2 = 'A' * 10000
-        
+
         result = manager.secure_compare(long_string1, long_string2)
         expect(result).to be true
       end
 
       it 'handles special characters in anonymization' do
         user = create(:admin, name: '<script>alert("XSS")</script>')
-        
+
         result = manager.anonymize_personal_data(user)
         expect(result[:success]).to be true
-        
+
         user.reload
         expect(user.name).not_to include('<script>')
         expect(user.name).to match(/^匿名ユーザー/)
@@ -927,23 +929,23 @@ RSpec.describe SecurityComplianceManager do
     describe 'performance' do
       it 'encrypts large data efficiently' do
         large_data = 'X' * 1_000_000 # 1MB
-        
+
         start_time = Time.current
         encrypted = manager.encrypt_sensitive_data(large_data)
         decrypted = manager.decrypt_sensitive_data(encrypted)
         end_time = Time.current
-        
+
         expect(decrypted).to eq(large_data)
         expect(end_time - start_time).to be < 1.0 # Under 1 second
       end
 
       it 'handles bulk anonymization efficiently' do
         users = create_list(:admin, 10)
-        
+
         start_time = Time.current
         users.each { |user| manager.anonymize_personal_data(user) }
         end_time = Time.current
-        
+
         expect(end_time - start_time).to be < 2.0 # Under 2 seconds for 10 users
       end
     end
@@ -960,7 +962,7 @@ RSpec.describe SecurityComplianceManager do
         expect(message).not_to include('password')
         expect(message).not_to include('secret')
       end
-      
+
       manager.mask_credit_card('4111111111111111')
       manager.log_pci_dss_event('card_access', admin_user, {
         card_number: '4111111111111111',
@@ -971,32 +973,32 @@ RSpec.describe SecurityComplianceManager do
     it 'uses secure random for anonymization' do
       users = create_list(:admin, 5)
       anonymized_emails = []
-      
+
       users.each do |user|
         manager.anonymize_personal_data(user)
         user.reload
         anonymized_emails << user.email
       end
-      
+
       # すべてのメールアドレスが異なることを確認
       expect(anonymized_emails.uniq.size).to eq(5)
     end
 
     it 'implements defense in depth' do
       # 多層防御の実装確認
-      
+
       # 1. 入力検証
       expect(manager.mask_credit_card('invalid')).to eq('[INVALID]')
-      
+
       # 2. 暗号化
       data = 'sensitive'
       encrypted = manager.encrypt_sensitive_data(data)
       expect(encrypted).not_to eq(data)
-      
+
       # 3. アクセス制御（レート制限）
       5.times { manager.within_rate_limit?('login_attempts', 'user1') }
       expect(manager.within_rate_limit?('login_attempts', 'user1')).to be false
-      
+
       # 4. 監査ログ
       expect {
         manager.log_pci_dss_event('access', admin_user, {})
@@ -1009,7 +1011,7 @@ RSpec.describe SecurityComplianceManager do
         -> { manager.secure_compare('test1', 'test2') },
         -> { manager.mask_credit_card('4111111111111111') }
       ]
-      
+
       operations.each do |operation|
         times = []
         10.times do
@@ -1017,12 +1019,12 @@ RSpec.describe SecurityComplianceManager do
           operation.call
           times << (Time.current - start)
         end
-        
+
         # 実行時間のばらつきが小さい
         avg_time = times.sum / times.length
         variance = times.map { |t| (t - avg_time) ** 2 }.sum / times.length
         std_dev = Math.sqrt(variance)
-        
+
         expect(std_dev).to be < 0.01 # 標準偏差が10ms未満
       end
     end
@@ -1037,11 +1039,11 @@ RSpec.describe SecurityComplianceManager do
       card_number = '4111111111111111'
       masked = manager.mask_credit_card(card_number)
       expect(masked).to eq('4111****1111')
-      
+
       # 2. 機密データの暗号化
       encrypted_card = manager.encrypt_sensitive_data(card_number, context: 'card_data')
       expect(encrypted_card).to be_present
-      
+
       # 3. アクセスログの記録
       expect {
         manager.log_pci_dss_event('card_data_access', admin_user, {
@@ -1050,10 +1052,10 @@ RSpec.describe SecurityComplianceManager do
           ip_address: '192.168.1.100'
         })
       }.to change(ComplianceAuditLog, :count).by(1)
-      
+
       # 4. レート制限の適用
       5.times { manager.within_rate_limit?('api_requests', '192.168.1.100') }
-      
+
       # 5. 復号化（権限があるユーザーのみ）
       decrypted = manager.decrypt_sensitive_data(encrypted_card, context: 'card_data')
       expect(decrypted).to eq(card_number)
@@ -1065,51 +1067,51 @@ RSpec.describe SecurityComplianceManager do
         email: 'tanaka@example.com',
         phone_number: '090-9876-5432'
       )
-      
+
       # 1. データ保持期間のチェック
       old_log = create(:inventory_log, user: user, created_at: 2.years.ago)
       expect(manager.within_retention_period?('transaction_logs', old_log.created_at)).to be false
-      
+
       # 2. 匿名化リクエスト
       anonymize_result = manager.anonymize_personal_data(user)
       expect(anonymize_result[:success]).to be true
-      
+
       # 3. 削除リクエスト
       deletion_result = manager.process_data_deletion_request(user)
       expect(deletion_result[:success]).to be true
-      
+
       # 4. 監査証跡の確認
       gdpr_logs = ComplianceAuditLog.where(compliance_standard: 'gdpr')
       expect(gdpr_logs.count).to be >= 2
-      
+
       event_types = gdpr_logs.pluck(:event_type)
       expect(event_types).to include('data_anonymization', 'data_deletion')
     end
 
     it 'handles authentication with full security features' do
       identifier = 'user@example.com'
-      
+
       # 1. 初回ログイン試行（遅延なし）
       start = Time.current
       manager.apply_authentication_delay(1, identifier)
       expect(Time.current - start).to be < 0.1
-      
+
       # 2. レート制限チェック
       expect(manager.within_rate_limit?('login_attempts', identifier)).to be true
-      
+
       # 3. パスワード比較（タイミング攻撃対策）
       correct_password = 'correct_password_123'
       wrong_password = 'wrong_password_456'
-      
+
       result1 = manager.secure_compare(correct_password, correct_password)
       expect(result1).to be true
-      
+
       result2 = manager.secure_compare(correct_password, wrong_password)
       expect(result2).to be false
-      
+
       # 4. 失敗時の遅延適用
       manager.apply_authentication_delay(3, identifier)
-      
+
       # 5. 監査ログ
       expect(Rails.logger).to receive(:info).at_least(:once)
       manager.within_rate_limit?('login_attempts', identifier)

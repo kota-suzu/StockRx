@@ -205,6 +205,77 @@ RSpec.describe ComplianceAuditLog, type: :model do
 
   describe 'security features' do
     let(:log) { create(:compliance_audit_log) }
+    let(:security_manager) { SecurityComplianceManager.instance }
+
+    describe '#decrypted_details' do
+      let(:details) { { ip_address: '192.168.1.1', action: 'card_access' } }
+      let(:log_with_details) do
+        encrypted = security_manager.encrypt_sensitive_data(details.to_json, context: 'audit_logs')
+        create(:compliance_audit_log, encrypted_details: encrypted)
+      end
+
+      it 'decrypts details successfully' do
+        decrypted = log_with_details.decrypted_details
+        expect(decrypted).to eq(details.stringify_keys)
+      end
+
+      it 'returns empty hash for blank encrypted_details' do
+        log.update_column(:encrypted_details, '')
+        expect(log.decrypted_details).to eq({})
+      end
+
+      it 'handles decryption errors gracefully' do
+        allow(security_manager).to receive(:decrypt_sensitive_data).and_raise(StandardError.new('Decryption failed'))
+        expect(log.decrypted_details).to eq({ error: '復号化に失敗しました' })
+      end
+    end
+
+    describe '#safe_details' do
+      context 'with sensitive information' do
+        let(:sensitive_details) do
+          {
+            card_number: '4111111111111111',
+            password: 'secret123',
+            access_token: 'token123',
+            user_action: 'login'
+          }
+        end
+        let(:log_with_sensitive) do
+          encrypted = security_manager.encrypt_sensitive_data(sensitive_details.to_json, context: 'audit_logs')
+          create(:compliance_audit_log, encrypted_details: encrypted)
+        end
+
+        it 'masks credit card numbers' do
+          safe = log_with_sensitive.safe_details
+          expect(safe['card_number']).to match(/\*{12}\d{4}/)
+        end
+
+        it 'removes passwords' do
+          safe = log_with_sensitive.safe_details
+          expect(safe).not_to have_key('password')
+        end
+
+        it 'removes access tokens' do
+          safe = log_with_sensitive.safe_details
+          expect(safe).not_to have_key('access_token')
+        end
+
+        it 'preserves non-sensitive data' do
+          safe = log_with_sensitive.safe_details
+          expect(safe['user_action']).to eq('login')
+        end
+      end
+
+      context 'with decryption error' do
+        before do
+          allow(log).to receive(:decrypted_details).and_return({ error: '復号化に失敗しました' })
+        end
+
+        it 'returns error hash' do
+          expect(log.safe_details).to eq({ error: '復号化に失敗しました' })
+        end
+      end
+    end
 
     describe '#integrity_verified?' do
       it 'returns true for logs with valid hash' do
@@ -215,6 +286,48 @@ RSpec.describe ComplianceAuditLog, type: :model do
       it 'returns false for logs with invalid hash' do
         log.update_column(:immutable_hash, 'invalid_hash')
         expect(log.integrity_verified?).to be false
+      end
+
+      it 'returns false for logs with blank hash' do
+        log.update_column(:immutable_hash, '')
+        expect(log.integrity_verified?).to be false
+      end
+    end
+
+    describe '#compliance_summary' do
+      let(:user) { create(:admin, :headquarters_admin) }
+      let(:log) { create(:compliance_audit_log, user: user) }
+
+      it 'returns comprehensive summary' do
+        summary = log.compliance_summary
+
+        expect(summary).to include(
+          id: log.id,
+          timestamp: log.created_at.iso8601,
+          event_type: log.event_type,
+          compliance_standard: log.compliance_standard,
+          severity: log.severity,
+          user_id: user.id,
+          user_role: user.role,
+          verification_status: 'verified',
+          retention_expires_at: log.retention_expiry_date
+        )
+      end
+
+      it 'handles nil user gracefully' do
+        log.update_column(:user_id, nil)
+        log.update_column(:user_type, nil)
+        summary = log.compliance_summary
+
+        expect(summary[:user_id]).to be_nil
+        expect(summary[:user_role]).to be_nil
+      end
+
+      it 'shows compromised status for tampered logs' do
+        log.update_column(:immutable_hash, 'tampered')
+        summary = log.compliance_summary
+
+        expect(summary[:verification_status]).to eq('compromised')
       end
     end
 

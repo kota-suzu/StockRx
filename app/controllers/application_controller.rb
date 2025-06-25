@@ -13,6 +13,13 @@ class ApplicationController < ActionController::Base
   # リクエストごとにCurrentを設定
   before_action :set_current_attributes
 
+  # QAレビュー対応: 機密情報フィルタリング
+  before_action :configure_sensitive_data_filtering
+
+  # セキュリティ例外処理
+  rescue_from SecurityError, with: :handle_security_error
+  rescue_from ActionController::InvalidAuthenticityToken, with: :handle_csrf_error
+
   # ============================================
   # セキュリティ監視の統合
   # ============================================
@@ -99,6 +106,71 @@ class ApplicationController < ActionController::Base
         }.to_json)
       end
     end
+  end
+
+  # ============================================
+  # QAレビュー対応: 機密情報保護
+  # ============================================
+
+  # 機密情報フィルタリングの設定
+  def configure_sensitive_data_filtering
+    # Railsログフィルターの拡張
+    Rails.application.config.filter_parameters += [
+      :password, :token, :api_key, :secret, :credit_card,
+      :cvv, :ssn, :email, :phone, :address
+    ]
+
+    # カスタムログフォーマッターの設定
+    if Rails.logger.respond_to?(:formatter=)
+      Rails.logger.formatter = SensitiveLogFormatter.new
+    end
+  end
+
+  # セキュリティエラーハンドリング
+  def handle_security_error(exception)
+    # 機密情報を含まないエラーログ
+    Rails.logger.error(
+      SensitiveDataFilter.filter_log_message(
+        "Security error: #{exception.class} - #{exception.message}"
+      )
+    )
+
+    # ユーザーには最小限の情報のみ返す
+    respond_to do |format|
+      format.html { render plain: "Security Error", status: :forbidden }
+      format.json { render json: { error: "Security Error" }, status: :forbidden }
+    end
+  end
+
+  # CSRF エラーハンドリング
+  def handle_csrf_error(exception)
+    Rails.logger.warn "CSRF token verification failed for IP: #{request.remote_ip}"
+
+    respond_to do |format|
+      format.html do
+        flash[:alert] = t("errors.csrf_detected")
+        redirect_back(fallback_location: root_path)
+      end
+      format.json do
+        render json: { error: "CSRF token invalid" }, status: :unprocessable_entity
+      end
+    end
+  end
+
+  # パラメータのサニタイズ（オーバーライド可能）
+  def sanitized_params
+    @sanitized_params ||= SensitiveDataFilter.filter(params)
+  end
+
+  # ログ用のリクエスト情報（機密情報除去済み）
+  def filtered_request_info
+    {
+      method: request.method,
+      path: request.path,
+      params: sanitized_params.except(:controller, :action),
+      ip: request.remote_ip,
+      user_agent: request.user_agent
+    }
   end
 end
 

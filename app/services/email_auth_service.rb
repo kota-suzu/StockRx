@@ -47,6 +47,11 @@ class EmailAuthService
   # パブリックインターフェース
   # ============================================================================
 
+  # 設定変更用インターフェース
+  def configure
+    yield(config) if block_given?
+  end
+
   # 一時パスワード生成とメール送信の統合処理
   def generate_and_send_temp_password(store_user, admin_id: nil, request_metadata: {})
     # Phase 1: バリデーション（早期失敗）
@@ -271,7 +276,7 @@ class EmailAuthService
     hourly_count = redis_increment_with_expiry(hourly_key, 1.hour)
 
     if hourly_count > config.max_attempts_per_hour
-      raise RateLimitExceededError, "Hourly rate limit exceeded for #{email}"
+      raise RateLimitExceededError.new("Hourly rate limit exceeded for #{email}")
     end
 
     # 日別制限チェック
@@ -279,7 +284,7 @@ class EmailAuthService
     daily_count = redis_increment_with_expiry(daily_key, 1.day)
 
     if daily_count > config.max_attempts_per_day
-      raise RateLimitExceededError, "Daily rate limit exceeded for #{email}"
+      raise RateLimitExceededError.new("Daily rate limit exceeded for #{email}")
     end
 
     # IP別制限（セキュリティ強化）
@@ -287,7 +292,7 @@ class EmailAuthService
     ip_count = redis_increment_with_expiry(ip_key, 1.hour)
 
     if ip_count > config.max_attempts_per_hour
-      raise RateLimitExceededError, "IP-based rate limit exceeded for #{ip_address}"
+      raise RateLimitExceededError.new("IP-based rate limit exceeded for #{ip_address}")
     end
   end
 
@@ -308,11 +313,11 @@ class EmailAuthService
 
   def validate_user_eligibility(store_user)
     unless store_user.active?
-      raise UserIneligibleError, "User account is not active"
+      raise UserIneligibleError.new("User account is not active")
     end
 
     if store_user.locked_at.present?
-      raise UserIneligibleError, "User account is locked"
+      raise UserIneligibleError.new("User account is locked")
     end
 
     # パスワード期限切れユーザーは一時パスワード認証を使用可能

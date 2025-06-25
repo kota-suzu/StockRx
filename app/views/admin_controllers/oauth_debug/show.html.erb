@@ -1,0 +1,132 @@
+<div class="container mt-4">
+  <h1>OAuth Debug Information</h1>
+  
+  <div class="alert alert-warning">
+    <strong>Debug Mode:</strong> This page is for debugging OAuth redirect_uri issues only.
+    Remove this controller and routes when the issue is resolved.
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <h3>Expected vs Actual OAuth URLs</h3>
+    </div>
+    <div class="card-body">
+      <dl class="row">
+        <dt class="col-sm-3">Expected Redirect URI:</dt>
+        <dd class="col-sm-9">
+          <code class="text-danger"><%= @omniauth_config[:expected_redirect_uri] %></code>
+          <br>
+          <small class="text-muted">This is what should be configured in your GitHub OAuth App</small>
+        </dd>
+        
+        <dt class="col-sm-3">Auth URL:</dt>
+        <dd class="col-sm-9">
+          <code><%= @omniauth_config[:actual_auth_url] %></code>
+        </dd>
+        
+        <dt class="col-sm-3">Rails Environment:</dt>
+        <dd class="col-sm-9"><%= @omniauth_config[:rails_env] %></dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <h3>OmniAuth Configuration</h3>
+    </div>
+    <div class="card-body">
+      <dl class="row">
+        <dt class="col-sm-3">full_host (configured):</dt>
+        <dd class="col-sm-9">
+          <code><%= @omniauth_config[:full_host] %></code>
+        </dd>
+        
+        <dt class="col-sm-3">full_host (resolved):</dt>
+        <dd class="col-sm-9">
+          <code><%= @omniauth_config[:full_host_resolved] %></code>
+        </dd>
+        
+        <dt class="col-sm-3">Providers:</dt>
+        <dd class="col-sm-9"><%= @omniauth_config[:providers].join(', ') %></dd>
+        
+        <dt class="col-sm-3">GitHub Configured:</dt>
+        <dd class="col-sm-9">
+          <% if @omniauth_config[:github_configured] %>
+            <span class="badge bg-success">Yes</span>
+          <% else %>
+            <span class="badge bg-danger">No</span>
+          <% end %>
+        </dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <h3>Request Information</h3>
+    </div>
+    <div class="card-body">
+      <dl class="row">
+        <% @omniauth_config[:request_info].each do |key, value| %>
+          <dt class="col-sm-3"><%= key %>:</dt>
+          <dd class="col-sm-9"><code><%= value %></code></dd>
+        <% end %>
+      </dl>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header">
+      <h3>Live Callback URL Test</h3>
+    </div>
+    <div class="card-body">
+      <p>Click the button below to fetch the actual callback URL that OmniAuth would use:</p>
+      <button id="test-callback" class="btn btn-primary">Test Callback URL</button>
+      <div id="callback-result" class="mt-3"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>GitHub OAuth App Configuration</h3>
+    </div>
+    <div class="card-body">
+      <p>Make sure your GitHub OAuth App has these exact settings:</p>
+      <ul>
+        <li><strong>Homepage URL:</strong> <code><%= @omniauth_config[:request_info][:base_url] %></code></li>
+        <li><strong>Authorization callback URL:</strong> <code class="text-danger"><%= @omniauth_config[:expected_redirect_uri] %></code></li>
+      </ul>
+      <div class="alert alert-info mt-3">
+        <strong>Important:</strong> The callback URL must match EXACTLY, including the protocol (http/https), 
+        host, port, and path. Even trailing slashes matter!
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const testButton = document.getElementById('test-callback');
+  const resultDiv = document.getElementById('callback-result');
+  
+  testButton.addEventListener('click', function() {
+    fetch('/admin/oauth_debug/callback_info')
+      .then(response => response.json())
+      .then(data => {
+        let html = '<div class="alert alert-info"><h5>OmniAuth Strategy Information:</h5><dl class="row">';
+        for (const [key, value] of Object.entries(data)) {
+          if (typeof value === 'object' && value !== null) {
+            html += `<dt class="col-sm-3">${key}:</dt><dd class="col-sm-9"><pre>${JSON.stringify(value, null, 2)}</pre></dd>`;
+          } else {
+            html += `<dt class="col-sm-3">${key}:</dt><dd class="col-sm-9"><code>${value}</code></dd>`;
+          }
+        }
+        html += '</dl></div>';
+        resultDiv.innerHTML = html;
+      })
+      .catch(error => {
+        resultDiv.innerHTML = `<div class="alert alert-danger">Error fetching callback info: ${error.message}</div>`;
+      });
+  });
+});
+</script>

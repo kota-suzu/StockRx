@@ -232,36 +232,6 @@ module StoreControllers
       end.to_json
     end
 
-    # 商品名からカテゴリを推定するヘルパーメソッド
-    # CLAUDE.md準拠: ベストプラクティス - 推定ロジックの明示化
-    def categorize_by_name(product_name)
-      # 医薬品キーワード
-      medicine_keywords = %w[錠 カプセル 軟膏 点眼 坐剤 注射 シロップ 細粒 顆粒 液 mg IU
-                           アスピリン パラセタモール オメプラゾール アムロジピン インスリン
-                           抗生 消毒 ビタミン プレドニゾロン エキス]
-
-      # 医療機器キーワード
-      device_keywords = %w[血圧計 体温計 パルスオキシメーター 聴診器 測定器]
-
-      # 消耗品キーワード
-      supply_keywords = %w[マスク 手袋 アルコール ガーゼ 注射針]
-
-      # サプリメントキーワード
-      supplement_keywords = %w[ビタミン サプリ オメガ プロバイオティクス フィッシュオイル]
-
-      case product_name
-      when /#{device_keywords.join('|')}/i
-        "医療機器"
-      when /#{supply_keywords.join('|')}/i
-        "消耗品"
-      when /#{supplement_keywords.join('|')}/i
-        "サプリメント"
-      when /#{medicine_keywords.join('|')}/i
-        "医薬品"
-      else
-        "その他"
-      end
-    end
 
     # 店舗間移動トレンドの準備
     def prepare_transfer_trend_data
@@ -319,6 +289,57 @@ module StoreControllers
         "text-warning"
       else
         "text-info"
+      end
+    end
+
+    # ============================================
+    # カテゴリ推定機能
+    # ============================================
+
+    # 商品名からカテゴリを推定するメソッド
+    # CLAUDE.md準拠: ベストプラクティス - 推定ロジックの明示化と横展開
+    # メタ認知: 他のコントローラーで重複定義されている問題を認識
+    # TODO: 🟡 Phase 3（重要）- CategorizationConcern作成による重複コード解消
+    # 優先度: 中（現在の機能は動作中）
+    # 実装内容:
+    #   - app/controllers/concerns/categorization_concern.rb作成
+    #   - 4つのコントローラーでの重複メソッド統一
+    #     - AdminControllers::StoreInventoriesController (350行目)
+    #     - StoreControllers::InventoriesController (576行目)
+    #     - store_inventories_controller.rb (281行目)
+    #     - StoreControllers::DashboardController (309行目)
+    #   - ApplicationHelperとの整合性確保
+    #   - カテゴリキーワードの一元管理（config/categorization.yml等）
+    # 期待効果: DRY原則遵守、保守性向上、テスト重複解消
+    # 横展開: 全コントローラーでinclude CategorizationConcern
+    def categorize_by_name(product_name)
+      return "その他" if product_name.blank?
+
+      # 医薬品キーワード
+      medicine_keywords = %w[錠 カプセル 軟膏 点眼 坐剤 注射 シロップ 細粒 顆粒 液 mg IU
+                           アスピリン パラセタモール オメプラゾール アムロジピン インスリン
+                           抗生 消毒 ビタミン プレドニゾロン エキス]
+
+      # 医療機器キーワード
+      device_keywords = %w[血圧計 体温計 パルスオキシメーター 聴診器 測定器]
+
+      # 消耗品キーワード
+      supply_keywords = %w[マスク 手袋 アルコール ガーゼ 注射針]
+
+      # サプリメントキーワード
+      supplement_keywords = %w[ビタミン サプリ オメガ プロバイオティクス フィッシュオイル]
+
+      case product_name
+      when /#{device_keywords.join('|')}/i
+        "医療機器"
+      when /#{supply_keywords.join('|')}/i
+        "消耗品"
+      when /#{supplement_keywords.join('|')}/i
+        "サプリメント"
+      when /#{medicine_keywords.join('|')}/i
+        "医薬品"
+      else
+        "その他"
       end
     end
   end

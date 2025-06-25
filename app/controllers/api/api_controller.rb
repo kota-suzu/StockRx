@@ -18,6 +18,28 @@ module Api
     # API用リクエスト情報をCurrentに設定
     before_action :set_api_request_info
 
+    # API用エラーハンドリング（ParameterSanitizationをオーバーライド）
+    rescue_from ActionController::ParameterMissing do |exception|
+      response = ApiResponse.error(
+        "必須パラメータが不足しています: #{exception.param}",
+        [],
+        400,
+        { type: "parameter_missing", missing_param: exception.param }
+      )
+      render json: response.to_h, status: response.status_code, headers: response.headers
+    end
+
+    rescue_from ActionController::UnpermittedParameters do |exception|
+      Rails.logger.warn "Unpermitted parameters detected: #{exception.params}"
+      response = ApiResponse.error(
+        "許可されていないパラメータが含まれています",
+        [],
+        400,
+        { type: "unpermitted_parameters", unpermitted: exception.params }
+      )
+      render json: response.to_h, status: response.status_code, headers: response.headers
+    end
+
     private
 
     # リクエストがJSONであることを確認

@@ -190,6 +190,65 @@ module AdminControllers::InventoryLogsHelper
     ]
   end
 
+  # アラートレベルに応じたCSSクラスを返す
+  # @param current_quantity [Integer] 現在の在庫数
+  # @param safety_stock [Integer] 安全在庫レベル（デフォルト：10）
+  # @param reorder_point [Integer] 発注点（デフォルト：20）
+  # @return [String] Bootstrap alertクラス
+  def alert_level_class(current_quantity, safety_stock = 10, reorder_point = 20)
+    return "danger" if current_quantity <= safety_stock
+    return "warning" if current_quantity <= reorder_point
+    "success"
+  end
+
+  # 操作タイプの日本語ラベルを返す
+  # @param operation_type [String] 操作タイプ
+  # @return [String] 日本語ラベル
+  def operation_type_label(operation_type)
+    case operation_type.to_s
+    when "create", "add"
+      "新規登録"
+    when "update", "adjust"
+      "更新・調整"
+    when "delete", "remove"
+      "削除"
+    when "import"
+      "一括インポート"
+    when "export"
+      "エクスポート"
+    when "ship"
+      "出荷"
+    when "receive"
+      "入荷"
+    else
+      operation_type.to_s.humanize
+    end
+  end
+
+  # 操作タイプのアイコンクラスを返す
+  # @param operation_type [String] 操作タイプ
+  # @return [String] Bootstrap Iconクラス
+  def operation_icon_class(operation_type)
+    case operation_type.to_s
+    when "create", "add"
+      "bi-plus-circle-fill"
+    when "update", "adjust"
+      "bi-pencil-square"
+    when "delete", "remove"
+      "bi-trash3-fill"
+    when "import"
+      "bi-cloud-download-fill"
+    when "export"
+      "bi-cloud-upload-fill"
+    when "ship"
+      "bi-box-arrow-up"
+    when "receive"
+      "bi-box-arrow-in-down"
+    else
+      "bi-file-text-fill"
+    end
+  end
+
   # 在庫ログの統計情報を計算
   # @param logs [ActiveRecord::Relation] 在庫ログのリレーション
   # @return [Hash] 統計情報ハッシュ

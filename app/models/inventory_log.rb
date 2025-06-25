@@ -235,6 +235,18 @@ class InventoryLog < ApplicationRecord
     created_at.strftime("%Y年%m月%d日 %H:%M:%S")
   end
 
+  # quantity_changeエイリアス（ヘルパー互換性のため）
+  # CLAUDE.md準拠: ベストプラクティス - 既存APIとの互換性維持
+  # メタ認知: deltaは技術的な名称、quantity_changeは意味的に分かりやすい名称
+  def quantity_change
+    delta
+  end
+
+  # quantity_changeセッター（テスト互換性のため）
+  def quantity_change=(value)
+    self.delta = value
+  end
+
   # 操作タイプの日本語表示名
   def operation_display_name
     case operation_type

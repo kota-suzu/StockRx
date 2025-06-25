@@ -4,467 +4,641 @@ require 'rails_helper'
 
 RSpec.describe MonthlyReportJob, type: :job do
   # CLAUDE.md準拠: 月次レポート生成ジョブの包括的テスト
-  # メタ認知: 複数レポートタイプと進捗追跡の複雑な分岐ロジックの品質保証
-  # 横展開: 他のレポート生成ジョブでも同様のテストパターン適用
+  # メタ認知: 長時間実行・複雑なデータ処理・進捗管理の品質保証
+  # 横展開: 他のレポート系ジョブでも同様のテストパターン適用
 
   include ActiveJob::TestHelper
 
   let(:admin) { create(:admin) }
-  let(:report_month) { Date.today.beginning_of_month }
+  let(:target_date) { Date.current.last_month.beginning_of_month }
+  let(:report_types) { %w[inventory_summary expiry_analysis] }
+  let(:output_formats) { %w[csv pdf excel] }
 
+  # テストデータの準備
   before do
-    # テスト用データの準備
-    create_list(:inventory, 5)
-    create_list(:inventory_log, 10)
-    create_list(:batch, 3, expiration_date: 1.month.from_now)
+    # 在庫データ作成
+    @inventory1 = create(:inventory, name: "Medicine A", quantity: 100, price: 500, status: 'active')
+    @inventory2 = create(:inventory, name: "Equipment B", quantity: 5, price: 10000, status: 'active')
+    @inventory3 = create(:inventory, name: "Supply C", quantity: 0, price: 100, status: 'discontinued')
+
+    # バッチデータ作成（期限管理テスト用）
+    @batch1 = create(:batch, inventory: @inventory1, lot_code: 'LOT001', expires_on: 30.days.from_now, quantity: 50)
+    @batch2 = create(:batch, inventory: @inventory1, lot_code: 'LOT002', expires_on: 5.days.from_now, quantity: 30)
+    @batch3 = create(:batch, inventory: @inventory2, lot_code: 'LOT003', expires_on: 1.year.from_now, quantity: 3)
+
+    # ProgressNotifierのモック
+    allow_any_instance_of(described_class).to receive(:initialize_progress).and_return("progress_key_123")
+    allow_any_instance_of(described_class).to receive(:update_progress).and_return(true)
+    allow_any_instance_of(described_class).to receive(:notify_completion).and_return(true)
+    allow_any_instance_of(described_class).to receive(:notify_error).and_return(true)
 
     # ActionCableのモック
-    allow(ActionCable).to receive(:server).and_return(
-      double(broadcast: true)
-    )
+    allow(ActionCable.server).to receive(:broadcast)
+
+    # ファイル生成のモック
+    allow(CSV).to receive(:open).and_yield([])
+    allow(File).to receive(:size).and_return(1024)
+    allow(File).to receive(:basename).and_return("report.csv")
+
+    # メーラーのモック
+    allow(AdminMailer).to receive_message_chain(:monthly_report_complete, :deliver_now)
+    allow(AdminMailer).to receive_message_chain(:system_error_alert, :deliver_now)
   end
 
-  describe '#perform' do
-    context 'with default parameters' do
-      it 'generates all report types' do
-        expect_any_instance_of(MonthlyReportJob).to receive(:generate_inventory_summary).and_return({})
-        expect_any_instance_of(MonthlyReportJob).to receive(:generate_transaction_report).and_return({})
-        expect_any_instance_of(MonthlyReportJob).to receive(:generate_expiry_report).and_return({})
-        expect_any_instance_of(MonthlyReportJob).to receive(:generate_performance_report).and_return({})
-
-        MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-      end
-
-      it 'saves report file' do
+  describe "#perform" do
+    context "正常実行" do
+      it "デフォルトパラメータで実行される" do
         expect {
-          MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-        }.to change { Dir[Rails.root.join('tmp', 'reports', '*.json')].count }.by(1)
-      end
-
-      it 'sends notification email' do
-        expect {
-          MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-        }.to have_enqueued_mail(AdminMailer, :monthly_report_ready)
-      end
-    end
-
-    context 'with specific report types' do
-      it 'generates only inventory summary when specified' do
-        expect_any_instance_of(MonthlyReportJob).to receive(:generate_inventory_summary).and_return({})
-        expect_any_instance_of(MonthlyReportJob).not_to receive(:generate_transaction_report)
-        expect_any_instance_of(MonthlyReportJob).not_to receive(:generate_expiry_report)
-        expect_any_instance_of(MonthlyReportJob).not_to receive(:generate_performance_report)
-
-        MonthlyReportJob.new.perform(admin.id, report_month.to_s, report_types: [ 'inventory_summary' ])
-      end
-
-      it 'generates multiple specified report types' do
-        expect_any_instance_of(MonthlyReportJob).to receive(:generate_inventory_summary).and_return({})
-        expect_any_instance_of(MonthlyReportJob).to receive(:generate_transaction_report).and_return({})
-        expect_any_instance_of(MonthlyReportJob).not_to receive(:generate_expiry_report)
-        expect_any_instance_of(MonthlyReportJob).not_to receive(:generate_performance_report)
-
-        MonthlyReportJob.new.perform(admin.id, report_month.to_s,
-          report_types: [ 'inventory_summary', 'transaction_report' ])
-      end
-
-      it 'handles invalid report type gracefully' do
-        expect {
-          MonthlyReportJob.new.perform(admin.id, report_month.to_s, report_types: [ 'invalid_type' ])
-        }.not_to raise_error
-      end
-    end
-
-    context 'with different formats' do
-      it 'generates JSON format by default' do
-        MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-
-        report_file = Dir[Rails.root.join('tmp', 'reports', '*.json')].last
-        expect(report_file).to match(/\.json$/)
-
-        content = JSON.parse(File.read(report_file))
-        expect(content).to have_key('metadata')
-        expect(content).to have_key('reports')
-      end
-
-      it 'generates CSV format when specified' do
-        MonthlyReportJob.new.perform(admin.id, report_month.to_s, format: 'csv')
-
-        csv_files = Dir[Rails.root.join('tmp', 'reports', '*.csv')]
-        expect(csv_files).not_to be_empty
-      end
-
-      it 'generates XLSX format when specified' do
-        MonthlyReportJob.new.perform(admin.id, report_month.to_s, format: 'xlsx')
-
-        xlsx_file = Dir[Rails.root.join('tmp', 'reports', '*.xlsx')].last
-        expect(xlsx_file).to match(/\.xlsx$/)
-      end
-
-      it 'generates PDF format when specified' do
-        MonthlyReportJob.new.perform(admin.id, report_month.to_s, format: 'pdf')
-
-        pdf_file = Dir[Rails.root.join('tmp', 'reports', '*.pdf')].last
-        expect(pdf_file).to match(/\.pdf$/)
-      end
-    end
-
-    context 'progress tracking' do
-      it 'broadcasts progress updates via ActionCable' do
-        expect(ActionCable.server).to receive(:broadcast).at_least(4).times
-
-        MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-      end
-
-      it 'updates progress for each report type' do
-        progress_updates = []
-        allow(ActionCable.server).to receive(:broadcast) do |channel, data|
-          progress_updates << data if channel == "report_progress_#{admin.id}"
-        end
-
-        MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-
-        expect(progress_updates).to include(
-          hash_including(progress: 25, status: 'Generating inventory summary...'),
-          hash_including(progress: 50, status: 'Generating transaction report...'),
-          hash_including(progress: 75, status: 'Generating expiry report...'),
-          hash_including(progress: 100, status: 'Report generation completed!')
-        )
-      end
-
-      it 'handles progress tracking when ActionCable unavailable' do
-        allow(ActionCable).to receive(:server).and_return(nil)
-
-        expect {
-          MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-        }.not_to raise_error
-      end
-    end
-
-    context 'notification handling' do
-      it 'sends email notification on success' do
-        MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-
-        expect(ActionMailer::MailDeliveryJob).to have_been_enqueued.with(
-          'AdminMailer', 'monthly_report_ready', 'deliver_now',
-          args: [ admin.id, anything ]
-        )
-      end
-
-      it 'does not send email when skip_notification is true' do
-        expect {
-          MonthlyReportJob.new.perform(admin.id, report_month.to_s, skip_notification: true)
-        }.not_to have_enqueued_mail
-      end
-
-      it 'creates in-app notification' do
-        expect {
-          MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-        }.to change { AdminNotification.count }.by(1)
-
-        notification = AdminNotification.last
-        expect(notification.admin).to eq(admin)
-        expect(notification.notification_type).to eq('report_ready')
-      end
-    end
-
-    context 'error handling' do
-      it 'logs error when report generation fails' do
-        allow_any_instance_of(MonthlyReportJob).to receive(:generate_inventory_summary)
-          .and_raise(StandardError, 'Test error')
-
-        expect(Rails.logger).to receive(:error).with(/Failed to generate report/)
-
-        expect {
-          MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-        }.to raise_error(StandardError)
-      end
-
-      it 'cleans up temporary files on error' do
-        allow_any_instance_of(MonthlyReportJob).to receive(:generate_transaction_report)
-          .and_raise(StandardError)
-
-        expect {
-          MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-        }.to raise_error(StandardError)
-
-        # 一時ファイルが残っていないことを確認
-        temp_files = Dir[Rails.root.join('tmp', 'reports', 'temp_*')]
-        expect(temp_files).to be_empty
-      end
-
-      it 'sends error notification on failure' do
-        allow_any_instance_of(MonthlyReportJob).to receive(:generate_inventory_summary)
-          .and_raise(StandardError)
-
-        expect {
-          begin
-            MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-          rescue StandardError
-            # エラーをキャッチして通知の確認を続ける
+          perform_enqueued_jobs do
+            described_class.perform_later
           end
-        }.to change { AdminNotification.count }.by(1)
+        }.not_to raise_error
+      end
 
-        notification = AdminNotification.last
-        expect(notification.notification_type).to eq('report_failed')
+      it "指定されたパラメータで実行される" do
+        job_result = nil
+
+        expect {
+          perform_enqueued_jobs do
+            job_result = described_class.perform_now(
+              target_date,
+              admin.id,
+              report_types,
+              output_formats,
+              true
+            )
+          end
+        }.not_to raise_error
+
+        expect(job_result[:status]).to eq("success")
+        expect(job_result[:target_date]).to eq(target_date)
+        expect(job_result[:generated_files]).to be_present
+      end
+
+      it "進捗追跡が正しく更新される" do
+        job_instance = described_class.new
+
+        expect(job_instance).to receive(:initialize_progress).with(
+          admin.id,
+          anything,
+          "monthly_report",
+          hash_including(
+            target_date: target_date.iso8601,
+            report_types: report_types
+          )
+        )
+
+        expect(job_instance).to receive(:update_progress).at_least(:once)
+        expect(job_instance).to receive(:notify_completion)
+
+        job_instance.perform(target_date, admin.id, report_types, output_formats, true)
+      end
+
+      it "複数のレポートタイプを処理する" do
+        all_report_types = %w[inventory_summary expiry_analysis sales_summary performance_metrics]
+
+        job_result = described_class.perform_now(
+          target_date,
+          admin.id,
+          all_report_types,
+          %w[csv],
+          false
+        )
+
+        expect(job_result[:status]).to eq("success")
+        expect(job_result[:report_data]).to have_key(:inventory_summary)
+        expect(job_result[:report_data]).to have_key(:expiry_analysis)
+        expect(job_result[:report_data]).to have_key(:sales_summary)
+        expect(job_result[:report_data]).to have_key(:performance_metrics)
+      end
+    end
+
+    context "ファイル生成" do
+      before do
+        allow(File).to receive(:size).and_return(2048)
+        allow(Rails.root).to receive(:join).and_return(Pathname.new("/tmp/test_report.csv"))
+      end
+
+      it "CSV形式でレポートを生成する" do
+        csv_data = []
+        allow(CSV).to receive(:open).and_yield(csv_data)
+
+        job_result = described_class.perform_now(
+          target_date,
+          admin.id,
+          [ 'inventory_summary' ],
+          [ 'csv' ],
+          false
+        )
+
+        expect(job_result[:generated_files]).to be_present
+        expect(job_result[:generated_files].first).to include('.csv')
+      end
+
+      it "複数の出力形式でファイルを生成する" do
+        # PDF・Excelジェネレーターのモック
+        pdf_generator = double('ReportPdfGenerator')
+        excel_generator = double('ReportExcelGenerator')
+
+        allow(ReportPdfGenerator).to receive(:new).and_return(pdf_generator)
+        allow(ReportExcelGenerator).to receive(:new).and_return(excel_generator)
+        allow(pdf_generator).to receive(:generate).and_return('/tmp/report.pdf')
+        allow(excel_generator).to receive(:generate).and_return('/tmp/report.xlsx')
+
+        job_result = described_class.perform_now(
+          target_date,
+          admin.id,
+          [ 'inventory_summary' ],
+          [ 'csv', 'pdf', 'excel' ],
+          false
+        )
+
+        expect(job_result[:generated_files].size).to eq(3)
+      end
+
+      it "ファイル生成失敗時にフォールバックCSVを作成する" do
+        # PDF生成を失敗させる
+        allow(ReportPdfGenerator).to receive(:new).and_raise(StandardError.new("PDF generation failed"))
+
+        csv_data = []
+        allow(CSV).to receive(:open).and_yield(csv_data)
+
+        job_result = described_class.perform_now(
+          target_date,
+          admin.id,
+          [ 'inventory_summary' ],
+          [ 'pdf' ],
+          false
+        )
+
+        # フォールバックCSVが生成される
+        expect(job_result[:generated_files]).not_to be_empty
+      end
+    end
+
+    context "通知機能" do
+      it "管理者に完了通知を送信する" do
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "admin_#{admin.id}",
+          hash_including(
+            type: "monthly_report_complete",
+            message: include("月次レポート生成完了")
+          )
+        )
+
+        described_class.perform_now(target_date, admin.id, report_types, [ 'csv' ], true)
+      end
+
+      it "メール通知が有効な場合にメールを送信する" do
+        expect(AdminMailer).to receive(:monthly_report_complete).and_call_original
+
+        described_class.perform_now(target_date, admin.id, report_types, [ 'csv' ], true)
+      end
+
+      it "メール通知が無効な場合にメールを送信しない" do
+        expect(AdminMailer).not_to receive(:monthly_report_complete)
+
+        described_class.perform_now(target_date, admin.id, report_types, [ 'csv' ], false)
+      end
+
+      it "全管理者に通知する（admin_id未指定時）" do
+        admin2 = create(:admin)
+
+        expect(ActionCable.server).to receive(:broadcast).with("admin_#{admin.id}", anything)
+        expect(ActionCable.server).to receive(:broadcast).with("admin_#{admin2.id}", anything)
+
+        described_class.perform_now(target_date, nil, report_types, [ 'csv' ], true)
+      end
+    end
+
+    context "エラーハンドリング" do
+      it "例外発生時にエラー通知を送信する" do
+        allow_any_instance_of(described_class).to receive(:generate_inventory_summary).and_raise(StandardError.new("Test error"))
+
+        expect(ActionCable.server).to receive(:broadcast).with(
+          "admin_#{admin.id}",
+          hash_including(
+            type: "monthly_report_error",
+            error_class: "StandardError"
+          )
+        )
+
+        expect {
+          described_class.perform_now(target_date, admin.id, report_types, [ 'csv' ], true)
+        }.to raise_error(StandardError)
+      end
+
+      it "エラー時にシステムアラートメールを送信する" do
+        allow_any_instance_of(described_class).to receive(:generate_inventory_summary).and_raise(StandardError.new("Test error"))
+
+        expect(AdminMailer).to receive(:system_error_alert).and_call_original
+
+        expect {
+          described_class.perform_now(target_date, admin.id, report_types, [ 'csv' ], true)
+        }.to raise_error(StandardError)
+      end
+
+      it "不明なレポートタイプを適切に処理する" do
+        expect(Rails.logger).to receive(:warn).with("Unknown report type: unknown_type")
+
+        job_result = described_class.perform_now(
+          target_date,
+          admin.id,
+          [ 'unknown_type' ],
+          [ 'csv' ],
+          false
+        )
+
+        expect(job_result[:status]).to eq("success")
+      end
+
+      it "不明な出力形式を適切に処理する" do
+        expect(Rails.logger).to receive(:warn).with(include("Unknown output format"))
+
+        job_result = described_class.perform_now(
+          target_date,
+          admin.id,
+          [ 'inventory_summary' ],
+          [ 'unknown_format' ],
+          false
+        )
+
+        # フォールバックCSVが生成される
+        expect(job_result[:generated_files]).not_to be_empty
       end
     end
   end
 
-  describe 'report generation methods' do
-    let(:job) { MonthlyReportJob.new }
-    let(:start_date) { report_month }
-    let(:end_date) { report_month.end_of_month }
+  describe "レポートデータ生成" do
+    let(:job) { described_class.new }
 
-    describe '#generate_inventory_summary' do
-      it 'includes current inventory levels' do
-        result = job.send(:generate_inventory_summary, start_date, end_date)
+    describe "#generate_inventory_summary" do
+      it "在庫サマリーデータを生成する" do
+        summary = job.send(:generate_inventory_summary, target_date)
 
-        expect(result).to have_key(:total_items)
-        expect(result).to have_key(:total_value)
-        expect(result).to have_key(:low_stock_items)
-        expect(result).to have_key(:out_of_stock_items)
-      end
+        expect(summary).to include(
+          :total_items,
+          :total_value,
+          :low_stock_items,
+          :high_value_items,
+          :average_quantity,
+          :categories_breakdown
+        )
 
-      it 'calculates inventory by category' do
-        result = job.send(:generate_inventory_summary, start_date, end_date)
-
-        expect(result).to have_key(:by_category)
-        expect(result[:by_category]).to be_a(Hash)
-      end
-
-      it 'includes top movers' do
-        result = job.send(:generate_inventory_summary, start_date, end_date)
-
-        expect(result).to have_key(:top_movers)
-        expect(result[:top_movers]).to be_an(Array)
+        expect(summary[:total_items]).to eq(3)
+        expect(summary[:total_value]).to eq(105 * 500 + 5 * 10000 + 0 * 100) # 在庫×価格の合計
+        expect(summary[:high_value_items]).to eq(1) # 10,000円以上のアイテム
       end
     end
 
-    describe '#generate_transaction_report' do
-      before do
-        create_list(:inventory_log, 5, operation_type: 'receive', created_at: start_date + 1.day)
-        create_list(:inventory_log, 3, operation_type: 'ship', created_at: start_date + 2.days)
-      end
+    describe "#generate_sales_summary" do
+      it "売上サマリーデータを生成する（将来実装用）" do
+        summary = job.send(:generate_sales_summary, target_date)
 
-      it 'summarizes transactions by type' do
-        result = job.send(:generate_transaction_report, start_date, end_date)
-
-        expect(result).to have_key(:summary)
-        expect(result[:summary]).to include(
-          :total_transactions,
-          :receipts,
-          :shipments,
-          :adjustments
+        expect(summary).to include(
+          :total_sales,
+          :orders_count,
+          :average_order_value,
+          :top_selling_items,
+          :monthly_trend
         )
-      end
 
-      it 'includes daily breakdown' do
-        result = job.send(:generate_transaction_report, start_date, end_date)
-
-        expect(result).to have_key(:daily_breakdown)
-        expect(result[:daily_breakdown]).to be_an(Array)
-      end
-
-      it 'calculates value changes' do
-        result = job.send(:generate_transaction_report, start_date, end_date)
-
-        expect(result).to have_key(:value_changes)
-        expect(result[:value_changes]).to include(
-          :received_value,
-          :shipped_value,
-          :net_change
-        )
+        # 現在は0/空の値が返される
+        expect(summary[:total_sales]).to eq(0)
+        expect(summary[:orders_count]).to eq(0)
       end
     end
 
-    describe '#generate_expiry_report' do
-      before do
-        create(:batch, expiration_date: end_date + 5.days)
-        create(:batch, expiration_date: end_date + 20.days)
-        create(:batch, expiration_date: end_date + 45.days)
-        create(:batch, expiration_date: end_date - 5.days)
-      end
+    describe "#generate_expiry_analysis" do
+      it "期限分析データを生成する" do
+        analysis = job.send(:generate_expiry_analysis, target_date)
 
-      it 'categorizes items by expiry status' do
-        result = job.send(:generate_expiry_report, start_date, end_date)
+        expect(analysis).to include(
+          :expiring_next_month,
+          :expiring_next_quarter,
+          :expired_items,
+          :expiry_value_risk,
+          :recommended_actions
+        )
 
-        expect(result).to have_key(:expired)
-        expect(result).to have_key(:expiring_soon)
-        expect(result).to have_key(:expiring_this_month)
-        expect(result).to have_key(:expiring_next_month)
-      end
-
-      it 'includes expiry timeline' do
-        result = job.send(:generate_expiry_report, start_date, end_date)
-
-        expect(result).to have_key(:timeline)
-        expect(result[:timeline]).to be_an(Array)
-      end
-
-      it 'calculates potential loss value' do
-        result = job.send(:generate_expiry_report, start_date, end_date)
-
-        expect(result).to have_key(:potential_loss)
-        expect(result[:potential_loss]).to be_a(Numeric)
+        expect(analysis[:recommended_actions]).to be_an(Array)
+        expect(analysis[:recommended_actions]).not_to be_empty
       end
     end
 
-    describe '#generate_performance_report' do
-      it 'includes turnover metrics' do
-        result = job.send(:generate_performance_report, start_date, end_date)
+    describe "#generate_performance_metrics" do
+      it "パフォーマンス指標を生成する" do
+        metrics = job.send(:generate_performance_metrics, target_date)
 
-        expect(result).to have_key(:turnover_rate)
-        expect(result).to have_key(:average_days_in_stock)
-      end
-
-      it 'calculates stock accuracy' do
-        result = job.send(:generate_performance_report, start_date, end_date)
-
-        expect(result).to have_key(:stock_accuracy)
-        expect(result[:stock_accuracy]).to be_between(0, 100)
-      end
-
-      it 'includes efficiency metrics' do
-        result = job.send(:generate_performance_report, start_date, end_date)
-
-        expect(result).to have_key(:efficiency_metrics)
-        expect(result[:efficiency_metrics]).to include(
-          :order_fulfillment_rate,
-          :stockout_incidents,
-          :overstock_percentage
+        expect(metrics).to include(
+          :inventory_turnover,
+          :stock_accuracy,
+          :fulfillment_rate,
+          :carrying_cost,
+          :stockout_incidents
         )
-      end
 
-      it 'provides recommendations' do
-        result = job.send(:generate_performance_report, start_date, end_date)
-
-        expect(result).to have_key(:recommendations)
-        expect(result[:recommendations]).to be_an(Array)
+        expect(metrics[:stock_accuracy]).to eq(95.0)
+        expect(metrics[:fulfillment_rate]).to eq(98.5)
       end
     end
   end
 
-  describe 'file generation' do
-    let(:job) { MonthlyReportJob.new }
-    let(:report_data) do
-      {
-        metadata: { generated_at: Time.current },
-        reports: {
-          inventory_summary: { total_items: 100 },
-          transaction_report: { total_transactions: 50 }
+  describe "推奨事項生成" do
+    let(:job) { described_class.new }
+
+    it "低在庫アイテムの推奨事項を生成する" do
+      report_data = {
+        inventory_summary: {
+          total_items: 10,
+          total_value: 50000,
+          low_stock_items: 3
         }
       }
+
+      recommendations = job.send(:generate_integrated_recommendations, report_data)
+
+      expect(recommendations).to include(match(/低在庫アイテム.*3件.*発注検討/))
     end
 
-    describe '#save_as_json' do
-      it 'creates JSON file with proper formatting' do
-        filename = job.send(:save_as_json, report_data)
+    it "高価値在庫の推奨事項を生成する" do
+      report_data = {
+        inventory_summary: {
+          total_items: 10,
+          total_value: 100000, # 平均10,000円/アイテム
+          low_stock_items: 0
+        }
+      }
 
-        expect(File.exist?(filename)).to be true
+      recommendations = job.send(:generate_integrated_recommendations, report_data)
 
-        content = JSON.parse(File.read(filename))
-        expect(content['metadata']).to be_present
-        expect(content['reports']).to be_present
+      expect(recommendations).to include(match(/高価値在庫.*セキュリティ管理/))
+    end
+
+    it "期限切れアイテムの推奨事項を生成する" do
+      report_data = {
+        inventory_summary: { total_items: 10, total_value: 5000, low_stock_items: 0 },
+        expiry_analysis: {
+          expiry_summary: {
+            expired_items: 2,
+            expiring_soon: 6
+          }
+        }
+      }
+
+      recommendations = job.send(:generate_integrated_recommendations, report_data)
+
+      expect(recommendations).to include(match(/期限切れアイテム.*2件.*処分/))
+      expect(recommendations).to include(match(/3日以内期限切れアイテム.*6件.*緊急対応/))
+    end
+
+    it "良好な状況でのデフォルト推奨事項を生成する" do
+      report_data = {
+        inventory_summary: {
+          total_items: 10,
+          total_value: 5000,
+          low_stock_items: 0
+        },
+        expiry_analysis: {
+          expiry_summary: {
+            expired_items: 0,
+            expiring_soon: 1
+          }
+        }
+      }
+
+      recommendations = job.send(:generate_integrated_recommendations, report_data)
+
+      expect(recommendations).to include(match(/現在の在庫状況は良好/))
+    end
+  end
+
+  describe "パフォーマンススコア計算" do
+    let(:job) { described_class.new }
+
+    it "総合パフォーマンススコアを計算する" do
+      report_data = {
+        inventory_summary: {
+          total_items: 100,
+          low_stock_items: 10 # 10%の低在庫
+        },
+        expiry_analysis: {
+          expired_items: 5 # 5%の期限切れ
+        },
+        performance_metrics: {
+          stock_accuracy: 95.0,
+          fulfillment_rate: 98.0
+        }
+      }
+
+      score = job.send(:calculate_overall_performance_score, report_data)
+
+      expect(score).to be_a(Float)
+      expect(score).to be_between(0, 100)
+
+      # スコア計算の妥当性確認
+      # 在庫効率: 50 - (0.1 * 50) = 45
+      # 期限管理: 30 - (0.05 * 30) = 28.5
+      # パフォーマンス: (95 * 0.1) + (98 * 0.1) = 19.3
+      expected_score = 45 + 28.5 + 19.3
+      expect(score).to be_within(0.1).of(expected_score)
+    end
+
+    it "データが不足している場合でも適切に処理する" do
+      report_data = {
+        inventory_summary: {
+          total_items: 50,
+          low_stock_items: 5
+        }
+        # expiry_analysis と performance_metrics が欠如
+      }
+
+      score = job.send(:calculate_overall_performance_score, report_data)
+
+      expect(score).to be_a(Float)
+      expect(score).to be >= 0
+    end
+  end
+
+  describe "ヘルパーメソッド" do
+    let(:job) { described_class.new }
+
+    describe "#expiring_items_count" do
+      it "指定日数以内に期限切れになるアイテム数を計算する" do
+        count = job.send(:expiring_items_count, 30)
+
+        # 30日以内に期限切れになるバッチを持つ在庫は1つ
+        expect(count).to eq(1)
       end
     end
 
-    describe '#save_as_csv' do
-      it 'creates multiple CSV files for different sections' do
-        filenames = job.send(:save_as_csv, report_data)
+    describe "#expired_items_count" do
+      it "既に期限切れのアイテム数を計算する" do
+        # 過去の期限切れバッチを作成
+        create(:batch, inventory: @inventory3, expires_on: 1.day.ago, quantity: 10)
 
-        expect(filenames).to be_an(Array)
-        expect(filenames.size).to be > 0
-
-        filenames.each do |filename|
-          expect(File.exist?(filename)).to be true
-          expect(filename).to match(/\.csv$/)
-        end
+        count = job.send(:expired_items_count)
+        expect(count).to eq(1)
       end
     end
 
-    describe '#save_as_xlsx' do
-      it 'creates XLSX file with multiple sheets' do
-        filename = job.send(:save_as_xlsx, report_data)
+    describe "#calculate_expiry_value_risk" do
+      it "期限切れリスクの金額を計算する" do
+        value_risk = job.send(:calculate_expiry_value_risk)
 
-        expect(File.exist?(filename)).to be true
-        expect(filename).to match(/\.xlsx$/)
-
-        # XLSXファイルの検証（実際の実装に依存）
-        expect(File.size(filename)).to be > 0
+        # 30日以内期限切れバッチの価値合計
+        # batch2: inventory1の価格500円 × batch2の数量30個 = 15,000円
+        expect(value_risk).to eq(500 * 30)
       end
     end
 
-    describe '#save_as_pdf' do
-      it 'creates PDF file' do
-        filename = job.send(:save_as_pdf, report_data)
+    describe "#calculate_carrying_cost" do
+      it "在庫保有コストを計算する" do
+        carrying_cost = job.send(:calculate_carrying_cost)
 
-        expect(File.exist?(filename)).to be true
-        expect(filename).to match(/\.pdf$/)
+        total_value = 105 * 500 + 5 * 10000 + 0 * 100
+        expected_cost = total_value * 0.15
 
-        # PDFファイルの検証
-        expect(File.size(filename)).to be > 0
+        expect(carrying_cost).to eq(expected_cost)
+      end
+    end
+
+    describe "#count_stockout_incidents" do
+      before do
+        # 在庫ログ作成
+        create(:inventory_log,
+          inventory: @inventory3,
+          operation_type: 'sold',
+          created_at: target_date + 10.days
+        )
+      end
+
+      it "在庫切れインシデント数を集計する" do
+        incidents = job.send(:count_stockout_incidents, target_date)
+
+        expect(incidents).to eq(1)
+      end
+    end
+
+    describe "#select_primary_file" do
+      it "PDF優先でプライマリファイルを選択する" do
+        files = [ '/tmp/report.csv', '/tmp/report.pdf', '/tmp/report.xlsx' ]
+
+        primary = job.send(:select_primary_file, files)
+        expect(primary).to eq('/tmp/report.pdf')
+      end
+
+      it "PDFがない場合はExcelを選択する" do
+        files = [ '/tmp/report.csv', '/tmp/report.xlsx' ]
+
+        primary = job.send(:select_primary_file, files)
+        expect(primary).to eq('/tmp/report.xlsx')
+      end
+
+      it "PDFもExcelもない場合はCSVを選択する" do
+        files = [ '/tmp/report.csv', '/tmp/other.txt' ]
+
+        primary = job.send(:select_primary_file, files)
+        expect(primary).to eq('/tmp/report.csv')
+      end
+
+      it "該当するファイルがない場合は最初のファイルを選択する" do
+        files = [ '/tmp/report.txt', '/tmp/other.log' ]
+
+        primary = job.send(:select_primary_file, files)
+        expect(primary).to eq('/tmp/report.txt')
       end
     end
   end
 
-  describe 'cleanup' do
-    let(:job) { MonthlyReportJob.new }
+  describe "CSV生成" do
+    let(:job) { described_class.new }
 
-    it 'removes old report files' do
-      # 古いレポートファイルを作成
-      old_file = Rails.root.join('tmp', 'reports', 'report_old.json')
-      FileUtils.touch(old_file, mtime: 35.days.ago)
+    it "レポートデータをCSV形式で出力する" do
+      report_data = {
+        inventory_summary: {
+          total_items: 10,
+          total_value: 50000,
+          low_stock_items: 2,
+          high_value_items: 3,
+          average_quantity: 25.5
+        },
+        expiry_analysis: {
+          expiring_next_month: 1,
+          expiring_next_quarter: 3,
+          expired_items: 0,
+          expiry_value_risk: 5000
+        }
+      }
 
-      job.send(:cleanup_old_reports)
+      csv_rows = []
+      allow(CSV).to receive(:open).and_yield(csv_rows)
+      allow(Rails.root).to receive(:join).and_return(Pathname.new("/tmp/test_report.csv"))
 
-      expect(File.exist?(old_file)).to be false
-    end
+      file_path = job.send(:generate_csv_report, target_date, report_data)
 
-    it 'keeps recent report files' do
-      recent_file = Rails.root.join('tmp', 'reports', 'report_recent.json')
-      FileUtils.touch(recent_file, mtime: 5.days.ago)
+      expect(file_path).to include('monthly_report_')
+      expect(file_path).to end_with('.csv')
 
-      job.send(:cleanup_old_reports)
-
-      expect(File.exist?(recent_file)).to be true
-    end
-  end
-
-  describe 'retry behavior' do
-    it 'retries on transient failures' do
-      job = MonthlyReportJob.new
-      allow(job).to receive(:generate_inventory_summary).and_raise(Redis::ConnectionError)
-
-      # ActiveJobのretry_onの確認
-      expect(job.class.retry_jitter).to be_present
-    end
-  end
-
-  describe 'performance' do
-    it 'completes within reasonable time for large datasets' do
-      # 大量のテストデータ
-      create_list(:inventory, 1000)
-      create_list(:inventory_log, 5000)
-
-      start_time = Time.current
-      MonthlyReportJob.new.perform(admin.id, report_month.to_s)
-      duration = Time.current - start_time
-
-      expect(duration).to be < 60 # 60秒以内に完了
-    end
-
-    it 'uses batch processing for large queries' do
-      # バッチ処理の確認
-      expect_any_instance_of(MonthlyReportJob).to receive(:find_in_batches).at_least(:once)
-
-      create_list(:inventory, 200)
-      MonthlyReportJob.new.perform(admin.id, report_month.to_s)
+      # CSVに適切なデータが書き込まれることを確認
+      expect(csv_rows).not_to be_empty
     end
   end
 
-  after do
-    # テスト後のクリーンアップ
-    FileUtils.rm_rf(Rails.root.join('tmp', 'reports', '*'))
+  describe "Sidekiq設定" do
+    it "正しいキューが設定されている" do
+      expect(described_class.queue_name).to eq('reports')
+    end
+
+    it "適切なSidekiqオプションが設定されている" do
+      sidekiq_options = described_class.sidekiq_options_hash
+
+      expect(sidekiq_options['retry']).to eq(1)
+      expect(sidekiq_options['backtrace']).to be true
+      expect(sidekiq_options['queue']).to eq(:reports)
+      expect(sidekiq_options['timeout']).to eq(600)
+    end
   end
+
+  describe "機密情報保護" do
+    it "機密情報フィルタリング設定が定義されている" do
+      expect(described_class::SENSITIVE_REPORT_PARAMS).to include(
+        'email_list', 'recipient_data', 'financial_data'
+      )
+    end
+
+    it "財務データ保護レベルが設定されている" do
+      expect(described_class::FINANCIAL_PROTECTION_LEVEL).to eq(:strict)
+    end
+  end
+
+  # TODO: 🔴 Phase 1（緊急）- 追加テストケース
+  # 優先度: 高（CLAUDE.md準拠）
+  # 実装期間: 1-2日
+  # 横展開: ImportInventoriesJobと同等のテスト網羅性達成
+  #
+  # 1. 大規模データ処理テスト
+  #    - 10,000件以上の在庫データでのパフォーマンステスト
+  #    - メモリ使用量監視テスト
+  #    - タイムアウト処理テスト
+  #
+  # 2. 並行実行テスト
+  #    - 複数の月次レポートジョブ同時実行
+  #    - リソース競合の検証
+  #    - ファイルロック機能テスト
+  #
+  # 3. レポート品質検証テスト
+  #    - 生成されたCSV/PDF/Excelファイルの内容検証
+  #    - データ整合性チェック
+  #    - 文字化け・エンコーディングテスト
+  #
+  # 4. 統合テスト
+  #    - ActionCable通知の実際の受信テスト
+  #    - メール配信の実際のテスト（test環境）
+  #    - ProgressNotifierとの完全統合テスト
+  #
+  # 5. セキュリティテスト
+  #    - 権限のない管理者での実行テスト
+  #    - 機密情報フィルタリング動作確認
+  #    - ファイルアクセス権限テスト
 end

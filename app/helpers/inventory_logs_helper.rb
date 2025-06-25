@@ -138,10 +138,10 @@ module InventoryLogsHelper
   # ユーザー表示（将来の多ユーザー対応用）
   def format_log_user(log)
     # 現在はadminのみだが、将来の拡張に備えて
-    if log.respond_to?(:admin) && log.admin.present?
-      log.admin.email
-    elsif log.respond_to?(:user) && log.user.present?
+    if log.respond_to?(:user) && log.user.present?
       log.user.name || log.user.email
+    elsif log.respond_to?(:admin) && log.admin.present?
+      log.admin.email
     else
       "システム"
     end
@@ -164,9 +164,8 @@ module InventoryLogsHelper
 
   # ログのグループ化ヘルパー
   def group_logs_by_date(logs)
-    logs.group_by { |log| log.created_at.to_date }
-        .sort_by { |date, _| date }
-        .reverse
+    grouped = logs.group_by { |log| log.created_at.to_date }
+    grouped.sort_by { |date, _| date }.reverse.to_h
   end
 
   # 今日のログかどうか判定

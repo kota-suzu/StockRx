@@ -26,8 +26,15 @@ module CsvImportable
       CSV.generate do |csv|
         csv << headers
 
-        records.find_each do |record|
-          csv << headers.map { |header| record.send(header) }
+        # Arrayの場合はeachを使用、ActiveRecord::Relationの場合はfind_eachを使用
+        if records.respond_to?(:find_each)
+          records.find_each do |record|
+            csv << headers.map { |header| record.send(header) }
+          end
+        else
+          records.each do |record|
+            csv << headers.map { |header| record.send(header) }
+          end
         end
       end
     end
@@ -45,6 +52,8 @@ module CsvImportable
         unique_key: "name"
       }
 
+      # nilの場合は空のハッシュとして扱う
+      options ||= {}
       default_options.merge(options)
     end
 
@@ -55,6 +64,8 @@ module CsvImportable
       update_records = []
       total_valid_count = 0
       total_update_count = 0
+      skipped_count = 0
+      duplicate_count = 0
 
       Rails.logger.info("CSVインポート開始: #{file_path}")
 
@@ -62,7 +73,7 @@ module CsvImportable
       file_path = file_path.respond_to?(:path) ? file_path.path : file_path
 
       ActiveRecord::Base.transaction do
-        total_valid_count, total_update_count = process_csv_rows(
+        total_valid_count, total_update_count, skipped_count, duplicate_count = process_csv_rows(
           file_path, options, valid_records, invalid_records, update_records
         )
 
@@ -81,7 +92,9 @@ module CsvImportable
       {
         valid_count: total_valid_count,
         update_count: total_update_count,
-        invalid_records: invalid_records
+        invalid_records: invalid_records,
+        skipped_count: skipped_count,
+        duplicate_count: duplicate_count
       }
     end
 
@@ -89,16 +102,22 @@ module CsvImportable
     def process_csv_rows(file_path, options, valid_records, invalid_records, update_records)
       total_valid_count = 0
       total_update_count = 0
+      skipped_count = 0
+      duplicate_count = 0
 
       CSV.foreach(file_path, headers: options[:headers], encoding: "UTF-8") do |row|
         attributes = row_to_attributes(row, options[:column_mapping])
 
         existing_record = find_existing_record(row, options)
 
-        if existing_record
+        if existing_record && options[:update_existing]
           process_existing_record(existing_record, attributes, update_records, invalid_records, row)
+        elsif existing_record && !options[:update_existing]
+          # 重複をスキップ
+          duplicate_count += 1
         else
-          process_new_record(attributes, valid_records, invalid_records, row, options[:skip_invalid])
+          result = process_new_record(attributes, valid_records, invalid_records, row, options[:skip_invalid])
+          skipped_count += 1 if result == :skipped
         end
 
         # バッチサイズに達したらバルクインサート/更新
@@ -115,17 +134,26 @@ module CsvImportable
         end
       end
 
-      [ total_valid_count, total_update_count ]
+      [ total_valid_count, total_update_count, skipped_count, duplicate_count ]
     end
 
-    # 行データから属性ハッシュへの変換
+    # 行データから属性ハッシュへの変換（多言語対応）
     def row_to_attributes(row, column_mapping)
       attributes = {}
 
-      # マッピングが指定されていない場合はそのまま変換
+      # マッピングが指定されていない場合は多言語ヘッダー対応で変換
       if column_mapping.blank?
+        mapping_key = model_name.singular
+
         row.to_h.each do |key, value|
-          attributes[key] = value if key.present? && column_names.include?(key.to_s)
+          next if key.blank? || value.blank?
+
+          # ヘッダーを正規化（多言語対応）
+          normalized_key = normalize_header_for_attributes(key, mapping_key)
+
+          if normalized_key.present? && column_names.include?(normalized_key.to_s)
+            attributes[normalized_key] = value
+          end
         end
       else
         # マッピングに従って変換
@@ -137,9 +165,21 @@ module CsvImportable
       attributes
     end
 
+    # ヘッダー正規化（属性変換用）
+    # @param header [String] CSVヘッダー
+    # @param mapping_key [String] I18n設定のキー
+    # @return [String, nil] 正規化されたカラム名
+    def normalize_header_for_attributes(header, mapping_key)
+      return nil if header.blank?
+
+      # CsvHeaderNormalizerを使用して正規化
+      normalized = CsvHeaderNormalizer.normalize([ header ], mapping_key)
+      normalized.first
+    end
+
     # 既存レコードを検索
     def find_existing_record(row, options)
-      return nil unless options[:update_existing] && row[options[:unique_key]].present?
+      return nil unless row[options[:unique_key]].present?
 
       # 安全なクエリのために許可されたカラム名かチェック
       if %w[name code sku barcode].include?(options[:unique_key])
@@ -159,7 +199,7 @@ module CsvImportable
       if record.valid?
         update_records << record
       else
-        invalid_records << { row: row, errors: record.errors.full_messages }
+        invalid_records << { row: row, errors: record.errors.full_messages, data: row.to_h }
       end
     end
 
@@ -170,17 +210,17 @@ module CsvImportable
       if record.valid?
         valid_records << record
       else
-        invalid_records << { row: row, errors: record.errors.full_messages }
-        nil if skip_invalid
+        invalid_records << { row: row, errors: record.errors.full_messages, data: row.to_h }
+        :skipped if skip_invalid
       end
     rescue ArgumentError => e
       # enum値エラーの場合
       if e.message.include?("is not a valid")
-        invalid_records << { row: row, errors: [ e.message ] }
+        invalid_records << { row: row, errors: [ e.message ], data: row.to_h }
       else
         raise e
       end
-      nil if skip_invalid
+      :skipped if skip_invalid
     end
 
     # 有効なレコードをバルクインサートするメソッド
@@ -241,6 +281,7 @@ module CsvImportable
           previous_quantity: 0,
           current_quantity: record.quantity,
           note: "CSVインポートによる登録",
+          user_id: Current.admin&.id,
           created_at: Time.current,
           updated_at: Time.current
         }
@@ -272,6 +313,7 @@ module CsvImportable
             previous_quantity: 0,
             current_quantity: record.quantity,
             note: "CSVインポートによる登録",
+            user_id: Current.admin&.id,
             created_at: Time.current,
             updated_at: Time.current
           }
@@ -370,6 +412,7 @@ module CsvImportable
             previous_quantity: 0,
             current_quantity: record.quantity,
             note: "CSVインポートによる登録",
+            user_id: Current.admin&.id,
             created_at: Time.current,
             updated_at: Time.current
           }

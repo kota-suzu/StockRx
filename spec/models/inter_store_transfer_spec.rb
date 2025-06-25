@@ -12,7 +12,7 @@ RSpec.describe InterStoreTransfer, type: :model do
   let(:inventory) { create(:inventory, name: 'アスピリン錠100mg', price: 1000) }
   let(:admin_user) { create(:admin, name: '管理者太郎') }
   let(:store_user) { create(:store_user, store: source_store, name: '店舗スタッフ') }
-  
+
   # 移動元に在庫を準備
   let!(:source_inventory) do
     create(:store_inventory,
@@ -28,7 +28,7 @@ RSpec.describe InterStoreTransfer, type: :model do
     it { should belong_to(:source_store).class_name('Store') }
     it { should belong_to(:destination_store).class_name('Store') }
     it { should belong_to(:inventory) }
-    
+
     # ポリモーフィック関連付け：AdminとStoreUserの両方に対応
     it { should belong_to(:requested_by) }
     it { should belong_to(:approved_by).optional }
@@ -191,7 +191,7 @@ RSpec.describe InterStoreTransfer, type: :model do
           before { transfer.update!(status: :completed) }
 
           it 'prevents any status change' do
-            [:pending, :approved, :rejected, :in_transit, :cancelled].each do |status|
+            [ :pending, :approved, :rejected, :in_transit, :cancelled ].each do |status|
               transfer.status = status
               expect(transfer).not_to be_valid
             end
@@ -301,7 +301,7 @@ RSpec.describe InterStoreTransfer, type: :model do
           quantity: 25,
           requested_by: admin_user
         )
-        
+
         expect {
           transfer.destroy
         }.to change { source_inventory.reload.reserved_quantity }.from(25).to(0)
@@ -318,7 +318,7 @@ RSpec.describe InterStoreTransfer, type: :model do
         )
         transfer.update!(status: :completed)
         source_inventory.update!(reserved_quantity: 0)
-        
+
         transfer.destroy
         expect(source_inventory.reload.reserved_quantity).to eq(0)
       end
@@ -351,7 +351,7 @@ RSpec.describe InterStoreTransfer, type: :model do
           destination_store: destination_store,
           requested_by: admin_user
         )
-        
+
         expect {
           transfer.update!(status: :approved)
         }.to change { source_store.reload.pending_outgoing_transfers_count }.by(-1)
@@ -424,7 +424,7 @@ RSpec.describe InterStoreTransfer, type: :model do
           source_store: source_store,
           destination_store: destination_store
         )
-        
+
         expect(InterStoreTransfer.by_inventory(inventory)).to include(transfer1, transfer2, transfer3)
         expect(InterStoreTransfer.by_inventory(inventory)).not_to include(other_transfer)
       end
@@ -456,7 +456,7 @@ RSpec.describe InterStoreTransfer, type: :model do
           destination_store: destination_store,
           requested_at: 1.week.ago
         )
-        
+
         recent_transfers = InterStoreTransfer.recent
         expect(recent_transfers.first.requested_at).to be > recent_transfers.last.requested_at
         expect(recent_transfers.last).to eq(old_transfer)
@@ -474,7 +474,7 @@ RSpec.describe InterStoreTransfer, type: :model do
     describe '.active' do
       it 'returns pending, approved, and in_transit transfers' do
         expect(InterStoreTransfer.active).to include(transfer1, transfer2, transfer3)
-        
+
         # Create completed transfer
         completed = create(:inter_store_transfer, status: :approved)
         completed.update!(status: :completed)
@@ -488,7 +488,7 @@ RSpec.describe InterStoreTransfer, type: :model do
         completed.update!(status: :completed)
         cancelled = create(:inter_store_transfer, status: :cancelled)
         rejected = create(:inter_store_transfer, status: :rejected)
-        
+
         expect(InterStoreTransfer.completed_transfers).to include(completed, cancelled, rejected)
         expect(InterStoreTransfer.completed_transfers).not_to include(transfer1, transfer2, transfer3)
       end
@@ -509,19 +509,19 @@ RSpec.describe InterStoreTransfer, type: :model do
     describe '#status_text' do
       it 'returns Japanese text for status' do
         expect(transfer.status_text).to eq('承認待ち')
-        
+
         transfer.status = :approved
         expect(transfer.status_text).to eq('承認済み')
-        
+
         transfer.status = :rejected
         expect(transfer.status_text).to eq('却下')
-        
+
         transfer.status = :in_transit
         expect(transfer.status_text).to eq('移動中')
-        
+
         transfer.status = :completed
         expect(transfer.status_text).to eq('完了')
-        
+
         transfer.status = :cancelled
         expect(transfer.status_text).to eq('キャンセル')
       end
@@ -530,10 +530,10 @@ RSpec.describe InterStoreTransfer, type: :model do
     describe '#priority_text' do
       it 'returns Japanese text for priority' do
         expect(transfer.priority_text).to eq('通常')
-        
+
         transfer.priority = :urgent
         expect(transfer.priority_text).to eq('緊急')
-        
+
         transfer.priority = :emergency
         expect(transfer.priority_text).to eq('非常時')
       end
@@ -553,7 +553,7 @@ RSpec.describe InterStoreTransfer, type: :model do
           status: :completed,
           completed_at: transfer.requested_at + 2.hours
         )
-        
+
         expect(transfer.processing_time).to eq(2.hours)
       end
 
@@ -565,7 +565,7 @@ RSpec.describe InterStoreTransfer, type: :model do
         transfer.update!(status: :approved)
         transfer.update!(status: :completed, completed_at: Time.current)
         transfer.update_column(:requested_at, nil)
-        
+
         expect(transfer.processing_time).to be_nil
       end
     end
@@ -721,7 +721,7 @@ RSpec.describe InterStoreTransfer, type: :model do
       it 'approves transfer with timestamp' do
         freeze_time do
           result = transfer.approve!(admin_user)
-          
+
           expect(result).to be true
           expect(transfer.reload.status).to eq('approved')
           expect(transfer.approved_by).to eq(admin_user)
@@ -733,7 +733,7 @@ RSpec.describe InterStoreTransfer, type: :model do
         transfer.update!(status: :approved)
         transfer.update!(status: :completed)
         result = transfer.approve!(admin_user)
-        
+
         expect(result).to be false
         expect(transfer.reload.status).to eq('completed')
       end
@@ -741,7 +741,7 @@ RSpec.describe InterStoreTransfer, type: :model do
       it 'handles validation errors' do
         allow(transfer).to receive(:update!).and_raise(ActiveRecord::RecordInvalid)
         result = transfer.approve!(admin_user)
-        
+
         expect(result).to be false
       end
     end
@@ -751,7 +751,7 @@ RSpec.describe InterStoreTransfer, type: :model do
 
       it 'rejects transfer and releases stock' do
         result = transfer.reject!(admin_user, rejection_reason)
-        
+
         expect(result).to be true
         expect(transfer.reload.status).to eq('rejected')
         expect(transfer.approved_by).to eq(admin_user)
@@ -763,7 +763,7 @@ RSpec.describe InterStoreTransfer, type: :model do
       it 'appends rejection reason to existing reason' do
         original_reason = transfer.reason
         transfer.reject!(admin_user, rejection_reason)
-        
+
         expect(transfer.reload.reason).to include(original_reason)
         expect(transfer.reason).to include('【却下理由】')
         expect(transfer.reason).to include(rejection_reason)
@@ -772,7 +772,7 @@ RSpec.describe InterStoreTransfer, type: :model do
       it 'returns false if not rejectable' do
         transfer.update!(status: :approved)
         result = transfer.reject!(admin_user, rejection_reason)
-        
+
         expect(result).to be false
       end
     end
@@ -792,16 +792,16 @@ RSpec.describe InterStoreTransfer, type: :model do
 
         it 'transfers inventory between stores' do
           result = transfer.execute_transfer!
-          
+
           expect(result).to be true
           expect(transfer.reload.status).to eq('completed')
           expect(transfer.completed_at).to be_present
-          
+
           # Source inventory updated
           source_inventory.reload
           expect(source_inventory.quantity).to eq(70) # 100 - 30
           expect(source_inventory.reserved_quantity).to eq(0) # Released
-          
+
           # Destination inventory updated
           destination_inventory.reload
           expect(destination_inventory.quantity).to eq(80) # 50 + 30
@@ -814,12 +814,12 @@ RSpec.describe InterStoreTransfer, type: :model do
             result = transfer.execute_transfer!
             expect(result).to be true
           }.to change(StoreInventory, :count).by(1)
-          
+
           destination_inventory = StoreInventory.find_by(
             store: destination_store,
             inventory: inventory
           )
-          
+
           expect(destination_inventory).to be_present
           expect(destination_inventory.quantity).to eq(30)
           expect(destination_inventory.reserved_quantity).to eq(0)
@@ -830,16 +830,16 @@ RSpec.describe InterStoreTransfer, type: :model do
       it 'returns false if not completable' do
         transfer.update!(status: :pending)
         result = transfer.execute_transfer!
-        
+
         expect(result).to be false
         expect(source_inventory.reload.quantity).to eq(100)
       end
 
       it 'handles transaction errors' do
         allow_any_instance_of(StoreInventory).to receive(:save!).and_raise(ActiveRecord::RecordInvalid)
-        
+
         expect(Rails.logger).to receive(:error).with(/移動実行エラー/)
-        
+
         result = transfer.execute_transfer!
         expect(result).to be false
         expect(transfer.reload.status).to eq('approved')
@@ -851,9 +851,9 @@ RSpec.describe InterStoreTransfer, type: :model do
     let(:hq_admin) { create(:admin, :headquarters_admin) }
     let(:area_admin) { create(:admin) }
     let(:store3) { create(:store) }
-    
+
     before do
-      area_admin.stores << [source_store, destination_store]
+      area_admin.stores << [ source_store, destination_store ]
     end
 
     let!(:transfers) do
@@ -905,14 +905,14 @@ RSpec.describe InterStoreTransfer, type: :model do
           status: :approved,
           requested_at: 10.days.ago,
         ).update!(status: :completed, completed_at: 8.days.ago)
-        
+
         create(:inter_store_transfer,
           source_store: destination_store,
           destination_store: source_store,
           status: :approved,
           requested_at: 5.days.ago,
         ).update!(status: :completed, completed_at: 3.days.ago)
-        
+
         # Old transfer (outside period)
         create(:inter_store_transfer,
           source_store: source_store,
@@ -923,7 +923,7 @@ RSpec.describe InterStoreTransfer, type: :model do
 
       it 'calculates store transfer statistics' do
         stats = InterStoreTransfer.store_transfer_stats(source_store)
-        
+
         expect(stats[:outgoing_count]).to eq(2) # Including pending
         expect(stats[:incoming_count]).to eq(2)
         expect(stats[:outgoing_completed]).to eq(1)
@@ -934,7 +934,7 @@ RSpec.describe InterStoreTransfer, type: :model do
 
       it 'respects period parameter' do
         stats = InterStoreTransfer.store_transfer_stats(source_store, 3.days.ago..)
-        
+
         expect(stats[:outgoing_count]).to eq(0)
         expect(stats[:incoming_count]).to eq(1)
       end
@@ -943,20 +943,20 @@ RSpec.describe InterStoreTransfer, type: :model do
     describe '.transfer_analytics' do
       before do
         # Create various transfers
-        create_list(:inter_store_transfer, 3, 
+        create_list(:inter_store_transfer, 3,
           source_store: source_store,
           destination_store: destination_store,
           priority: :urgent,
           status: :approved
         )
-        
+
         create_list(:inter_store_transfer, 2,
           source_store: source_store,
           destination_store: destination_store,
           priority: :emergency,
           status: :approved
         ).each { |t| t.update!(status: :completed) }
-        
+
         create(:inter_store_transfer,
           source_store: source_store,
           destination_store: destination_store,
@@ -966,7 +966,7 @@ RSpec.describe InterStoreTransfer, type: :model do
 
       it 'provides comprehensive analytics' do
         analytics = InterStoreTransfer.transfer_analytics
-        
+
         expect(analytics[:total_requests]).to be >= 6
         expect(analytics[:approval_rate]).to be > 0
         expect(analytics[:average_quantity]).to be > 0
@@ -978,11 +978,11 @@ RSpec.describe InterStoreTransfer, type: :model do
       it 'calculates approval rate correctly' do
         # Reset to known state
         InterStoreTransfer.destroy_all
-        
+
         create_list(:inter_store_transfer, 3, status: :approved)
         create_list(:inter_store_transfer, 2, status: :approved).each { |t| t.update!(status: :completed) }
         create_list(:inter_store_transfer, 5, status: :rejected)
-        
+
         analytics = InterStoreTransfer.transfer_analytics
         expect(analytics[:approval_rate]).to eq(50.0) # 5 out of 10
       end
@@ -997,7 +997,7 @@ RSpec.describe InterStoreTransfer, type: :model do
         destination_store: destination_store,
         requested_by: admin_user
       )
-      
+
       expect(transfer.requested_by).to eq(admin_user)
       expect(transfer.requested_by_type).to eq('Admin')
     end
@@ -1008,7 +1008,7 @@ RSpec.describe InterStoreTransfer, type: :model do
         destination_store: destination_store,
         requested_by: store_user
       )
-      
+
       expect(transfer.requested_by).to eq(store_user)
       expect(transfer.requested_by_type).to eq('StoreUser')
     end
@@ -1019,9 +1019,9 @@ RSpec.describe InterStoreTransfer, type: :model do
         destination_store: destination_store,
         requested_by: store_user
       )
-      
+
       transfer.approve!(admin_user)
-      
+
       expect(transfer.requested_by).to eq(store_user)
       expect(transfer.approved_by).to eq(admin_user)
       expect(transfer.approved_by_type).to eq('Admin')
@@ -1032,7 +1032,7 @@ RSpec.describe InterStoreTransfer, type: :model do
   describe 'performance' do
     it 'handles bulk transfers efficiently' do
       transfers = []
-      
+
       start_time = Time.current
       100.times do
         transfers << build(:inter_store_transfer,
@@ -1042,7 +1042,7 @@ RSpec.describe InterStoreTransfer, type: :model do
       end
       InterStoreTransfer.import(transfers) if defined?(InterStoreTransfer.import)
       elapsed_time = (Time.current - start_time) * 1000
-      
+
       expect(elapsed_time).to be < 5000 # Under 5 seconds
     end
 
@@ -1051,7 +1051,7 @@ RSpec.describe InterStoreTransfer, type: :model do
         source_store: source_store,
         destination_store: destination_store
       )
-      
+
       expect {
         InterStoreTransfer.includes(
           :source_store, :destination_store, :inventory, :requested_by
@@ -1073,7 +1073,7 @@ RSpec.describe InterStoreTransfer, type: :model do
         destination_store: destination_store,
         reason: '<script>alert("XSS")</script>在庫調整'
       )
-      
+
       # アプリケーション層でのサニタイズを想定
       expect(transfer.reason).to include('在庫調整')
     end
@@ -1083,7 +1083,7 @@ RSpec.describe InterStoreTransfer, type: :model do
         source_store: source_store,
         destination_store: destination_store
       )
-      
+
       # Direct status manipulation should be validated
       transfer.status = :completed
       expect(transfer).not_to be_valid
@@ -1103,28 +1103,28 @@ RSpec.describe InterStoreTransfer, type: :model do
         priority: :urgent,
         reason: '新宿店の在庫不足対応'
       )
-      
+
       expect(source_inventory.reload.reserved_quantity).to eq(40)
-      
+
       # 2. Admin approves
       expect(transfer.approve!(admin_user)).to be true
       expect(transfer.reload.status).to eq('approved')
-      
+
       # 3. Mark as in transit
       transfer.update!(status: :in_transit)
-      
+
       # 4. Execute transfer
       expect(transfer.execute_transfer!).to be true
-      
+
       # 5. Verify final state
       transfer.reload
       expect(transfer.status).to eq('completed')
       expect(transfer.completed_at).to be_present
-      
+
       source_inventory.reload
       expect(source_inventory.quantity).to eq(60)
       expect(source_inventory.reserved_quantity).to eq(0)
-      
+
       dest_inventory = StoreInventory.find_by(
         store: destination_store,
         inventory: inventory
@@ -1141,10 +1141,10 @@ RSpec.describe InterStoreTransfer, type: :model do
         quantity: 80,
         requested_by: store_user
       )
-      
+
       # 2. Admin rejects
       expect(transfer.reject!(admin_user, '数量が多すぎるため')).to be true
-      
+
       # 3. Verify state
       transfer.reload
       expect(transfer.status).to eq('rejected')
@@ -1161,10 +1161,10 @@ RSpec.describe InterStoreTransfer, type: :model do
         quantity: 25,
         requested_by: store_user
       )
-      
+
       # 2. Store user cancels
       expect(transfer.cancel_by!(store_user)).to be true
-      
+
       # 3. Verify state
       expect(transfer.reload.status).to eq('cancelled')
       expect(source_inventory.reload.reserved_quantity).to eq(0)
@@ -1184,7 +1184,7 @@ RSpec.describe InterStoreTransfer, type: :model do
           requested_by: admin_user
         )
       end
-      
+
       # Total reserved should not exceed available
       expect(source_inventory.reload.reserved_quantity).to eq(90)
       expect(source_inventory.quantity).to eq(100)
@@ -1196,7 +1196,7 @@ RSpec.describe InterStoreTransfer, type: :model do
         destination_store: destination_store,
         requested_by: admin_user
       )
-      
+
       # Stores should not be deletable with active transfers
       expect { source_store.destroy }.not_to change(Store, :count)
       expect { destination_store.destroy }.not_to change(Store, :count)
@@ -1204,7 +1204,7 @@ RSpec.describe InterStoreTransfer, type: :model do
 
     it 'handles very large transfer quantities' do
       source_inventory.update!(quantity: 999_999_999)
-      
+
       transfer = create(:inter_store_transfer,
         source_store: source_store,
         destination_store: destination_store,
@@ -1212,7 +1212,7 @@ RSpec.describe InterStoreTransfer, type: :model do
         quantity: 500_000_000,
         requested_by: admin_user
       )
-      
+
       expect(transfer).to be_valid
       transfer.update!(status: :approved)
       expect(transfer.execute_transfer!).to be true

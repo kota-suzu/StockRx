@@ -188,4 +188,36 @@ ja:
       last: "最後 &raquo;"
       previous: "&lsaquo; 前"
       next: "次 &rsaquo;"
-      truncate: "..." 
+      truncate: "..."
+
+  # CSV多言語ヘッダーマッピング
+  csv:
+    header_mappings:
+      inventory:
+        # 商品名の表記ゆれ対応
+        "商品名": "name"
+        "薬品名": "name"
+        "名前": "name"
+        "製品名": "name"
+        "品名": "name"
+        
+        # 数量の表記ゆれ対応
+        "数量": "quantity"
+        "在庫数量": "quantity"
+        "在庫数": "quantity"
+        "現在在庫数": "quantity"
+        "現在数量": "quantity"
+        "個数": "quantity"
+        "数": "quantity"
+        
+        # 価格の表記ゆれ対応
+        "価格": "price"
+        "単価": "price"
+        "金額": "price"
+        "値段": "price"
+        "料金": "price"
+        
+        # 英語ヘッダー（既存互換性保持）
+        "name": "name"
+        "quantity": "quantity"
+        "price": "price" 

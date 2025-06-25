@@ -4,6 +4,7 @@ class StoreInventory < ApplicationRecord
   # アソシエーション
   belongs_to :store, counter_cache: true
   belongs_to :inventory
+  has_many :inventory_logs, through: :inventory
 
   # 在庫移動ログ関連（Phase 2で実装予定）
   # has_many :transfer_logs, dependent: :destroy
@@ -114,6 +115,42 @@ class StoreInventory < ApplicationRecord
     available_quantity
   end
 
+  # 在庫予約処理
+  def reserve(amount)
+    return false if amount > available_quantity
+
+    self.reserved_quantity += amount
+    save
+  end
+
+  # 予約解除処理
+  def release_reservation(amount)
+    return false if amount > reserved_quantity
+
+    self.reserved_quantity -= amount
+    save
+  end
+
+  # 在庫調整処理
+  def adjust_quantity(delta, reason: nil)
+    new_quantity = quantity + delta
+    return false if new_quantity < 0
+
+    self.quantity = new_quantity
+    # 予約数が新しい在庫数を超える場合は調整
+    if reserved_quantity > quantity
+      self.reserved_quantity = quantity
+    end
+
+    save
+  end
+
+  # 発注が必要かどうか
+  def needs_reorder?
+    return false unless reorder_level.present?
+    quantity <= reorder_level
+  end
+
   # ============================================
   # クラスメソッド
   # ============================================
@@ -201,11 +238,14 @@ class StoreInventory < ApplicationRecord
 
   # 在庫アラートチェック（非同期処理）
   def check_stock_alerts
-    # TODO: Phase 2でアラート機能実装時に詳細化
-    # - メール通知
-    # - 管理画面への通知バッジ
-    # - Slackなどの外部サービス連携
     Rails.logger.info "在庫アラートチェック: #{store.name} - #{inventory.name} (数量: #{quantity})"
+
+    # 低在庫またはゼロ在庫の場合はアラートJob実行
+    if needs_replenishment? || quantity == 0
+      if defined?(StockAlertJob)
+        StockAlertJob.perform_later(self)
+      end
+    end
   end
 
   # 日次消費量の推定（簡易版）

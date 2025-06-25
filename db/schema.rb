@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_18_214629) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_25_120000) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -86,6 +86,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_214629) do
     t.string "severity", comment: "イベントの重要度 (info, warning, critical)"
     t.boolean "security_event", default: false, comment: "セキュリティイベントフラグ"
     t.string "session_id", comment: "セッションID"
+    t.string "user_type"
     t.index ["action", "created_at"], name: "index_audit_logs_on_action_and_created_at"
     t.index ["action"], name: "index_audit_logs_on_action"
     t.index ["auditable_type", "auditable_id"], name: "index_audit_logs_on_auditable"
@@ -95,6 +96,23 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_214629) do
     t.index ["severity"], name: "index_audit_logs_on_severity"
     t.index ["user_id", "created_at"], name: "index_audit_logs_on_user_id_and_created_at"
     t.index ["user_id"], name: "index_audit_logs_on_user_id"
+    t.index ["user_type", "user_id"], name: "index_audit_logs_on_user_type_and_user_id"
+  end
+
+  create_table "batch_movements", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
+    t.bigint "batch_id", null: false
+    t.bigint "store_id", null: false
+    t.integer "quantity", null: false, comment: "移動数量"
+    t.date "movement_date", null: false, comment: "移動日"
+    t.text "notes", comment: "備考"
+    t.bigint "store_inventory_id", comment: "店舗在庫への関連"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["batch_id", "store_id", "movement_date"], name: "idx_batch_store_movement"
+    t.index ["batch_id"], name: "index_batch_movements_on_batch_id"
+    t.index ["movement_date"], name: "index_batch_movements_on_movement_date"
+    t.index ["store_id"], name: "index_batch_movements_on_store_id"
+    t.index ["store_inventory_id"], name: "index_batch_movements_on_store_inventory_id"
   end
 
   create_table "batches", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -104,6 +122,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_214629) do
     t.integer "quantity", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "initial_quantity", comment: "初期数量（入荷時の数量）"
     t.index ["expires_on"], name: "index_batches_on_expires_on"
     t.index ["inventory_id", "lot_code"], name: "uniq_inventory_lot", unique: true
     t.index ["inventory_id"], name: "index_batches_on_inventory_id"
@@ -203,13 +222,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_214629) do
     t.string "sku"
     t.string "manufacturer"
     t.string "unit"
+    t.integer "safety_stock_level", default: 10, null: false, comment: "安全在庫レベル（アラート閾値、デフォルト10）"
+    t.integer "reserved_quantity", default: 0, null: false, comment: "予約済み在庫数（移動申請中・予約中等、デフォルト0）"
     t.index ["batches_count"], name: "index_inventories_on_batches_count"
     t.index ["inventory_logs_count"], name: "index_inventories_on_inventory_logs_count"
     t.index ["name"], name: "index_inventories_on_name"
+    t.index ["quantity", "safety_stock_level"], name: "idx_inventories_stock_levels", comment: "在庫レベル検索最適化（low_stock判定用）"
     t.index ["quantity"], name: "idx_inventories_quantity", comment: "在庫数範囲検索最適化（min_quantity/max_quantity フィルター用）"
     t.index ["receipts_count"], name: "index_inventories_on_receipts_count"
+    t.index ["reserved_quantity"], name: "idx_inventories_reserved", comment: "予約済み在庫検索最適化"
     t.index ["shipments_count"], name: "index_inventories_on_shipments_count"
     t.index ["status", "quantity"], name: "idx_inventories_status_quantity", comment: "ステータス別在庫数検索最適化"
+    t.check_constraint "`reserved_quantity` <= `quantity`", name: "chk_reserved_not_exceed_quantity"
+    t.check_constraint "`safety_stock_level` > 0", name: "chk_positive_safety_stock"
   end
 
   create_table "inventory_logs", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
@@ -304,6 +329,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_214629) do
     t.datetime "last_updated_at", comment: "最終在庫更新日時"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "reorder_level", comment: "発注レベル（この数量以下で発注が必要）"
     t.index ["inventory_id"], name: "index_store_inventories_on_inventory_id"
     t.index ["last_updated_at"], name: "index_store_inventories_on_last_updated_at", comment: "最終更新日時検索最適化"
     t.index ["quantity", "safety_stock_level"], name: "idx_stock_levels", comment: "在庫レベル検索最適化"
@@ -396,6 +422,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_18_214629) do
   add_foreign_key "admin_notification_settings", "admins"
   add_foreign_key "admins", "stores"
   add_foreign_key "audit_logs", "admins", column: "user_id", on_delete: :nullify
+  add_foreign_key "batch_movements", "batches"
+  add_foreign_key "batch_movements", "store_inventories"
+  add_foreign_key "batch_movements", "stores"
   add_foreign_key "batches", "inventories", on_delete: :cascade
   add_foreign_key "identities", "admins"
   add_foreign_key "inter_store_transfers", "inventories", on_delete: :cascade

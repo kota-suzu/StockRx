@@ -33,7 +33,7 @@ class SecurityComplianceManager
   # PCI DSS準拠設定
   PCI_DSS_CONFIG = {
     # カード情報マスキング設定
-    card_number_mask_pattern: /(\d{4})(\d{4,8})(\d{4})/,
+    card_number_mask_pattern: /(\d{4})(\d+)(\d{4})/,
     masked_format: '\1****\3',
 
     # 暗号化強度設定
@@ -155,7 +155,7 @@ class SecurityComplianceManager
       key = get_encryption_key(context)
       cipher.key = key
 
-      iv = cipher.random_iv
+      iv = cipher.random_iv  # AES-256-GCMは12バイトのIVを使用
       encrypted = cipher.update(data.to_s) + cipher.final
 
       # IV + 暗号化データ + 認証タグを結合
@@ -178,10 +178,10 @@ class SecurityComplianceManager
     begin
       combined = Base64.strict_decode64(encrypted_data)
 
-      # IV（16バイト）、認証タグ（16バイト）、暗号化データを分離
-      iv = combined[0..15]
+      # IV（12バイト）、認証タグ（16バイト）、暗号化データを分離
+      iv = combined[0..11]
       auth_tag = combined[-16..-1]
-      encrypted = combined[16..-17]
+      encrypted = combined[12..-17]
 
       decipher = OpenSSL::Cipher.new(PCI_DSS_CONFIG[:encryption_algorithm])
       decipher.decrypt
@@ -492,7 +492,7 @@ class SecurityComplianceManager
     execution_time = Time.current - start_time
 
     # 最小実行時間を確保
-    min_time = TIMING_ATTACK_CONFIG[:minimum_execution_time] / 1000.0
+    min_time = TIMING_ATTACK_CONFIG[:minimum_execution_time]
     if execution_time < min_time
       sleep(min_time - execution_time)
     end
@@ -529,17 +529,21 @@ class SecurityComplianceManager
     end
 
     # InventoryLog関連データの処理
-    user.inventory_logs.find_each do |log|
-      if within_retention_period?("transaction_logs", log.created_at)
-        # 個人情報のみ匿名化
-        log.update!(
-          admin_id: nil,
-          description: log.description&.gsub(/#{user.name}/i, "匿名ユーザー")
-        )
-        deletion_summary[:anonymized_records] << "inventory_log_#{log.id}"
-      else
-        log.destroy!
-        deletion_summary[:deleted_records] << "inventory_log_#{log.id}"
+    # Fix: Handle case where user doesn't have inventory_logs association
+    if user.respond_to?(:inventory_logs) && user.inventory_logs.respond_to?(:find_each)
+      user.inventory_logs.find_each do |log|
+        if within_retention_period?("transaction_logs", log.created_at)
+          # 個人情報のみ匿名化
+          # Fix: Use correct column name (user_id instead of admin_id)
+          log.update!(
+            user_id: nil,
+            description: log.description&.gsub(/#{user.name}/i, "匿名ユーザー")
+          )
+          deletion_summary[:anonymized_records] << "inventory_log_#{log.id}"
+        else
+          log.destroy!
+          deletion_summary[:deleted_records] << "inventory_log_#{log.id}"
+        end
       end
     end
   end

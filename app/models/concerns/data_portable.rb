@@ -282,9 +282,9 @@ module DataPortable
       records.each do |record_data|
         # IDが存在する場合、更新または作成
         if record_data["id"] && options[:update_existing]
-          process_existing_record_import(model_class, record_data, results, model_name, count)
+          count = process_existing_record_import(model_class, record_data, results, model_name, count)
         else
-          process_new_record_import(model_class, record_data, results, model_name, count)
+          count = process_new_record_import(model_class, record_data, results, model_name, count)
         end
       end
 
@@ -310,6 +310,7 @@ module DataPortable
           results[:metadata][:errors] << "Error creating #{model_name} #{record_data['id']}: #{record.errors.full_messages.join(', ')}"
         end
       end
+      count
     end
 
     # 新規レコードのインポート処理
@@ -321,6 +322,7 @@ module DataPortable
       else
         results[:metadata][:errors] << "Error creating #{model_name}: #{record.errors.full_messages.join(', ')}"
       end
+      count
     end
 
     # データベース設定の取得

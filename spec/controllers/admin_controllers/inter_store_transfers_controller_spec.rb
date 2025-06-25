@@ -386,10 +386,10 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
     before do
       # 在庫データをセットアップ
-      create(:store_inventory, 
-             store: source_store, 
-             inventory: inventory, 
-             quantity: 100, 
+      create(:store_inventory,
+             store: source_store,
+             inventory: inventory,
+             quantity: 100,
              safety_stock_level: 20)
     end
 
@@ -430,7 +430,7 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
       context "フィルタリング" do
         before do
-          create(:inter_store_transfer, 
+          create(:inter_store_transfer,
                  source_store: source_store,
                  destination_store: destination_store,
                  inventory: inventory,
@@ -502,11 +502,11 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
       end
 
       it "URLパラメータから初期値を設定する" do
-        get :new, params: { 
+        get :new, params: {
           source_store_id: source_store.id,
-          inventory_id: inventory.id 
+          inventory_id: inventory.id
         }
-        
+
         transfer = assigns(:transfer)
         expect(transfer.source_store_id).to eq(source_store.id)
         expect(transfer.inventory_id).to eq(inventory.id)
@@ -593,9 +593,9 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
       context "有効なパラメータの場合" do
         it "移動申請を更新する" do
-          patch :update, params: { 
-            id: transfer.id, 
-            inter_store_transfer: new_attributes 
+          patch :update, params: {
+            id: transfer.id,
+            inter_store_transfer: new_attributes
           }
           transfer.reload
           expect(transfer.quantity).to eq(20)
@@ -603,9 +603,9 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
         end
 
         it "更新した移動申請にリダイレクトする" do
-          patch :update, params: { 
-            id: transfer.id, 
-            inter_store_transfer: new_attributes 
+          patch :update, params: {
+            id: transfer.id,
+            inter_store_transfer: new_attributes
           }
           expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
           expect(flash[:notice]).to include("正常に更新されました")
@@ -615,18 +615,18 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
       context "無効なパラメータの場合" do
         it "移動申請を更新しない" do
           original_quantity = transfer.quantity
-          patch :update, params: { 
-            id: transfer.id, 
-            inter_store_transfer: invalid_attributes 
+          patch :update, params: {
+            id: transfer.id,
+            inter_store_transfer: invalid_attributes
           }
           transfer.reload
           expect(transfer.quantity).to eq(original_quantity)
         end
 
         it "editテンプレートを再表示する" do
-          patch :update, params: { 
-            id: transfer.id, 
-            inter_store_transfer: invalid_attributes 
+          patch :update, params: {
+            id: transfer.id,
+            inter_store_transfer: invalid_attributes
           }
           expect(response).to have_http_status(:unprocessable_entity)
           expect(response).to render_template(:edit)
@@ -694,10 +694,10 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
     before do
       # 十分な在庫を確保
-      create(:store_inventory, 
-             store: source_store, 
-             inventory: inventory, 
-             quantity: 100, 
+      create(:store_inventory,
+             store: source_store,
+             inventory: inventory,
+             quantity: 100,
              safety_stock_level: 20)
     end
 
@@ -745,9 +745,9 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
       context "却下理由がある場合" do
         it "移動申請を却下する" do
-          patch :reject, params: { 
-            id: transfer.id, 
-            rejection_reason: "在庫過多のため不要" 
+          patch :reject, params: {
+            id: transfer.id,
+            rejection_reason: "在庫過多のため不要"
           }
           transfer.reload
           expect(transfer.rejected?).to be true
@@ -756,9 +756,9 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
         end
 
         it "成功メッセージと共にリダイレクトする" do
-          patch :reject, params: { 
-            id: transfer.id, 
-            rejection_reason: "在庫過多のため不要" 
+          patch :reject, params: {
+            id: transfer.id,
+            rejection_reason: "在庫過多のため不要"
           }
           expect(response).to redirect_to(admin_inter_store_transfer_path(transfer))
           expect(flash[:notice]).to include("却下しました")
@@ -820,9 +820,9 @@ RSpec.describe AdminControllers::InterStoreTransfersController, type: :controlle
 
       context "キャンセル可能な移動申請の場合" do
         it "移動申請をキャンセルする" do
-          patch :cancel, params: { 
-            id: transfer.id, 
-            cancellation_reason: "緊急事態のため" 
+          patch :cancel, params: {
+            id: transfer.id,
+            cancellation_reason: "緊急事態のため"
           }
           transfer.reload
           expect(transfer.cancelled?).to be true

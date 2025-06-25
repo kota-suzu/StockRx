@@ -135,7 +135,7 @@ module Queries
       # 横展開: 他の検索系クエリでも同様のパターン適用
       # 🛡️ セキュリティ強化: 文字列補間を完全に回避した安全なクエリ構築
       safe_direction = SORT_DIRECTIONS.include?(sort_direction) ? sort_direction : "asc"
-      
+
       # メタ認知: Brakemanの警告完全解決のため、文字列補間を避ける
       case safe_direction
       when "desc"

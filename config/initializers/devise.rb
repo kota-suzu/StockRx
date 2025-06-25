@@ -7,7 +7,17 @@
 Devise.setup do |config|
   # ==> Secret key
   # 本番環境では必ずRails.application.credentialsから取得するようにします
-  config.secret_key = Rails.application.credentials.dig(:devise, :secret_key)
+  # 開発環境では環境変数またはデフォルト値を使用
+  config.secret_key = begin
+    if Rails.application.respond_to?(:safe_credentials)
+      Rails.application.safe_credentials.dig(:devise, :secret_key)
+    else
+      Rails.application.credentials.dig(:devise, :secret_key)
+    end
+  rescue => e
+    Rails.logger.warn "Devise secret key not found in credentials: #{e.message}"
+    ENV["DEVISE_SECRET_KEY"] || SecureRandom.hex(64)
+  end
 
   # ==> Controller configuration
   config.parent_controller = "ApplicationController"
@@ -106,10 +116,35 @@ Devise.setup do |config|
 
   # ==> OmniAuth Configuration
   # GitHubソーシャルログイン設定
-  config.omniauth :github,
-                  Rails.application.credentials.dig(:github, :client_id),
-                  Rails.application.credentials.dig(:github, :client_secret),
-                  scope: "user:email"
+  # 環境変数を優先し、なければcredentialsから取得
+  github_client_id = ENV["GITHUB_CLIENT_ID"] ||
+                     (Rails.application.safe_credentials.dig(:github, :client_id) rescue nil)
+  github_client_secret = ENV["GITHUB_CLIENT_SECRET"] ||
+                         (Rails.application.safe_credentials.dig(:github, :client_secret) rescue nil)
+
+  # 開発環境用の一時的な設定（実際のClient ID/Secretに置き換えてください）
+  if Rails.env.development? && !github_client_id
+    Rails.logger.warn "⚠️  GitHub OAuth credentials not configured!"
+    Rails.logger.warn "Please set up GitHub OAuth App and configure credentials:"
+    Rails.logger.warn "1. Create GitHub OAuth App at: https://github.com/settings/developers"
+    Rails.logger.warn "2. Set callback URL to: http://localhost:3000/admin/auth/github/callback"
+    Rails.logger.warn "3. Run: EDITOR=nano rails credentials:edit"
+    Rails.logger.warn "4. Add:"
+    Rails.logger.warn "   github:"
+    Rails.logger.warn "     client_id: YOUR_GITHUB_CLIENT_ID"
+    Rails.logger.warn "     client_secret: YOUR_GITHUB_CLIENT_SECRET"
+    # GitHub認証を無効化（設定されていない場合）
+  end
+
+  if github_client_id && github_client_secret
+    config.omniauth :github,
+                    github_client_id,
+                    github_client_secret,
+                    scope: "user:email"
+    Rails.logger.info "✅ GitHub OAuth configured successfully"
+  else
+    Rails.logger.warn "GitHub OAuth credentials not configured - GitHub login will not be available"
+  end
 
   # TODO: 🟢 Phase 4（推奨）- 他のソーシャルログインプロバイダー追加
   # 優先度: 低（GitHub認証が安定してから）

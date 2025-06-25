@@ -31,12 +31,19 @@ module AdminControllers
         if job_status
           render json: job_status
         else
-          render json: {
-            job_id: job_id,
-            status: "not_found",
-            error: "ジョブが見つかりません",
-            progress: 0
-          }, status: :not_found
+          # Redisにない場合はSidekiqの失敗ジョブから情報取得を試行
+          sidekiq_status = get_job_status_from_sidekiq(job_id)
+
+          if sidekiq_status
+            render json: sidekiq_status
+          else
+            render json: {
+              job_id: job_id,
+              status: "not_found",
+              error: "ジョブが見つかりません",
+              progress: 0
+            }, status: :not_found
+          end
         end
 
       rescue => e
@@ -99,6 +106,63 @@ module AdminControllers
     rescue => e
       Rails.logger.warn "Redis connection failed: #{e.message}"
       nil
+    end
+
+    # Sidekiqの失敗ジョブからステータス情報を取得
+    def get_job_status_from_sidekiq(job_id)
+      return nil unless defined?(Sidekiq)
+
+      # 失敗ジョブを検索
+      dead_set = Sidekiq::DeadSet.new
+      retry_set = Sidekiq::RetrySet.new
+
+      # 失敗ジョブの中から該当するジョブを検索
+      failed_job = dead_set.find { |job| extract_job_id_from_args(job) == job_id } ||
+                   retry_set.find { |job| extract_job_id_from_args(job) == job_id }
+
+      return nil unless failed_job
+
+      # 失敗ジョブの情報を構造化して返す
+      {
+        job_id: job_id,
+        status: "failed",
+        progress: 0,
+        error_message: failed_job["error_message"] || "Unknown error",
+        error_class: failed_job["error_class"] || "Unknown",
+        failed_at: failed_job["failed_at"] ? Time.at(failed_job["failed_at"]).iso8601 : nil,
+        retry_count: failed_job["retry_count"] || 0,
+        file_name: extract_file_name_from_args(failed_job)
+      }
+    rescue => e
+      Rails.logger.warn "Sidekiq job search failed: #{e.message}"
+      nil
+    end
+
+    # ジョブの引数からジョブIDを抽出
+    def extract_job_id_from_args(sidekiq_job)
+      args = sidekiq_job["args"]
+      return nil unless args.is_a?(Array) && args.first.is_a?(Hash)
+
+      job_arguments = args.first["arguments"]
+      return nil unless job_arguments.is_a?(Array) && job_arguments.length >= 4
+
+      job_arguments[3] # 4番目の引数がjob_id
+    rescue
+      nil
+    end
+
+    # ジョブの引数からファイル名を抽出
+    def extract_file_name_from_args(sidekiq_job)
+      args = sidekiq_job["args"]
+      return nil unless args.is_a?(Array) && args.first.is_a?(Hash)
+
+      job_arguments = args.first["arguments"]
+      return nil unless job_arguments.is_a?(Array) && job_arguments.length >= 1
+
+      file_path = job_arguments[0]
+      File.basename(file_path) if file_path
+    rescue
+      "Unknown file"
     end
   end
 end

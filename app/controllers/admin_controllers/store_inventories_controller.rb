@@ -85,14 +85,17 @@ module AdminControllers
     end
 
     def authorize_store_access
-      # TODO: Phase 5 - CanCanCan統合後、より詳細な権限制御
+      # TODO: 🟢 Phase 5（将来拡張）- CanCanCan統合後の権限制御詳細化
+      # 優先度: 低（現在のAdminAuthorizationで要件充足）
+      # 実装内容:
       #   - 本社管理者: 全店舗アクセス可
-      #   - 地域管理者: 担当地域の店舗のみ
+      #   - 地域管理者: 担当地域の店舗のみ（新規role追加時）
       #   - 店舗管理者: 自店舗のみ
-      unless current_admin.can_access_store?(@store)
-        redirect_to admin_stores_path,
-                   alert: "この店舗の在庫情報にアクセスする権限がありません"
-      end
+      # 横展開: InterStoreTransfersController等でも同様の拡張必要
+
+      # CLAUDE.md準拠: AdminAuthorizationモジュールの標準メソッドを使用
+      # メタ認知: can_access_store?メソッドは存在しない → 標準のauthorize_store_view!を使用
+      authorize_store_view!(@store)
     end
 
     def set_inventory

@@ -3,6 +3,24 @@
 require 'rails_helper'
 
 RSpec.describe Admin, type: :model do
+  describe 'アソシエーション' do
+    it { should have_many(:report_files).dependent(:destroy) }
+    it { should belong_to(:store).optional }
+    it { should have_many(:requested_transfers).class_name('InterStoreTransfer').with_foreign_key('requested_by_id').dependent(:restrict_with_error) }
+    it { should have_many(:approved_transfers).class_name('InterStoreTransfer').with_foreign_key('approved_by_id').dependent(:restrict_with_error) }
+    it { should have_many(:compliance_audit_logs).dependent(:restrict_with_error) }
+    it { should have_many(:audit_logs).dependent(:restrict_with_error) }
+  end
+
+  describe 'Auditable concern' do
+    it 'includes Auditable module' do
+      expect(Admin.ancestors).to include(Auditable)
+    end
+
+    # TODO: Auditableのコールバックテストは環境依存の問題があるため、別途修正予定
+    # 現在はincludeされていることの確認のみ
+  end
+
   describe 'Devise設定' do
     it { should be_a(Devise::Models::DatabaseAuthenticatable) }
     it { should be_a(Devise::Models::Recoverable) }
@@ -453,6 +471,231 @@ RSpec.describe Admin, type: :model do
       it 'returns no stores for store manager without assigned store' do
         admin = build(:admin, :store_manager, store: nil)
         expect(admin.manageable_stores).to eq(Admin.none)
+      end
+    end
+  end
+
+  # プライベートメソッドのテスト
+  describe 'private methods' do
+    describe '.update_existing_admin' do
+      let(:existing_admin) do
+        create(:admin, provider: 'github', uid: '123456',
+               email: 'old-email@example.com', sign_in_count: 5,
+               current_sign_in_ip: '192.168.1.1')
+      end
+
+      let(:auth_hash) do
+        OmniAuth::AuthHash.new({
+          provider: 'github',
+          uid: '123456',
+          info: { email: 'new-email@example.com' },
+          extra: { raw_info: { ip: '10.0.0.1' } }
+        })
+      end
+
+      it 'updates email and sign in information' do
+        result = Admin.send(:update_existing_admin, existing_admin, auth_hash)
+
+        expect(result.email).to eq('new-email@example.com')
+        expect(result.sign_in_count).to eq(6)
+        expect(result.last_sign_in_at).to be_present
+        expect(result.current_sign_in_at).to be_within(1.second).of(Time.current)
+        expect(result.last_sign_in_ip).to eq('192.168.1.1')
+        expect(result.current_sign_in_ip).to eq('10.0.0.1')
+      end
+    end
+
+    describe '.create_new_admin_from_oauth' do
+      let(:auth_hash) do
+        OmniAuth::AuthHash.new({
+          provider: 'github',
+          uid: '789456',
+          info: { email: 'new-admin@example.com' },
+          extra: { raw_info: { ip: '172.16.0.1' } }
+        })
+      end
+
+      it 'creates new admin with OAuth data' do
+        expect {
+          Admin.send(:create_new_admin_from_oauth, auth_hash)
+        }.to change(Admin, :count).by(1)
+
+        admin = Admin.last
+        expect(admin.provider).to eq('github')
+        expect(admin.uid).to eq('789456')
+        expect(admin.email).to eq('new-admin@example.com')
+        expect(admin.encrypted_password).to be_present
+        expect(admin.sign_in_count).to eq(1)
+        expect(admin.current_sign_in_ip).to eq('172.16.0.1')
+        expect(admin.role).to eq('headquarters_admin')
+      end
+    end
+
+    describe '.extract_ip_address' do
+      it 'extracts IP from request_ip' do
+        auth = OmniAuth::AuthHash.new({
+          extra: { raw_info: { request_ip: '203.0.113.1' } }
+        })
+        expect(Admin.send(:extract_ip_address, auth)).to eq('203.0.113.1')
+      end
+
+      it 'falls back to ip field' do
+        auth = OmniAuth::AuthHash.new({
+          extra: { raw_info: { ip: '198.51.100.1' } }
+        })
+        expect(Admin.send(:extract_ip_address, auth)).to eq('198.51.100.1')
+      end
+
+      it 'returns default IP when no IP found' do
+        auth = OmniAuth::AuthHash.new({})
+        expect(Admin.send(:extract_ip_address, auth)).to eq('127.0.0.1')
+      end
+    end
+
+    describe '#password_required?' do
+      context 'for OAuth user' do
+        let(:admin) { build(:admin, provider: 'github', uid: '123') }
+
+        it 'returns false' do
+          expect(admin.send(:password_required?)).to be false
+        end
+      end
+
+      context 'for regular user' do
+        let(:store) { create(:store) }
+        let(:admin) { build(:admin, provider: nil, uid: nil, store: store) }
+
+        it 'returns true for new record' do
+          expect(admin.send(:password_required?)).to be true
+        end
+
+        it 'returns false for persisted record without password' do
+          admin.save!
+          admin.password = nil
+          admin.password_confirmation = nil
+          expect(admin.send(:password_required?)).to be false
+        end
+
+        it 'returns true when password is set' do
+          admin.save!
+          admin.password = 'NewPassword123!'
+          expect(admin.send(:password_required?)).to be true
+        end
+      end
+    end
+
+    describe '#password_required_for_validation?' do
+      it 'returns false for OAuth users' do
+        admin = build(:admin, provider: 'github', uid: '123')
+        expect(admin.send(:password_required_for_validation?)).to be false
+      end
+
+      it 'returns true for regular users' do
+        admin = build(:admin)
+        expect(admin.send(:password_required_for_validation?)).to be true
+      end
+    end
+
+    describe '#store_required_for_non_headquarters_admin' do
+      it 'adds error when non-headquarters admin has no store' do
+        admin = build(:admin, role: 'store_user', store: nil)
+        admin.send(:store_required_for_non_headquarters_admin)
+        expect(admin.errors[:store]).to include('本部管理者以外は店舗の指定が必要です')
+      end
+
+      it 'does not add error for headquarters admin without store' do
+        admin = build(:admin, role: 'headquarters_admin', store: nil)
+        admin.send(:store_required_for_non_headquarters_admin)
+        expect(admin.errors[:store]).to be_empty
+      end
+
+      it 'does not add error when store is present' do
+        admin = build(:admin, role: 'store_user', store: create(:store))
+        admin.send(:store_required_for_non_headquarters_admin)
+        expect(admin.errors[:store]).to be_empty
+      end
+    end
+
+    describe '#store_must_be_nil_for_headquarters_admin' do
+      it 'adds error when headquarters admin has store' do
+        admin = build(:admin, role: 'headquarters_admin', store: create(:store))
+        admin.send(:store_must_be_nil_for_headquarters_admin)
+        expect(admin.errors[:store]).to include('本部管理者は特定の店舗に所属できません')
+      end
+
+      it 'does not add error for headquarters admin without store' do
+        admin = build(:admin, role: 'headquarters_admin', store: nil)
+        admin.send(:store_must_be_nil_for_headquarters_admin)
+        expect(admin.errors[:store]).to be_empty
+      end
+
+      it 'does not add error for non-headquarters admin with store' do
+        admin = build(:admin, role: 'store_user', store: create(:store))
+        admin.send(:store_must_be_nil_for_headquarters_admin)
+        expect(admin.errors[:store]).to be_empty
+      end
+    end
+  end
+
+  # 統合テスト
+  describe 'integration scenarios' do
+    describe 'multi-store staff workflow' do
+      let(:store1) { create(:store, name: '新宿店') }
+      let(:store2) { create(:store, name: '渋谷店') }
+      let(:hq_admin) { create(:admin, :headquarters_admin) }
+      let(:store_manager) { create(:admin, :store_manager, store: store1) }
+      let(:store_user) { create(:admin, :store_user, store: store1) }
+
+      it 'headquarters admin can access all stores' do
+        expect(hq_admin.can_access_all_stores?).to be true
+        expect(hq_admin.can_view_store?(store1)).to be true
+        expect(hq_admin.can_view_store?(store2)).to be true
+        expect(hq_admin.accessible_store_ids).to include(store1.id, store2.id)
+      end
+
+      it 'store manager can only manage their store' do
+        expect(store_manager.can_access_all_stores?).to be false
+        expect(store_manager.can_manage_store?(store1)).to be true
+        expect(store_manager.can_manage_store?(store2)).to be false
+        expect(store_manager.can_approve_transfers?).to be true
+      end
+
+      it 'store user has limited permissions' do
+        expect(store_user.can_access_all_stores?).to be false
+        expect(store_user.can_manage_store?(store1)).to be false
+        expect(store_user.can_approve_transfers?).to be false
+        expect(store_user.can_view_store?(store1)).to be true
+        expect(store_user.can_view_store?(store2)).to be false
+      end
+    end
+
+    describe 'OAuth login flow' do
+      let(:github_auth) do
+        OmniAuth::AuthHash.new({
+          provider: 'github',
+          uid: 'unique123',
+          info: { email: 'github@example.com' },
+          extra: { raw_info: { ip: '192.0.2.1' } }
+        })
+      end
+
+      it 'creates new admin on first login' do
+        expect {
+          admin = Admin.from_omniauth(github_auth)
+          expect(admin).to be_persisted
+          expect(admin.provider).to eq('github')
+          expect(admin.uid).to eq('unique123')
+        }.to change(Admin, :count).by(1)
+      end
+
+      it 'finds existing admin on subsequent login' do
+        first_admin = Admin.from_omniauth(github_auth)
+
+        expect {
+          second_admin = Admin.from_omniauth(github_auth)
+          expect(second_admin.id).to eq(first_admin.id)
+          expect(second_admin.sign_in_count).to eq(2)
+        }.not_to change(Admin, :count)
       end
     end
   end

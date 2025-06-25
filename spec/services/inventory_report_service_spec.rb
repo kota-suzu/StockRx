@@ -229,6 +229,9 @@ RSpec.describe InventoryReportService, type: :service do
       end
 
       it 'ゼロ値のデータを適切に処理すること' do
+        # テスト前に全ての在庫データを削除
+        Inventory.delete_all
+
         result = described_class.monthly_summary(target_month)
 
         expect(result[:total_items]).to eq(0)

@@ -5,9 +5,11 @@ module StoreControllers
   # ============================================
   # Phase 2: 店舗別ログインシステム
   # 全ての店舗コントローラーが継承する基底クラス
+  # QAレビュー対応: セキュリティ強化統合
   # ============================================
   class BaseController < ApplicationController
     include StoreAuthenticatable
+    include StoreScopedAuthorization
 
     # 🔧 CLAUDE.md準拠: 段階的アクセス制御
     # メタ認知: 公開情報と認証情報の適切な分離

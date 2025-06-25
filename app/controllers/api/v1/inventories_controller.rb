@@ -109,11 +109,33 @@ module Api
         #   raise CustomError::BusinessLogicError, "重要なデータがあるため削除できません"
         # end
 
-        @inventory.destroy!
+        begin
+          @inventory.destroy!
+        rescue ActiveRecord::DeleteRestrictionError => e
+          # dependent: :restrict_with_errorによる制約違反
+          response = ApiResponse.error(
+            "在庫に関連するデータがあるため削除できません",
+            [ "関連するログや店舗在庫を先に削除してください" ],
+            422,
+            { type: "delete_restriction", details: e.message }
+          )
+          render json: response.to_h, status: response.status_code, headers: response.headers
+          return
+        rescue ActiveRecord::RecordNotDestroyed => e
+          # その他の削除制約エラー（外部キー制約など）
+          response = ApiResponse.error(
+            "在庫を削除できませんでした",
+            e.record.errors.full_messages,
+            422,
+            { type: "delete_failed", details: e.message }
+          )
+          render json: response.to_h, status: response.status_code, headers: response.headers
+          return
+        end
 
         # 成功時は204 No Content + 空ボディを返却
-        response = ApiResponse.no_content("在庫が正常に削除されました")
-        render json: response.to_h, status: response.status_code, headers: response.headers
+        # 204 No Contentの場合は本当に空のボディを返す（HTTP標準準拠）
+        head :no_content
       end
 
       # TODO: 在庫一括取得（ページネーション対応）

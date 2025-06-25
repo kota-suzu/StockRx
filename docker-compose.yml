@@ -30,6 +30,11 @@ services:
       - CABLE_REDIS_URL=redis://redis:6379/1
       # Disable Bootsnap in development for easier debugging
       - DISABLE_BOOTSNAP=true
+      # Rails Master Key for credentials.yml.enc decryption
+      - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+      # GitHub OAuth Configuration
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
       # ============================================
       # Email Configuration (MailHog Integration)
       # ============================================
@@ -111,6 +116,11 @@ services:
       - CABLE_REDIS_URL=redis://redis:6379/1
       # Disable Bootsnap in development for easier debugging
       - DISABLE_BOOTSNAP=true
+      # Rails Master Key for credentials.yml.enc decryption
+      - RAILS_MASTER_KEY=${RAILS_MASTER_KEY}
+      # GitHub OAuth Configuration
+      - GITHUB_CLIENT_ID=${GITHUB_CLIENT_ID}
+      - GITHUB_CLIENT_SECRET=${GITHUB_CLIENT_SECRET}
       # ============================================
       # Email Configuration (MailHog Integration)
       # ============================================

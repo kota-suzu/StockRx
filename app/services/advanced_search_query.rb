@@ -359,10 +359,10 @@ class AdvancedSearchQuery
   def sanitize_field_name(field)
     # 🛡️ セキュリティ対策: 入力値の事前検証強化
     return nil if field.blank? || field.to_s.length > 100 # 異常な長さを排除
-    
+
     # 危険な文字を含む場合は即座に拒否
     return nil if field.to_s =~ /[;'"\\()]/
-    
+
     # まずフィールド名のマッピングをチェック
     mapped_field = FIELD_MAPPING[field.to_s]
 
@@ -383,14 +383,14 @@ class AdvancedSearchQuery
   def sanitize_like_parameter(value)
     # 🛡️ セキュリティ対策: LIKE検索の安全性強化
     return "" if value.blank?
-    
+
     # 異常な長さの値を拒否（DoS攻撃対策）
     return "" if value.to_s.length > 500
-    
+
     # SQLインジェクション対策: エスケープ文字の処理
     # 横展開: 他の検索機能でも同様のサニタイゼーション適用
     sanitized = value.to_s.gsub(/[%_\\]/) { |match| "\\#{match}" }
-    
+
     # 制御文字や危険な文字を除去
     sanitized.gsub(/[\x00-\x1F\x7F]/, "")
   end

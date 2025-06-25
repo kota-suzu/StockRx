@@ -49,8 +49,10 @@ COPY . .
 RUN chmod 666 Gemfile.lock
 
 # Rails 7.2対応: キャッシュディレクトリの作成と権限設定
-RUN mkdir -p tmp/cache tmp/cache/assets tmp/pids tmp/storage && \
-    chmod -R 777 tmp/cache && \
+# DevOps/SRE: Bootsnap権限問題の予防的対策
+RUN mkdir -p tmp/cache tmp/cache/assets tmp/cache/bootsnap tmp/pids tmp/storage && \
+    chmod -R 755 tmp/cache && \
+    chmod -R 777 tmp/cache/bootsnap && \
     touch tmp/restart.txt
 
 # Switch to the rails user for bundle install

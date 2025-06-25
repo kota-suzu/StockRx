@@ -155,7 +155,14 @@ docker compose logs -f web
 - **重要**: モジュール名とディレクトリ構造を一致させる必要がある（Zeitwerk規約）
   - `AdminControllers` → `app/controllers/admin_controllers/`
   - `AdminHelpers` → `app/helpers/admin_helpers/`
-- 詳細な設計ガイドラインは `docs/design/` ディレクトリを参照
+
+### 📚 ドキュメント
+
+開発に関する詳細なドキュメントは以下を参照してください：
+
+- **[GitHub OAuth認証セットアップガイド](docs/guides/github_oauth_setup.md)** - GitHub認証の設定手順
+- **[テストカバレッジ改善計画](coverage_improvement_plan.md)** - テストカバレッジの現状と改善計画
+- **[CLAUDE.md](CLAUDE.md)** - AI開発支援ツール向けのプロジェクトガイドライン
 
 ### HTTPステータスコードとエラーハンドリング
 

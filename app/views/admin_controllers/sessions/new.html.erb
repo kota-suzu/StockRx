@@ -102,15 +102,7 @@
                 <hr class="flex-grow-1 opacity-25">
               </div>
               
-              <%= link_to admin_github_omniauth_authorize_path, 
-                  method: :post,
-                  class: "btn btn-outline-dark btn-lg w-100 py-3",
-                  style: "border: 2px solid #333; transition: all 0.3s ease;",
-                  onmouseover: "this.style.backgroundColor='#333'; this.style.color='white'; this.style.transform='translateY(-2px)';",
-                  onmouseout: "this.style.backgroundColor='transparent'; this.style.color='#333'; this.style.transform='translateY(0)';",
-                  data: { turbo: false } do %>
-                <i class="fab fa-github me-2"></i>GitHubでログイン
-              <% end %>
+              <%= render 'github_login' %>
             </div>
           </div>
           

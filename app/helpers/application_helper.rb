@@ -64,6 +64,25 @@ module ApplicationHelper
   end
 
   # ============================================
+  # ソートアイコン表示ヘルパー
+  # ============================================
+
+  # ソートアイコンを表示（汎用版）
+  # @param column [String] 列名
+  # @param current_sort [String] 現在のソート列
+  # @param current_direction [String] 現在のソート方向
+  # @return [ActiveSupport::SafeBuffer] HTMLアイコン
+  def sort_icon(column, current_sort = params[:sort], current_direction = params[:direction])
+    return "".html_safe unless current_sort == column.to_s
+
+    if current_direction == "asc"
+      tag.i(class: "fas fa-sort-up ms-1")
+    else
+      tag.i(class: "fas fa-sort-down ms-1")
+    end
+  end
+
+  # ============================================
   # 🔴 Phase 4: カテゴリ推定機能（緊急対応）
   # ============================================
 

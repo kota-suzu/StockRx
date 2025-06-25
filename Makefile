@@ -34,11 +34,12 @@ endef
         setup services-health-check bundle-install test rspec \
         test-fast test-models test-requests test-jobs test-features test-integration \
         test-failed test-parallel test-coverage test-profile test-skip-heavy \
-        test-unit-fast test-models-only \
+        test-unit-fast test-models-only test-ultra-fast test-benchmark test-optimized \
         ci ci-github ci-fast ci-setup-cached ci-test-fast ci-benchmark \
         security-scan security-scan-github lint lint-github lint-fix lint-fix-unsafe test-all test-github \
         console routes backup restore help diagnose fix-connection fix-ssl-error \
-        perf-generate-csv perf-test-import perf-benchmark-batch test-error-handling
+        perf-generate-csv perf-test-import perf-benchmark-batch test-error-handling \
+        clean-cache clean-bootsnap
 
 # --------------------------- Docker 基本操作 -------------------------------
 build:
@@ -68,6 +69,29 @@ clean:
 	$(COMPOSE) down -v
 	docker system prune -f
 
+# --------------------------- キャッシュ清掃 ----------------------------------
+clean-cache:
+	@echo "=== キャッシュディレクトリ清掃 ==="
+	rm -rf tmp/cache/* 2>/dev/null || true
+	mkdir -p tmp/cache/bootsnap
+	chmod 755 tmp/cache/bootsnap
+	@echo "✅ キャッシュ清掃完了"
+
+clean-bootsnap:
+	@echo "=== Bootsnap キャッシュ清掃 ==="
+	@if [ -d "tmp/cache/bootsnap" ] && [ "$$(ls -A tmp/cache/bootsnap 2>/dev/null)" ]; then \
+		echo "Bootsnapキャッシュファイルを削除中..."; \
+		find tmp/cache/bootsnap -mindepth 1 -delete 2>/dev/null || rm -rf tmp/cache/bootsnap/* 2>/dev/null || true; \
+		echo "✅ Bootsnapキャッシュ清掃完了"; \
+	elif [ -d "tmp/cache/bootsnap" ]; then \
+		echo "✅ Bootsnapキャッシュディレクトリは空です"; \
+	else \
+		echo "Bootsnapキャッシュディレクトリを作成中..."; \
+		mkdir -p tmp/cache/bootsnap; \
+		chmod 755 tmp/cache/bootsnap; \
+		echo "✅ Bootsnapキャッシュディレクトリ作成完了"; \
+	fi
+
 # --------------------------- 初期セットアップ ------------------------------
 # TODO: セットアップ処理の堅牢性向上（ヘルスチェック待機、エラーハンドリング）
 # TODO: 段階的なサービス起動とヘルスチェック確認
@@ -87,9 +111,17 @@ services-health-check:
 	done
 
 bundle-install:
+	@echo "=== Bundle Install（プロセス安全版）==="
 	mkdir -p tmp/bundle_cache && chmod -R 777 tmp/bundle_cache
+	@echo "Railsプロセス終了待機中..."
+	@pkill -f "rails" 2>/dev/null || true
+	@sleep 1
+	@echo "bootsnap cache完全削除中..."
+	@sudo find tmp/cache/bootsnap -type f -exec rm -f {} \; 2>/dev/null || true
+	@sudo rm -rf tmp/cache/bootsnap 2>/dev/null || true
+	@mkdir -p tmp/cache/bootsnap
 	$(BUNDLE) config set frozen false
-	$(BUNDLE) install
+	DISABLE_BOOTSNAP=1 $(BUNDLE) install
 
 # --------------------------- データベース操作 ------------------------------
 db-%:
@@ -157,6 +189,27 @@ test-unit-fast:
 
 test-models-only:
 	$(call run_rspec,モデル限定, spec/models spec/helpers spec/decorators spec/validators, $(TEST_PROGRESS))
+
+# === テスト最適化コマンド（新規） ===
+test-ultra-fast:
+	@echo "=== 超高速テスト実行（1秒以内目標） ==="
+	$(COMPOSE) run --rm -e RAILS_ENV=test -e DISABLE_HOST_AUTHORIZATION=true \
+	  -e ULTRA_FAST_TESTS_ONLY=true -e FAST_TESTS_ONLY=true \
+	  -e RESET_SEQUENCES=false -e LOAD_DATA_PATCHES=false \
+	  web bundle exec rspec --tag ultra_fast --format progress
+
+test-benchmark:
+	@echo "=== テストパフォーマンス測定 ==="
+	$(COMPOSE) run --rm -e RAILS_ENV=test -e DISABLE_HOST_AUTHORIZATION=true \
+	  -e COLLECT_METRICS=true -e SHOW_PERFORMANCE=true -e SHOW_QUERIES=true \
+	  web bundle exec rspec spec/models spec/helpers --format progress
+
+test-optimized:
+	@echo "=== 最適化テスト実行（高速化設定） ==="
+	$(COMPOSE) run --rm -e RAILS_ENV=test -e DISABLE_HOST_AUTHORIZATION=true \
+	  -e FAST_TESTS_ONLY=true -e RESET_SEQUENCES=false \
+	  -e LOAD_DATA_PATCHES=false -e CLEAN_DATABASE=false \
+	  web bundle exec rspec --tag ~slow --format progress
 
 # --------------------------- CI / Lint / Security -------------------------
 # 🚀 最適化版CI実行（推奨）
@@ -499,6 +552,13 @@ help:
 	@echo "  make lint-fix      - 安全な自動修正を適用"
 	@echo "  make lint-fix-unsafe - すべての自動修正を適用（注意：破壊的変更の可能性あり）"
 	@echo "  make test-all      - すべてのテストを実行"
+	@echo ""
+	@echo "🚀 テスト最適化コマンド（新規）:"
+	@echo "  make test-ultra-fast    - 超高速テスト（1秒以内目標）"
+	@echo "  make test-benchmark     - パフォーマンス測定とメトリクス収集"
+	@echo "  make test-optimized     - 最適化テスト実行（高速化設定）"
+	@echo ""
+	@echo "ユーティリティ:"
 	@echo "  make console       - Railsコンソールを起動"
 	@echo "  make routes        - ルーティングを表示"
 	@echo "  make backup        - データベースをバックアップ"
