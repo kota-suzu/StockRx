@@ -136,6 +136,7 @@ Rails.application.routes.draw do
   authenticated :store_user do
     namespace :store, module: :store_controllers do
       root "dashboard#index"
+      get "dashboard", to: "dashboard#index", as: :dashboard
 
       # 在庫管理（詳細・操作機能）
       # TODO: 🟡 Phase 2（重要）- 認証済み機能の拡張
@@ -208,6 +209,7 @@ Rails.application.routes.draw do
   namespace :admin, module: :admin_controllers do
     # ダッシュボードをルートに設定
     root "dashboard#index"
+    get "dashboard", to: "dashboard#index", as: :dashboard
 
     # OAuth Debug Routes (TEMPORARY - Remove after fixing OAuth issues)
     get "oauth_debug", to: "oauth_debug#show"
@@ -356,8 +358,37 @@ Rails.application.routes.draw do
   # API用ルーティング（バージョニング対応）
   namespace :api do
     namespace :v1 do
-      resources :inventories, only: [ :index, :show, :create, :update, :destroy ]
+      resources :inventories, only: [ :index, :show, :create, :update, :destroy ] do
+        collection do
+          get :search          # 高度な検索機能
+          get :bulk            # 一括取得
+          post :bulk_create    # 一括作成
+          patch :bulk_update   # 一括更新
+          delete :bulk_destroy # 一括削除
+        end
+        
+        member do
+          get :batches         # バッチ情報取得
+          get :logs            # 履歴情報取得
+        end
+      end
+      
+      # APIキー管理（管理者用）
+      resources :api_keys, only: [ :index, :show, :create, :destroy ] do
+        member do
+          patch :revoke  # APIキーの失効
+        end
+      end
+      
+      # APIメタ情報
+      get 'info', to: 'api_info#show'           # API情報取得
+      get 'health', to: 'api_info#health'       # ヘルスチェック
+      get 'rate_limit', to: 'api_info#rate_limit' # レート制限状況
     end
+    
+    # APIドキュメント
+    mount Rswag::Ui::Engine => '/docs'
+    mount Rswag::Api::Engine => '/api-docs'
   end
 
   # Phase 5-3: CSP違反レポート収集

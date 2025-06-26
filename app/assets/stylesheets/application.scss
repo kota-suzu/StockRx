@@ -37,6 +37,7 @@ $dark: #343a40;
 @import "components/cards";          // カードコンポーネント統合
 @import "components/buttons";        // ボタンコンポーネント統合
 @import "components/modern_cards";   // モダンカードコンポーネント（WCAG AA準拠）
+@import "mobile_enhancements";       // モバイル対応強化（Phase 2追加）
 
 // ========================================
 // レガシーコンポーネント（段階的移行対象）

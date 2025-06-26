@@ -4,6 +4,10 @@ module Api
   # API共通のベースコントローラ
   # すべてのAPIコントローラはこのクラスを継承する
   class ApiController < ApplicationController
+    # APIレート制限機能
+    include ApiRateLimiting
+    # API認証機能
+    include ApiAuthentication
     # CSRFチェックをスキップ（APIはトークン認証を使用するため）
     # 注意: 将来的には認証導入時にこのスキップを削除し、
     #      トークンベースのCSRF保護に置き換える

@@ -17,6 +17,9 @@ class Inventory < ApplicationRecord
   # ステータス定義（Rails 8.0向けに更新）
   enum :status, { active: 0, archived: 1 }
   STATUSES = statuses.keys.freeze # 不変保証
+  
+  # 単位定義
+  enum :unit, { piece: 0, box: 1, bottle: 2, pack: 3, kg: 4, g: 5, l: 6, ml: 7 }
 
   # CLAUDE.md準拠: QueryOptimization設定
   # メタ認知: インデックス画面では大きなテキストカラムは不要
@@ -30,14 +33,32 @@ class Inventory < ApplicationRecord
   end
 
   # バリデーション
-  validates :name, presence: true
+  validates :name, presence: true, uniqueness: { case_sensitive: false }
   validates :price, numericality: { greater_than_or_equal_to: 0 }
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }
-  validates :reserved_quantity, numericality: { greater_than_or_equal_to: 0 }
+  validates :reserved_quantity, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
   validates :safety_stock_level, numericality: { greater_than: 0 }
 
   # カスタムバリデーション - 予約済み在庫が総在庫を超えないようにする
   validate :reserved_quantity_within_available_quantity
+  
+  # コールバック
+  before_save :normalize_name, :set_default_values
+  
+  # アソシエーション
+  has_many :batches, dependent: :destroy
+  has_many :inventory_logs, dependent: :destroy
+  has_many :receipts, dependent: :destroy
+  has_many :shipments, dependent: :destroy
+  
+  # スコープ
+  scope :expiring_soon, ->(days = 30) {
+    joins(:batches).where('batches.expires_on <= ?', days.days.from_now)
+  }
+  
+  scope :with_available_stock, -> {
+    where('quantity > COALESCE(reserved_quantity, 0)')
+  }
 
   # ============================================
   # Multi-Store関連のアソシエーション
@@ -45,6 +66,8 @@ class Inventory < ApplicationRecord
   has_many :store_inventories, dependent: :destroy
   has_many :stores, through: :store_inventories
   has_many :inter_store_transfers, dependent: :destroy
+  # transfer_items should refer to the actual transfers through the join
+  has_many :transfer_items, through: :inter_store_transfers, source: :destination_store
 
   # ============================================
   # Multi-Store関連のメソッド
@@ -113,7 +136,7 @@ class Inventory < ApplicationRecord
 
   # 利用可能在庫数（総在庫 - 予約済み）
   def available_quantity
-    quantity - reserved_quantity
+    quantity - (reserved_quantity || 0)
   end
 
   # 在庫状況レベル判定
@@ -127,6 +150,16 @@ class Inventory < ApplicationRecord
     else
       :normal
     end
+  end
+
+  # 期限切れのバッチ
+  def expired_batches
+    batches.where('expires_on < ?', Date.current)
+  end
+  
+  # 期限切れが近いバッチ
+  def expiring_soon_batches(days = 30)
+    batches.where('expires_on <= ?', days.days.from_now)
   end
 
   # ============================================
@@ -380,5 +413,17 @@ class Inventory < ApplicationRecord
     if reserved_quantity > quantity
       errors.add(:reserved_quantity, "cannot exceed available quantity")
     end
+  end
+  
+  def normalize_name
+    if name.present?
+      # Strip whitespace and sanitize HTML tags
+      self.name = ActionView::Base.full_sanitizer.sanitize(name.strip)
+    end
+  end
+  
+  def set_default_values
+    self.reserved_quantity ||= 0
+    self.safety_stock_level ||= 10
   end
 end

@@ -1,0 +1,509 @@
+<%# ========================================== %>
+<%# UI/UXスタイルガイド - StockRx %>
+<%# ========================================== %>
+<%# CLAUDE.md準拠: 統一されたUIパターンのドキュメント %>
+<%# メタ認知: 開発者向けのリファレンスとして機能 %>
+<%# 横展開: 全画面で一貫したUI実装を促進 %>
+<%# ========================================== %>
+
+<div class="container py-5">
+  <h1 class="display-4 mb-4">
+    <i class="bi bi-palette me-3"></i>StockRx UIスタイルガイド
+  </h1>
+  <p class="lead text-muted mb-5">
+    統一されたユーザーエクスペリエンスを提供するためのUIコンポーネントガイド
+  </p>
+
+  <%# カラーパレット %>
+  <section class="mb-5">
+    <h2 class="h3 mb-4">1. カラーパレット</h2>
+    
+    <div class="row g-3">
+      <div class="col-md-6 col-lg-3">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">ブランドカラー</h5>
+            <div class="d-flex flex-column gap-2">
+              <div class="p-3 text-white rounded" style="background-color: var(--brand-primary);">
+                Primary<br><small>var(--brand-primary)</small>
+              </div>
+              <div class="p-3 text-white rounded" style="background-color: var(--brand-secondary);">
+                Secondary<br><small>var(--brand-secondary)</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6 col-lg-3">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">セマンティックカラー</h5>
+            <div class="d-flex flex-column gap-2">
+              <div class="p-2 rounded border" style="background-color: var(--bg-success); color: var(--text-success);">
+                Success
+              </div>
+              <div class="p-2 rounded border" style="background-color: var(--bg-warning); color: var(--text-warning);">
+                Warning
+              </div>
+              <div class="p-2 rounded border" style="background-color: var(--bg-danger); color: var(--text-danger);">
+                Danger
+              </div>
+              <div class="p-2 rounded border" style="background-color: var(--bg-info); color: var(--text-info);">
+                Info
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6 col-lg-3">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">テキストカラー</h5>
+            <div class="d-flex flex-column gap-2">
+              <div style="color: var(--text-primary);">Primary Text</div>
+              <div style="color: var(--text-secondary);">Secondary Text</div>
+              <div style="color: var(--text-muted);">Muted Text</div>
+              <div style="color: var(--text-accent);">Accent Text</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-md-6 col-lg-3">
+        <div class="card">
+          <div class="card-body">
+            <h5 class="card-title">背景色階層</h5>
+            <div class="d-flex flex-column gap-2">
+              <div class="p-2 rounded border" style="background-color: var(--bg-page);">Page</div>
+              <div class="p-2 rounded border" style="background-color: var(--bg-section);">Section</div>
+              <div class="p-2 rounded border" style="background-color: var(--bg-card);">Card</div>
+              <div class="p-2 rounded border" style="background-color: var(--bg-elevated);">Elevated</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# タイポグラフィ %>
+  <section class="mb-5">
+    <h2 class="h3 mb-4">2. タイポグラフィ</h2>
+    
+    <div class="card">
+      <div class="card-body">
+        <h1 class="display-1">Display 1</h1>
+        <h2 class="display-2">Display 2</h2>
+        <h3 class="display-3">Display 3</h3>
+        <h4 class="display-4">Display 4</h4>
+        <hr>
+        <h1>見出し1 (h1)</h1>
+        <h2>見出し2 (h2)</h2>
+        <h3>見出し3 (h3)</h3>
+        <h4>見出し4 (h4)</h4>
+        <h5>見出し5 (h5)</h5>
+        <h6>見出し6 (h6)</h6>
+        <hr>
+        <p class="lead">リード文章: より大きなフォントサイズで強調したいテキスト</p>
+        <p>通常の段落: 本文で使用される標準的なテキストサイズとスタイル</p>
+        <p class="small">小さいテキスト: 補足情報やヘルプテキストに使用</p>
+      </div>
+    </div>
+  </section>
+
+  <%# ボタン %>
+  <section class="mb-5">
+    <h2 class="h3 mb-4">3. ボタン</h2>
+    
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">基本ボタン</h5>
+        <div class="d-flex flex-wrap gap-2 mb-4">
+          <button class="btn btn-primary">Primary</button>
+          <button class="btn btn-secondary">Secondary</button>
+          <button class="btn btn-success">Success</button>
+          <button class="btn btn-danger">Danger</button>
+          <button class="btn btn-warning">Warning</button>
+          <button class="btn btn-info">Info</button>
+          <button class="btn btn-light">Light</button>
+          <button class="btn btn-dark">Dark</button>
+        </div>
+        
+        <h5 class="card-title mb-3">アウトラインボタン</h5>
+        <div class="d-flex flex-wrap gap-2 mb-4">
+          <button class="btn btn-outline-primary">Primary</button>
+          <button class="btn btn-outline-secondary">Secondary</button>
+          <button class="btn btn-outline-success">Success</button>
+          <button class="btn btn-outline-danger">Danger</button>
+        </div>
+        
+        <h5 class="card-title mb-3">サイズバリエーション</h5>
+        <div class="d-flex align-items-center gap-2 mb-4">
+          <button class="btn btn-primary btn-lg">Large</button>
+          <button class="btn btn-primary">Default</button>
+          <button class="btn btn-primary btn-sm">Small</button>
+        </div>
+        
+        <h5 class="card-title mb-3">アイコン付きボタン</h5>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>新規作成
+          </button>
+          <button class="btn btn-success">
+            <i class="bi bi-check-lg me-2"></i>保存
+          </button>
+          <button class="btn btn-danger">
+            <i class="bi bi-trash me-2"></i>削除
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# フォーム %>
+  <section class="mb-5">
+    <h2 class="h3 mb-4">4. フォーム要素</h2>
+    
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">基本入力フィールド</h5>
+        
+        <%# ApplicationDecoratorのform_groupを使用 %>
+        <%= ApplicationDecorator.new(nil).form_group(
+          label: "商品名",
+          required: true,
+          help_text: "商品を識別するための名前を入力してください",
+          icon: "bi bi-tag"
+        ) do %>
+          <input type="text" class="form-control" placeholder="商品名を入力">
+        <% end %>
+        
+        <%= ApplicationDecorator.new(nil).form_group(
+          label: "価格",
+          help_text: "税込み価格を入力してください",
+          icon: "bi bi-currency-yen"
+        ) do %>
+          <input type="number" class="form-control" placeholder="0">
+        <% end %>
+        
+        <div class="mb-3">
+          <label class="form-label">カテゴリー</label>
+          <select class="form-select">
+            <option selected>選択してください</option>
+            <option value="1">食品</option>
+            <option value="2">日用品</option>
+            <option value="3">電化製品</option>
+          </select>
+        </div>
+        
+        <div class="mb-3">
+          <label class="form-label">説明</label>
+          <textarea class="form-control" rows="3" placeholder="商品の説明を入力"></textarea>
+        </div>
+        
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="activeCheck">
+          <label class="form-check-label" for="activeCheck">
+            有効にする
+          </label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# カード %>
+  <section class="mb-5">
+    <h2 class="h3 mb-4">5. カードコンポーネント</h2>
+    
+    <div class="row g-3">
+      <div class="col-md-6">
+        <%# ApplicationDecoratorのcardメソッドを使用 %>
+        <%= ApplicationDecorator.new(nil).card(
+          title: "在庫サマリー",
+          subtitle: "現在の在庫状況",
+          icon: "bi bi-boxes",
+          header_actions: [
+            link_to("詳細", "#", class: "btn btn-sm btn-outline-primary")
+          ]
+        ) do %>
+          <div class="row text-center">
+            <div class="col-4">
+              <h3 class="mb-0">156</h3>
+              <small class="text-muted">総商品数</small>
+            </div>
+            <div class="col-4">
+              <h3 class="mb-0 text-success">89%</h3>
+              <small class="text-muted">在庫率</small>
+            </div>
+            <div class="col-4">
+              <h3 class="mb-0 text-warning">12</h3>
+              <small class="text-muted">要発注</small>
+            </div>
+          </div>
+        <% end %>
+      </div>
+      
+      <div class="col-md-6">
+        <%= ApplicationDecorator.new(nil).card(
+          title: "最近の活動",
+          icon: "bi bi-activity"
+        ) do %>
+          <div class="list-group list-group-flush">
+            <div class="list-group-item px-0">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">商品Aを50個入荷</h6>
+                  <small class="text-muted">5分前</small>
+                </div>
+                <span class="badge bg-success">入荷</span>
+              </div>
+            </div>
+            <div class="list-group-item px-0">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <h6 class="mb-1">商品Bを20個出荷</h6>
+                  <small class="text-muted">1時間前</small>
+                </div>
+                <span class="badge bg-primary">出荷</span>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </section>
+
+  <%# アラート %>
+  <section class="mb-5">
+    <h2 class="h3 mb-4">6. アラート・通知</h2>
+    
+    <div class="card">
+      <div class="card-body">
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <div class="d-flex align-items-start">
+            <i class="bi bi-check-circle-fill me-3 fs-5"></i>
+            <div>
+              <strong>成功!</strong> 商品が正常に登録されました。
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+          <div class="d-flex align-items-start">
+            <i class="bi bi-exclamation-triangle-fill me-3 fs-5"></i>
+            <div>
+              <strong>注意!</strong> 在庫が少なくなっています。
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <div class="d-flex align-items-start">
+            <i class="bi bi-x-circle-fill me-3 fs-5"></i>
+            <div>
+              <strong>エラー!</strong> 処理中に問題が発生しました。
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+          <div class="d-flex align-items-start">
+            <i class="bi bi-info-circle-fill me-3 fs-5"></i>
+            <div>
+              <strong>情報</strong> システムメンテナンスは明日実施されます。
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# バッジとラベル %>
+  <section class="mb-5">
+    <h2 class="h3 mb-4">7. バッジ・ラベル</h2>
+    
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">ステータスバッジ</h5>
+        <div class="d-flex flex-wrap gap-2 mb-4">
+          <span class="badge bg-success">有効</span>
+          <span class="badge bg-warning">保留中</span>
+          <span class="badge bg-danger">無効</span>
+          <span class="badge bg-info">処理中</span>
+          <span class="badge bg-secondary">アーカイブ</span>
+        </div>
+        
+        <h5 class="card-title mb-3">数値バッジ</h5>
+        <div class="d-flex gap-3 mb-4">
+          <button class="btn btn-primary position-relative">
+            通知
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+              9+
+            </span>
+          </button>
+          
+          <button class="btn btn-secondary position-relative">
+            メッセージ
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning">
+              3
+            </span>
+          </button>
+        </div>
+        
+        <h5 class="card-title mb-3">アウトラインバッジ</h5>
+        <div class="d-flex flex-wrap gap-2">
+          <span class="badge border border-primary text-primary">Primary</span>
+          <span class="badge border border-success text-success">Success</span>
+          <span class="badge border border-warning text-warning">Warning</span>
+          <span class="badge border border-danger text-danger">Danger</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# レスポンシブ表示 %>
+  <section class="mb-5">
+    <h2 class="h3 mb-4">8. レスポンシブデザイン</h2>
+    
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">ブレークポイント</h5>
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>ブレークポイント</th>
+                <th>クラス接頭辞</th>
+                <th>寸法</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Extra small</td>
+                <td><code>なし</code></td>
+                <td>&lt;576px</td>
+              </tr>
+              <tr>
+                <td>Small</td>
+                <td><code>sm</code></td>
+                <td>≥576px</td>
+              </tr>
+              <tr>
+                <td>Medium</td>
+                <td><code>md</code></td>
+                <td>≥768px</td>
+              </tr>
+              <tr>
+                <td>Large</td>
+                <td><code>lg</code></td>
+                <td>≥992px</td>
+              </tr>
+              <tr>
+                <td>Extra large</td>
+                <td><code>xl</code></td>
+                <td>≥1200px</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <h5 class="card-title mb-3">レスポンシブユーティリティ</h5>
+        <div class="p-3 bg-light rounded">
+          <p class="mb-2"><code>d-none d-md-block</code> - モバイルで非表示、タブレット以上で表示</p>
+          <p class="mb-2"><code>d-block d-md-none</code> - モバイルで表示、タブレット以上で非表示</p>
+          <p class="mb-2"><code>col-12 col-md-6 col-lg-4</code> - レスポンシブグリッド</p>
+          <p class="mb-0"><code>text-center text-md-start</code> - レスポンシブテキスト配置</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# アクセシビリティ %>
+  <section class="mb-5">
+    <h2 class="h3 mb-4">9. アクセシビリティ</h2>
+    
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">ARIA属性の使用</h5>
+        <div class="mb-4">
+          <button class="btn btn-primary" aria-label="新規商品を追加">
+            <i class="bi bi-plus" aria-hidden="true"></i>
+          </button>
+          <code class="ms-3">aria-label, aria-hidden</code>
+        </div>
+        
+        <h5 class="card-title mb-3">フォーカス管理</h5>
+        <div class="mb-4">
+          <button class="btn btn-outline-primary me-2" tabindex="0">Tab 1</button>
+          <button class="btn btn-outline-primary me-2" tabindex="0">Tab 2</button>
+          <button class="btn btn-outline-primary" tabindex="0">Tab 3</button>
+        </div>
+        
+        <h5 class="card-title mb-3">スクリーンリーダー対応</h5>
+        <div>
+          <span class="visually-hidden">スクリーンリーダーのみに表示</span>
+          <p class="text-muted mb-0">
+            <code>.visually-hidden</code> クラスを使用して、視覚的には非表示だがスクリーンリーダーには読み上げられるテキストを追加
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <%# 実装ガイドライン %>
+  <section class="mb-5">
+    <h2 class="h3 mb-4">10. 実装ガイドライン</h2>
+    
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title mb-3">ApplicationDecoratorの活用</h5>
+        <pre class="bg-light p-3 rounded"><code>
+# カードコンポーネント
+<%= "<%=" %> @inventory.decorate.card(
+  title: "在庫詳細",
+  icon: "bi bi-box"
+) do %>
+  <%# カード内容 %>
+<%= "<%" %> end %>
+
+# フォームグループ
+<%= "<%=" %> @inventory.decorate.form_group(
+  label: "商品名",
+  required: true,
+  error: @inventory.errors[:name].first
+) do %>
+  <%= "<%=" %> form.text_field :name, class: "form-control" %>
+<%= "<%" %> end %>
+
+# レスポンシブテーブル
+<%= "<%=" %> @inventory.decorate.responsive_table do %>
+  <%# テーブル内容 %>
+<%= "<%" %> end %>
+        </code></pre>
+        
+        <h5 class="card-title mb-3">一貫性のポイント</h5>
+        <ul>
+          <li>色はCSS変数（<code>var(--brand-primary)</code>）を使用</li>
+          <li>アイコンはBootstrap Icons（<code>bi bi-*</code>）を統一使用</li>
+          <li>間隔はBootstrapのスペーシングユーティリティ（<code>mb-3</code>、<code>p-4</code>）を使用</li>
+          <li>レスポンシブはBootstrapのグリッドシステムを活用</li>
+          <li>フォームはApplicationDecoratorのヘルパーメソッドを使用</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<%# TODO: 🟡 Phase 3（重要）- インタラクティブなスタイルガイド %>
+<%# 優先度: 中（開発効率向上） %>
+<%# 実装内容: %>
+<%#   - コンポーネントのライブプレビュー %>
+<%#   - コードサンプルのコピー機能 %>
+<%#   - カラーピッカーでのカスタマイズ %>
+<%#   - レスポンシブプレビュー %>
+<%# 期待効果: 開発者の実装速度向上、一貫性の維持 %>

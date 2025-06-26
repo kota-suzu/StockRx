@@ -96,14 +96,14 @@ class Admins::OmniauthCallbacksController < Devise::OmniauthCallbacksController
     when "store_manager"
       # 店舗管理者: 担当店舗のダッシュボード
       if admin.store
-        store_dashboard_path(admin.store)
+        dashboard_admin_store_path(admin.store)
       else
         admin_dashboard_path
       end
     when "pharmacist", "store_user"
       # 薬剤師・店舗ユーザー: 店舗ダッシュボード
       if admin.store
-        store_dashboard_path(admin.store)
+        dashboard_admin_store_path(admin.store)
       else
         # 店舗未設定の場合は権限不足エラー
         new_admin_session_path

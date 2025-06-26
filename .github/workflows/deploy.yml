@@ -1,0 +1,208 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  RUBY_VERSION: 3.3.8
+  DOCKER_REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Build and push Docker image
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.production
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            RUBY_VERSION=${{ env.RUBY_VERSION }}
+
+  # Deploy to staging
+  deploy-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.inputs.environment == 'staging'
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging
+        env:
+          DEPLOY_KEY: ${{ secrets.STAGING_DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.STAGING_HOST }}
+          DEPLOY_USER: ${{ secrets.STAGING_USER }}
+          IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+        run: |
+          # SSH接続設定
+          mkdir -p ~/.ssh
+          echo "$DEPLOY_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          
+          # デプロイスクリプトを実行
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
+            ${DEPLOY_USER}@${DEPLOY_HOST} \
+            "cd /app && ./deploy.sh staging ${IMAGE_TAG}"
+
+      - name: Health check
+        run: |
+          sleep 30
+          curl -f https://staging.stockrx.example.com/health || exit 1
+
+      - name: Run smoke tests
+        run: |
+          # 基本的な動作確認テストを実行
+          ./scripts/smoke-test.sh staging
+
+  # Deploy to production (manual approval required)
+  deploy-production:
+    needs: [build, deploy-staging]
+    runs-on: ubuntu-latest
+    if: github.event.inputs.environment == 'production'
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create backup
+        env:
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+        run: |
+          # バックアップ作成
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
+            ${DEPLOY_USER}@${DEPLOY_HOST} \
+            "cd /app && ./backup.sh pre-deploy"
+
+      - name: Deploy to production (Blue/Green)
+        env:
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+          IMAGE_TAG: ${{ needs.build.outputs.image-tag }}
+        run: |
+          # Blue/Greenデプロイメント
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
+            ${DEPLOY_USER}@${DEPLOY_HOST} \
+            "cd /app && ./deploy-blue-green.sh ${IMAGE_TAG}"
+
+      - name: Health check
+        run: |
+          sleep 30
+          curl -f https://stockrx.example.com/health || exit 1
+
+      - name: Run smoke tests
+        run: |
+          ./scripts/smoke-test.sh production
+
+      - name: Switch traffic to new version
+        if: success()
+        env:
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
+            ${DEPLOY_USER}@${DEPLOY_HOST} \
+            "cd /app && ./switch-traffic.sh"
+
+      - name: Cleanup old version
+        if: success()
+        env:
+          DEPLOY_KEY: ${{ secrets.PRODUCTION_DEPLOY_KEY }}
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_USER }}
+        run: |
+          # 古いバージョンを30分後に削除
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
+            ${DEPLOY_USER}@${DEPLOY_HOST} \
+            "cd /app && echo './cleanup-old-version.sh' | at now + 30 minutes"
+
+  # Rollback workflow
+  rollback:
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: [deploy-staging, deploy-production]
+    steps:
+      - name: Rollback deployment
+        env:
+          DEPLOY_KEY: ${{ secrets[format('{0}_DEPLOY_KEY', github.event.inputs.environment)] }}
+          DEPLOY_HOST: ${{ secrets[format('{0}_HOST', github.event.inputs.environment)] }}
+          DEPLOY_USER: ${{ secrets[format('{0}_USER', github.event.inputs.environment)] }}
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy_key \
+            ${DEPLOY_USER}@${DEPLOY_HOST} \
+            "cd /app && ./rollback.sh"
+
+      - name: Notify team
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: 'Deployment rollback executed for ${{ github.event.inputs.environment }}'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+
+  # Notification
+  notify:
+    runs-on: ubuntu-latest
+    needs: [build, deploy-staging, deploy-production]
+    if: always()
+    steps:
+      - name: Notify deployment status
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Deployment ${{ job.status }} for ${{ github.event.inputs.environment || 'staging' }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}

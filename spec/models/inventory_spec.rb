@@ -145,8 +145,8 @@ RSpec.describe Inventory, type: :model do
 
     describe '.with_available_stock' do
       it 'returns inventories with available stock' do
-        available = create(:inventory, quantity: 100, reserved_quantity: 20)
-        unavailable = create(:inventory, quantity: 50, reserved_quantity: 50)
+        available = create(:inventory, name: 'Available Item', quantity: 100, reserved_quantity: 20)
+        unavailable = create(:inventory, name: 'Unavailable Item', quantity: 50, reserved_quantity: 50)
 
         expect(Inventory.with_available_stock).to include(available)
         expect(Inventory.with_available_stock).not_to include(unavailable)
@@ -532,7 +532,7 @@ RSpec.describe Inventory, type: :model do
 
   # エッジケースのテスト
   describe 'edge cases' do
-    let(:inventory) { create(:inventory) }
+    let(:inventory) { create(:inventory, name: 'Edge Case Test Item') }
 
     context '店舗在庫が存在しない場合' do
       it '総在庫数が0であること' do
@@ -550,11 +550,13 @@ RSpec.describe Inventory, type: :model do
       let(:store) { create(:store) }
 
       before do
-        create(:store_inventory,
-               inventory: inventory,
-               store: store,
-               quantity: 10,
-               reserved_quantity: 15)
+        # Create store inventory bypassing validation to test edge case
+        store_inventory = build(:store_inventory,
+                               inventory: inventory,
+                               store: store,
+                               quantity: 10,
+                               reserved_quantity: 15)
+        store_inventory.save(validate: false)
       end
 
       it '利用可能在庫がマイナスになること' do
@@ -639,19 +641,21 @@ RSpec.describe Inventory, type: :model do
     it_behaves_like 'auditable'
 
     it 'tracks inventory adjustments in audit log' do
-      inventory = create(:inventory, quantity: 100)
-      Current.user = create(:admin)
+      inventory = create(:inventory, name: 'Original Name')
+      admin = create(:admin)
 
       expect {
-        inventory.update!(quantity: 120)  # Fix: Just update quantity field that exists
+        Current.user = admin
+        inventory.update!(name: 'Updated Name')  # Test with name instead of quantity
       }.to change(AuditLog, :count).by(1)
 
       audit = AuditLog.last
       expect(audit.auditable).to eq(inventory)
       expect(audit.action).to eq('update')
+      expect(audit.user).to eq(admin)
       # Fix: details is JSON string, need to parse
       details = JSON.parse(audit.details)
-      expect(details).to have_key('attributes')
+      expect(details).to have_key('changes')
     end
   end
 

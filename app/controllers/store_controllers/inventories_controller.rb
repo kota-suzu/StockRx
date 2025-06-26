@@ -199,9 +199,17 @@ module StoreControllers
         [ "消耗品", "consumables" ],
         [ "衛生用品", "hygiene" ]
       ]
+      # メーカー一覧の取得（空文字・nil除外、重複排除）
+      @manufacturers = Inventory.where.not(manufacturer: [nil, ""])
+                                .distinct
+                                .pluck(:manufacturer)
+                                .compact
+                                .sort
     end
 
     # ソート設定
+    helper_method :sort_column, :sort_direction
+    
     def sort_column
       valid_columns = %w[name quantity safety_stock_level]
       params[:sort].in?(valid_columns) ? params[:sort] : "name"

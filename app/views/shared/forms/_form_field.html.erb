@@ -1,0 +1,220 @@
+<%# ========================================== %>
+<%# 統一フォームフィールドコンポーネント - StockRx %>
+<%# ========================================== %>
+<%# CLAUDE.md準拠: 一貫したフォームUI/UXの提供 %>
+<%# メタ認知: ApplicationDecoratorと連携した再利用可能なフォーム要素 %>
+<%# 横展開: 全フォームで統一されたスタイルとアクセシビリティ %>
+<%# ========================================== %>
+
+<%#
+  使用例:
+  
+  テキストフィールド:
+  <%= render 'shared/forms/form_field',
+      form: form,
+      field: :name,
+      type: :text_field,
+      label: "商品名",
+      required: true,
+      help_text: "商品を識別するための名前を入力してください",
+      icon: "bi bi-tag",
+      placeholder: "商品名を入力"
+  %>
+  
+  数値フィールド:
+  <%= render 'shared/forms/form_field',
+      form: form,
+      field: :price,
+      type: :number_field,
+      label: "価格",
+      icon: "bi bi-currency-yen",
+      input_group_append: "円",
+      min: 0,
+      step: 1
+  %>
+  
+  セレクトボックス:
+  <%= render 'shared/forms/form_field',
+      form: form,
+      field: :status,
+      type: :select,
+      label: "ステータス",
+      options: options_for_select(Inventory::STATUSES.map { |k, _| [t("inventories.status.#{k}"), k] }),
+      include_blank: false
+  %>
+  
+  テキストエリア:
+  <%= render 'shared/forms/form_field',
+      form: form,
+      field: :description,
+      type: :text_area,
+      label: "説明",
+      rows: 4
+  %>
+  
+  チェックボックス:
+  <%= render 'shared/forms/form_field',
+      form: form,
+      field: :active,
+      type: :check_box,
+      label: "有効にする",
+      help_text: "チェックを外すと無効になります"
+  %>
+%>
+
+<%
+  # デフォルト値設定
+  type ||= :text_field
+  label ||= field.to_s.humanize
+  required ||= false
+  help_text ||= nil
+  icon ||= nil
+  placeholder ||= nil
+  error ||= form.object.errors[field].first if form&.object&.errors&.any?
+  wrapper_class ||= "mb-3"
+  input_class ||= "form-control"
+  input_group_prepend ||= nil
+  input_group_append ||= nil
+  
+  # 追加の入力属性
+  input_attrs = local_assigns.except(
+    :form, :field, :type, :label, :required, :help_text, :icon, 
+    :placeholder, :error, :wrapper_class, :input_class,
+    :input_group_prepend, :input_group_append, :options, :include_blank
+  )
+  
+  # エラー時のクラス追加
+  input_class += " is-invalid" if error.present?
+  
+  # チェックボックスの特別処理
+  if type == :check_box
+    input_class = "form-check-input"
+    wrapper_class = "form-check " + wrapper_class
+  end
+%>
+
+<div class="<%= wrapper_class %>">
+  <% if type == :check_box %>
+    <%# チェックボックスレイアウト %>
+    <div class="form-check">
+      <%= form.send(type, field, input_attrs.merge(class: input_class, id: "#{field}_field")) %>
+      <label class="form-check-label" for="<%= field %>_field">
+        <%= label %>
+        <% if required %>
+          <span class="text-danger">*</span>
+        <% end %>
+      </label>
+      <% if help_text %>
+        <div class="form-text small">
+          <i class="bi bi-info-circle me-1"></i><%= help_text %>
+        </div>
+      <% end %>
+      <% if error.present? %>
+        <div class="invalid-feedback d-block">
+          <%= error %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <%# 通常のフィールドレイアウト %>
+    <% if label %>
+      <label class="form-label fw-medium" for="<%= field %>_field">
+        <%= label %>
+        <% if required %>
+          <span class="text-danger">*</span>
+        <% end %>
+      </label>
+    <% end %>
+    
+    <% if icon || input_group_prepend || input_group_append %>
+      <%# Input Group レイアウト %>
+      <div class="input-group">
+        <% if icon %>
+          <span class="input-group-text bg-light">
+            <i class="<%= icon %>"></i>
+          </span>
+        <% elsif input_group_prepend %>
+          <span class="input-group-text"><%= input_group_prepend %></span>
+        <% end %>
+        
+        <% case type %>
+        <% when :select %>
+          <%= form.select field, options, 
+              { include_blank: include_blank }, 
+              input_attrs.merge(class: input_class, id: "#{field}_field") %>
+        <% when :text_area %>
+          <%= form.text_area field, 
+              input_attrs.merge(
+                class: input_class, 
+                id: "#{field}_field",
+                placeholder: placeholder,
+                rows: input_attrs[:rows] || 3
+              ) %>
+        <% else %>
+          <%= form.send(type, field, 
+              input_attrs.merge(
+                class: input_class, 
+                id: "#{field}_field",
+                placeholder: placeholder,
+                required: required
+              )) %>
+        <% end %>
+        
+        <% if input_group_append %>
+          <span class="input-group-text"><%= input_group_append %></span>
+        <% end %>
+        
+        <% if error.present? %>
+          <div class="invalid-feedback">
+            <%= error %>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <%# 通常のフィールド（Input Groupなし） %>
+      <% case type %>
+      <% when :select %>
+        <%= form.select field, options, 
+            { include_blank: include_blank }, 
+            input_attrs.merge(class: input_class, id: "#{field}_field") %>
+      <% when :text_area %>
+        <%= form.text_area field, 
+            input_attrs.merge(
+              class: input_class, 
+              id: "#{field}_field",
+              placeholder: placeholder,
+              rows: input_attrs[:rows] || 3
+            ) %>
+      <% else %>
+        <%= form.send(type, field, 
+            input_attrs.merge(
+              class: input_class, 
+              id: "#{field}_field",
+              placeholder: placeholder,
+              required: required
+            )) %>
+      <% end %>
+      
+      <% if error.present? %>
+        <div class="invalid-feedback d-block">
+          <%= error %>
+        </div>
+      <% end %>
+    <% end %>
+    
+    <% if help_text %>
+      <div class="form-text small">
+        <i class="bi bi-info-circle me-1"></i><%= help_text %>
+      </div>
+    <% end %>
+  <% end %>
+</div>
+
+<%# TODO: 🟡 Phase 3（重要）- 高度なフォーム機能 %>
+<%# 優先度: 中（ユーザビリティ向上） %>
+<%# 実装内容: %>
+<%#   - リアルタイムバリデーション %>
+<%#   - 自動補完機能 %>
+<%#   - 条件付き表示/非表示 %>
+<%#   - ファイルアップロードプレビュー %>
+<%# 期待効果: フォーム入力効率の向上、エラー削減 %>

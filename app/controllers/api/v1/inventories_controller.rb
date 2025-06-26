@@ -3,15 +3,25 @@
 module Api
   module V1
     class InventoriesController < Api::ApiController
-      before_action :authenticate_admin!
+      # API認証（オプショナル）でレート制限を緊和
+      before_action :authenticate_api_key
+      # 管理者権限が必要なアクション
+      before_action :ensure_admin_permissions!, only: [:create, :update, :destroy]
       protect_from_forgery with: :null_session
       before_action :set_inventory, only: %i[show update destroy]
 
       # GET /api/v1/inventories
       def index
         # SearchQueryBuilderを使用してSearchResult形式で結果を取得
+        # パフォーマンス最適化: batchesのincludesは必要な場合のみ
+        base_query = if params[:include_batches] == "true"
+                      Inventory.includes(:batches)
+        else
+                      Inventory.all
+        end
+
         search_builder = SearchQueryBuilder
-          .build(Inventory.includes(:batches))
+          .build(base_query)
           .filter_by_name(params[:name])
           .filter_by_status(params[:status])
           .filter_by_price_range(params[:min_price], params[:max_price])
@@ -138,25 +148,255 @@ module Api
         head :no_content
       end
 
-      # TODO: 在庫一括取得（ページネーション対応）
-      # def bulk
-      #   @inventories = Inventory.includes(:batches)
-      #                           .order(created_at: :desc)
-      #                           .page(params[:page])
-      #                           .per(params[:per_page] || 100)
-      #                           .decorate
-      #
-      #   render :index, formats: :json
-      # end
+      # GET /api/v1/inventories/bulk
+      def bulk
+        # 大量データ取得用（最大1000件）
+        per_page = [params[:per_page].to_i, 1000].min
+        per_page = 100 if per_page <= 0
+        
+        search_builder = SearchQueryBuilder
+          .build(Inventory.includes(:batches))
+          .filter_by_name(params[:name])
+          .filter_by_status(params[:status])
+          .order_by(params[:sort] || "updated_at", params[:direction] || "desc")
+        
+        search_result = search_builder.execute(
+          page: params[:page] || 1,
+          per_page: per_page
+        )
+        
+        response = ApiResponse.paginated(
+          search_result,
+          "在庫データを一括取得しました（#{search_result.total_count}件中#{search_result.size}件）",
+          {
+            bulk_operation: true,
+            max_per_page: 1000,
+            search_conditions: search_result.conditions_summary
+          }
+        )
+        
+        render json: response.to_h, status: response.status_code, headers: response.headers
+      end
 
-      # TODO: 在庫アラート情報取得
-      # def alerts
-      #   @low_stock = Inventory.where('quantity <= ?', 10).includes(:batches).decorate
-      #   @expired_batches = Batch.expired.includes(:inventory).decorate
-      #   @expiring_soon = Batch.expiring_soon.includes(:inventory).decorate
-      #
-      #   render :alerts, formats: :json
-      # end
+      # POST /api/v1/inventories/bulk_create
+      def bulk_create
+        inventories_params = params.require(:inventories)
+        
+        unless inventories_params.is_a?(Array)
+          response = ApiResponse.error(
+            "一括作成データはinventories配列で指定してください",
+            [],
+            400,
+            { type: "invalid_bulk_data" }
+          )
+          render json: response.to_h, status: response.status_code, headers: response.headers
+          return
+        end
+        
+        if inventories_params.length > 100
+          response = ApiResponse.error(
+            "一度に作成できるのは100件までです",
+            [],
+            422,
+            { type: "bulk_limit_exceeded", max_items: 100 }
+          )
+          render json: response.to_h, status: response.status_code, headers: response.headers
+          return
+        end
+        
+        results = { created: [], failed: [] }
+        
+        Inventory.transaction do
+          inventories_params.each_with_index do |inventory_params, index|
+            inventory = Inventory.new(permitted_params(inventory_params))
+            
+            if inventory.save
+              results[:created] << { index: index, inventory: inventory.decorate }
+            else
+              results[:failed] << {
+                index: index,
+                data: inventory_params,
+                errors: inventory.errors.full_messages
+              }
+            end
+          end
+          
+          # ひとつでも失敗したらロールバック
+          if results[:failed].any?
+            raise ActiveRecord::Rollback
+          end
+        end
+        
+        if results[:failed].any?
+          response = ApiResponse.error(
+            "一括作成に失敗しました",
+            results[:failed].map { |f| "インデックス#{f[:index]}: #{f[:errors].join(', ')}" },
+            422,
+            { type: "bulk_creation_failed", details: results[:failed] }
+          )
+        else
+          response = ApiResponse.created(
+            results[:created].map { |c| c[:inventory] },
+            "#{results[:created].size}件の在庫が正常に作成されました"
+          )
+        end
+        
+        render json: response.to_h, status: response.status_code, headers: response.headers
+      end
+      
+      # PATCH /api/v1/inventories/bulk_update
+      def bulk_update
+        updates_params = params.require(:updates)
+        
+        unless updates_params.is_a?(Array)
+          response = ApiResponse.error(
+            "一括更新データはupdates配列で指定してください",
+            [],
+            400,
+            { type: "invalid_bulk_data" }
+          )
+          render json: response.to_h, status: response.status_code, headers: response.headers
+          return
+        end
+        
+        if updates_params.length > 100
+          response = ApiResponse.error(
+            "一度に更新できるのは100件までです",
+            [],
+            422,
+            { type: "bulk_limit_exceeded", max_items: 100 }
+          )
+          render json: response.to_h, status: response.status_code, headers: response.headers
+          return
+        end
+        
+        results = { updated: [], failed: [] }
+        
+        Inventory.transaction do
+          updates_params.each_with_index do |update_params, index|
+            inventory_id = update_params[:id]
+            
+            unless inventory_id
+              results[:failed] << {
+                index: index,
+                data: update_params,
+                errors: ["IDが指定されていません"]
+              }
+              next
+            end
+            
+            begin
+              inventory = Inventory.find(inventory_id)
+              
+              if inventory.update(permitted_params(update_params.except(:id)))
+                results[:updated] << { index: index, inventory: inventory.reload.decorate }
+              else
+                results[:failed] << {
+                  index: index,
+                  data: update_params,
+                  errors: inventory.errors.full_messages
+                }
+              end
+            rescue ActiveRecord::RecordNotFound
+              results[:failed] << {
+                index: index,
+                data: update_params,
+                errors: ["ID #{inventory_id}の在庫が見つかりません"]
+              }
+            end
+          end
+          
+          # ひとつでも失敗したらロールバック
+          if results[:failed].any?
+            raise ActiveRecord::Rollback
+          end
+        end
+        
+        if results[:failed].any?
+          response = ApiResponse.error(
+            "一括更新に失敗しました",
+            results[:failed].map { |f| "インデックス#{f[:index]}: #{f[:errors].join(', ')}" },
+            422,
+            { type: "bulk_update_failed", details: results[:failed] }
+          )
+        else
+          response = ApiResponse.success(
+            results[:updated].map { |u| u[:inventory] },
+            "#{results[:updated].size}件の在庫が正常に更新されました"
+          )
+        end
+        
+        render json: response.to_h, status: response.status_code, headers: response.headers
+      end
+      
+      # DELETE /api/v1/inventories/bulk_destroy
+      def bulk_destroy
+        ids = params.require(:ids)
+        
+        unless ids.is_a?(Array)
+          response = ApiResponse.error(
+            "一括削除のIDはids配列で指定してください",
+            [],
+            400,
+            { type: "invalid_bulk_data" }
+          )
+          render json: response.to_h, status: response.status_code, headers: response.headers
+          return
+        end
+        
+        if ids.length > 50
+          response = ApiResponse.error(
+            "一度に削除できるのは50件までです",
+            [],
+            422,
+            { type: "bulk_limit_exceeded", max_items: 50 }
+          )
+          render json: response.to_h, status: response.status_code, headers: response.headers
+          return
+        end
+        
+        results = { deleted: [], failed: [] }
+        
+        Inventory.transaction do
+          ids.each_with_index do |id, index|
+            begin
+              inventory = Inventory.find(id)
+              inventory.destroy!
+              results[:deleted] << { index: index, id: id }
+            rescue ActiveRecord::RecordNotFound
+              results[:failed] << {
+                index: index,
+                id: id,
+                errors: ["ID #{id}の在庫が見つかりません"]
+              }
+            rescue ActiveRecord::DeleteRestrictionError, ActiveRecord::RecordNotDestroyed => e
+              results[:failed] << {
+                index: index,
+                id: id,
+                errors: ["削除制約により削除できません"]
+              }
+            end
+          end
+          
+          # ひとつでも失敗したらロールバック
+          if results[:failed].any?
+            raise ActiveRecord::Rollback
+          end
+        end
+        
+        if results[:failed].any?
+          response = ApiResponse.error(
+            "一括削除に失敗しました",
+            results[:failed].map { |f| "ID #{f[:id]}: #{f[:errors].join(', ')}" },
+            422,
+            { type: "bulk_delete_failed", details: results[:failed] }
+          )
+          render json: response.to_h, status: response.status_code, headers: response.headers
+        else
+          # 204 No Content
+          head :no_content
+        end
+      end
 
       # ============================================
       # TODO: 残タスク実装計画（CLAUDE.md準拠）
@@ -235,14 +475,31 @@ module Api
 
       private
 
+      # 管理者権限の確認
+      def ensure_admin_permissions!
+        unless api_admin_can?(:write) || api_store_user_can?(:write)
+          render_authorization_error("在庫管理の権限がありません")
+        end
+      end
+
       def set_inventory
         # findメソッドはレコードが見つからない場合にActiveRecord::RecordNotFoundを発生させ、
         # ErrorHandlersが404ハンドリングしてくれる
-        @inventory = Inventory.find(params[:id]).decorate
+        # パフォーマンス最適化: showアクションでのみbatchesをinclude
+        @inventory = if action_name == "show" && params[:include_batches] != "false"
+                      Inventory.includes(:batches).find(params[:id]).decorate
+        else
+                      Inventory.find(params[:id]).decorate
+        end
       end
 
       def inventory_params
         params.require(:inventory).permit(:name, :quantity, :price, :status, :lock_version)
+      end
+      
+      # バルク操作用のパラメーター許可
+      def permitted_params(param_hash)
+        ActionController::Parameters.new(param_hash).permit(:name, :quantity, :price, :status, :lock_version)
       end
     end
   end

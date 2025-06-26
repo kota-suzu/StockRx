@@ -577,3 +577,775 @@ RSpec.describe ImportInventoriesJob, type: :job do
     end
   end
 end
+
+# ============================================
+# 完全ブランチカバレッジ拡張テスト
+# ============================================
+# CLAUDE.md準拠: C1カバレッジ80%達成のための詳細分岐テスト
+# メタ認知: ImportInventoriesJobの全分岐パターンを完全カバー
+# 横展開: 他の非同期ジョブでも同様の詳細分岐テスト適用
+
+RSpec.describe ImportInventoriesJob, "Complete Branch Coverage Tests" do
+  let(:admin) { create(:admin) }
+  let(:csv_file) { Tempfile.new([ 'inventories', '.csv' ]) }
+  let(:file_path) { csv_file.path }
+  let(:job_id) { SecureRandom.uuid }
+  let(:redis_instance) { Redis.new }
+  let(:job) { ImportInventoriesJob.new }
+
+  let(:valid_csv_content) do
+    <<~CSV
+      name,quantity,price
+      Test Product 1,100,250.50
+      Test Product 2,200,150.00
+    CSV
+  end
+
+  before do
+    csv_file.write(valid_csv_content)
+    csv_file.rewind
+
+    allow_any_instance_of(ImportInventoriesJob).to receive(:get_redis_connection).and_return(redis_instance)
+    redis_instance.flushdb
+
+    allow(ActionCable.server).to receive(:broadcast)
+    allow(ImportProgressChannel).to receive(:broadcast_progress)
+    allow(ImportProgressChannel).to receive(:broadcast_completion)
+    allow(ImportProgressChannel).to receive(:broadcast_error)
+  end
+
+  after do
+    csv_file.unlink
+  end
+
+  # ============================================
+  # Redis接続の完全分岐カバレッジ
+  # ============================================
+
+  describe "Redis connection branch coverage" do
+    describe "#get_redis_connection" do
+      context "test environment" do
+        before do
+          allow(Rails.env).to receive(:test?).and_return(true)
+        end
+
+        it "returns test Redis when Redis is defined and available" do
+          allow(Redis).to receive(:current).and_return(redis_instance)
+          allow(redis_instance).to receive(:ping).and_return("PONG")
+
+          connection = job.send(:get_redis_connection)
+          expect(connection).to eq(redis_instance)
+        end
+
+        it "returns nil when Redis is not defined" do
+          hide_const("Redis")
+
+          connection = job.send(:get_redis_connection)
+          expect(connection).to be_nil
+        end
+
+        it "returns nil when Redis ping fails" do
+          allow(Redis).to receive(:current).and_return(redis_instance)
+          allow(redis_instance).to receive(:ping).and_raise(Redis::CannotConnectError)
+          allow(Rails.logger).to receive(:warn)
+
+          connection = job.send(:get_redis_connection)
+          expect(connection).to be_nil
+          expect(Rails.logger).to have_received(:warn).with(/Redis not available in test/)
+        end
+      end
+
+      context "production environment" do
+        before do
+          allow(Rails.env).to receive(:test?).and_return(false)
+        end
+
+        it "uses Sidekiq Redis pool when available" do
+          mock_pool = double("pool")
+          allow(Sidekiq).to receive(:redis_pool).and_return(mock_pool)
+          expect(Sidekiq).to receive(:redis).and_yield(redis_instance)
+
+          connection = job.send(:get_redis_connection)
+          expect(connection).to eq(redis_instance)
+        end
+
+        it "falls back to Redis.current when Sidekiq unavailable" do
+          hide_const("Sidekiq")
+          allow(Redis).to receive(:current).and_return(redis_instance)
+
+          connection = job.send(:get_redis_connection)
+          expect(connection).to eq(redis_instance)
+        end
+
+        it "returns nil when Redis connection fails" do
+          allow(Redis).to receive(:current).and_raise(Redis::CannotConnectError)
+          allow(Rails.logger).to receive(:warn)
+
+          connection = job.send(:get_redis_connection)
+          expect(connection).to be_nil
+          expect(Rails.logger).to have_received(:warn).with(/Redis connection failed/)
+        end
+
+        it "handles Sidekiq defined but no redis_pool" do
+          stub_const("Sidekiq", Class.new)
+          allow(Sidekiq).to receive(:redis_pool).and_return(nil)
+          allow(Redis).to receive(:current).and_return(redis_instance)
+
+          connection = job.send(:get_redis_connection)
+          expect(connection).to eq(redis_instance)
+        end
+      end
+    end
+  end
+
+  # ============================================
+  # パスセキュリティ検証の完全分岐カバレッジ
+  # ============================================
+
+  describe "Path security validation complete branch coverage" do
+    before do
+      job.instance_variable_set(:@file_path, file_path)
+    end
+
+    describe "#validate_file_path_security" do
+      context "test environment specific branches" do
+        before do
+          allow(Rails.env).to receive(:test?).and_return(true)
+        end
+
+        it "allows system temp directory" do
+          allow(Dir).to receive(:tmpdir).and_return("/system/tmp")
+          temp_file = Tempfile.new([ 'test', '.csv' ], "/system/tmp")
+          job.instance_variable_set(:@file_path, temp_file.path)
+
+          expect {
+            job.send(:validate_file_path_security)
+          }.not_to raise_error
+
+          temp_file.unlink
+        end
+
+        it "allows ENV[TMPDIR] directory" do
+          allow(ENV).to receive(:[]).with("TMPDIR").and_return("/env/tmp")
+          allow(File).to receive(:expand_path).with("/env/tmp").and_return("/env/tmp")
+          allow(File).to receive(:expand_path).with(file_path).and_return("/env/tmp/test.csv")
+
+          expect {
+            job.send(:validate_file_path_security)
+          }.not_to raise_error
+        end
+
+        it "allows /var/folders on macOS" do
+          allow(RUBY_PLATFORM).to receive(:include?).with("darwin").and_return(true)
+          macos_temp_path = "/var/folders/xx/xxxxxxxxxxxxxx/T/test.csv"
+          allow(File).to receive(:expand_path).with(macos_temp_path).and_return(macos_temp_path)
+          allow(File).to receive(:expand_path).with("/var/folders").and_return("/var/folders")
+          job.instance_variable_set(:@file_path, macos_temp_path)
+
+          expect {
+            job.send(:validate_file_path_security)
+          }.not_to raise_error
+        end
+
+        it "rejects /var/folders on non-macOS" do
+          allow(RUBY_PLATFORM).to receive(:include?).with("darwin").and_return(false)
+          var_folders_path = "/var/folders/xx/test.csv"
+          allow(File).to receive(:expand_path).with(var_folders_path).and_return(var_folders_path)
+          job.instance_variable_set(:@file_path, var_folders_path)
+
+          expect {
+            job.send(:validate_file_path_security)
+          }.to raise_error(SecurityError, /Unauthorized file location/)
+        end
+
+        it "handles nil TMPDIR environment variable" do
+          allow(ENV).to receive(:[]).with("TMPDIR").and_return(nil)
+          allow(Dir).to receive(:tmpdir).and_return("/tmp")
+
+          expect {
+            job.send(:validate_file_path_security)
+          }.not_to raise_error
+        end
+      end
+
+      context "production environment" do
+        before do
+          allow(Rails.env).to receive(:test?).and_return(false)
+        end
+
+        it "only allows configured directories" do
+          expect {
+            job.send(:validate_file_path_security)
+          }.not_to raise_error # default temp file should be allowed
+        end
+
+        it "rejects unauthorized paths" do
+          job.instance_variable_set(:@file_path, "/etc/passwd")
+
+          expect {
+            job.send(:validate_file_path_security)
+          }.to raise_error(SecurityError, /Unauthorized file location/)
+        end
+      end
+    end
+  end
+
+  # ============================================
+  # CSV検証の完全分岐カバレッジ
+  # ============================================
+
+  describe "CSV validation complete branch coverage" do
+    before do
+      job.instance_variable_set(:@file_path, file_path)
+    end
+
+    describe "#validate_csv_format" do
+      it "handles CSV with nil headers" do
+        csv_content = "\n\n\n"  # Empty lines only
+        csv_file.write(csv_content)
+        csv_file.rewind
+
+        expect {
+          job.send(:validate_csv_format)
+        }.to raise_error(SecurityError, /Missing required headers/)
+      end
+
+      it "handles CSV with first row being nil" do
+        csv_content = ",,,\nname,quantity,price\nProduct,100,250"
+        csv_file.write(csv_content)
+        csv_file.rewind
+
+        expect {
+          job.send(:validate_csv_format)
+        }.to raise_error(SecurityError, /Missing required headers/)
+      end
+
+      it "uses CsvHeaderNormalizer for error messages" do
+        csv_content = "product,amount\nTest,100"
+        csv_file.write(csv_content)
+        csv_file.rewind
+
+        expect(CsvHeaderNormalizer).to receive(:detailed_error_message)
+          .with([ 'product', 'amount' ], 'inventory', %w[name quantity price])
+          .and_return("Detailed error message")
+
+        expect {
+          job.send(:validate_csv_format)
+        }.to raise_error(SecurityError, "Detailed error message")
+      end
+
+      it "uses CsvHeaderNormalizer.normalize for header processing" do
+        expect(CsvHeaderNormalizer).to receive(:normalize)
+          .with([ 'name', 'quantity', 'price' ], 'inventory', %w[name quantity price])
+          .and_return([ 'name', 'quantity', 'price' ])
+
+        expect {
+          job.send(:validate_csv_format)
+        }.not_to raise_error
+      end
+    end
+  end
+
+  # ============================================
+  # 進捗追跡の完全分岐カバレッジ
+  # ============================================
+
+  describe "Progress tracking complete branch coverage" do
+    before do
+      job.instance_variable_set(:@file_path, file_path)
+      job.instance_variable_set(:@admin_id, admin.id)
+      job.instance_variable_set(:@job_id, job_id)
+      job.instance_variable_set(:@start_time, Time.current)
+    end
+
+    describe "#setup_basic_tracking" do
+      it "sets up Redis tracking when Redis is available" do
+        job.instance_variable_set(:@redis, redis_instance)
+
+        job.send(:setup_basic_tracking)
+
+        expect(job.instance_variable_get(:@status_key)).to eq("csv_import:#{job_id}")
+        expect(redis_instance.hget("csv_import:#{job_id}", "job_id")).to eq(job_id)
+      end
+
+      it "handles nil Redis gracefully" do
+        job.instance_variable_set(:@redis, nil)
+
+        expect {
+          job.send(:setup_basic_tracking)
+        }.not_to raise_error
+      end
+    end
+
+    describe "#update_status_to_running" do
+      it "updates status when Redis is available" do
+        job.instance_variable_set(:@redis, redis_instance)
+        job.instance_variable_set(:@status_key, "csv_import:#{job_id}")
+
+        job.send(:update_status_to_running)
+
+        expect(redis_instance.hget("csv_import:#{job_id}", "status")).to eq("running")
+      end
+
+      it "returns early when Redis is nil" do
+        job.instance_variable_set(:@redis, nil)
+
+        expect {
+          job.send(:update_status_to_running)
+        }.not_to raise_error
+      end
+    end
+
+    describe "#update_import_progress" do
+      it "updates progress when Redis is available" do
+        job.instance_variable_set(:@redis, redis_instance)
+        job.instance_variable_set(:@status_key, "csv_import:#{job_id}")
+        job.instance_variable_set(:@admin_id, admin.id)
+
+        job.send(:update_import_progress, 50, "Test message")
+
+        expect(redis_instance.hget("csv_import:#{job_id}", "progress")).to eq("50")
+        expect(redis_instance.hget("csv_import:#{job_id}", "message")).to eq("Test message")
+      end
+
+      it "skips Redis update when Redis is nil" do
+        job.instance_variable_set(:@redis, nil)
+        job.instance_variable_set(:@admin_id, admin.id)
+
+        expect {
+          job.send(:update_import_progress, 50)
+        }.not_to raise_error
+      end
+
+      it "updates progress without message" do
+        job.instance_variable_set(:@redis, redis_instance)
+        job.instance_variable_set(:@status_key, "csv_import:#{job_id}")
+        job.instance_variable_set(:@admin_id, admin.id)
+
+        job.send(:update_import_progress, 75)
+
+        expect(redis_instance.hget("csv_import:#{job_id}", "progress")).to eq("75")
+      end
+    end
+
+    describe "#finalize_progress_tracking" do
+      it "sets expiry when Redis and status_key are available" do
+        job.instance_variable_set(:@redis, redis_instance)
+        job.instance_variable_set(:@status_key, "csv_import:#{job_id}")
+
+        job.send(:finalize_progress_tracking)
+
+        ttl = redis_instance.ttl("csv_import:#{job_id}")
+        expect(ttl).to be > 0
+      end
+
+      it "returns early when Redis is nil" do
+        job.instance_variable_set(:@redis, nil)
+
+        expect {
+          job.send(:finalize_progress_tracking)
+        }.not_to raise_error
+      end
+
+      it "returns early when status_key is nil" do
+        job.instance_variable_set(:@redis, redis_instance)
+        job.instance_variable_set(:@status_key, nil)
+
+        expect {
+          job.send(:finalize_progress_tracking)
+        }.not_to raise_error
+      end
+    end
+  end
+
+  # ============================================
+  # ブロードキャスト機能の完全分岐カバレッジ
+  # ============================================
+
+  describe "Broadcast functionality complete branch coverage" do
+    before do
+      job.instance_variable_set(:@admin_id, admin.id)
+      job.instance_variable_set(:@job_id, job_id)
+    end
+
+    describe "#broadcast_to_admin" do
+      it "uses AdminChannel when admin exists" do
+        expect(AdminChannel).to receive(:broadcast_to).with(admin, hash_including(timestamp: anything))
+
+        job.send(:broadcast_to_admin, { type: "test" })
+      end
+
+      it "falls back to ActionCable when AdminChannel fails" do
+        allow(AdminChannel).to receive(:broadcast_to).and_raise(StandardError)
+        expect(ActionCable.server).to receive(:broadcast).with("admin_#{admin.id}", hash_including(type: "test"))
+
+        job.send(:broadcast_to_admin, { type: "test" })
+      end
+
+      it "handles non-existent admin gracefully" do
+        job.instance_variable_set(:@admin_id, 99999)
+
+        expect {
+          job.send(:broadcast_to_admin, { type: "test" })
+        }.not_to raise_error
+      end
+    end
+
+    describe "#broadcast_progress_update" do
+      it "includes processed and total counts when available" do
+        job.instance_variable_set(:@processed_count, 50)
+        job.instance_variable_set(:@total_count, 100)
+
+        expect(ImportProgressChannel).to receive(:broadcast_progress)
+          .with(admin.id, hash_including(processed: 50, total: 100))
+
+        job.send(:broadcast_progress_update, 50.5, "Processing...")
+      end
+
+      it "handles nil message" do
+        expect(ImportProgressChannel).to receive(:broadcast_progress)
+          .with(admin.id, hash_including(message: "CSVデータを処理中..."))
+
+        job.send(:broadcast_progress_update, 25)
+      end
+
+      it "rounds progress to 1 decimal place" do
+        expect(ImportProgressChannel).to receive(:broadcast_progress)
+          .with(admin.id, hash_including(progress: 33.3))
+
+        job.send(:broadcast_progress_update, 33.333333)
+      end
+    end
+
+    describe "#broadcast_import_complete" do
+      it "processes result with invalid records" do
+        result = {
+          valid_count: 90,
+          invalid_records: [
+            { errors: [ "Name can't be blank" ] },
+            { errors: [ "Quantity must be positive", "Price is required" ] }
+          ]
+        }
+        job.instance_variable_set(:@start_time, 10.seconds.ago)
+
+        expect(ImportProgressChannel).to receive(:broadcast_completion)
+          .with(admin.id, hash_including(
+            processed: 92,
+            successful: 90,
+            failed: 2,
+            errors: [ "Name can't be blank", "Quantity must be positive", "Price is required" ]
+          ))
+
+        job.send(:broadcast_import_complete, result)
+      end
+
+      it "handles empty invalid records" do
+        result = { valid_count: 100, invalid_records: [] }
+        job.instance_variable_set(:@start_time, 5.seconds.ago)
+
+        expect(ImportProgressChannel).to receive(:broadcast_completion)
+          .with(admin.id, hash_including(processed: 100, successful: 100, failed: 0))
+
+        job.send(:broadcast_import_complete, result)
+      end
+    end
+
+    describe "#broadcast_import_error" do
+      it "includes error details with line number" do
+        job.instance_variable_set(:@current_line_number, 42)
+        error = SecurityError.new("Invalid file")
+
+        expect(ImportProgressChannel).to receive(:broadcast_error)
+          .with(admin.id, "Invalid file", hash_including(
+            error_type: "security_error",
+            line_number: 42
+          ))
+
+        job.send(:broadcast_import_error, error)
+      end
+
+      it "handles nil line number" do
+        error = StandardError.new("Generic error")
+
+        expect(ImportProgressChannel).to receive(:broadcast_error)
+          .with(admin.id, "Generic error", hash_including(
+            error_type: "processing_error",
+            line_number: nil
+          ))
+
+        job.send(:broadcast_import_error, error)
+      end
+    end
+
+    describe "#determine_error_type" do
+      it "categorizes ActiveModel::ValidationError as validation_error" do
+        error = ActiveModel::ValidationError.new(Inventory.new)
+        result = job.send(:determine_error_type, error)
+        expect(result).to eq("validation_error")
+      end
+
+      it "handles unknown error types" do
+        error = SystemExit.new
+        result = job.send(:determine_error_type, error)
+        expect(result).to eq("processing_error")
+      end
+    end
+  end
+
+  # ============================================
+  # 通知機能の完全分岐カバレッジ
+  # ============================================
+
+  describe "Notification functionality complete branch coverage" do
+    before do
+      job.instance_variable_set(:@admin_id, admin.id)
+      job.instance_variable_set(:@job_id, job_id)
+      job.instance_variable_set(:@start_time, Time.current)
+    end
+
+    describe "#update_success_status" do
+      it "updates Redis status when available" do
+        job.instance_variable_set(:@redis, redis_instance)
+        job.instance_variable_set(:@status_key, "csv_import:#{job_id}")
+        result = { valid_count: 100, invalid_records: [] }
+
+        job.send(:update_success_status, result)
+
+        expect(redis_instance.hget("csv_import:#{job_id}", "status")).to eq("completed")
+        expect(redis_instance.hget("csv_import:#{job_id}", "valid_count")).to eq("100")
+      end
+
+      it "returns early when Redis is nil" do
+        job.instance_variable_set(:@redis, nil)
+        result = { valid_count: 100, invalid_records: [] }
+
+        expect {
+          job.send(:update_success_status, result)
+        }.not_to raise_error
+      end
+    end
+
+    describe "#send_completion_message" do
+      it "sends message when admin exists" do
+        result = { valid_count: 90, invalid_records: Array.new(10) }
+
+        expect(ActionCable.server).to receive(:broadcast)
+          .with("admin_#{admin.id}", hash_including(
+            type: "csv_import_complete",
+            result: hash_including(
+              valid_count: 90,
+              invalid_count: 10
+            )
+          ))
+
+        job.send(:send_completion_message, result)
+      end
+
+      it "returns early when admin not found" do
+        job.instance_variable_set(:@admin_id, 99999)
+        result = { valid_count: 100, invalid_records: [] }
+
+        expect {
+          job.send(:send_completion_message, result)
+        }.not_to raise_error
+      end
+    end
+
+    describe "#notify_import_error" do
+      it "updates Redis when available" do
+        job.instance_variable_set(:@redis, redis_instance)
+        job.instance_variable_set(:@status_key, "csv_import:#{job_id}")
+        error = StandardError.new("Test error")
+
+        job.send(:notify_import_error, error)
+
+        expect(redis_instance.hget("csv_import:#{job_id}", "status")).to eq("failed")
+        expect(redis_instance.hget("csv_import:#{job_id}", "error_message")).to eq("Test error")
+      end
+
+      it "returns early when Redis is nil" do
+        job.instance_variable_set(:@redis, nil)
+        error = StandardError.new("Test error")
+
+        expect {
+          job.send(:notify_import_error, error)
+        }.not_to raise_error
+      end
+    end
+
+    describe "#update_error_status" do
+      it "broadcasts error when admin exists" do
+        error = SecurityError.new("Security violation")
+
+        expect(ActionCable.server).to receive(:broadcast)
+          .with("admin_#{admin.id}", hash_including(
+            type: "csv_import_error",
+            error: hash_including(
+              class: "SecurityError",
+              message: "Security violation"
+            )
+          ))
+
+        job.send(:update_error_status, error)
+      end
+
+      it "returns early when admin not found" do
+        job.instance_variable_set(:@admin_id, 99999)
+        error = StandardError.new("Test error")
+
+        expect {
+          job.send(:update_error_status, error)
+        }.not_to raise_error
+      end
+    end
+  end
+
+  # ============================================
+  # ファイルクリーンアップの完全分岐カバレッジ
+  # ============================================
+
+  describe "File cleanup complete branch coverage" do
+    before do
+      job.instance_variable_set(:@file_path, file_path)
+    end
+
+    describe "#cleanup_temp_file" do
+      it "deletes file in production environment" do
+        allow(Rails.env).to receive(:development?).and_return(false)
+        allow(File).to receive(:exist?).with(file_path).and_return(true)
+        expect(File).to receive(:delete).with(file_path)
+        allow(Rails.logger).to receive(:info)
+
+        job.send(:cleanup_temp_file)
+
+        expect(Rails.logger).to have_received(:info).with(/Temporary file cleaned up/)
+      end
+
+      it "skips deletion in development environment" do
+        allow(Rails.env).to receive(:development?).and_return(true)
+        allow(File).to receive(:exist?).with(file_path).and_return(true)
+        expect(File).not_to receive(:delete)
+
+        job.send(:cleanup_temp_file)
+      end
+
+      it "returns early when file_path is nil" do
+        job.instance_variable_set(:@file_path, nil)
+        expect(File).not_to receive(:exist?)
+
+        job.send(:cleanup_temp_file)
+      end
+
+      it "returns early when file doesn't exist" do
+        allow(File).to receive(:exist?).with(file_path).and_return(false)
+        expect(File).not_to receive(:delete)
+
+        job.send(:cleanup_temp_file)
+      end
+
+      it "handles file deletion errors gracefully" do
+        allow(Rails.env).to receive(:development?).and_return(false)
+        allow(File).to receive(:exist?).with(file_path).and_return(true)
+        allow(File).to receive(:delete).and_raise(Errno::EACCES, "Permission denied")
+        expect(Rails.logger).to receive(:warn).with(/Failed to cleanup temp file/)
+
+        expect {
+          job.send(:cleanup_temp_file)
+        }.not_to raise_error
+      end
+    end
+  end
+
+  # ============================================
+  # ジョブID生成の完全分岐カバレッジ
+  # ============================================
+
+  describe "Job ID generation complete branch coverage" do
+    describe "#generate_job_id" do
+      it "uses jid when available (Sidekiq context)" do
+        allow(job).to receive(:respond_to?).with(:jid).and_return(true)
+        allow(job).to receive(:jid).and_return("sidekiq_job_id")
+
+        result = job.send(:generate_job_id)
+        expect(result).to eq("sidekiq_job_id")
+      end
+
+      it "generates UUID when jid not available" do
+        allow(job).to receive(:respond_to?).with(:jid).and_return(false)
+        expect(SecureRandom).to receive(:uuid).and_return("generated_uuid")
+
+        result = job.send(:generate_job_id)
+        expect(result).to eq("generated_uuid")
+      end
+    end
+  end
+
+  # ============================================
+  # メッセージ構築の完全分岐カバレッジ
+  # ============================================
+
+  describe "Message building complete branch coverage" do
+    before do
+      job.instance_variable_set(:@start_time, 5.seconds.ago)
+    end
+
+    describe "#build_completion_message" do
+      it "includes invalid records when present" do
+        result = { valid_count: 80, invalid_records: Array.new(20) }
+
+        message = job.send(:build_completion_message, result)
+
+        expect(message).to include("80")
+        expect(message).to include("20")
+      end
+
+      it "excludes invalid records message when count is 0" do
+        result = { valid_count: 100, invalid_records: [] }
+
+        message = job.send(:build_completion_message, result)
+
+        expect(message).to include("100")
+        expect(message).not_to match(/invalid.*0/i)
+      end
+    end
+  end
+
+  # ============================================
+  # エラーハンドリングの完全分岐カバレッジ
+  # ============================================
+
+  describe "Error handling complete branch coverage" do
+    before do
+      job.instance_variable_set(:@file_path, file_path)
+      job.instance_variable_set(:@admin_id, admin.id)
+      job.instance_variable_set(:@job_id, job_id)
+      job.instance_variable_set(:@start_time, Time.current)
+    end
+
+    describe "#log_import_error" do
+      it "includes backtrace when available" do
+        error = StandardError.new("Test error")
+        error.set_backtrace([ "line1", "line2", "line3", "line4", "line5", "line6" ])
+
+        expect(Rails.logger).to receive(:error) do |log_data|
+          parsed = JSON.parse(log_data)
+          expect(parsed["error_backtrace"]).to eq([ "line1", "line2", "line3", "line4", "line5" ])
+        end
+
+        job.send(:log_import_error, error)
+      end
+
+      it "handles nil backtrace" do
+        error = StandardError.new("Test error")
+        error.set_backtrace(nil)
+
+        expect(Rails.logger).to receive(:error) do |log_data|
+          parsed = JSON.parse(log_data)
+          expect(parsed["error_backtrace"]).to be_nil
+        end
+
+        job.send(:log_import_error, error)
+      end
+    end
+  end
+end

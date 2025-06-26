@@ -191,7 +191,7 @@
                   <i class="bi bi-building me-1"></i>メーカー
                 </label>
                 <%= f.select "q[manufacturer_eq]", 
-                             options_for_select([['すべてのメーカー', '']] + @manufacturers.map { |m| [m, m] },
+                             options_for_select([['すべてのメーカー', '']] + (@manufacturers || []).map { |m| [m, m] },
                                                params.dig(:q, :manufacturer_eq)),
                              {},
                              { class: "form-select bg-white text-dark", 
@@ -203,7 +203,7 @@
                   <i class="bi bi-traffic-light me-1"></i>在庫状態
                 </label>
                 <%= f.select "q[stock_level_eq]", 
-                             options_for_select([['すべての状態', '']] + @stock_levels,
+                             options_for_select([['すべての状態', '']] + (@stock_level_options || []),
                                                params.dig(:q, :stock_level_eq)),
                              {},
                              { class: "form-select bg-white text-dark", 

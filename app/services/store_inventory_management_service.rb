@@ -79,7 +79,7 @@ class StoreInventoryManagementService
       total_value: calculate_total_value(store_inventories),
       low_stock_percentage: calculate_low_stock_percentage(store_inventories),
       out_of_stock_count: store_inventories.count { |si| si.quantity <= 0 },
-      low_stock_count: store_inventories.count { |si| si.quantity > 0 && si.quantity <= si.reorder_level }
+      low_stock_count: store_inventories.count { |si| si.quantity > 0 && si.reorder_level.present? && si.quantity <= si.reorder_level }
     }
   end
 
@@ -162,7 +162,7 @@ class StoreInventoryManagementService
     return 0 if store_inventories.empty?
 
     low_stock_count = store_inventories.count do |si|
-      si.quantity > 0 && si.quantity <= si.reorder_level
+      si.quantity > 0 && si.reorder_level.present? && si.quantity <= si.reorder_level
     end
 
     (low_stock_count.to_f / store_inventories.count * 100).round(1)

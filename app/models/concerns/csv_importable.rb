@@ -90,7 +90,7 @@ module CsvImportable
       end
 
       {
-        valid_count: total_valid_count,
+        valid_count: total_valid_count + total_update_count,
         update_count: total_update_count,
         invalid_records: invalid_records,
         skipped_count: skipped_count,

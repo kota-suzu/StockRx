@@ -123,6 +123,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_25_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "initial_quantity", comment: "初期数量（入荷時の数量）"
+    t.index ["expires_on", "quantity"], name: "idx_batches_expiry_stock", comment: "Expiring inventory tracking optimization"
     t.index ["expires_on"], name: "index_batches_on_expires_on"
     t.index ["inventory_id", "lot_code"], name: "uniq_inventory_lot", unique: true
     t.index ["inventory_id"], name: "index_batches_on_inventory_id"
@@ -202,6 +203,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_25_120000) do
     t.index ["shipped_by_type", "shipped_by_id"], name: "idx_on_shipped_by_type_shipped_by_id_48034d92a4"
     t.index ["source_store_id", "status", "requested_at"], name: "idx_source_status_date", comment: "店舗別ステータス・日時複合検索"
     t.index ["source_store_id"], name: "index_inter_store_transfers_on_source_store_id", comment: "移動元店舗検索最適化"
+    t.index ["status", "priority", "requested_at"], name: "idx_transfers_priority_queue", comment: "Transfer queue processing optimization"
     t.index ["status", "priority"], name: "index_inter_store_transfers_on_status_and_priority", comment: "ステータス・優先度複合検索"
     t.index ["status"], name: "index_inter_store_transfers_on_status", comment: "ステータス別検索最適化"
     t.check_constraint "`quantity` > 0", name: "chk_positive_quantity"
@@ -221,7 +223,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_25_120000) do
     t.integer "receipts_count", default: 0, null: false
     t.string "sku"
     t.string "manufacturer"
-    t.string "unit"
+    t.integer "unit", default: 0, null: false
     t.integer "safety_stock_level", default: 10, null: false, comment: "安全在庫レベル（アラート閾値、デフォルト10）"
     t.integer "reserved_quantity", default: 0, null: false, comment: "予約済み在庫数（移動申請中・予約中等、デフォルト0）"
     t.index ["batches_count"], name: "index_inventories_on_batches_count"
@@ -233,6 +235,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_25_120000) do
     t.index ["reserved_quantity"], name: "idx_inventories_reserved", comment: "予約済み在庫検索最適化"
     t.index ["shipments_count"], name: "index_inventories_on_shipments_count"
     t.index ["status", "quantity"], name: "idx_inventories_status_quantity", comment: "ステータス別在庫数検索最適化"
+    t.index ["unit"], name: "index_inventories_on_unit", comment: "Unit type search optimization"
     t.check_constraint "`reserved_quantity` <= `quantity`", name: "chk_reserved_not_exceed_quantity"
     t.check_constraint "`safety_stock_level` > 0", name: "chk_positive_safety_stock"
   end
@@ -332,6 +335,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_25_120000) do
     t.integer "reorder_level", comment: "発注レベル（この数量以下で発注が必要）"
     t.index ["inventory_id"], name: "index_store_inventories_on_inventory_id"
     t.index ["last_updated_at"], name: "index_store_inventories_on_last_updated_at", comment: "最終更新日時検索最適化"
+    t.index ["quantity", "safety_stock_level", "reserved_quantity"], name: "idx_store_inv_stock_analysis", comment: "Store inventory analysis optimization"
     t.index ["quantity", "safety_stock_level"], name: "idx_stock_levels", comment: "在庫レベル検索最適化"
     t.index ["store_id", "inventory_id"], name: "uniq_store_inventory", unique: true, comment: "店舗・商品組み合わせ一意制約"
     t.index ["store_id", "quantity", "safety_stock_level"], name: "idx_low_stock_alert", comment: "低在庫アラート検索最適化"

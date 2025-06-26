@@ -328,7 +328,7 @@ module Auditable
     # メタ認知: 変更内容のマスキングは属性のマスキングと一貫性を保つ
     changes.each do |key, values|
       # 設定された機密フィールドのみマスキング
-      if audit_options[:sensitive].include?(key.to_sym)
+      if audit_options[:sensitive].present? && audit_options[:sensitive].include?(key.to_sym)
         changes[key] = [ "[FILTERED]", "[FILTERED]" ]
       else
         # 特定のフィールド名パターンに基づくマスキング
@@ -354,9 +354,11 @@ module Auditable
     # ベストプラクティス: 過度なマスキングは監査ログの有用性を損なうため避ける
 
     # 設定された機密フィールド
-    audit_options[:sensitive].each do |field|
-      if attrs.key?(field.to_s)
-        attrs[field.to_s] = "[FILTERED]"
+    if audit_options[:sensitive].present?
+      audit_options[:sensitive].each do |field|
+        if attrs.key?(field.to_s)
+          attrs[field.to_s] = "[FILTERED]"
+        end
       end
     end
 

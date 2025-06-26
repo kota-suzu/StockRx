@@ -27,8 +27,8 @@ module StoreScopedAuthorization
   def verify_store_access!
     return unless current_store_user.present?
 
-    # スーパーバイザー権限チェック
-    return if current_store_user.supervisor?
+    # マネージャー権限チェック（全店舗アクセス可能）
+    return if current_store_user.manager?
 
     # 店舗IDが指定されている場合の検証
     if params[:store_id].present?
@@ -45,9 +45,9 @@ module StoreScopedAuthorization
   def authorized_for_store?(store_id)
     return false unless current_store_user
 
-    # 所属店舗のみアクセス可能（スーパーバイザー除く）
-    if current_store_user.supervisor?
-      # スーパーバイザーは全店舗アクセス可能
+    # 所属店舗のみアクセス可能（マネージャー除く）
+    if current_store_user.manager?
+      # マネージャーは全店舗アクセス可能
       true
     else
       current_store_user.store_id.to_s == store_id.to_s
@@ -57,7 +57,7 @@ module StoreScopedAuthorization
   # リソースが現在の店舗に属するか確認
   def belongs_to_current_store?(resource)
     return true unless resource.respond_to?(:store_id)
-    return true if current_store_user.supervisor?
+    return true if current_store_user.manager?
 
     resource.store_id == current_store_user.store_id
   end
@@ -95,7 +95,7 @@ module StoreScopedAuthorization
 
   # 店舗スコープを適用したクエリ
   def apply_store_scope(relation)
-    return relation if current_store_user.supervisor?
+    return relation if current_store_user.manager?
 
     if relation.respond_to?(:where)
       relation.where(store_id: current_store_user.store_id)
@@ -106,7 +106,7 @@ module StoreScopedAuthorization
 
   # set_inventoryメソッドの店舗スコープ版
   def set_inventory_with_store_scope
-    @inventory = if current_store_user.supervisor?
+    @inventory = if current_store_user.manager?
                    Inventory.find(params[:id])
     else
                    current_store.inventories.find(params[:id])
@@ -117,7 +117,7 @@ module StoreScopedAuthorization
 
   # 在庫の一括取得（店舗スコープ付き）
   def store_scoped_inventories
-    @inventories = if current_store_user.supervisor?
+    @inventories = if current_store_user.manager?
                      Inventory.includes(:batches, :store)
     else
                      current_store.inventories.includes(:batches)
@@ -187,7 +187,7 @@ module StoreScopedAuthorization
 
   # 店舗管理者権限の確認
   def store_manager?
-    current_store_user&.manager? || current_store_user&.supervisor?
+    current_store_user&.manager?
   end
 
   # 読み取り専用権限の確認
@@ -210,7 +210,7 @@ module StoreScopedAuthorization
       store_manager? || handle_unauthorized_access(:insufficient_permissions)
     when "destroy"
       # 削除は店舗管理者またはスーパーバイザーのみ
-      (store_manager? || current_store_user.supervisor?) ||
+      (store_manager? || current_store_user.manager?) ||
         handle_unauthorized_access(:delete_not_allowed)
     else
       # カスタムアクションはデフォルト拒否

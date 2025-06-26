@@ -70,11 +70,13 @@ module StoreControllers
         "(store_inventories.quantity::float / NULLIF(store_inventories.safety_stock_level, 0)) ASC"
       )
 
+      # パフォーマンス最適化: selectで必要なカラムのみ取得
       @low_stock_items = current_store.store_inventories
                                      .joins(:inventory)
                                      .where("store_inventories.quantity <= store_inventories.safety_stock_level")
                                      .where("store_inventories.quantity > 0")
                                      .includes(:inventory)
+                                     .select("store_inventories.*, inventories.name, inventories.price")
                                      .order(safety_ratio_order)
                                      .limit(10)
 
@@ -82,6 +84,7 @@ module StoreControllers
                                          .joins(:inventory)
                                          .where("store_inventories.quantity = 0")
                                          .includes(:inventory)
+                                         .select("store_inventories.*, inventories.name, inventories.price")
                                          .order(updated_at: :desc)
                                          .limit(10)
 
@@ -95,19 +98,17 @@ module StoreControllers
       # TODO: 🔴 Phase 3（緊急）- パフォーマンス向上
       #   - バッチテーブルにインデックス追加: INDEX(inventory_id, expires_on)
       #   - 期限切れクエリの高速化
-      expiration_select = Arel.sql(
-        "store_inventories.*, batches.expires_on, batches.lot_code"
-      )
-      expiration_order = Arel.sql("batches.expires_on ASC")
 
-      @expiring_items = current_store.store_inventories
-                                     .joins(inventory: :batches)
-                                     .where("batches.expires_on <= ?", 30.days.from_now)
-                                     .where("batches.expires_on >= ?", Date.current)
-                                     .select(expiration_select)
-                                     .includes(inventory: :batches)
-                                     .order(expiration_order)
-                                     .limit(10)
+      # パフォーマンス最適化: 期限切れ間近のバッチを直接取得
+      # メタ認知: ビューでlot_codeとexpires_onが必要なため、Batchオブジェクトを返す
+      # 横展開: 他の期限管理画面でも同様のパターン適用可能
+      @expiring_items = Batch.joins(inventory: :store_inventories)
+                             .where(store_inventories: { store_id: current_store.id })
+                             .where("batches.expires_on BETWEEN ? AND ?", Date.current, 30.days.from_now)
+                             .where("batches.quantity > 0")
+                             .includes(:inventory)
+                             .order(:expires_on)
+                             .limit(10)
     end
 
     # 店舗間移動サマリーの読み込み
@@ -144,11 +145,21 @@ module StoreControllers
       # TODO: 🟡 Phase 2（重要）- 店舗別在庫変動追跡の実装
       #   - store_inventory_logsテーブルまたはpolymorphicな設計検討
       #   - 現在は店舗が扱う商品の全体ログを表示
-      inventory_ids = current_store.inventories.pluck(:id)
-      @recent_inventory_changes = InventoryLog.where(inventory_id: inventory_ids)
-                                             .includes(:inventory, :admin)
-                                             .order(created_at: :desc)
-                                             .limit(10)
+
+      # パフォーマンス最適化: pluckの代わりにselectとlimitで必要なデータのみ取得
+      inventory_ids = current_store.store_inventories
+                                  .select(:inventory_id)
+                                  .limit(100)  # 最新100商品分のみ
+                                  .pluck(:inventory_id)
+
+      if inventory_ids.any?
+        @recent_inventory_changes = InventoryLog.where(inventory_id: inventory_ids)
+                                               .includes(:inventory, :admin)
+                                               .order(created_at: :desc)
+                                               .limit(10)
+      else
+        @recent_inventory_changes = InventoryLog.none
+      end
     end
 
     # グラフ用データの読み込み
