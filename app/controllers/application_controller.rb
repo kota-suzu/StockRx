@@ -4,11 +4,21 @@ class ApplicationController < ActionController::Base
   # エラーハンドリングの追加
   include ErrorHandlers
 
+  # セキュリティヘッダーの追加 (Phase 5-3)
+  include SecurityHeaders
+
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
   # リクエストごとにCurrentを設定
   before_action :set_current_attributes
+
+  # QAレビュー対応: 機密情報フィルタリング
+  before_action :configure_sensitive_data_filtering
+
+  # セキュリティ例外処理
+  rescue_from SecurityError, with: :handle_security_error
+  rescue_from ActionController::InvalidAuthenticityToken, with: :handle_csrf_error
 
   # ============================================
   # セキュリティ監視の統合
@@ -16,6 +26,14 @@ class ApplicationController < ActionController::Base
 
   before_action :monitor_request_security
   after_action :track_response_metrics
+
+  # TODO: 🔴 Phase 1（緊急）- パフォーマンス監視機能
+  # 優先度: 高（CLAUDE.md準拠）
+  # 実装内容:
+  #   - SQLクエリ数監視（Bullet gem統合拡張）
+  #   - メモリ使用量監視システム
+  #   - レスポンス時間ベンチマーク
+  # around_action :monitor_performance, if: -> { Rails.env.development? }
 
   # 管理画面用ヘルパーはすべて「app/helpers」直下に配置し
   # Railsの規約に従ってモジュール名と一致させる
@@ -36,6 +54,15 @@ class ApplicationController < ActionController::Base
   def monitor_request_security
     # テスト環境では無効化
     return if Rails.env.test?
+
+    # TODO: 🔴 Phase 1 - テスト環境でのセキュリティチェック完全無効化（優先度：最高）
+    # 問題: Rails.env.test?の判定が効かず、テストで403エラーが発生
+    # 原因: 環境変数やRailsの設定でテスト環境が正しく判定されていない可能性
+    # 影響: request specが全体的に失敗
+    # 解決策:
+    # 1. config/environments/test.rb でセキュリティ機能を無効化
+    # 2. SecurityMonitorクラスにテストモードを追加
+    # 3. before(:each) でSecurityMonitorを明示的に無効化
 
     # IP ブロックチェック
     if SecurityMonitor.is_blocked?(request.remote_ip)
@@ -79,6 +106,71 @@ class ApplicationController < ActionController::Base
         }.to_json)
       end
     end
+  end
+
+  # ============================================
+  # QAレビュー対応: 機密情報保護
+  # ============================================
+
+  # 機密情報フィルタリングの設定
+  def configure_sensitive_data_filtering
+    # Railsログフィルターの拡張
+    Rails.application.config.filter_parameters += [
+      :password, :token, :api_key, :secret, :credit_card,
+      :cvv, :ssn, :email, :phone, :address
+    ]
+
+    # カスタムログフォーマッターの設定
+    if Rails.logger.respond_to?(:formatter=)
+      Rails.logger.formatter = SensitiveLogFormatter.new
+    end
+  end
+
+  # セキュリティエラーハンドリング
+  def handle_security_error(exception)
+    # 機密情報を含まないエラーログ
+    Rails.logger.error(
+      SensitiveDataFilter.filter_log_message(
+        "Security error: #{exception.class} - #{exception.message}"
+      )
+    )
+
+    # ユーザーには最小限の情報のみ返す
+    respond_to do |format|
+      format.html { render plain: "Security Error", status: :forbidden }
+      format.json { render json: { error: "Security Error" }, status: :forbidden }
+    end
+  end
+
+  # CSRF エラーハンドリング
+  def handle_csrf_error(exception)
+    Rails.logger.warn "CSRF token verification failed for IP: #{request.remote_ip}"
+
+    respond_to do |format|
+      format.html do
+        flash[:alert] = t("errors.csrf_detected")
+        redirect_back(fallback_location: root_path)
+      end
+      format.json do
+        render json: { error: "CSRF token invalid" }, status: :unprocessable_entity
+      end
+    end
+  end
+
+  # パラメータのサニタイズ（オーバーライド可能）
+  def sanitized_params
+    @sanitized_params ||= SensitiveDataFilter.filter(params)
+  end
+
+  # ログ用のリクエスト情報（機密情報除去済み）
+  def filtered_request_info
+    {
+      method: request.method,
+      path: request.path,
+      params: sanitized_params.except(:controller, :action),
+      ip: request.remote_ip,
+      user_agent: request.user_agent
+    }
   end
 end
 

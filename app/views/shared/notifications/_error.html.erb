@@ -1,0 +1,22 @@
+<turbo-stream action="append" target="flash-messages">
+  <template>
+    <div class="flash-message error-message alert alert-danger alert-dismissible fade show" 
+         data-controller="flash" 
+         data-flash-target="message"
+         data-action="animationend->flash#remove"
+         role="alert">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+        <span><%= message %></span>
+      </div>
+      <% if details.present? %>
+        <ul class="mt-2 list-unstyled small">
+          <% details.each do |detail| %>
+            <li class="mb-1">• <%= detail %></li>
+          <% end %>
+        </ul>
+      <% end %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  </template>
+</turbo-stream> 

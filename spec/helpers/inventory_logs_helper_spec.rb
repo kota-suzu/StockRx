@@ -1,198 +1,617 @@
+# frozen_string_literal: true
+
 require 'rails_helper'
 
-# ============================================================================
-# InventoryLogsHelper Spec
-# ============================================================================
-# 目的:
-#   - InventoryLogsHelperのヘルパーメソッドをテスト
-#   - 在庫操作ログの表示・フォーマット機能をテスト
-#   - 日時フォーマット、操作タイプ表示などの確認
-#
-# TODO: 🔴 Phase 1（緊急）- 基本ヘルパー機能実装（推定半日）
-# 優先度: 高（在庫ログ表示機能として必須）
-# 実装内容:
-#   - action_type_display(action) - 操作タイプの日本語表示
-#   - format_log_datetime(datetime) - ログ日時のフォーマット
-#   - operation_badge_class(action) - 操作タイプ別のCSSクラス
-#   - quantity_change_display(before, after) - 数量変更の差分表示
-#
-# TODO: 🟠 Phase 2（重要）- 高度なヘルパー機能（推定1日）
-# 優先度: 中（ユーザビリティ向上）
-# 実装内容:
-#   - user_display_name(user) - ユーザー名の安全な表示
-#   - batch_info_summary(log) - バッチ情報の要約表示
-#   - operation_trend_icon(logs) - 操作トレンドアイコン
-#   - export_button_helper(logs) - エクスポート機能ボタン
-#
-# TODO: 🟡 Phase 3（推奨）- 分析・レポート機能（推定2日）
-# 優先度: 低（高度な分析機能）
-# 実装内容:
-#   - operation_statistics_chart(logs) - 操作統計チャート
-#   - inventory_activity_timeline(logs) - アクティビティタイムライン
-#   - frequency_analysis_helper(logs) - 頻度分析ヘルパー
-#   - anomaly_detection_badge(log) - 異常検知バッジ
-#
-# 横展開確認:
-#   - AdminControllers::InventoriesHelperとの統一
-#   - 他のHelperクラスでの同様のTODOパターン適用
-#   -国際化対応（i18n）の一貫性
-#   - アクセシビリティ対応（ARIA属性など）
-# ============================================================================
-
 RSpec.describe InventoryLogsHelper, type: :helper do
-  describe "基本ヘルパーメソッド群" do
-    # TODO: 🔴 Phase 1 - action_type_display メソッドのテスト
-    context "#action_type_display" do
-      it "action_type_display('increment') -> '入庫' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "action_type_display('decrement') -> '出庫' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "action_type_display('adjustment') -> '調整' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "不明なaction_typeの場合のデフォルト表示をテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "nilやblank値の場合のハンドリングをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+  # CLAUDE.md準拠: 在庫ログヘルパーの包括的テスト
+  # メタ認知: ログ表示の一貫性とUI/UXの品質保証
+  # 横展開: 他のログ系ヘルパー（AuditLog等）でも同様のパターン適用
+
+  let(:admin) { create(:admin) }
+  let(:inventory) { create(:inventory) }
+  let(:inventory_log) { create(:inventory_log, inventory: inventory, admin: admin) }
+
+  # ============================================
+  # operation_badge_class メソッドのテスト
+  # ============================================
+
+  describe "#operation_badge_class" do
+    context "追加・作成操作" do
+      it "add操作で成功バッジクラスを返す" do
+        expect(helper.operation_badge_class("add")).to eq("badge bg-success bg-opacity-20 text-success")
+      end
+
+      it "create操作で成功バッジクラスを返す" do
+        expect(helper.operation_badge_class("create")).to eq("badge bg-success bg-opacity-20 text-success")
+      end
     end
 
-    # TODO: 🔴 Phase 1 - format_log_datetime メソッドのテスト
-    context "#format_log_datetime" do
-      it "DateTime.current -> '2024-06-14 13:45:32' 形式でフォーマットすることをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "タイムゾーンを考慮した表示をテスト（JST表示）", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "nilやinvalid dateの場合の安全なハンドリングをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "相対時間表示（'3時間前'など）のオプションをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+    context "削除操作" do
+      it "remove操作で危険バッジクラスを返す" do
+        expect(helper.operation_badge_class("remove")).to eq("badge bg-danger bg-opacity-20 text-danger")
+      end
+
+      it "delete操作で危険バッジクラスを返す" do
+        expect(helper.operation_badge_class("delete")).to eq("badge bg-danger bg-opacity-20 text-danger")
+      end
     end
 
-    # TODO: 🔴 Phase 1 - operation_badge_class メソッドのテスト
-    context "#operation_badge_class" do
-      it "'increment' -> 'badge badge-success' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "'decrement' -> 'badge badge-warning' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "'adjustment' -> 'badge badge-info' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "不明なactionの場合の 'badge badge-secondary' をテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
+    context "調整・更新操作" do
+      it "adjust操作でプライマリーバッジクラスを返す" do
+        expect(helper.operation_badge_class("adjust")).to eq("badge bg-primary bg-opacity-20 text-primary")
+      end
+
+      it "update操作でプライマリーバッジクラスを返す" do
+        expect(helper.operation_badge_class("update")).to eq("badge bg-primary bg-opacity-20 text-primary")
+      end
     end
 
-    # TODO: 🔴 Phase 1 - quantity_change_display メソッドのテスト
-    context "#quantity_change_display" do
-      it "quantity_change_display(10, 15) -> '+5' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "quantity_change_display(20, 18) -> '-2' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "quantity_change_display(10, 10) -> '±0' を返すことをテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-      it "大きな数値での表示（カンマ区切り）をテスト", skip: "Phase 1で実装予定: 基本ヘルパー機能実装"
-    end
-  end
-
-  describe "高度なヘルパーメソッド群" do
-    # TODO: 🟠 Phase 2 - user_display_name メソッドのテスト
-    context "#user_display_name" do
-      it "通常ユーザーの場合の名前表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
-      it "adminユーザーの場合の特別表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
-      it "削除済みユーザーの場合の '（削除済みユーザー）' 表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
-      it "nilユーザーの場合の 'システム' 表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
+    context "インポート操作" do
+      it "import操作で情報バッジクラスを返す" do
+        expect(helper.operation_badge_class("import")).to eq("badge bg-info bg-opacity-20 text-info")
+      end
     end
 
-    # TODO: 🟠 Phase 2 - batch_info_summary メソッドのテスト
-    context "#batch_info_summary" do
-      it "ロット番号と期限日の組み合わせ表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
-      it "期限切れバッチの警告表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
-      it "バッチ情報がない場合のデフォルト表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
-      it "複数バッチが関連する場合の表示をテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
+    context "その他の操作" do
+      it "未知の操作でセカンダリーバッジクラスを返す" do
+        expect(helper.operation_badge_class("unknown")).to eq("badge bg-secondary bg-opacity-20 text-secondary")
+      end
+
+      it "空文字列でセカンダリーバッジクラスを返す" do
+        expect(helper.operation_badge_class("")).to eq("badge bg-secondary bg-opacity-20 text-secondary")
+      end
+
+      it "nilでセカンダリーバッジクラスを返す" do
+        expect(helper.operation_badge_class(nil)).to eq("badge bg-secondary bg-opacity-20 text-secondary")
+      end
     end
 
-    # TODO: 🟠 Phase 2 - operation_trend_icon メソッドのテスト
-    context "#operation_trend_icon" do
-      it "在庫増加トレンドの場合の上矢印アイコンをテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
-      it "在庫減少トレンドの場合の下矢印アイコンをテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
-      it "安定状態の場合の横矢印アイコンをテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
-      it "データ不足の場合のデフォルトアイコンをテスト", skip: "Phase 2で実装予定: 高度なヘルパー機能実装"
-    end
-  end
-
-  describe "分析・レポート機能" do
-    # TODO: 🟡 Phase 3 - operation_statistics_chart メソッドのテスト
-    context "#operation_statistics_chart" do
-      it "Chart.jsまたはGoogle Charts用のデータ形式生成をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "日別・週別・月別の集計オプションをテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "操作タイプ別の色分け設定をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "空データの場合のチャート生成をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-    end
-
-    # TODO: 🟡 Phase 3 - inventory_activity_timeline メソッドのテスト
-    context "#inventory_activity_timeline" do
-      it "時系列でのアクティビティ表示HTMLの生成をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "同日内の複数操作のグループ化をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "アクティビティアイコンの適切な選択をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "レスポンシブ対応のタイムライン表示をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-    end
-
-    # TODO: 🟡 Phase 3 - frequency_analysis_helper メソッドのテスト
-    context "#frequency_analysis_helper" do
-      it "操作頻度の分析結果の表示をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "頻度異常の検知と警告表示をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "時間帯別・曜日別の頻度分析をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "ユーザー別の操作頻度比較をテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-    end
-
-    # TODO: 🟡 Phase 3 - anomaly_detection_badge メソッドのテスト
-    context "#anomaly_detection_badge" do
-      it "異常な数量変更の検知バッジをテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "時間外操作の検知バッジをテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "連続操作の検知バッジをテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
-      it "権限外操作の検知バッジをテスト", skip: "Phase 3で実装予定: 分析・レポート機能実装"
+    context "型変換" do
+      it "シンボルでも適切に処理される" do
+        expect(helper.operation_badge_class(:create)).to eq("badge bg-success bg-opacity-20 text-success")
+      end
     end
   end
 
-  describe "国際化・アクセシビリティ対応" do
-    # TODO: 🟢 Phase 4 - 国際化対応テスト
-    context "国際化対応" do
-      it "日本語・英語での表示切り替えをテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
-      it "数値フォーマットのロケール対応をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
-      it "日時フォーマットのロケール対応をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
-      it "エラーメッセージの国際化をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
+  # ============================================
+  # operation_icon_class メソッドのテスト
+  # ============================================
+
+  describe "#operation_icon_class" do
+    context "操作種別ごとのアイコン" do
+      it "add操作でプラスアイコンを返す" do
+        expect(helper.operation_icon_class("add")).to eq("bi-plus-circle-fill text-success")
+      end
+
+      it "remove操作でゴミ箱アイコンを返す" do
+        expect(helper.operation_icon_class("remove")).to eq("bi-trash3-fill text-danger")
+      end
+
+      it "adjust操作で鉛筆アイコンを返す" do
+        expect(helper.operation_icon_class("adjust")).to eq("bi-pencil-square text-primary")
+      end
+
+      it "import操作でダウンロードアイコンを返す" do
+        expect(helper.operation_icon_class("import")).to eq("bi-cloud-download-fill text-info")
+      end
+
+      it "その他の操作でファイルアイコンを返す" do
+        expect(helper.operation_icon_class("other")).to eq("bi-file-text-fill text-secondary")
+      end
     end
 
-    # TODO: 🟢 Phase 4 - アクセシビリティ対応テスト
-    context "アクセシビリティ対応" do
-      it "ARIA属性の適切な設定をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
-      it "スクリーンリーダー対応のalt text設定をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
-      it "キーボードナビゲーション対応をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
-      it "カラーコントラスト比の確保をテスト", skip: "Phase 4で実装予定: 国際化・アクセシビリティ対応"
+    context "Bootstrap Icons準拠" do
+      %w[add remove adjust import other].each do |operation|
+        it "#{operation}のアイコンがBootstrap Icons形式" do
+          icon_class = helper.operation_icon_class(operation)
+          expect(icon_class).to start_with("bi-")
+          expect(icon_class).to match(/text-(success|danger|primary|info|secondary)/)
+        end
+      end
     end
   end
 
-  describe "パフォーマンス・セキュリティ" do
-    # TODO: 🟢 Phase 4 - パフォーマンステスト
-    context "パフォーマンス" do
-      it "大量ログデータでのヘルパー呼び出し性能をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
-      it "HTMLエスケープ処理の性能をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
-      it "キャッシュ機能の効果をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
-      it "メモリ使用量の最適化をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
+  # ============================================
+  # operation_type_label メソッドのテスト
+  # ============================================
+
+  describe "#operation_type_label" do
+    context "基本的な操作種別" do
+      it "add/createで追加・新規登録を返す" do
+        expect(helper.operation_type_label("add")).to eq("追加・新規登録")
+        expect(helper.operation_type_label("create")).to eq("追加・新規登録")
+      end
+
+      it "remove/deleteで削除を返す" do
+        expect(helper.operation_type_label("remove")).to eq("削除")
+        expect(helper.operation_type_label("delete")).to eq("削除")
+      end
+
+      it "adjust/updateで調整・更新を返す" do
+        expect(helper.operation_type_label("adjust")).to eq("調整・更新")
+        expect(helper.operation_type_label("update")).to eq("調整・更新")
+      end
     end
 
-    # TODO: 🟢 Phase 4 - セキュリティテスト
-    context "セキュリティ" do
-      it "XSS脆弱性の防止をテスト（HTMLエスケープ）", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
-      it "機密情報の適切なマスキングをテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
-      it "権限に応じた情報表示制御をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
-      it "ログ情報の不正アクセス防止をテスト", skip: "Phase 4で実装予定: パフォーマンス・セキュリティ対応"
+    context "拡張操作種別" do
+      it "exportでエクスポートを返す" do
+        expect(helper.operation_type_label("export")).to eq("エクスポート")
+      end
+
+      it "transferで移動を返す" do
+        expect(helper.operation_type_label("transfer")).to eq("移動")
+      end
+
+      it "countで棚卸を返す" do
+        expect(helper.operation_type_label("count")).to eq("棚卸")
+      end
+    end
+
+    context "未定義の操作種別" do
+      it "未知の操作でhumanize形式を返す" do
+        expect(helper.operation_type_label("custom_operation")).to eq("Custom operation")
+      end
     end
   end
 
-  # ============================================================================
-  # メタ認知的確認項目（テスト実装時のチェックリスト）
-  # ============================================================================
-  #
-  # 【横展開確認項目】
-  # 1. AdminControllers::InventoriesHelperとのヘルパーメソッド命名一貫性
-  # 2. 他のHelperクラスでの同様のTODOコメント標準化
-  # 3. FactoryBotでのテストデータ作成パターンの統一
-  # 4. RSpecマッチャーの一貫した使用（shared_examples活用）
-  # 5. 国際化対応のテストパターン統一化
-  #
-  # 【ベストプラクティス適用】
-  # 1. ヘルパーメソッドの単体テストと統合テストのバランス
-  # 2. エッジケース（nil, blank, invalid data）の網羅的テスト
-  # 3. HTMLエスケープ・セキュリティの確認
-  # 4. レスポンシブ対応・アクセシビリティの考慮
-  # 5. パフォーマンステストの閾値設定
-  #
-  # 【実装優先度の再確認】
-  # Phase 1: 基本表示機能（在庫ログ画面で必須）
-  # Phase 2: UX向上機能（ユーザビリティ改善）
-  # Phase 3: 分析機能（高度な機能、差別化）
-  # Phase 4: 国際化・アクセシビリティ（将来対応）
-  # ============================================================================
+  # ============================================
+  # operation_type_short_label メソッドのテスト
+  # ============================================
+
+  describe "#operation_type_short_label" do
+    it "短縮形のラベルを返す" do
+      expect(helper.operation_type_short_label("add")).to eq("追加")
+      expect(helper.operation_type_short_label("remove")).to eq("削除")
+      expect(helper.operation_type_short_label("adjust")).to eq("更新")
+      expect(helper.operation_type_short_label("import")).to eq("インポート")
+      expect(helper.operation_type_short_label("other")).to eq("other")
+    end
+  end
+
+  # ============================================
+  # inventory_log_filter_links メソッドのテスト
+  # ============================================
+
+  describe "#inventory_log_filter_links" do
+    context "フィルターリンクの生成" do
+      it "ボタングループを生成する" do
+        result = helper.inventory_log_filter_links
+        expect(result).to include('class="btn-group mb-3"')
+        expect(result).to include('role="group"')
+      end
+
+      it "全てのフィルターオプションを含む" do
+        result = helper.inventory_log_filter_links
+        expect(result).to include("全て")
+        expect(result).to include("追加")
+        expect(result).to include("更新")
+        expect(result).to include("削除")
+        expect(result).to include("インポート")
+      end
+
+      it "各フィルターに適切なアイコンを含む" do
+        result = helper.inventory_log_filter_links
+        expect(result).to include("bi-list")
+        expect(result).to include("bi-plus-circle")
+        expect(result).to include("bi-pencil-square")
+        expect(result).to include("bi-trash")
+        expect(result).to include("bi-download")
+      end
+    end
+
+    context "アクティブ状態の表示" do
+      it "現在のフィルターがアクティブクラスを持つ" do
+        result = helper.inventory_log_filter_links("create")
+        expect(result).to match(/<a[^>]*class="[^"]*active[^"]*"[^>]*>.*追加/)
+      end
+
+      it "フィルターなしの場合、全てがアクティブ" do
+        result = helper.inventory_log_filter_links(nil)
+        expect(result).to match(/<a[^>]*class="[^"]*active[^"]*"[^>]*>.*全て/)
+      end
+    end
+
+    context "HTMLの安全性" do
+      it "HTML安全な文字列を返す" do
+        result = helper.inventory_log_filter_links
+        expect(result).to be_html_safe
+      end
+    end
+  end
+
+  # ============================================
+  # log_importance_class メソッドのテスト
+  # ============================================
+
+  describe "#log_importance_class" do
+    it "削除操作で危険ボーダークラスを返す" do
+      log = build(:inventory_log, operation_type: "delete")
+      expect(helper.log_importance_class(log)).to eq("border-start border-danger border-3")
+    end
+
+    it "インポート操作で情報ボーダークラスを返す" do
+      log = build(:inventory_log, operation_type: "import")
+      expect(helper.log_importance_class(log)).to eq("border-start border-info border-3")
+    end
+
+    it "作成操作で成功ボーダークラスを返す" do
+      log = build(:inventory_log, operation_type: "create")
+      expect(helper.log_importance_class(log)).to eq("border-start border-success border-3")
+    end
+
+    it "その他の操作で空文字を返す" do
+      log = build(:inventory_log, operation_type: "update")
+      expect(helper.log_importance_class(log)).to eq("")
+    end
+  end
+
+  # ============================================
+  # format_log_details メソッドのテスト
+  # ============================================
+
+  describe "#format_log_details" do
+    context "詳細情報のフォーマット" do
+      it "数量変更を含む" do
+        log = build(:inventory_log, quantity_changed: 10)
+        expect(helper.format_log_details(log)).to include("数量: 10")
+      end
+
+      it "備考を含む（切り詰めあり）" do
+        long_note = "あ" * 100
+        log = build(:inventory_log, note: long_note)
+        result = helper.format_log_details(log)
+        expect(result).to include("備考:")
+        expect(result.length).to be < 100
+      end
+
+      it "バッチIDを含む" do
+        log = build(:inventory_log, batch_id: 123)
+        expect(helper.format_log_details(log)).to include("バッチ: 123")
+      end
+
+      it "複数の詳細を | で結合する" do
+        log = build(:inventory_log,
+          quantity_changed: 5,
+          note: "テスト",
+          batch_id: 456
+        )
+        result = helper.format_log_details(log)
+        expect(result).to eq("数量: 5 | 備考: テスト | バッチ: 456")
+      end
+    end
+
+    context "空の詳細" do
+      it "全ての詳細が空の場合、空文字を返す" do
+        log = build(:inventory_log,
+          quantity_changed: nil,
+          note: nil,
+          batch_id: nil
+        )
+        expect(helper.format_log_details(log)).to eq("")
+      end
+    end
+  end
+
+  # ============================================
+  # format_log_timestamp メソッドのテスト
+  # ============================================
+
+  describe "#format_log_timestamp" do
+    context "相対時間表示" do
+      it "1日以内の場合、相対時間を表示" do
+        timestamp = 2.hours.ago
+        result = helper.format_log_timestamp(timestamp)
+        expect(result).to include("時間前")
+      end
+
+      it "数分前の表示" do
+        timestamp = 30.minutes.ago
+        result = helper.format_log_timestamp(timestamp)
+        expect(result).to include("分前")
+      end
+    end
+
+    context "絶対時間表示" do
+      it "1日より前の場合、日付形式で表示" do
+        timestamp = 2.days.ago
+        result = helper.format_log_timestamp(timestamp)
+        expect(result).to match(/\d{4}\/\d{2}\/\d{2}/)
+      end
+    end
+
+    context "nilの処理" do
+      it "nilの場合、不明を返す" do
+        expect(helper.format_log_timestamp(nil)).to eq("不明")
+      end
+    end
+  end
+
+  # ============================================
+  # format_log_user メソッドのテスト
+  # ============================================
+
+  describe "#format_log_user" do
+    context "管理者ログ" do
+      it "adminが存在する場合、メールアドレスを返す" do
+        log = build(:inventory_log, admin: admin)
+        expect(helper.format_log_user(log)).to eq(admin.email)
+      end
+    end
+
+    context "将来の拡張対応" do
+      it "userメソッドが存在し、nameがある場合、名前を返す" do
+        user = double("User", name: "テストユーザー", email: "test@example.com")
+        log = double("Log", admin: nil, user: user)
+        allow(log).to receive(:respond_to?).with(:admin).and_return(true)
+        allow(log).to receive(:respond_to?).with(:user).and_return(true)
+
+        expect(helper.format_log_user(log)).to eq("テストユーザー")
+      end
+
+      it "userメソッドが存在し、nameがない場合、メールを返す" do
+        user = double("User", name: nil, email: "test@example.com")
+        log = double("Log", admin: nil, user: user)
+        allow(log).to receive(:respond_to?).with(:admin).and_return(true)
+        allow(log).to receive(:respond_to?).with(:user).and_return(true)
+
+        expect(helper.format_log_user(log)).to eq("test@example.com")
+      end
+    end
+
+    context "システムログ" do
+      it "adminもuserもない場合、システムを返す" do
+        log = build(:inventory_log, admin: nil)
+        allow(log).to receive(:respond_to?).with(:user).and_return(false)
+
+        expect(helper.format_log_user(log)).to eq("システム")
+      end
+    end
+  end
+
+  # ============================================
+  # operation_count_badge メソッドのテスト
+  # ============================================
+
+  describe "#operation_count_badge" do
+    context "カウントが0の場合" do
+      it "空文字を返す" do
+        expect(helper.operation_count_badge("create", 0)).to eq("")
+      end
+    end
+
+    context "カウントが正の場合" do
+      it "create操作で成功バッジを返す" do
+        result = helper.operation_count_badge("create", 10)
+        expect(result).to include("badge bg-success")
+        expect(result).to include("10")
+      end
+
+      it "update操作でプライマリーバッジを返す" do
+        result = helper.operation_count_badge("update", 5)
+        expect(result).to include("badge bg-primary")
+        expect(result).to include("5")
+      end
+
+      it "delete操作で危険バッジを返す" do
+        result = helper.operation_count_badge("delete", 3)
+        expect(result).to include("badge bg-danger")
+        expect(result).to include("3")
+      end
+
+      it "import操作で情報バッジを返す" do
+        result = helper.operation_count_badge("import", 100)
+        expect(result).to include("badge bg-info")
+        expect(result).to include("100")
+      end
+
+      it "その他の操作でセカンダリーバッジを返す" do
+        result = helper.operation_count_badge("other", 7)
+        expect(result).to include("badge bg-secondary")
+        expect(result).to include("7")
+      end
+    end
+
+    context "HTMLの安全性" do
+      it "HTML安全な文字列を返す" do
+        result = helper.operation_count_badge("create", 10)
+        expect(result).to be_html_safe
+      end
+    end
+  end
+
+  # ============================================
+  # group_logs_by_date メソッドのテスト
+  # ============================================
+
+  describe "#group_logs_by_date" do
+    it "日付でログをグループ化する" do
+      log1 = create(:inventory_log, created_at: Date.today)
+      log2 = create(:inventory_log, created_at: Date.today)
+      log3 = create(:inventory_log, created_at: 1.day.ago)
+
+      logs = [ log1, log2, log3 ]
+      grouped = helper.group_logs_by_date(logs)
+
+      expect(grouped.keys.first).to eq(Date.today)
+      expect(grouped[Date.today].count).to eq(2)
+      expect(grouped[1.day.ago.to_date].count).to eq(1)
+    end
+
+    it "新しい日付順にソートする" do
+      log_old = create(:inventory_log, created_at: 3.days.ago)
+      log_new = create(:inventory_log, created_at: Date.today)
+
+      logs = [ log_old, log_new ]
+      grouped = helper.group_logs_by_date(logs)
+
+      expect(grouped.keys.first).to eq(Date.today)
+      expect(grouped.keys.last).to eq(3.days.ago.to_date)
+    end
+  end
+
+  # ============================================
+  # today_log? メソッドのテスト
+  # ============================================
+
+  describe "#today_log?" do
+    it "今日のログの場合trueを返す" do
+      log = build(:inventory_log, created_at: Time.current)
+      expect(helper.today_log?(log)).to be_truthy
+    end
+
+    it "昨日のログの場合falseを返す" do
+      log = build(:inventory_log, created_at: 1.day.ago)
+      expect(helper.today_log?(log)).to be_falsey
+    end
+
+    it "時刻が深夜0時直前でも正しく判定する" do
+      log = build(:inventory_log, created_at: Date.today.end_of_day)
+      expect(helper.today_log?(log)).to be_truthy
+    end
+  end
+
+  # ============================================
+  # log_period_links メソッドのテスト
+  # ============================================
+
+  describe "#log_period_links" do
+    it "期間フィルターのボタングループを生成する" do
+      result = helper.log_period_links
+      expect(result).to include('class="btn-group btn-group-sm mb-3"')
+      expect(result).to include('role="group"')
+    end
+
+    it "全ての期間オプションを含む" do
+      result = helper.log_period_links
+      expect(result).to include("今日")
+      expect(result).to include("今週")
+      expect(result).to include("今月")
+      expect(result).to include("全期間")
+    end
+
+    it "現在の期間がアクティブクラスを持つ" do
+      result = helper.log_period_links("week")
+      expect(result).to match(/<a[^>]*class="[^"]*active[^"]*"[^>]*>今週/)
+    end
+
+    it "各リンクが適切なパラメータを含む" do
+      result = helper.log_period_links
+      expect(result).to include('period=today')
+      expect(result).to include('period=week')
+      expect(result).to include('period=month')
+    end
+  end
+
+  # ============================================
+  # パフォーマンステスト
+  # ============================================
+
+  describe "performance tests" do
+    it "operation_badge_class は高速" do
+      start_time = Time.current
+      1000.times do
+        %w[add remove adjust import other].each do |op|
+          helper.operation_badge_class(op)
+        end
+      end
+      elapsed_time = (Time.current - start_time) * 1000
+
+      expect(elapsed_time).to be < 100 # 100ms以内
+    end
+
+    it "format_log_details は高速" do
+      log = build(:inventory_log,
+        quantity_changed: 10,
+        note: "テスト" * 20,
+        batch_id: 123
+      )
+
+      start_time = Time.current
+      1000.times do
+        helper.format_log_details(log)
+      end
+      elapsed_time = (Time.current - start_time) * 1000
+
+      expect(elapsed_time).to be < 100 # 100ms以内
+    end
+  end
+
+  # ============================================
+  # Bootstrap整合性テスト
+  # ============================================
+
+  describe "Bootstrap consistency" do
+    it "バッジクラスがBootstrap 5準拠" do
+      %w[add remove adjust import other].each do |op|
+        badge_class = helper.operation_badge_class(op)
+        expect(badge_class).to include("badge")
+        expect(badge_class).to match(/bg-(success|danger|primary|info|secondary)/)
+        expect(badge_class).to include("bg-opacity-20")
+      end
+    end
+
+    it "ボタングループがBootstrap 5準拠" do
+      filter_links = helper.inventory_log_filter_links
+      expect(filter_links).to include("btn-group")
+      expect(filter_links).to include("btn-outline-primary")
+    end
+  end
+
+  # ============================================
+  # 国際化対応テスト
+  # ============================================
+
+  describe "internationalization" do
+    it "日本語ラベルが適切に表示される" do
+      expect(helper.operation_type_label("create")).to include("追加")
+      expect(helper.operation_type_label("delete")).to include("削除")
+      expect(helper.operation_type_label("update")).to include("更新")
+    end
+
+    it "時間表記が日本語形式" do
+      timestamp = 3.hours.ago
+      result = helper.format_log_timestamp(timestamp)
+      expect(result).to match(/時間前/)
+    end
+  end
+
+  # ============================================
+  # エッジケーステスト
+  # ============================================
+
+  describe "edge cases" do
+    it "非常に長い備考を適切に切り詰める" do
+      log = build(:inventory_log, note: "あ" * 1000)
+      result = helper.format_log_details(log)
+      expect(result.length).to be < 100
+      expect(result).to include("...")
+    end
+
+    it "特殊文字を含む操作種別を処理する" do
+      expect { helper.operation_badge_class("test_operation!@#") }.not_to raise_error
+    end
+
+    it "大量のログをグループ化してもメモリ効率的" do
+      logs = 1000.times.map { |i| build(:inventory_log, created_at: i.days.ago) }
+
+      expect {
+        helper.group_logs_by_date(logs)
+      }.not_to raise_error
+    end
+  end
+
+  # ============================================
+  # XSS対策テスト
+  # ============================================
+
+  describe "XSS protection" do
+    it "ユーザー入力を含むログ詳細をエスケープする" do
+      malicious_note = '<script>alert("XSS")</script>'
+      log = build(:inventory_log, note: malicious_note)
+
+      result = helper.format_log_details(log)
+      expect(result).not_to include('<script>')
+      expect(result).to include('&lt;script&gt;')
+    end
+  end
 end

@@ -10,6 +10,7 @@
 # Ignore all environment files (except templates).
 /.env*
 !/.env*.erb
+!/.env*.example
 
 # Ignore all logfiles and tempfiles.
 /log/*
@@ -210,6 +211,9 @@ error.log
 .cache/
 *.cache
 
+# Bootsnap cache (Rails boot speed optimization)
+/tmp/cache/bootsnap/
+
 # =================
 # 追加: コンパイル済みファイル
 # =================
@@ -234,3 +238,11 @@ error.log
 /config/database.yml.local
 secret_key_base.txt
 core
+
+/config/credentials/test.key
+
+# =================
+# 追加: 開発用スクリプト
+# =================
+# メール配信テストスクリプト（認証情報を含む可能性）
+/scripts/development/mail_delivery_test.rb

@@ -1,0 +1,69 @@
+#!/bin/bash -e
+
+# ================================================================================
+# Production Docker Entrypoint for StockRx
+# Handles database migrations, asset compilation, and process management
+# ================================================================================
+
+# Enable jemalloc for reduced memory usage and latency
+if [ -z "${LD_PRELOAD+x}" ] && [ -f /usr/lib/*/libjemalloc.so.2 ]; then
+  export LD_PRELOAD="$(echo /usr/lib/*/libjemalloc.so.2)"
+fi
+
+# Function to wait for database
+wait_for_db() {
+  echo "Waiting for database to be ready..."
+  until bundle exec rails db:version > /dev/null 2>&1; do
+    echo "Database is unavailable - sleeping"
+    sleep 1
+  done
+  echo "Database is ready!"
+}
+
+# Function to run migrations safely
+run_migrations() {
+  echo "Checking for pending migrations..."
+  if bundle exec rails db:migrate:status | grep -q "down"; then
+    echo "Running database migrations..."
+    bundle exec rails db:migrate
+  else
+    echo "No pending migrations."
+  fi
+}
+
+# Clear any stale server PIDs
+rm -f /app/tmp/pids/server.pid
+
+# Handle different commands
+case "${1}" in
+  # Web server commands
+  *puma*|*rails*server*)
+    wait_for_db
+    run_migrations
+    echo "Starting web server..."
+    ;;
+  
+  # Background job commands
+  *sidekiq*)
+    wait_for_db
+    echo "Starting Sidekiq..."
+    ;;
+  
+  # Database commands
+  *db:*)
+    echo "Running database command: ${@}"
+    ;;
+  
+  # Console/rake tasks
+  *console*|*rake*)
+    wait_for_db
+    echo "Running Rails command: ${@}"
+    ;;
+  
+  *)
+    echo "Running custom command: ${@}"
+    ;;
+esac
+
+# Execute the command
+exec "${@}"

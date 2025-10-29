@@ -1,0 +1,190 @@
+<%# 
+=========================================
+StockRx Admin UI Style Guide
+=========================================
+
+This file documents the unified UI components and patterns implemented 
+for consistent design across the admin interface.
+
+## Component Overview
+
+### 1. Page Header Component
+Usage: <%#= render 'admin_controllers/shared/page_header', ... %>
+
+Parameters:
+- title: Page title (required)
+- subtitle: Page description (optional)
+- icon: Bootstrap icon class (optional, default: 'bi-file-text')
+- icon_color: Bootstrap color name (optional, default: 'primary')
+- back_path: Path for back button (optional)
+- back_text: Text for back button (optional, default: '戻る')
+- breadcrumbs: Array of breadcrumb items (optional)
+- actions: Array of action buttons (optional)
+
+### 2. Status Badge Component  
+Usage: <%#= render 'admin_controllers/shared/status_badge', ... %>
+
+Parameters:
+- status: Status value (required)
+- text: Display text (optional, will use humanized status if not provided)
+- type: Badge type ('status', 'level', 'priority', 'store_type', default: 'status')
+- icon: Custom icon (optional)
+- size: Badge size ('sm', 'md', 'lg', default: 'md')
+
+### 3. Action Buttons Component
+Usage: <%#= render 'admin_controllers/shared/action_buttons', ... %>
+
+Parameters:
+- buttons: Array of button configurations (required)
+- size: Button size ('sm', 'md', 'lg', default: 'sm')
+- layout: Layout type ('group', 'dropdown', 'individual', default: 'group')
+- align: Alignment ('start', 'center', 'end', default: 'end')
+- class: Additional CSS classes
+
+## CSS Classes
+
+### Layout Classes
+- .admin-page-header: Main page header container
+- .admin-card: Enhanced card with hover effects
+- .admin-table: Enhanced table with improved styling
+- .admin-form: Enhanced form styling
+- .admin-alert: Enhanced alert styling
+- .admin-progress: Enhanced progress bar styling
+
+### Button Classes
+- .btn-admin-primary: Primary admin button
+- .btn-admin-accent: Accent admin button
+- .admin-back-btn: Back button with hover effect
+
+### Utility Classes
+- .icon-sm, .icon-md, .icon-lg: Icon sizing
+- .text-admin-primary, .text-admin-accent: Admin color text
+- .bg-admin-primary, .bg-admin-accent: Admin color backgrounds
+- .hover-lift, .hover-grow: Hover animation effects
+- .fade-in-up: Fade in animation
+
+## Color System
+
+### CSS Custom Properties
+--admin-primary: #0d6efd
+--admin-primary-dark: #0056b3
+--admin-primary-light: #6ea8fe
+--admin-accent: #6f42c1
+--admin-success: #198754
+--admin-warning: #ffc107
+--admin-danger: #dc3545
+--admin-info: #0dcaf0
+--admin-light: #f8f9fa
+--admin-dark: #343a40
+
+## Icon System
+
+### Unified Icons (Bootstrap Icons)
+All admin views use Bootstrap Icons (bi bi-*) for consistency:
+- Navigation: bi-house, bi-arrow-left, bi-arrow-right
+- Actions: bi-pencil, bi-trash, bi-eye, bi-gear
+- Status: bi-check-circle, bi-x-circle, bi-exclamation-triangle
+- Objects: bi-box, bi-boxes, bi-building, bi-hospital
+- Data: bi-graph-up, bi-calendar-event, bi-currency-yen
+
+## Implementation Examples
+
+### Basic Page Header
+```erb
+<%#= render 'admin_controllers/shared/page_header',
+            title: 'Page Title',
+            subtitle: 'Page description',
+            icon: 'bi-box',
+            icon_color: 'primary',
+            back_path: some_path,
+            back_text: '一覧に戻る' %>
+```
+
+### Status Badge
+```erb
+<%#= render 'admin_controllers/shared/status_badge',
+            status: 'active',
+            type: 'status' %>
+```
+
+### Action Buttons Group
+```erb
+<%#= render 'admin_controllers/shared/action_buttons',
+            buttons: [
+              { text: '編集', path: edit_path, icon: 'bi-pencil', class: 'btn-warning' },
+              { text: '削除', path: delete_path, method: :delete, icon: 'bi-trash', 
+                class: 'btn-danger', confirm: '削除しますか？' }
+            ],
+            size: 'sm',
+            layout: 'group' %>
+```
+
+## Responsive Design
+
+### Mobile Optimizations
+- Page header icons scale down on mobile
+- Action buttons show icons only on mobile
+- Tables use horizontal scrolling
+- Button groups stack vertically on mobile
+
+### Accessibility Features
+- ARIA labels on all interactive elements
+- Focus indicators on all focusable elements
+- High contrast ratios for text
+- Touch-friendly button sizes (44px minimum)
+
+## Migration Notes
+
+### Updated Views
+- ✅ inventories/new.html.erb
+- ✅ inventories/edit.html.erb  
+- ✅ inventories/show.html.erb (partial)
+
+### Icon Migration
+- Font Awesome (fas fa-*) → Bootstrap Icons (bi bi-*)
+- Consistent icon usage across all components
+
+### CSS Migration
+- Added unified CSS custom properties
+- Enhanced hover effects and animations
+- Improved responsive design patterns
+
+## Future Enhancements
+
+### Phase 2 (Planned)
+- Dark mode support
+- Advanced animation system
+- Component size variants
+- Additional icon sets
+
+### Phase 3 (Future)
+- Interactive tutorials
+- Component documentation generator
+- Automated accessibility testing
+- Performance optimization
+
+## Best Practices
+
+1. **Always use shared components** instead of inline styling
+2. **Maintain icon consistency** with Bootstrap Icons
+3. **Follow responsive design patterns** for mobile compatibility
+4. **Include proper ARIA labels** for accessibility
+5. **Use CSS custom properties** for consistent theming
+6. **Test with different screen sizes** before deployment
+
+## Testing
+
+Run the following to test UI consistency:
+```bash
+# Check for Font Awesome remnants
+grep -r "fas fa-" app/views/admin_controllers/
+
+# Verify Bootstrap Icons usage
+grep -r "bi bi-" app/views/admin_controllers/
+
+# Test responsive design
+# Open in browser and test various screen sizes
+```
+
+=========================================
+%>

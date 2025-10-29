@@ -1,0 +1,354 @@
+<%# frozen_string_literal: true %>
+<%# 統一されたアクションボタンコンポーネント（CLAUDE.md準拠） %>
+
+<!--
+  新しい使用例: 
+  render 'admin_controllers/shared/action_buttons',
+         resource: inventory,
+         buttons: [:detail, :edit, :delete]
+             
+  カスタムボタン例:
+  render 'admin_controllers/shared/action_buttons',
+         resource: store,
+         buttons: [
+           { type: :detail, path: admin_store_path(store) },
+           { type: :dashboard, path: dashboard_admin_store_path(store), text: '分析' },
+           { type: :inventory, path: admin_store_inventories_path(store), text: '在庫' }
+         ]
+             
+  レガシー形式（互換性維持）:
+  render 'admin_controllers/shared/action_buttons',
+         buttons: [
+           { 
+             text: '編集', 
+             path: edit_path, 
+             icon: 'bi-pencil', 
+             class: 'btn-warning',
+             tooltip: 'このアイテムを編集'
+           }
+         ],
+         legacy: true
+
+  Parameters:
+  - resource: ActiveRecord object (for auto-path generation)
+  - buttons: Array of button symbols or configurations
+  - additional_classes: Additional CSS classes
+  - legacy: Use legacy format (default: false)
+-->
+
+<%
+  # デフォルト設定
+  resource ||= nil
+  buttons ||= []
+  additional_classes ||= ""
+  legacy ||= false
+  
+  # レガシーモードでない場合、新しい形式でボタンを正規化
+  unless legacy
+    normalized_buttons = buttons.map do |button|
+      if button.is_a?(Symbol)
+        # シンプルなシンボル指定の場合、デフォルト設定を使用
+        default_button_config(button, resource)
+      elsif button.is_a?(Hash) && button[:type]
+        # 新形式のハッシュ指定
+        default_config = default_button_config(button[:type], resource)
+        default_config.merge(button)
+      else
+        # レガシー形式のハッシュまたは不明な形式
+        legacy_button_to_new_format(button)
+      end
+    end
+  else
+    # レガシーモードの場合、そのまま使用
+    normalized_buttons = buttons.map { |button| legacy_button_to_new_format(button) }
+  end
+%>
+
+<div class="action-buttons-group d-flex justify-content-center gap-1 <%= additional_classes %>" role="group" aria-label="操作ボタン">
+  <% normalized_buttons.each do |btn| %>
+    <% next unless btn[:path] %>
+    
+    <% if btn[:method] == :delete %>
+      <%# Delete buttons use button_to for proper HTTP method %>
+      <%= button_to btn[:path],
+                   method: btn[:method],
+                   form: {
+                     data: {
+                       turbo_confirm: btn[:confirm] || "本当に削除しますか？",
+                       turbo_method: btn[:method]
+                     }
+                   },
+                   class: "btn btn-#{btn[:variant]} btn-sm action-btn #{btn[:css_class]}",
+                   title: btn[:tooltip],
+                   data: {
+                     bs_toggle: "tooltip",
+                     bs_placement: "top"
+                   },
+                   "aria-label": btn[:aria_label] do %>
+        <i class="<%= btn[:icon] %>" aria-hidden="true"></i>
+        <span class="btn-text d-none d-lg-inline ms-1"><%= btn[:text] %></span>
+      <% end %>
+    <% else %>
+      <%# Regular action buttons use link_to %>
+      <%= link_to btn[:path],
+                  class: "btn btn-#{btn[:variant]} btn-sm action-btn #{btn[:css_class]}",
+                  title: btn[:tooltip],
+                  data: {
+                    bs_toggle: "tooltip",
+                    bs_placement: "top"
+                  },
+                  "aria-label": btn[:aria_label] do %>
+        <i class="<%= btn[:icon] %>" aria-hidden="true"></i>
+        <span class="btn-text d-none d-lg-inline ms-1"><%= btn[:text] %></span>
+      <% end %>
+    <% end %>
+  <% end %>
+</div>
+
+<%
+  # ヘルパーメソッド：デフォルトボタン設定
+  def default_button_config(type, resource)
+    resource_name = resource&.class&.name&.downcase || 'item'
+    base_path = controller_path.gsub('admin_controllers/', 'admin/')
+    
+    case type
+    when :detail
+      {
+        type: :detail,
+        path: resource ? "/#{base_path}/#{resource.id}" : nil,
+        icon: "bi bi-eye",
+        text: "詳細",
+        tooltip: "詳細表示",
+        aria_label: "#{resource_name}の詳細を表示",
+        variant: "primary",
+        css_class: "detail-btn"
+      }
+    when :edit
+      {
+        type: :edit,
+        path: resource ? "/#{base_path}/#{resource.id}/edit" : nil,
+        icon: "bi bi-pencil",
+        text: "編集",
+        tooltip: "編集",
+        aria_label: "#{resource_name}を編集",
+        variant: "warning",
+        css_class: "edit-btn"
+      }
+    when :delete
+      {
+        type: :delete,
+        path: resource ? "/#{base_path}/#{resource.id}" : nil,
+        icon: "bi bi-trash",
+        text: "削除",
+        tooltip: "削除",
+        aria_label: "#{resource_name}を削除",
+        variant: "danger",
+        css_class: "delete-btn",
+        method: :delete,
+        confirm: "#{resource&.try(:name) || resource_name}を削除してもよろしいですか？"
+      }
+    when :dashboard
+      {
+        type: :dashboard,
+        path: nil,
+        icon: "bi bi-graph-up",
+        text: "分析",
+        tooltip: "ダッシュボード",
+        aria_label: "#{resource_name}のダッシュボードを表示",
+        variant: "info",
+        css_class: "dashboard-btn"
+      }
+    when :inventory
+      {
+        type: :inventory,
+        path: nil,
+        icon: "bi bi-boxes",
+        text: "在庫",
+        tooltip: "在庫一覧",
+        aria_label: "#{resource_name}の在庫一覧を表示",
+        variant: "success",
+        css_class: "inventory-btn"
+      }
+    when :approval
+      {
+        type: :approval,
+        path: nil,
+        icon: "bi bi-check-lg",
+        text: "承認",
+        tooltip: "承認・却下",
+        aria_label: "#{resource_name}を承認・却下",
+        variant: "success",
+        css_class: "approval-btn"
+      }
+    else
+      {
+        type: type,
+        path: nil,
+        icon: "bi bi-question",
+        text: type.to_s.humanize,
+        tooltip: type.to_s.humanize,
+        aria_label: "#{type}操作",
+        variant: "secondary",
+        css_class: "#{type}-btn"
+      }
+    end
+  end
+
+  # レガシー形式を新形式に変換
+  def legacy_button_to_new_format(button)
+    return button unless button.is_a?(Hash)
+    
+    {
+      type: :custom,
+      path: button[:path],
+      icon: button[:icon],
+      text: button[:text] || 'Action',
+      tooltip: button[:tooltip],
+      aria_label: button[:tooltip] || button[:text] || 'Action',
+      variant: extract_variant_from_class(button[:class]) || 'secondary',
+      css_class: button[:class] || '',
+      method: button[:method],
+      confirm: button[:confirm]
+    }
+  end
+
+  # BootstrapクラスからバリアントIDを抽出
+  def extract_variant_from_class(css_class)
+    return nil unless css_class
+    
+    if css_class.include?('primary')
+      'primary'
+    elsif css_class.include?('warning')
+      'warning'
+    elsif css_class.include?('danger')
+      'danger'
+    elsif css_class.include?('success')
+      'success'
+    elsif css_class.include?('info')
+      'info'
+    else
+      'secondary'
+    end
+  end
+%>
+
+<%# 統一されたアクションボタンスタイル %>
+<style>
+  /* アクションボタンの基本スタイル */
+  .action-buttons-group {
+    min-width: 120px;
+  }
+  
+  .action-btn {
+    min-width: 38px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    transition: all 0.15s ease-in-out;
+    position: relative;
+  }
+  
+  /* デスクトップ表示：アイコン + テキスト */
+  @media (min-width: 992px) {
+    .action-btn {
+      min-width: 70px;
+      padding: 0.375rem 0.75rem;
+    }
+  }
+  
+  /* Bootstrap 5新機能：ボタンバリアント毎のホバーエフェクト */
+  .detail-btn:hover, .detail-btn:focus {
+    background-color: var(--bs-primary-border-subtle);
+    border-color: var(--bs-primary-border-subtle);
+    transform: translateY(-1px);
+    box-shadow: var(--bs-box-shadow);
+  }
+  
+  .edit-btn:hover, .edit-btn:focus {
+    background-color: var(--bs-warning-border-subtle);
+    border-color: var(--bs-warning-border-subtle);
+    transform: translateY(-1px);
+    box-shadow: var(--bs-box-shadow);
+  }
+  
+  .delete-btn:hover, .delete-btn:focus {
+    background-color: var(--bs-danger-border-subtle);
+    border-color: var(--bs-danger-border-subtle);
+    transform: translateY(-1px);
+    box-shadow: var(--bs-box-shadow-lg);
+  }
+  
+  .dashboard-btn:hover, .dashboard-btn:focus {
+    background-color: var(--bs-info-border-subtle);
+    border-color: var(--bs-info-border-subtle);
+    transform: translateY(-1px);
+    box-shadow: var(--bs-box-shadow);
+  }
+  
+  .inventory-btn:hover, .inventory-btn:focus {
+    background-color: var(--bs-success-border-subtle);
+    border-color: var(--bs-success-border-subtle);
+    transform: translateY(-1px);
+    box-shadow: var(--bs-box-shadow);
+  }
+  
+  .approval-btn:hover, .approval-btn:focus {
+    background-color: var(--bs-success-border-subtle);
+    border-color: var(--bs-success-border-subtle);
+    transform: translateY(-1px);
+    box-shadow: var(--bs-box-shadow);
+  }
+  
+  /* フォームボタンの調整 */
+  .action-buttons-group form {
+    display: inline-block;
+    margin: 0;
+  }
+  
+  .action-buttons-group form .btn {
+    margin: 0;
+  }
+  
+  /* アクセシビリティ：フォーカス表示の強化 */
+  .action-btn:focus {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 2px;
+  }
+  
+  /* モバイル対応：タッチデバイスでのタップ領域確保 */
+  @media (max-width: 991.98px) {
+    .action-btn {
+      min-width: 44px;
+      height: 44px;
+      margin: 0 1px;
+    }
+    
+    .btn-text {
+      display: none !important;
+    }
+  }
+</style>
+
+<%# TODO: 🟡 Phase 3（重要）- 高度なアクションボタン機能拡張 %>
+<%# 優先度: 中（開発効率向上） %>
+<%# 実装内容: %>
+<%#   - 条件分岐による動的ボタン表示/非表示制御 %>
+<%#   - 権限ベースのボタン表示制御（Admin.can_? メソッド連携） %>
+<%#   - 一括操作ボタン群との統合 %>
+<%#   - カスタムアニメーション（スピナー、プログレス表示） %>
+<%#   - ボタンの状態管理（loading、disabled、success状態） %>
+<%# 期待効果: 開発効率30%向上、ユーザビリティ強化、権限制御の自動化 %>
+
+<%# TODO: 🟢 Phase 4（推奨）- アクセシビリティ・国際化対応 %>
+<%# 優先度: 中（包括的設計対応） %>
+<%# 実装内容: %>
+<%#   - 多言語対応（i18n）ボタンテキスト %>
+<%#   - ハイコントラストモード対応 %>
+<%#   - キーボードナビゲーション強化 %>
+<%#   - 音声読み上げ最適化 %>
+<%#   - RTL（右から左）言語対応 %>
+<%# 期待効果: WCAG 2.1 AA準拠、国際展開対応、ユーザー層拡大 %>

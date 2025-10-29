@@ -1,0 +1,21 @@
+<%# Bootstrap 5 カスタムページネーター %>
+<%# CLAUDE.md準拠: 緊急修正 - Bootstrap 5対応Kaminariテンプレート %>
+<%# メタ認知: bootstrap5-kaminari-views gem問題の根本解決 %>
+
+<%= paginator.render do %>
+  <nav aria-label="<%= t('views.pagination.aria_label', default: 'Pagination') %>">
+    <ul class="pagination pagination-sm justify-content-center mb-0">
+      <%= first_page_tag unless current_page.first? %>
+      <%= prev_page_tag unless current_page.first? %>
+      <% each_page do |page| %>
+        <% if page.display_tag? %>
+          <%= page_tag page %>
+        <% elsif !page.was_truncated? %>
+          <%= gap_tag %>
+        <% end %>
+      <% end %>
+      <%= next_page_tag unless current_page.last? %>
+      <%= last_page_tag unless current_page.last? %>
+    </ul>
+  </nav>
+<% end %>

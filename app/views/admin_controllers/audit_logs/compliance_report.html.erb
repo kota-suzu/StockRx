@@ -1,0 +1,293 @@
+<%# frozen_string_literal: true %>
+<%# ============================================ %>
+<%# Phase 5-2: セキュリティ強化 %>
+<%# コンプライアンスレポート画面 %>
+<%# CLAUDE.md準拠: GDPR/PCI DSS対応 %>
+<%# ============================================ %>
+
+<% content_for :title, "コンプライアンスレポート" %>
+
+<div class="container-fluid">
+  <div class="row mb-4">
+    <div class="col-12">
+      <h1 class="h2 mb-3">
+        <i class="bi bi-file-earmark-check me-2"></i>
+        コンプライアンスレポート
+      </h1>
+
+      <%# 期間選択 %>
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-calendar-range me-2"></i>
+            レポート期間
+          </h5>
+        </div>
+        <div class="card-body">
+          <%= form_with url: compliance_report_admin_audit_logs_path, method: :get, local: true, class: "row g-3" do |f| %>
+            <div class="col-md-3">
+              <%= f.date_field :start_date, 
+                              value: @start_date,
+                              class: "form-control",
+                              max: Date.current %>
+            </div>
+            
+            <div class="col-md-3">
+              <%= f.date_field :end_date, 
+                              value: @end_date,
+                              class: "form-control",
+                              max: Date.current %>
+            </div>
+            
+            <div class="col-md-3">
+              <%= f.submit "レポート生成", class: "btn btn-primary" %>
+            </div>
+            
+            <div class="col-md-3">
+              <%= link_to compliance_report_admin_audit_logs_path(
+                            start_date: @start_date, 
+                            end_date: @end_date, 
+                            format: :pdf
+                          ), 
+                          class: "btn btn-outline-secondary" do %>
+                <i class="bi bi-download me-1"></i>PDF出力
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%# サマリー統計 %>
+      <div class="row mb-4">
+        <div class="col-12">
+          <h3 class="h4 mb-3">概要統計（<%= l(@start_date, format: :short) %> ～ <%= l(@end_date, format: :short) %>）</h3>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-primary">
+            <div class="card-body">
+              <h5 class="card-title text-muted">総イベント数</h5>
+              <p class="card-text">
+                <span class="h2">
+                  <%= number_with_delimiter(@report_data[:summary][:total_events]) %>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-success">
+            <div class="card-body">
+              <h5 class="card-title text-muted">アクティブユーザー</h5>
+              <p class="card-text">
+                <span class="h2 text-success">
+                  <%= @report_data[:summary][:unique_users] %>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-warning">
+            <div class="card-body">
+              <h5 class="card-title text-muted">データ変更</h5>
+              <p class="card-text">
+                <span class="h2 text-warning">
+                  <%= number_with_delimiter(@report_data[:summary][:data_modifications]) %>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 col-sm-6 mb-3">
+          <div class="card border-danger">
+            <div class="card-body">
+              <h5 class="card-title text-muted">セキュリティイベント</h5>
+              <p class="card-text">
+                <span class="h2 text-danger">
+                  <%= @report_data[:summary][:security_events] %>
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# ユーザー活動TOP10 %>
+      <div class="row mb-4">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-person-fill me-2"></i>
+                ユーザー活動ランキング
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>順位</th>
+                      <th>ユーザー</th>
+                      <th>活動数</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% @report_data[:user_activities].first(10).each_with_index do |activity, index| %>
+                      <tr>
+                        <td>
+                          <span class="badge bg-<%= index < 3 ? 'warning' : 'secondary' %>">
+                            <%= index + 1 %>
+                          </span>
+                        </td>
+                        <td><%= activity[:user] %></td>
+                        <td>
+                          <div class="d-flex align-items-center">
+                            <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                              <div class="progress-bar" 
+                                   style="width: <%= (activity[:activity_count].to_f / @report_data[:user_activities].first[:activity_count] * 100).round(1) %>%">
+                              </div>
+                            </div>
+                            <span class="badge bg-primary">
+                              <%= number_with_delimiter(activity[:activity_count]) %>
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="mb-0">
+                <i class="bi bi-database me-2"></i>
+                データアクセス内訳
+              </h5>
+            </div>
+            <div class="card-body">
+              <% if @report_data[:data_access_summary].any? %>
+                <% @report_data[:data_access_summary].each do |model, count| %>
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-info">
+                      <%= model %>
+                    </span>
+                    <div class="flex-grow-1 mx-3">
+                      <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-info" 
+                             style="width: <%= (count.to_f / @report_data[:data_access_summary].values.max * 100).round(1) %>%">
+                        </div>
+                      </div>
+                    </div>
+                    <span class="badge bg-secondary">
+                      <%= number_with_delimiter(count) %>
+                    </span>
+                  </div>
+                <% end %>
+              <% else %>
+                <p class="text-muted">データアクセス記録なし</p>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# セキュリティサマリー %>
+      <div class="card mb-4">
+        <div class="card-header bg-danger text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-shield-exclamation me-2"></i>
+            セキュリティサマリー
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="text-center">
+                <h3 class="text-danger">
+                  <%= @report_data[:security_summary][:failed_logins] %>
+                </h3>
+                <p class="text-muted">ログイン失敗</p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-center">
+                <h3 class="text-warning">
+                  <%= @report_data[:security_summary][:permission_changes] %>
+                </h3>
+                <p class="text-muted">権限変更</p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-center">
+                <h3 class="text-info">
+                  <%= @report_data[:security_summary][:password_changes] %>
+                </h3>
+                <p class="text-muted">パスワード変更</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# 日別活動推移 %>
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-graph-up me-2"></i>
+            日別活動推移
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>日付</th>
+                  <th>活動数</th>
+                  <th>可視化</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @report_data[:daily_breakdown].each do |date, count| %>
+                  <tr>
+                    <td><%= l(date, format: :short) %></td>
+                    <td>
+                      <span class="badge bg-primary">
+                        <%= number_with_delimiter(count) %>
+                      </span>
+                    </td>
+                    <td>
+                      <div class="progress" style="height: 12px; max-width: 200px;">
+                        <div class="progress-bar" 
+                             style="width: <%= (count.to_f / @report_data[:daily_breakdown].values.max * 100).round(1) %>%">
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# TODO: 🟡 Phase 6（重要）- 高度なレポート機能 %>
+<%# 優先度: 中（レポート強化） %>
+<%# 実装内容: %>
+<%#   - グラフ表示（Chart.js） %>
+<%#   - カスタムレポート作成 %>
+<%#   - スケジュール実行機能 %>
+<%# 期待効果: より詳細で使いやすいレポート %>

@@ -1,0 +1,776 @@
+openapi: 3.0.0
+info:
+  title: StockRx Inventory Management API
+  description: |
+    StockRx在庫管理システムのRESTful API仕様書です。
+    
+    ## 概要
+    StockRxは医薬品・医療機器の在庫管理に特化したシステムです。
+    複数店舗での在庫管理、ロット追跡、有効期限管理、店舗間移動などの機能を提供します。
+    
+    ## 認証
+    現在はデモ用に認証が無効化されていますが、本番環境ではJWT認証を使用予定です。
+    
+    ## エラーハンドリング
+    すべてのエラーレスポンスは統一されたフォーマットで返されます。
+    詳細はComponents > Schemas > ApiErrorResponseを参照してください。
+    
+    ## レート制限
+    - 開発環境: 無制限
+    - 本番環境: 100リクエスト/分（予定）
+    
+    ## バージョニング
+    APIバージョンはURLパスに含まれます（例: /api/v1/inventories）
+  version: 1.0.0
+  contact:
+    name: StockRx Development Team
+    email: support@stockrx.example.com
+  license:
+    name: Proprietary
+    
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.stockrx.example.com/v1
+    description: Production server (placeholder)
+    
+tags:
+  - name: Inventories
+    description: 在庫管理に関するエンドポイント
+  - name: Batches
+    description: ロット管理に関するエンドポイント（実装予定）
+  - name: Stores
+    description: 店舗管理に関するエンドポイント（実装予定）
+  - name: Transfers
+    description: 店舗間移動に関するエンドポイント（実装予定）
+  - name: Reports
+    description: レポート生成に関するエンドポイント（実装予定）
+    
+paths:
+  /inventories:
+    get:
+      tags:
+        - Inventories
+      summary: 在庫一覧取得
+      description: |
+        在庫の一覧を取得します。各種フィルタリング、ソート、ページネーションに対応しています。
+        
+        ### フィルタリング条件
+        - 商品名での部分一致検索
+        - ステータスでのフィルタリング
+        - 価格範囲でのフィルタリング
+        - 在庫状態でのフィルタリング
+        
+        ### パフォーマンスオプション
+        include_batchesパラメータを使用してバッチ情報の取得を制御できます。
+      operationId: getInventories
+      parameters:
+        - name: name
+          in: query
+          description: 商品名での部分一致検索
+          schema:
+            type: string
+            example: マスク
+        - name: status
+          in: query
+          description: 在庫ステータスでのフィルタリング
+          schema:
+            type: string
+            enum: [active, inactive, discontinued]
+        - name: min_price
+          in: query
+          description: 最低価格でのフィルタリング
+          schema:
+            type: number
+            format: float
+            minimum: 0
+            example: 1000
+        - name: max_price
+          in: query
+          description: 最高価格でのフィルタリング
+          schema:
+            type: number
+            format: float
+            minimum: 0
+            example: 10000
+        - name: stock_filter
+          in: query
+          description: 在庫状態でのフィルタリング
+          schema:
+            type: string
+            enum: [low_stock, out_of_stock, in_stock]
+        - name: sort
+          in: query
+          description: ソート対象のフィールド
+          schema:
+            type: string
+            enum: [name, quantity, price, updated_at, created_at]
+            default: updated_at
+        - name: direction
+          in: query
+          description: ソート順序
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: page
+          in: query
+          description: ページ番号（1から開始）
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          description: 1ページあたりの件数
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: include_batches
+          in: query
+          description: バッチ情報を含めるかどうか
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryListResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "在庫データを検索しました"
+                    data:
+                      items:
+                        - id: 1
+                          name: "サージカルマスク 50枚入"
+                          quantity: 100
+                          price: 1500.00
+                          status: "active"
+                          created_at: "2025-06-01T10:00:00.000Z"
+                          updated_at: "2025-06-20T15:30:00.000Z"
+                      total_count: 150
+                      current_page: 1
+                      total_pages: 8
+                      per_page: 20
+                    metadata:
+                      search_conditions:
+                        name: "マスク"
+                        status: "active"
+                      execution_time: 45.2
+                    headers:
+                      X-Total-Count: 150
+                      X-Page: 1
+                      X-Per-Page: 20
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+          
+    post:
+      tags:
+        - Inventories
+      summary: 在庫作成
+      description: |
+        新しい在庫アイテムを作成します。
+        
+        ### バリデーション
+        - name: 必須、最大255文字
+        - quantity: 必須、0以上の整数
+        - price: 必須、0以上の数値
+        - status: 必須、指定された値のいずれか
+      operationId: createInventory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryCreateRequest'
+            examples:
+              newItem:
+                value:
+                  inventory:
+                    name: "体温計 非接触型"
+                    quantity: 50
+                    price: 3500.00
+                    status: "active"
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+              examples:
+                created:
+                  value:
+                    success: true
+                    message: "在庫が正常に作成されました"
+                    data:
+                      id: 101
+                      name: "体温計 非接触型"
+                      quantity: 50
+                      price: 3500.00
+                      status: "active"
+                      created_at: "2025-06-25T10:00:00.000Z"
+                      updated_at: "2025-06-25T10:00:00.000Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+          
+  /inventories/{id}:
+    get:
+      tags:
+        - Inventories
+      summary: 在庫詳細取得
+      description: |
+        指定されたIDの在庫アイテムの詳細を取得します。
+        include_batchesパラメータでバッチ情報の取得を制御できます。
+      operationId: getInventory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 在庫ID
+          schema:
+            type: integer
+            example: 1
+        - name: include_batches
+          in: query
+          description: バッチ情報を含めるかどうか
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryDetailResponse'
+              examples:
+                withBatches:
+                  value:
+                    success: true
+                    message: "在庫情報を取得しました"
+                    data:
+                      id: 1
+                      name: "サージカルマスク 50枚入"
+                      quantity: 100
+                      price: 1500.00
+                      status: "active"
+                      created_at: "2025-06-01T10:00:00.000Z"
+                      updated_at: "2025-06-20T15:30:00.000Z"
+                      batches:
+                        - id: 1
+                          lot_number: "LOT2025060101"
+                          quantity: 50
+                          expiration_date: "2026-06-01"
+                          created_at: "2025-06-01T10:00:00.000Z"
+                        - id: 2
+                          lot_number: "LOT2025061501"
+                          quantity: 50
+                          expiration_date: "2026-06-15"
+                          created_at: "2025-06-15T10:00:00.000Z"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+          
+    put:
+      tags:
+        - Inventories
+      summary: 在庫更新
+      description: |
+        在庫アイテムの情報を更新します。
+        
+        ### 楽観的ロック
+        lock_versionを含めることで楽観的ロックが有効になります。
+        バージョンが一致しない場合は409エラーが返されます。
+      operationId: updateInventory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 在庫ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryUpdateRequest'
+            examples:
+              updateQuantity:
+                value:
+                  inventory:
+                    quantity: 150
+                    lock_version: 3
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+          
+    delete:
+      tags:
+        - Inventories
+      summary: 在庫削除
+      description: |
+        在庫アイテムを削除します。
+        
+        ### 注意事項
+        - 関連するバッチ、ログなどもカスケード削除されます
+        - 本番環境では論理削除の実装を予定しています
+      operationId: deleteInventory
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 在庫ID
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 削除成功（コンテンツなし）
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: 削除制約エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiErrorResponse'
+              examples:
+                restrictionError:
+                  value:
+                    success: false
+                    message: "在庫に関連するデータがあるため削除できません"
+                    errors:
+                      - "関連するログや店舗在庫を先に削除してください"
+                    metadata:
+                      type: "delete_restriction"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+          
+components:
+  schemas:
+    # 基本的なデータ型
+    Inventory:
+      type: object
+      required:
+        - id
+        - name
+        - quantity
+        - price
+        - status
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: integer
+          description: 在庫ID
+          example: 1
+        name:
+          type: string
+          description: 商品名
+          maxLength: 255
+          example: "サージカルマスク 50枚入"
+        quantity:
+          type: integer
+          description: 在庫数量
+          minimum: 0
+          example: 100
+        price:
+          type: number
+          format: float
+          description: 単価
+          minimum: 0
+          example: 1500.00
+        status:
+          type: string
+          description: ステータス
+          enum: [active, inactive, discontinued]
+          example: "active"
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+          example: "2025-06-01T10:00:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+          example: "2025-06-20T15:30:00.000Z"
+          
+    Batch:
+      type: object
+      required:
+        - id
+        - lot_number
+        - quantity
+        - expiration_date
+        - created_at
+      properties:
+        id:
+          type: integer
+          description: バッチID
+          example: 1
+        lot_number:
+          type: string
+          description: ロット番号
+          example: "LOT2025060101"
+        quantity:
+          type: integer
+          description: バッチ数量
+          minimum: 0
+          example: 50
+        expiration_date:
+          type: string
+          format: date
+          description: 有効期限
+          example: "2026-06-01"
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+          example: "2025-06-01T10:00:00.000Z"
+          
+    # リクエストスキーマ
+    InventoryCreateRequest:
+      type: object
+      required:
+        - inventory
+      properties:
+        inventory:
+          type: object
+          required:
+            - name
+            - quantity
+            - price
+            - status
+          properties:
+            name:
+              type: string
+              description: 商品名
+              maxLength: 255
+              example: "体温計 非接触型"
+            quantity:
+              type: integer
+              description: 在庫数量
+              minimum: 0
+              example: 50
+            price:
+              type: number
+              format: float
+              description: 単価
+              minimum: 0
+              example: 3500.00
+            status:
+              type: string
+              description: ステータス
+              enum: [active, inactive, discontinued]
+              example: "active"
+              
+    InventoryUpdateRequest:
+      type: object
+      required:
+        - inventory
+      properties:
+        inventory:
+          type: object
+          properties:
+            name:
+              type: string
+              description: 商品名
+              maxLength: 255
+            quantity:
+              type: integer
+              description: 在庫数量
+              minimum: 0
+            price:
+              type: number
+              format: float
+              description: 単価
+              minimum: 0
+            status:
+              type: string
+              description: ステータス
+              enum: [active, inactive, discontinued]
+            lock_version:
+              type: integer
+              description: 楽観的ロック用のバージョン番号
+              example: 3
+              
+    # レスポンススキーマ
+    ApiSuccessResponse:
+      type: object
+      required:
+        - success
+        - message
+        - data
+      properties:
+        success:
+          type: boolean
+          description: 処理の成功/失敗を示すフラグ
+          example: true
+        message:
+          type: string
+          description: 処理結果のメッセージ
+          example: "処理が正常に完了しました"
+        data:
+          type: object
+          description: レスポンスデータ（エンドポイントにより異なる）
+        metadata:
+          type: object
+          description: 追加のメタ情報
+          additionalProperties: true
+          
+    ApiErrorResponse:
+      type: object
+      required:
+        - success
+        - message
+        - errors
+      properties:
+        success:
+          type: boolean
+          description: 処理の成功/失敗を示すフラグ
+          example: false
+        message:
+          type: string
+          description: エラーの概要
+          example: "リクエストの処理中にエラーが発生しました"
+        errors:
+          type: array
+          description: エラーの詳細リスト
+          items:
+            type: string
+          example: ["名前を入力してください", "数量は0以上である必要があります"]
+        metadata:
+          type: object
+          description: 追加のエラー情報
+          properties:
+            type:
+              type: string
+              description: エラータイプ
+              example: "validation_error"
+            details:
+              type: string
+              description: 詳細情報
+              
+    InventoryResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessResponse'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Inventory'
+              
+    InventoryDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessResponse'
+        - type: object
+          properties:
+            data:
+              allOf:
+                - $ref: '#/components/schemas/Inventory'
+                - type: object
+                  properties:
+                    batches:
+                      type: array
+                      description: バッチ情報（include_batches=trueの場合のみ）
+                      items:
+                        $ref: '#/components/schemas/Batch'
+                        
+    InventoryListResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiSuccessResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              required:
+                - items
+                - total_count
+                - current_page
+                - total_pages
+                - per_page
+              properties:
+                items:
+                  type: array
+                  description: 在庫アイテムのリスト
+                  items:
+                    $ref: '#/components/schemas/Inventory'
+                total_count:
+                  type: integer
+                  description: 総件数
+                  example: 150
+                current_page:
+                  type: integer
+                  description: 現在のページ番号
+                  example: 1
+                total_pages:
+                  type: integer
+                  description: 総ページ数
+                  example: 8
+                per_page:
+                  type: integer
+                  description: 1ページあたりの件数
+                  example: 20
+            headers:
+              type: object
+              properties:
+                X-Total-Count:
+                  type: integer
+                  description: 総件数
+                X-Page:
+                  type: integer
+                  description: 現在のページ
+                X-Per-Page:
+                  type: integer
+                  description: 1ページあたりの件数
+                  
+  responses:
+    BadRequest:
+      description: 不正なリクエスト
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            invalidParameter:
+              value:
+                success: false
+                message: "不正なパラメータが含まれています"
+                errors:
+                  - "pageは1以上の整数である必要があります"
+                  
+    NotFound:
+      description: リソースが見つかりません
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            notFound:
+              value:
+                success: false
+                message: "指定されたリソースが見つかりませんでした"
+                errors:
+                  - "ID: 999の在庫が見つかりません"
+                  
+    Conflict:
+      description: リソースの競合
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            versionConflict:
+              value:
+                success: false
+                message: "他のユーザーがこの在庫を更新しました。最新の情報で再試行してください。"
+                errors:
+                  - "同時編集が検出されました。画面をリロードして最新データを取得してください。"
+                metadata:
+                  type: "resource_conflict"
+                  
+    UnprocessableEntity:
+      description: バリデーションエラー
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            validationError:
+              value:
+                success: false
+                message: "入力値にエラーがあります"
+                errors:
+                  - "名前を入力してください"
+                  - "数量は0以上である必要があります"
+                metadata:
+                  type: "validation_error"
+                  
+    RateLimitExceeded:
+      description: レート制限超過
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            rateLimited:
+              value:
+                success: false
+                message: "短時間に多くのリクエストが行われました"
+                errors:
+                  - "30秒後に再試行してください"
+                metadata:
+                  type: "rate_limit_exceeded"
+                  retry_after: 30
+                  
+    InternalServerError:
+      description: サーバー内部エラー
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+          examples:
+            serverError:
+              value:
+                success: false
+                message: "サーバーエラーが発生しました"
+                errors:
+                  - "システム管理者に連絡してください"
+                metadata:
+                  type: "internal_server_error"
+                  request_id: "req_abc123def456"
+                  
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT認証トークン（本番環境で有効化予定）
+        
+        ### トークン取得方法
+        1. /auth/loginエンドポイントで認証
+        2. レスポンスのaccess_tokenを使用
+        3. Authorizationヘッダーに "Bearer {token}" 形式で設定
+        
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: |
+        APIキー認証（実装予定）
+        
+        ### 使用方法
+        1. 管理画面でAPIキーを生成
+        2. X-API-Keyヘッダーにキーを設定

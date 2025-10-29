@@ -29,11 +29,11 @@ class BatchExpiryUpdatePatch < DataPatch
     grace_period = options[:grace_period] || 0
     target_date = expiry_date - grace_period.days
 
-    expired_count = Batch.where("expiry_date <= ?", target_date).count
+    expired_count = Batch.where("expires_on <= ?", target_date).count
     expiring_soon_count = if options[:include_expiring_soon]
       warning_days = options[:warning_days] || 30
       Batch.where(
-        expiry_date: (target_date + 1.day)..(target_date + warning_days.days)
+        expires_on: (target_date + 1.day)..(target_date + warning_days.days)
       ).count
     else
       0
@@ -115,13 +115,13 @@ class BatchExpiryUpdatePatch < DataPatch
 
     begin
       # バッチ状態更新
-      update_batch_status(batch, expiry_status)
+      previous_status = update_batch_status(batch, expiry_status)
 
       # 関連在庫の状態更新
       update_related_inventory(batch) if @update_inventory_status
 
       # 監査ログ作成
-      create_audit_log(batch, expiry_status)
+      create_audit_log(batch, expiry_status, previous_status)
 
       # 通知作成（必要に応じて）
       create_expiry_notification(batch, expiry_status) if @create_notification
@@ -144,9 +144,11 @@ class BatchExpiryUpdatePatch < DataPatch
   def determine_expiry_status(batch)
     target_date = @expiry_date - @grace_period.days
 
-    if batch.expiry_date <= target_date
+    return nil if batch.expires_on.nil?
+
+    if batch.expires_on <= target_date
       "expired"
-    elsif @include_expiring_soon && batch.expiry_date <= target_date + @warning_days.days
+    elsif @include_expiring_soon && batch.expires_on <= target_date + @warning_days.days
       "expiring_soon"
     else
       nil # 処理対象外
@@ -154,6 +156,8 @@ class BatchExpiryUpdatePatch < DataPatch
   end
 
   def update_batch_status(batch, expiry_status)
+    previous_status = batch.status
+
     case expiry_status
     when "expired"
       batch.update!(
@@ -166,6 +170,8 @@ class BatchExpiryUpdatePatch < DataPatch
         updated_at: Time.current
       )
     end
+
+    previous_status
   end
 
   def update_related_inventory(batch)
@@ -177,33 +183,70 @@ class BatchExpiryUpdatePatch < DataPatch
 
     # 在庫ステータス更新判定
     if active_batches_count == 0
-      inventory.update!(status: "out_of_stock")
-      @statistics[:updated_inventories] += 1
+      @statistics[:updated_inventories] += 1 if update_inventory_status_if_supported(inventory, "out_of_stock")
     elsif inventory.batches.where(status: "expiring_soon").exists?
-      inventory.update!(status: "expiring_soon") unless inventory.status == "expired"
-      @statistics[:updated_inventories] += 1
+      @statistics[:updated_inventories] += 1 if update_inventory_status_if_supported(inventory, "expiring_soon")
     end
   end
 
-  def create_audit_log(batch, expiry_status)
+  def update_inventory_status_if_supported(inventory, status_key)
+    statuses = inventory.class.statuses
+    return false unless statuses.key?(status_key)
+
+    inventory.update!(status: status_key)
+    true
+  rescue => error
+    @statistics[:errors] << {
+      inventory_id: inventory.id,
+      error: "inventory status update failed: #{error.message}"
+    }
+    false
+  end
+
+  def current_admin_for_logging
+    return nil unless defined?(Current)
+    return nil unless Current.respond_to?(:admin)
+
+    Current.admin
+  rescue
+    nil
+  end
+
+  def create_audit_log(batch, expiry_status, previous_batch_status)
+    inventory = batch.inventory
+    return unless inventory
+
+    metadata = {
+      batch_id: batch.id,
+      batch_number: batch.batch_number,
+      previous_batch_status: previous_batch_status,
+      new_batch_status: batch.status,
+      inventory_status: inventory.status,
+      expires_on: batch.expires_on,
+      expiry_status: expiry_status,
+      patch_execution_id: @options[:execution_id],
+      grace_period: @grace_period
+    }
+
     InventoryLog.create!(
-      inventory: batch.inventory,
-      admin: Current.admin,
-      action: "batch_expiry_update",
-      details: {
-        batch_id: batch.id,
-        batch_number: batch.batch_number,
-        old_status: batch.status_was,
-        new_status: batch.status,
-        expiry_date: batch.expiry_date,
-        expiry_status: expiry_status,
-        patch_execution_id: @options[:execution_id],
-        grace_period: @grace_period
-      }.to_json,
-      created_at: Time.current
+      inventory: inventory,
+      admin: current_admin_for_logging,
+      operation_type: "adjust",
+      delta: 0,
+      previous_quantity: inventory.quantity,
+      current_quantity: inventory.quantity,
+      note: "Batch expiry status update (#{expiry_status})",
+      notes: metadata.to_json
     )
 
     @statistics[:created_logs] += 1
+  rescue => error
+    @statistics[:errors] << {
+      batch_id: batch.id,
+      batch_number: batch.batch_number,
+      error: "inventory log creation failed: #{error.message}"
+    }
+    log_error "InventoryLog作成エラー: #{error.message}"
   end
 
   def create_expiry_notification(batch, expiry_status)
@@ -222,13 +265,13 @@ class BatchExpiryUpdatePatch < DataPatch
   def build_target_query
     target_date = @expiry_date - @grace_period.days
 
-    query = Batch.where("expiry_date <= ?", target_date)
+    query = Batch.where("expires_on <= ?", target_date)
 
     if @include_expiring_soon
       expiring_date = target_date + @warning_days.days
       query = query.or(
         Batch.where(
-          expiry_date: (target_date + 1.day)..expiring_date
+          expires_on: (target_date + 1.day)..expiring_date
         )
       )
     end
@@ -236,7 +279,7 @@ class BatchExpiryUpdatePatch < DataPatch
     # 既に処理済みのバッチを除外
     query = query.where.not(status: [ "expired" ]) unless @include_expiring_soon
 
-    query.order(:expiry_date)
+    query.order(:expires_on)
   end
 
   def update_statistics(expiry_status)
@@ -251,9 +294,9 @@ class BatchExpiryUpdatePatch < DataPatch
   def log_dry_run_action(batch, expiry_status)
     case expiry_status
     when "expired"
-      log_info "DRY RUN: バッチ期限切れ設定 - #{batch.batch_number} (期限: #{batch.expiry_date})"
+      log_info "DRY RUN: バッチ期限切れ設定 - #{batch.batch_number} (期限: #{batch.expires_on})"
     when "expiring_soon"
-      log_info "DRY RUN: バッチ期限切れ警告設定 - #{batch.batch_number} (期限: #{batch.expiry_date})"
+      log_info "DRY RUN: バッチ期限切れ警告設定 - #{batch.batch_number} (期限: #{batch.expires_on})"
     end
   end
 
@@ -301,6 +344,7 @@ class BatchExpiryUpdatePatch < DataPatch
       dry_run: dry_run?
     }
   end
+
 end
 
 # ============================================================================

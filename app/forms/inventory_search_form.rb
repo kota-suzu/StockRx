@@ -80,7 +80,7 @@ class InventorySearchForm < BaseSearchForm
   validates :name, length: { maximum: 255 }
   validates :min_price, :max_price, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
   validates :min_quantity, :max_quantity, numericality: { greater_than_or_equal_to: 0 }, allow_blank: true
-  validates :search_type, inclusion: { in: %w[basic advanced custom] }
+  validates :search_type, inclusion: { in: %w[basic advanced custom] }, allow_blank: true
   validates :stock_filter, inclusion: { in: %w[out_of_stock low_stock in_stock] }, allow_blank: true
   validates :status, inclusion: { in: -> { Inventory::STATUSES } }, allow_blank: true
   validates :low_stock_threshold, numericality: { greater_than: 0 }, allow_blank: true
@@ -626,25 +626,66 @@ class InventorySearchForm < BaseSearchForm
     range_display_helper(from_date, to_date, :date)
   end
 
-  # 範囲表示の共通ヘルパー
+  # 範囲表示の共通ヘルパー（高速化版）
+  # メタ認知: I18n処理をキャッシュ化してパフォーマンス向上
+  # 横展開: 他のフォームオブジェクトでも同様の最適化適用可能
   def range_display_helper(from_value, to_value, type = :default)
     return "" if from_value.blank? && to_value.blank?
 
-    if from_value.present? && to_value.present?
-      I18n.t("inventories.search.ranges.#{type}_from_to", from: from_value, to: to_value)
-    elsif from_value.present?
-      I18n.t("inventories.search.ranges.#{type}_from_only", from: from_value)
-    elsif to_value.present?
-      I18n.t("inventories.search.ranges.#{type}_to_only", to: to_value)
+    # 高速化: I18nキャッシュとフォールバック処理
+    @range_translations ||= build_range_translation_cache
+    template_key = determine_template_key(from_value, to_value, type)
+
+    case template_key
+    when :both_present
+      @range_translations["#{type}_from_to"] || "#{from_value} - #{to_value}"
+    when :from_only
+      @range_translations["#{type}_from_only"] || "以上: #{from_value}"
+    when :to_only
+      @range_translations["#{type}_to_only"] || "以下: #{to_value}"
+    else
+      ""
     end
-  rescue I18n::MissingTranslationData
-    # typeが見つからない場合はデフォルトにフォールバック
+  end
+
+  private
+
+  # I18nキャッシュの構築（インスタンス変数でキャッシュ）
+  def build_range_translation_cache
+    cache = {}
+
+    %w[default yen date].each do |type|
+      %w[from_to from_only to_only].each do |pattern|
+        key = "#{type}_#{pattern}"
+        begin
+          # サンプル値でテンプレートを取得
+          case pattern
+          when "from_to"
+            cache[key] = I18n.t("inventories.search.ranges.#{key}", from: "%{from}", to: "%{to}")
+          when "from_only"
+            cache[key] = I18n.t("inventories.search.ranges.#{key}", from: "%{from}")
+          when "to_only"
+            cache[key] = I18n.t("inventories.search.ranges.#{key}", to: "%{to}")
+          end
+        rescue I18n::MissingTranslationData
+          # フォールバックはキャッシュしない（nilのまま）
+        end
+      end
+    end
+
+    cache
+  end
+
+  # テンプレートキーの決定（高速化）
+  def determine_template_key(from_value, to_value, type)
     if from_value.present? && to_value.present?
-      I18n.t("inventories.search.ranges.from_to", from: from_value, to: to_value)
+      :both_present
     elsif from_value.present?
-      I18n.t("inventories.search.ranges.from_only", from: from_value)
+      :from_only
     elsif to_value.present?
-      I18n.t("inventories.search.ranges.to_only", to: to_value)
+      :to_only
+    else
+      :empty
     end
   end
 

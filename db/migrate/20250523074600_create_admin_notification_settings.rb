@@ -65,18 +65,20 @@ class CreateAdminNotificationSettings < ActiveRecord::Migration[7.2]
     # ============================================
 
     # 管理者が既に存在する場合、デフォルト設定を作成
-    reversible do |dir|
-      dir.up do
-        # マイグレーション実行時にAdminが存在するかチェック
-        if table_exists?(:admins) && Admin.exists?
-          Admin.find_each do |admin|
-            AdminNotificationSetting.create_default_settings_for(admin)
-          end
-
-          Rails.logger.info "Created default notification settings for #{Admin.count} admins"
-        end
-      end
-    end
+    # NOTE: マイグレーション時のモデル参照問題を回避するため
+    # デフォルト設定の作成はシードファイルで実行
+    # reversible do |dir|
+    #   dir.up do
+    #     # マイグレーション実行時にAdminが存在するかチェック
+    #     if table_exists?(:admins) && Admin.exists?
+    #       Admin.find_each do |admin|
+    #         AdminNotificationSetting.create_default_settings_for(admin)
+    #       end
+    #
+    #       Rails.logger.info "Created default notification settings for #{Admin.count} admins"
+    #     end
+    #   end
+    # end
   end
 end
 

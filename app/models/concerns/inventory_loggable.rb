@@ -10,7 +10,8 @@ module InventoryLoggable
   end
 
   # インスタンスメソッド
-  def log_operation(operation_type, delta, note = nil, user_id = nil)
+  # 重要：マイグレーションでuser_id → admin_id に変更済み
+  def log_operation(operation_type, delta, note = nil, admin_id = nil)
     previous_quantity = quantity - delta
 
     inventory_logs.create!(
@@ -18,12 +19,12 @@ module InventoryLoggable
       operation_type: operation_type,
       previous_quantity: previous_quantity,
       current_quantity: quantity,
-      user_id: user_id || (defined?(Current) && Current.respond_to?(:user) ? Current.user&.id : nil),
+      admin_id: admin_id || (defined?(Current) && Current.respond_to?(:admin) ? Current.admin&.id : nil),
       note: note || "手動記録: #{operation_type}"
     )
   end
 
-  def adjust_quantity(new_quantity, note = nil, user_id = nil)
+  def adjust_quantity(new_quantity, note = nil, admin_id = nil)
     delta = new_quantity - quantity
     return if delta.zero?
 
@@ -31,27 +32,27 @@ module InventoryLoggable
 
     with_transaction do
       update!(quantity: new_quantity)
-      log_operation(operation_type, delta, note, user_id)
+      log_operation(operation_type, delta, note, admin_id)
     end
   end
 
-  def add_stock(amount, note = nil, user_id = nil)
+  def add_stock(amount, note = nil, admin_id = nil)
     return false if amount <= 0
 
     with_transaction do
       update!(quantity: quantity + amount)
-      log_operation("add", amount, note || "入庫処理", user_id)
+      log_operation("add", amount, note || "入庫処理", admin_id)
     end
 
     true
   end
 
-  def remove_stock(amount, note = nil, user_id = nil)
+  def remove_stock(amount, note = nil, admin_id = nil)
     return false if amount <= 0 || amount > quantity
 
     with_transaction do
       update!(quantity: quantity - amount)
-      log_operation("remove", -amount, note || "出庫処理", user_id)
+      log_operation("remove", -amount, note || "出庫処理", admin_id)
     end
 
     true
@@ -73,7 +74,7 @@ module InventoryLoggable
       operation_type: determine_operation_type(delta),
       previous_quantity: previous_quantity,
       current_quantity: current_quantity,
-      user_id: defined?(Current) && Current.respond_to?(:user) ? Current.user&.id : nil,
+      admin_id: defined?(Current) && Current.respond_to?(:admin) ? Current.admin&.id : nil,
       note: "自動記録：数量変更"
     )
   rescue => e
@@ -115,8 +116,7 @@ module InventoryLoggable
       log_entries = []
 
       records.each_with_index do |record, index|
-        # Handle both formats: array of arrays (PostgreSQL style) or simple array (MySQL style)
-        inventory_id = inserted_ids[index].is_a?(Array) ? inserted_ids[index][0] : inserted_ids[index]
+        inventory_id = inserted_ids[index][0] # 主キーを取得
 
         log_entries << {
           inventory_id: inventory_id,
@@ -124,11 +124,13 @@ module InventoryLoggable
           operation_type: "add",
           previous_quantity: 0,
           current_quantity: record.quantity,
-          note: "CSVインポートによる登録"
+          note: "CSVインポートによる登録",
+          created_at: Time.current,
+          updated_at: Time.current
         }
       end
 
-      InventoryLog.insert_all(log_entries, record_timestamps: true) if log_entries.present?
+      InventoryLog.insert_all(log_entries) if log_entries.present?
     end
 
     # バルクインサート後の在庫ログ一括作成

@@ -3,6 +3,11 @@
 module AdminControllers
   # 管理者ダッシュボード画面用コントローラ
   class DashboardController < BaseController
+    # CLAUDE.md準拠: セキュリティ機能最適化
+    # メタ認知: ダッシュボードは統計表示のみで機密データ操作はないため監査不要
+    # 横展開: 他の表示専用コントローラーでも同様の考慮が必要
+    skip_around_action :audit_sensitive_data_access
+
     def index
       # パフォーマンス最適化: 統計データを効率的に事前計算
       calculate_dashboard_statistics
@@ -25,7 +30,8 @@ module AdminControllers
         average_inventory_value: calculate_average_inventory_value,
         total_batches: calculate_total_batches,
         expiring_batches: calculate_expiring_batches,
-        expired_batches: calculate_expired_batches
+        expired_batches: calculate_expired_batches,
+        low_stock_items: load_low_stock_items
       }
     end
 
@@ -87,6 +93,18 @@ module AdminControllers
       Batch.joins(:inventory)
            .where("expires_on < ?", Date.current)
            .count
+    end
+
+    def load_low_stock_items
+      # 低在庫商品の詳細情報を取得
+      Inventory.low_stock.map do |item|
+        {
+          id: item.id,
+          name: item.name,
+          quantity: item.quantity,
+          price: item.price
+        }
+      end
     end
 
     # TODO: 🟡 Phase 2（中）- 高度な統計機能実装

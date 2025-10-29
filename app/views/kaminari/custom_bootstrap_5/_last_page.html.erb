@@ -1,0 +1,8 @@
+<%# Bootstrap 5 最後のページリンク %>
+<li class="page-item">
+  <%= link_to_unless current_page.last?, raw(t('views.pagination.last', default: '最後 &raquo;')), url, 
+                     remote: remote, 
+                     class: "page-link",
+                     title: "最後のページへ",
+                     data: { bs_toggle: "tooltip", bs_placement: "top" } %>
+</li>

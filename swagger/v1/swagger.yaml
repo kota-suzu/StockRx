@@ -1,0 +1,516 @@
+openapi: 3.0.1
+info:
+  title: StockRx API V1
+  version: v1
+  description: |
+    StockRx Inventory Management System REST API
+    
+    ## 概要
+    StockRxは在庫管理システムのためのRESTful APIを提供します。
+    このAPIを使用して、在庫情報の取得、作成、更新、削除が可能です。
+    
+    ## 認証
+    現在、認証は開発中です。将来的に以下の認証方式をサポート予定：
+    - JWT Bearer Token
+    - API Key
+    
+    ## レート制限
+    APIリクエストは以下のレート制限が適用されます：
+    - 認証なし: 60リクエスト/時間
+    - 認証あり: 600リクエスト/時間
+    
+    ## エラーレスポンス
+    すべてのエラーレスポンスは統一されたフォーマットで返されます。
+    
+  contact:
+    name: StockRx API Support
+    email: api-support@stockrx.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development server
+  - url: https://api.stockrx.example.com/v1
+    description: Production server
+
+paths:
+  /inventories:
+    get:
+      summary: 在庫一覧取得
+      description: |
+        在庫の一覧を取得します。ページネーション、検索、フィルタリング、ソート機能をサポートしています。
+      tags:
+        - Inventories
+      parameters:
+        - name: page
+          in: query
+          description: ページ番号（1から開始）
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: per_page
+          in: query
+          description: 1ページあたりの件数（最大100件）
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: name
+          in: query
+          description: 商品名での部分一致検索
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: ステータスでのフィルタリング
+          schema:
+            type: string
+            enum: [active, inactive, discontinued]
+        - name: min_price
+          in: query
+          description: 最低価格
+          schema:
+            type: number
+            format: float
+            minimum: 0
+        - name: max_price
+          in: query
+          description: 最高価格
+          schema:
+            type: number
+            format: float
+            minimum: 0
+        - name: stock_filter
+          in: query
+          description: 在庫状態でのフィルタリング
+          schema:
+            type: string
+            enum: [out_of_stock, low_stock, in_stock]
+        - name: sort
+          in: query
+          description: ソートフィールド
+          schema:
+            type: string
+            enum: [name, price, quantity, created_at, updated_at]
+            default: updated_at
+        - name: direction
+          in: query
+          description: ソート方向
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: include_batches
+          in: query
+          description: バッチ情報を含めるか
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryListResponse'
+        '400':
+          description: 不正なリクエスト
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: レート制限超過
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
+    post:
+      summary: 在庫作成
+      description: 新しい在庫を作成します
+      tags:
+        - Inventories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryCreateRequest'
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+        '400':
+          description: 不正なリクエスト
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: レート制限超過
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /inventories/{id}:
+    get:
+      summary: 在庫詳細取得
+      description: 指定されたIDの在庫情報を取得します
+      tags:
+        - Inventories
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 在庫ID
+          schema:
+            type: integer
+        - name: include_batches
+          in: query
+          description: バッチ情報を含めるか
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+        '404':
+          description: 在庫が見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: 在庫更新
+      description: 指定されたIDの在庫情報を更新します
+      tags:
+        - Inventories
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 在庫ID
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryUpdateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryResponse'
+        '404':
+          description: 在庫が見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 競合エラー（楽観的ロック）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: 在庫削除
+      description: 指定されたIDの在庫を削除します
+      tags:
+        - Inventories
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: 在庫ID
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: 削除成功
+        '404':
+          description: 在庫が見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: 削除制約エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    Inventory:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 在庫ID
+        name:
+          type: string
+          description: 商品名
+        quantity:
+          type: integer
+          description: 在庫数量
+        price:
+          type: number
+          format: float
+          description: 価格
+        status:
+          type: string
+          enum: [active, inactive, discontinued]
+          description: ステータス
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+        updated_at:
+          type: string
+          format: date-time
+          description: 更新日時
+      required:
+        - id
+        - name
+        - quantity
+        - price
+        - status
+
+    InventoryCreateRequest:
+      type: object
+      properties:
+        inventory:
+          type: object
+          properties:
+            name:
+              type: string
+              description: 商品名
+              minLength: 1
+              maxLength: 255
+            quantity:
+              type: integer
+              description: 在庫数量
+              minimum: 0
+            price:
+              type: number
+              format: float
+              description: 価格
+              minimum: 0
+            status:
+              type: string
+              enum: [active, inactive, discontinued]
+              description: ステータス
+              default: active
+          required:
+            - name
+            - quantity
+            - price
+      required:
+        - inventory
+
+    InventoryUpdateRequest:
+      type: object
+      properties:
+        inventory:
+          type: object
+          properties:
+            name:
+              type: string
+              description: 商品名
+              minLength: 1
+              maxLength: 255
+            quantity:
+              type: integer
+              description: 在庫数量
+              minimum: 0
+            price:
+              type: number
+              format: float
+              description: 価格
+              minimum: 0
+            status:
+              type: string
+              enum: [active, inactive, discontinued]
+              description: ステータス
+            lock_version:
+              type: integer
+              description: 楽観的ロック用バージョン番号
+      required:
+        - inventory
+
+    InventoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: 処理成功フラグ
+        data:
+          $ref: '#/components/schemas/Inventory'
+        message:
+          type: string
+          description: レスポンスメッセージ
+        errors:
+          type: array
+          items:
+            type: string
+          description: エラーメッセージリスト
+        metadata:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            request_id:
+              type: string
+            version:
+              type: string
+            admin_id:
+              type: integer
+              nullable: true
+
+    InventoryListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: 処理成功フラグ
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Inventory'
+        message:
+          type: string
+          description: レスポンスメッセージ
+        errors:
+          type: array
+          items:
+            type: string
+          description: エラーメッセージリスト
+        metadata:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            request_id:
+              type: string
+            version:
+              type: string
+            admin_id:
+              type: integer
+              nullable: true
+            pagination:
+              type: object
+              properties:
+                current_page:
+                  type: integer
+                per_page:
+                  type: integer
+                total_count:
+                  type: integer
+                total_pages:
+                  type: integer
+                has_next:
+                  type: boolean
+                has_prev:
+                  type: boolean
+            search:
+              type: object
+              properties:
+                conditions:
+                  type: string
+                execution_time:
+                  type: number
+                query_complexity:
+                  type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: 処理成功フラグ（常にfalse）
+        data:
+          type: object
+          nullable: true
+        message:
+          type: string
+          description: エラーメッセージ
+        errors:
+          type: array
+          items:
+            type: string
+          description: 詳細エラーメッセージリスト
+        metadata:
+          type: object
+          properties:
+            timestamp:
+              type: string
+              format: date-time
+            request_id:
+              type: string
+            version:
+              type: string
+            type:
+              type: string
+              description: エラータイプ
+              enum: [validation_error, not_found, forbidden, conflict, rate_limited, internal_error, parameter_missing, unpermitted_parameters]
+            details:
+              type: string
+              description: エラーの詳細情報
+            retry_after:
+              type: integer
+              description: レート制限の場合の再試行までの秒数
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+tags:
+  - name: Inventories
+    description: 在庫管理API

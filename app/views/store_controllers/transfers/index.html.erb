@@ -1,0 +1,199 @@
+<%# 店舗間移動一覧ビュー - 基本実装 %>
+<%# CLAUDE.md準拠: ベストプラクティス - 最小限の機能実装からスタート %>
+<%# TODO: 🔴 Phase 1（緊急）- 基本機能実装 %>
+<%# 優先度: 高（ビューテンプレートエラー解決） %>
+<%# 実装内容: 移動一覧表示、基本的なフィルタリング機能 %>
+
+<% content_for :title, "店舗間移動" %>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">
+      <i class="bi bi-arrow-left-right me-2"></i>店舗間移動
+    </h1>
+    <p class="text-muted mb-0">移動申請の管理</p>
+  </div>
+  
+  <div>
+    <%= link_to new_store_transfer_path, class: "btn btn-primary" do %>
+      <i class="bi bi-plus me-1"></i>新規申請
+    <% end %>
+  </div>
+</div>
+
+<%# TODO: 🟡 Phase 2（重要）- 詳細機能実装 %>
+<%# 優先度: 中（機能完成度向上） %>
+<%# 実装内容: %>
+<%#   - 高度なフィルタリング機能 %>
+<%#   - ステータス別タブ表示 %>
+<%#   - 移動履歴の詳細表示 %>
+<%#   - CSV出力機能 %>
+<%# メタ認知: 店舗業務での重要性を考慮した優先順位設定 %>
+
+<div class="card">
+  <div class="card-header">
+    <h5 class="card-title mb-0">
+      <i class="bi bi-list me-2"></i>移動履歴
+    </h5>
+  </div>
+  
+  <div class="card-body">
+    <% if defined?(@transfers) && @transfers.present? %>
+      <div class="table-responsive">
+        <table class="table table-hover table-striped">
+          <thead class="table-light">
+            <tr>
+              <th scope="col" class="text-center" style="width: 120px;">
+                <i class="bi bi-calendar3 me-1 text-primary"></i>
+                <span class="fw-semibold">申請日</span>
+              </th>
+              <th scope="col" style="min-width: 200px;">
+                <i class="bi bi-box me-1 text-success"></i>
+                <span class="fw-semibold">商品名</span>
+              </th>
+              <th scope="col" class="text-center" style="width: 100px;">
+                <i class="bi bi-stack me-1 text-info"></i>
+                <span class="fw-semibold">数量</span>
+              </th>
+              <th scope="col" style="min-width: 180px;">
+                <i class="bi bi-arrow-left-right me-1 text-warning"></i>
+                <span class="fw-semibold">送付先/送付元</span>
+              </th>
+              <th scope="col" class="text-center" style="width: 120px;">
+                <i class="bi bi-flag me-1 text-secondary"></i>
+                <span class="fw-semibold">ステータス</span>
+              </th>
+              <th scope="col" class="text-center" style="width: 100px;">
+                <i class="bi bi-gear me-1"></i>
+                <span class="fw-semibold">アクション</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @transfers.each do |transfer| %>
+              <tr class="align-middle">
+                <td class="text-center">
+                  <div class="d-flex flex-column">
+                    <span class="fw-medium text-dark">
+                      <%= l(transfer.created_at, format: "%m/%d") %>
+                    </span>
+                    <small class="text-muted">
+                      <%= l(transfer.created_at, format: "%H:%M") %>
+                    </small>
+                  </div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <div class="me-2">
+                      <i class="bi bi-box-seam text-success"></i>
+                    </div>
+                    <div>
+                      <div class="fw-medium text-dark">
+                        <%= transfer.inventory&.name || "商品名不明" %>
+                      </div>
+                      <% if transfer.inventory&.sku.present? %>
+                        <small class="text-muted">
+                          SKU: <%= transfer.inventory.sku %>
+                        </small>
+                      <% end %>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <span class="badge bg-primary fs-6 px-3 py-2">
+                    <%= number_with_delimiter(transfer.quantity) %> 個
+                  </span>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center">
+                    <% if transfer.source_store == current_store %>
+                      <div class="me-2">
+                        <i class="bi bi-arrow-right text-danger fs-5"></i>
+                      </div>
+                      <div>
+                        <span class="badge bg-danger-subtle text-danger px-2 py-1">送付</span>
+                        <div class="fw-medium text-dark mt-1">
+                          <%= transfer.destination_store&.name || "店舗名不明" %>
+                        </div>
+                      </div>
+                    <% else %>
+                      <div class="me-2">
+                        <i class="bi bi-arrow-left text-success fs-5"></i>
+                      </div>
+                      <div>
+                        <span class="badge bg-success-subtle text-success px-2 py-1">受取</span>
+                        <div class="fw-medium text-dark mt-1">
+                          <%= transfer.source_store&.name || "店舗名不明" %>
+                        </div>
+                      </div>
+                    <% end %>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <% 
+                    status_class = case transfer.status
+                                  when "pending" then "bg-warning text-dark"
+                                  when "approved" then "bg-success"
+                                  when "completed" then "bg-primary"
+                                  when "rejected" then "bg-danger"
+                                  else "bg-secondary"
+                                  end
+                    status_text = case transfer.status
+                                 when "pending" then "申請中"
+                                 when "approved" then "承認済み"
+                                 when "completed" then "完了"
+                                 when "rejected" then "却下"
+                                 else transfer.status
+                                 end
+                  %>
+                  <span class="badge <%= status_class %> px-3 py-2">
+                    <%= status_text %>
+                  </span>
+                </td>
+                <td class="text-center">
+                  <%= link_to store_transfer_path(transfer), 
+                             class: "btn btn-outline-primary btn-sm",
+                             title: "詳細を表示",
+                             data: { bs_toggle: "tooltip", bs_placement: "top" } do %>
+                    <i class="bi bi-eye me-1"></i>詳細
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      
+      <%# ページネーション - Bootstrap 5対応 %>
+      <% if defined?(@transfers) && @transfers.respond_to?(:current_page) %>
+        <div class="d-flex justify-content-center mt-4">
+          <% begin %>
+            <%= paginate @transfers, theme: :custom_bootstrap_5 %>
+          <% rescue => e %>
+            <!-- 緊急時フォールバック: デフォルトページネーション -->
+            <%= paginate @transfers %>
+          <% end %>
+        </div>
+      <% end %>
+    <% else %>
+      <div class="text-center py-5">
+        <div class="empty-state-icon mb-4">
+          <i class="bi bi-arrow-left-right display-1 text-muted"></i>
+        </div>
+        <h4 class="text-muted mb-3">移動履歴がありません</h4>
+        <p class="text-muted mb-4">
+          店舗間での商品移動申請履歴が表示されます。<br>
+          新しい移動申請を作成してみましょう。
+        </p>
+        <div class="d-flex justify-content-center gap-3">
+          <%= link_to new_store_transfer_path, class: "btn btn-primary" do %>
+            <i class="bi bi-plus-circle me-2"></i>新規申請作成
+          <% end %>
+          <%= link_to store_root_path, class: "btn btn-outline-secondary" do %>
+            <i class="bi bi-house me-2"></i>ダッシュボードに戻る
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>

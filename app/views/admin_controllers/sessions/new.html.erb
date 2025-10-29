@@ -1,45 +1,49 @@
 <%# Bootstrap 5 モダンログインページ - StockRx 管理者認証 %>
-<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light py-5">
+<div class="min-vh-100 d-flex align-items-center justify-content-center py-5" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
   <div class="container">
     <div class="row justify-content-center">
-      <div class="col-12 col-md-6 col-lg-4">
+      <div class="col-12 col-md-6 col-lg-5 col-xl-4">
         
         <%# ブランドヘッダー %>
         <div class="text-center mb-4">
           <div class="mb-3">
-            <i class="fas fa-boxes-stacked fa-3x text-primary"></i>
+            <div class="bg-white rounded-circle d-inline-flex align-items-center justify-content-center shadow-lg" style="width: 80px; height: 80px;">
+              <i class="fas fa-boxes-stacked fa-2x text-primary"></i>
+            </div>
           </div>
-          <h1 class="h3 mb-2 fw-bold text-dark">StockRx 管理画面</h1>
-          <p class="text-muted mb-0">在庫管理システム</p>
+          <h1 class="h3 mb-2 fw-bold text-white">StockRx 管理画面</h1>
+          <p class="text-white-50 mb-0">在庫管理システム</p>
         </div>
 
         <%# ログインカード %>
-        <div class="card shadow-lg border-0">
-          <div class="card-header bg-primary text-white text-center py-3">
-            <h2 class="h5 mb-0">
+        <div class="card shadow-lg border-0 overflow-hidden">
+          <div class="card-header bg-primary text-white text-center py-4 position-relative">
+            <div class="position-absolute top-0 start-0 w-100 h-100" style="background: linear-gradient(45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(-45deg, rgba(255,255,255,0.1) 25%, transparent 25%), linear-gradient(45deg, transparent 75%, rgba(255,255,255,0.1) 75%), linear-gradient(-45deg, transparent 75%, rgba(255,255,255,0.1) 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; opacity: 0.3;"></div>
+            <h2 class="h5 mb-0 position-relative">
               <i class="fas fa-sign-in-alt me-2"></i>管理者ログイン
             </h2>
           </div>
           
           <div class="card-body p-4">
             <%# エラーメッセージ表示エリア %>
-            <%= render "admin_controllers/shared/error_messages", resource: resource %>
+            <%= render "shared/forms/error_messages", resource: resource %>
             
             <%= form_for(resource, as: resource_name, url: session_path(resource_name), 
                          data: { turbo: false }, class: "needs-validation", novalidate: true) do |f| %>
               
               <%# メールアドレス入力 %>
               <div class="mb-3">
-                <%= f.label :email, "メールアドレス", class: "form-label fw-medium" %>
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="fas fa-envelope text-muted"></i>
+                <%= f.label :email, "メールアドレス", class: "form-label fw-medium text-dark" %>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text bg-light border-end-0">
+                    <i class="fas fa-envelope text-primary"></i>
                   </span>
                   <%= f.email_field :email, 
                       autofocus: true, 
                       autocomplete: "email",
-                      class: "form-control form-control-lg",
+                      class: "form-control border-start-0 ps-0",
                       placeholder: "admin@example.com",
+                      style: "box-shadow: none; border-color: #ced4da;",
                       required: true %>
                   <div class="invalid-feedback">
                     有効なメールアドレスを入力してください。
@@ -49,16 +53,20 @@
 
               <%# パスワード入力 %>
               <div class="mb-3">
-                <%= f.label :password, "パスワード", class: "form-label fw-medium" %>
-                <div class="input-group">
-                  <span class="input-group-text bg-light">
-                    <i class="fas fa-lock text-muted"></i>
+                <%= f.label :password, "パスワード", class: "form-label fw-medium text-dark" %>
+                <div class="input-group input-group-lg">
+                  <span class="input-group-text bg-light border-end-0">
+                    <i class="fas fa-lock text-primary"></i>
                   </span>
                   <%= f.password_field :password, 
                       autocomplete: "current-password",
-                      class: "form-control form-control-lg",
+                      class: "form-control border-start-0 ps-0",
                       placeholder: "パスワードを入力",
+                      style: "box-shadow: none; border-color: #ced4da;",
                       required: true %>
+                  <button class="btn btn-outline-secondary border-start-0" type="button" id="togglePassword" style="border-color: #ced4da;">
+                    <i class="fas fa-eye" id="toggleIcon"></i>
+                  </button>
                   <div class="invalid-feedback">
                     パスワードを入力してください。
                   </div>
@@ -78,7 +86,8 @@
               <%# ログインボタン %>
               <div class="d-grid mb-3">
                 <%= f.submit "ログイン", 
-                    class: "btn btn-primary btn-lg fw-medium",
+                    class: "btn btn-primary btn-lg fw-medium py-3",
+                    style: "background: linear-gradient(45deg, #007bff, #0056b3); border: none; box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);",
                     data: { 
                       disable_with: '<i class="fas fa-spinner fa-spin me-2"></i>ログイン中...' 
                     } %>
@@ -88,29 +97,24 @@
             <%# GitHubソーシャルログイン %>
             <div class="text-center">
               <div class="d-flex align-items-center mb-3">
-                <hr class="flex-grow-1">
-                <span class="px-3 text-muted small">または</span>
-                <hr class="flex-grow-1">
+                <hr class="flex-grow-1 opacity-25">
+                <span class="px-3 text-muted small fw-medium">または</span>
+                <hr class="flex-grow-1 opacity-25">
               </div>
               
-              <%= link_to admin_omniauth_authorize_path(:github), 
-                  method: :post,
-                  class: "btn btn-outline-dark btn-lg w-100",
-                  data: { turbo: false } do %>
-                <i class="fab fa-github me-2"></i>GitHubでログイン
-              <% end %>
+              <%= render 'github_login' %>
             </div>
           </div>
           
           <%# フッターリンク %>
           <div class="card-footer bg-light text-center py-3">
-            <%= render "admin_controllers/shared/links" %>
+            <%= render "shared/auth/links" %>
           </div>
         </div>
 
         <%# セキュリティ情報 %>
         <div class="text-center mt-4">
-          <small class="text-muted">
+          <small class="text-white-50">
             <i class="fas fa-shield-alt me-1"></i>
             このサイトは SSL で保護されています
           </small>
@@ -124,12 +128,28 @@
         <%# 工数見積: 1日 %>
         <%# 依存関係: Devise lockable設定の詳細化 %>
 
+        <%# TODO: 🔴 Phase 5（緊急）- 認証UI名前空間統合計画 %>
+        <%# 優先度: 高（メンテナンス性・一貫性向上） %>
+        <%# 実装内容: %>
+        <%#   - admins名前空間のadmin_controllers統合 %>
+        <%#   - 重複ビューファイルの削除（admins/sessions, admins/passwords等） %>
+        <%#   - ルーティング設定の整理・簡素化 %>
+        <%#   - Deviseコントローラー設定の統一 %>
+        <%# 理由: 現在admin_controllersとadminsの2つの名前空間で認証UI重複 %>
+        <%# 期待効果: %>
+        <%#   - UI一貫性確保 %>
+        <%#   - メンテナンス負荷削減 %>
+        <%#   - 開発者混乱の解消 %>
+        <%#   - コードベース簡素化 %>
+        <%# 工数見積: 2-3日 %>
+        <%# 横展開: passwords, confirmations等の他認証画面も同様統合 %>
+
       </div>
     </div>
   </div>
 </div>
 
-<%# Bootstrap 5 Form Validation %>
+<%# Enhanced JavaScript for improved UX %>
 <script>
 (function() {
   'use strict';
@@ -145,6 +165,58 @@
         form.classList.add('was-validated');
       }, false);
     });
+
+    // パスワード表示切り替え機能
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordField = document.getElementById('admin_password');
+    const toggleIcon = document.getElementById('toggleIcon');
+
+    if (togglePassword && passwordField && toggleIcon) {
+      togglePassword.addEventListener('click', function() {
+        const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordField.setAttribute('type', type);
+        
+        // アイコン切り替え
+        if (type === 'text') {
+          toggleIcon.classList.remove('fa-eye');
+          toggleIcon.classList.add('fa-eye-slash');
+        } else {
+          toggleIcon.classList.remove('fa-eye-slash');
+          toggleIcon.classList.add('fa-eye');
+        }
+      });
+    }
+
+    // 入力フィールドのフォーカス効果
+    const inputGroups = document.querySelectorAll('.input-group');
+    inputGroups.forEach(function(group) {
+      const input = group.querySelector('input');
+      if (input) {
+        input.addEventListener('focus', function() {
+          group.style.boxShadow = '0 0 0 0.25rem rgba(13, 110, 253, 0.25)';
+          group.style.borderColor = '#86b7fe';
+        });
+        
+        input.addEventListener('blur', function() {
+          group.style.boxShadow = 'none';
+          group.style.borderColor = '#ced4da';
+        });
+      }
+    });
+
+    // ログインボタンのホバー効果
+    const loginBtn = document.querySelector('input[type="submit"]');
+    if (loginBtn) {
+      loginBtn.addEventListener('mouseenter', function() {
+        this.style.transform = 'translateY(-2px)';
+        this.style.boxShadow = '0 6px 20px rgba(0, 123, 255, 0.4)';
+      });
+      
+      loginBtn.addEventListener('mouseleave', function() {
+        this.style.transform = 'translateY(0)';
+        this.style.boxShadow = '0 4px 15px rgba(0, 123, 255, 0.3)';
+      });
+    }
   }, false);
 })();
 </script> 

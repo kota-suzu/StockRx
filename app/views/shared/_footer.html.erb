@@ -1,0 +1,164 @@
+<%# ========================================== %>
+<%# 統一フッター - StockRx %>
+<%# ========================================== %>
+<%# CLAUDE.md準拠: 全レイアウトでの一貫したフッター体験 %>
+<%# メタ認知: ブランディング・法的情報・ナビゲーションの統一管理 %>
+<%# 横展開: admin.html.erb、store.html.erb、application.html.erb等で共通利用 %>
+<%# ========================================== %>
+
+<footer class="<%= footer_classes %>">
+  <div class="<%= footer_container_classes %>">
+    <div class="row">
+      <%# 左側：ブランディング情報 %>
+      <div class="col-md-6">
+        <%= render 'shared/footer_branding' %>
+      </div>
+      
+      <%# 右側：メタ情報・リンク %>
+      <div class="col-md-6">
+        <%= render 'shared/footer_meta' %>
+      </div>
+    </div>
+    
+    <%# オプション：追加フッターコンテンツ %>
+    <% if content_for?(:footer_additional) %>
+      <hr class="<%= footer_divider_classes %>">
+      <div class="row">
+        <div class="col-12">
+          <%= yield(:footer_additional) %>
+        </div>
+      </div>
+    <% end %>
+    
+    <%# オプション：ソーシャルリンク %>
+    <% if content_for?(:footer_social) %>
+      <hr class="<%= footer_divider_classes %>">
+      <div class="row">
+        <div class="col-12 text-center">
+          <%= render 'shared/footer_social' %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</footer>
+
+<%# フッター用CSS（インライン - レイアウト固有スタイル） %>
+<style>
+  footer {
+    margin-top: auto; /* フレックスレイアウトでフッターを下に固定 */
+    position: relative;
+    z-index: 1;
+  }
+  
+  /* セクション別フッタースタイル */
+  .footer-admin {
+    background: linear-gradient(135deg, var(--admin-primary, #2c3e50), var(--admin-secondary, #34495e));
+    color: var(--text-light, #ffffff);
+  }
+  
+  .footer-store {
+    background: linear-gradient(135deg, var(--store-primary, #17a2b8), darken(#17a2b8, 10%));
+    color: var(--text-light, #ffffff);
+  }
+  
+  .footer-public {
+    background: var(--bg-dark, #343a40);
+    color: var(--text-light, #ffffff);
+  }
+  
+  /* フッターリンクスタイル */
+  footer a {
+    color: inherit;
+    text-decoration: none;
+    transition: var(--transition-fast, 0.15s ease);
+  }
+  
+  footer a:hover {
+    color: var(--section-accent, #ffffff);
+    text-decoration: underline;
+  }
+  
+  /* フッター区切り線 */
+  footer hr {
+    opacity: 0.3;
+    margin: 1.5rem 0;
+  }
+  
+  /* レスポンシブ対応 */
+  @media (max-width: 767.98px) {
+    footer {
+      padding: 2rem 0 !important;
+    }
+    
+    footer .col-md-6 {
+      text-align: center !important;
+      margin-bottom: 1rem;
+    }
+    
+    footer .col-md-6:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  /* プリント時は最小限に */
+  @media print {
+    footer {
+      background: transparent !important;
+      color: #000 !important;
+      padding: 1rem 0 !important;
+      border-top: 1px solid #000;
+    }
+    
+    footer .d-none-print {
+      display: none !important;
+    }
+  }
+</style>
+
+<%# ========================================== %>
+<%# 使用方法とカスタマイズ例 %>
+<%# ========================================== %>
+
+<%# 
+  基本使用方法（レイアウトファイル内）:
+  
+  <%= render 'shared/footer' %>
+  
+  追加フッターコンテンツ（メニューやリンク）:
+  
+  <% content_for :footer_additional do %>
+    <div class="text-center">
+      <%= link_to "利用規約", terms_path, class: "me-3" %>
+      <%= link_to "プライバシー", privacy_path, class: "me-3" %>
+      <%= link_to "ヘルプ", help_path %>
+    </div>
+  <% end %>
+  <%= render 'shared/footer' %>
+  
+  ソーシャルリンク有効化:
+  
+  <% content_for :footer_social do %>true<% end %>
+  <%= render 'shared/footer' %>
+  
+  カスタムフッタークラス:
+  
+  - footer_classes: フッター全体のCSSクラス
+  - footer_container_classes: コンテナのCSSクラス  
+  - footer_divider_classes: 区切り線のCSSクラス
+  
+  これらはApplicationHelperで定義されます。
+%>
+
+<%# ========================================== %>
+<%# TODO: 🟡 Phase 3（重要）- 高度なフッター機能 %>
+<%# 優先度: 中（基本統合完了後） %>
+<%# 実装内容: %>
+<%#   - ダイナミックコピーライト年数 %>
+<%#   - 多言語対応（i18n） %>
+<%#   - サイトマップ統合 %>
+<%#   - アクセシビリティ強化（ランドマーク、スキップリンク） %>
+<%#   - SEO改善（構造化データ） %>
+<%# 期待効果: SEO向上、アクセシビリティ準拠、国際化対応 %>
+<%# 工数見積: 1-2日 %>
+<%# 依存関係: i18n設定、サイトマップ生成 %>
+<%# ========================================== %>

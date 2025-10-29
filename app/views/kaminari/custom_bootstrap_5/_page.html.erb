@@ -1,0 +1,16 @@
+<%# Bootstrap 5 ページ番号リンク %>
+<li class="page-item <%= 'active' if page.current? %>">
+  <% if page.current? %>
+    <span class="page-link">
+      <%= page %>
+      <span class="visually-hidden">(current)</span>
+    </span>
+  <% else %>
+    <%= link_to page, url, 
+                rel: page.rel, 
+                remote: remote, 
+                class: "page-link",
+                title: "#{page}ページへ",
+                data: { bs_toggle: "tooltip", bs_placement: "top" } %>
+  <% end %>
+</li>

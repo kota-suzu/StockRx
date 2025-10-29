@@ -1,0 +1,164 @@
+# ============================================================================
+# CI最適化版Makefile - StockRx
+# 作成日: 2025-06-16
+# 
+# メタ認知的設計：
+# - なぜこの最適化が必要か？→ CI実行時間の短縮で開発効率向上
+# - より良い方法はないか？→ 段階的に改善し、効果を測定
+# - 横展開可能か？→ 他のRailsプロジェクトでも活用可能
+# ============================================================================
+
+# 変数定義（CI最適化版）
+COMPOSE      := docker compose
+WEB_RUN_CI   := $(COMPOSE) run --rm -e CI=true -e RAILS_ENV=test -e DISABLE_HOST_AUTHORIZATION=true
+RSPEC_CI     := $(WEB_RUN_CI) -e PARALLEL_WORKERS=4 bundle exec
+TIME_CMD     := time -p
+
+# ============================================================================
+# Phase 1: 即効性のある最適化
+# ============================================================================
+
+# CI用の最適化されたテスト実行
+.PHONY: ci-fast ci-setup-cached ci-test-fast ci-test-parallel
+
+# メインターゲット：最適化されたCI実行
+ci-fast: ci-setup-cached ci-test-fast
+
+# キャッシュを活用したセットアップ
+ci-setup-cached:
+	@echo "🚀 === CI最適化版セットアップ開始 ==="
+	@echo "📊 実行時間測定開始..."
+	@$(TIME_CMD) $(MAKE) _ci-setup-internal
+
+_ci-setup-internal:
+	@echo "=== 1. サービス起動（既存利用優先）==="
+	@if ! docker compose ps -q db | grep -q .; then \
+		echo "DBコンテナ起動中..."; \
+		$(COMPOSE) up -d db redis; \
+	else \
+		echo "✅ 既存DBコンテナを利用"; \
+	fi
+	
+	@echo "=== 2. DB接続確認（最適化版）==="
+	@timeout 10 bash -c 'until docker compose exec -T db mysqladmin ping -h localhost -u root -ppassword > /dev/null 2>&1; do sleep 1; done' || true
+	
+	@echo "=== 3. キャッシュ保持型の準備 ==="
+	# Bootsnap/Sprocketsキャッシュは保持
+	@if [ ! -d tmp/cache ]; then mkdir -p tmp/cache; fi
+	@chmod -R 777 tmp/cache tmp/storage tmp/pids tmp/screenshots 2>/dev/null || true
+	
+	@echo "=== 4. DB準備（スキップ可能チェック付き）==="
+	@if ! $(WEB_RUN_CI) -e DATABASE_PASSWORD=password bin/rails db:version > /dev/null 2>&1; then \
+		echo "DB初期化中..."; \
+		$(WEB_RUN_CI) -e DATABASE_PASSWORD=password bin/rails db:test:prepare; \
+	else \
+		echo "✅ DB準備済み（スキップ）"; \
+	fi
+
+# 高速テスト実行（段階的）
+ci-test-fast:
+	@echo "🏃 === 高速テスト実行（3段階）==="
+	@$(TIME_CMD) $(MAKE) _ci-test-fast-internal
+
+_ci-test-fast-internal:
+	@echo "=== Stage 1: Unit Tests (最速) ==="
+	$(RSPEC_CI) rspec spec/models spec/helpers spec/decorators \
+		--format progress \
+		--profile 5 \
+		--tag ~slow \
+		--tag ~integration \
+		--fail-fast
+	
+	@echo "=== Stage 2: Request/Controller Tests ==="
+	$(RSPEC_CI) rspec spec/requests spec/controllers \
+		--format progress \
+		--tag ~slow
+	
+	@echo "=== Stage 3: Integration Tests (必要時のみ) ==="
+	@if [ "$(CI_FULL_TEST)" = "true" ]; then \
+		$(RSPEC_CI) rspec spec/features spec/jobs --format progress; \
+	else \
+		echo "⏭️  統合テストをスキップ（CI_FULL_TEST=true で有効化）"; \
+	fi
+
+# ============================================================================
+# Phase 2: 並列実行最適化
+# ============================================================================
+
+# 並列テスト実行（parallel_tests gem使用）
+ci-test-parallel:
+	@echo "🚀 === 並列テスト実行（4プロセス）==="
+	@$(TIME_CMD) $(MAKE) _ci-test-parallel-internal
+
+_ci-test-parallel-internal:
+	@echo "=== テストDB準備（並列用）==="
+	$(WEB_RUN_CI) bundle exec parallel_test:prepare
+	
+	@echo "=== 並列実行開始 ==="
+	$(WEB_RUN_CI) bundle exec parallel_rspec \
+		-n 4 \
+		--runtime-log tmp/parallel_runtime_rspec.log \
+		--serialize-stdout \
+		--combine-stderr \
+		--verbose \
+		spec/
+
+# ============================================================================
+# Phase 3: 高度な最適化（TODO）
+# ============================================================================
+
+# TODO: 🔴 Phase 3 - Docker層キャッシュ最適化（推定効果: 起動時間50%短縮）
+# 実装予定:
+# - マルチステージビルドの最適化
+# - 依存関係層の細分化
+# - ビルドキャッシュマウントの活用
+# 
+# ci-docker-optimized:
+# 	@echo "=== Docker最適化ビルド ==="
+# 	DOCKER_BUILDKIT=1 docker build \
+# 		--cache-from stockrx:ci-cache \
+# 		--target ci-test \
+# 		--build-arg BUILDKIT_INLINE_CACHE=1 \
+# 		-t stockrx:ci-optimized .
+
+# TODO: 🟡 Phase 3 - 分散キャッシュ実装（推定効果: 2回目以降80%高速化）
+# 実装予定:
+# - Redis/Memcachedベースのテスト結果キャッシュ
+# - 依存関係グラフベースの差分テスト実行
+# - ビルドアーティファクトの共有
+#
+# ci-distributed-cache:
+# 	@echo "=== 分散キャッシュ設定 ==="
+# 	$(WEB_RUN_CI) bundle exec rails test:cache:warm
+
+# ============================================================================
+# CI実行時間レポート
+# ============================================================================
+
+ci-benchmark:
+	@echo "📊 === CI実行時間ベンチマーク ==="
+	@echo "テスト実行時間を測定中..."
+	@{ time $(MAKE) ci-fast > /dev/null 2>&1; } 2>&1 | grep real | awk '{print "標準CI: " $$2}'
+	@{ time $(MAKE) ci-test-parallel > /dev/null 2>&1; } 2>&1 | grep real | awk '{print "並列CI: " $$2}'
+	@{ time $(MAKE) test-github > /dev/null 2>&1; } 2>&1 | grep real | awk '{print "旧CI: " $$2}'
+
+# ============================================================================
+# ヘルプ
+# ============================================================================
+
+ci-help:
+	@echo "🚀 CI最適化コマンド一覧:"
+	@echo ""
+	@echo "基本コマンド:"
+	@echo "  make ci-fast          - 最適化されたCI実行（推奨）"
+	@echo "  make ci-test-parallel - 並列テスト実行（4プロセス）"
+	@echo "  make ci-benchmark     - 実行時間比較"
+	@echo ""
+	@echo "詳細オプション:"
+	@echo "  CI_FULL_TEST=true make ci-fast - 統合テスト含む完全実行"
+	@echo "  PARALLEL_WORKERS=8 make ci-test-parallel - 並列数指定"
+	@echo ""
+	@echo "横展開確認:"
+	@echo "  - 同様の最適化を他のRailsプロジェクトに適用可能"
+	@echo "  - GitHub Actions/GitLab CI等でも活用可能"
+	@echo "  - ローカル開発環境でも高速テスト実行可能"

@@ -1,0 +1,115 @@
+// 管理画面ダッシュボード専用スタイル
+
+// 全体的な文字色の強化
+.admin-dashboard {
+  // デフォルトの文字色を濃くする
+  color: #212529;
+}
+
+// 最近のアクティビティセクションの文字色改善
+.activity-timeline {
+  .activity-item {
+    // ホバー時の背景色
+    &.hover-highlight:hover {
+      background-color: rgba(0, 123, 255, 0.03);
+    }
+    
+    // タイムスタンプの文字色を濃くする
+    .text-secondary {
+      color: #495057 !important; // Bootstrap's $gray-700
+    }
+    
+    // 小さいテキストの視認性向上
+    .small {
+      color: #495057 !important;
+      font-weight: 500;
+    }
+  }
+  
+  // アイコンのコントラスト向上
+  .activity-icon {
+    .rounded-circle {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    }
+  }
+}
+
+// 空状態の文字色改善
+.empty-state {
+  .text-secondary {
+    color: #495057 !important;
+  }
+  
+  h5.text-secondary {
+    color: #343a40 !important; // より濃い色
+    font-weight: 600;
+  }
+}
+
+// カードヘッダーのコントラスト改善
+.card-header.bg-primary {
+  background-color: #0d6efd !important;
+  
+  .btn-outline-light {
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+  }
+}
+
+// バッジの視認性向上
+.badge {
+  font-weight: 600;
+  letter-spacing: 0.025em;
+  
+  &.bg-success-subtle {
+    background-color: rgba(25, 135, 84, 0.15) !important;
+    color: #146c43 !important;
+  }
+  
+  &.bg-primary-subtle {
+    background-color: rgba(13, 110, 253, 0.15) !important;
+    color: #084298 !important;
+  }
+  
+  &.bg-danger-subtle {
+    background-color: rgba(220, 53, 69, 0.15) !important;
+    color: #842029 !important;
+  }
+  
+  &.bg-info-subtle {
+    background-color: rgba(13, 202, 240, 0.15) !important;
+    color: #087990 !important;
+  }
+  
+  &.bg-warning-subtle {
+    background-color: rgba(255, 193, 7, 0.15) !important;
+    color: #997404 !important;
+  }
+}
+
+// Bootstrap標準のtext-mutedをオーバーライド（薄すぎるため）
+.text-muted {
+  color: #6c757d !important; // Bootstrap's $gray-600 → より濃い色に
+}
+
+// 小さい文字でもコントラストを確保
+.small {
+  &.text-muted {
+    color: #495057 !important; // Bootstrap's $gray-700
+  }
+}
+
+// リンクのホバー時の視認性向上
+a {
+  &.text-muted:hover {
+    color: #343a40 !important;
+    text-decoration: underline;
+  }
+}
+
+// ダークモード対応（将来実装用）
+@media (prefers-color-scheme: dark) {
+  // ダークモード時の配色調整をここに追加
+}

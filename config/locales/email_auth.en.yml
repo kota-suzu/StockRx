@@ -1,0 +1,84 @@
+# EmailAuth (Temporary Password Authentication) Internationalization (English)
+# ============================================================================
+# CLAUDE.md Compliant: Store user temporary password authentication UI
+# 
+# Design principles:
+# - Professional tone for business users
+# - Consistent security terminology
+# - User-friendly messaging
+# ============================================================================
+
+en:
+  email_auth:
+    # Page titles and headings
+    titles:
+      request_form: "Request Temporary Password"
+      verify_form: "Login with Temporary Password"
+      
+    # Form labels
+    labels:
+      email: "Email Address"
+      temp_password: "Temporary Password"
+      store_name: "Store Name"
+      
+    # Buttons and actions
+    buttons:
+      request_password: "Request Temporary Password"
+      verify_and_login: "Login"
+      back_to_login: "Back to Regular Login"
+      back_to_store_selection: "Back to Store Selection"
+      
+    # Success messages
+    messages:
+      temp_password_sent: "A temporary password has been sent to %{email}. Please check your email."
+      login_successful: "Login successful. We recommend changing your password."
+      
+    # Error messages
+    errors:
+      store_selection_required: "Please select a store."
+      email_required: "Please enter your email address."
+      invalid_credentials: "Email address or temporary password is incorrect."
+      rate_limit_exceeded: "Access is temporarily restricted. Please try again after some time."
+      generation_failed: "Failed to generate temporary password. Please try again later."
+      system_error: "A system error occurred. Please contact the administrator."
+      missing_parameters: "Required information is missing."
+      
+    # Help and instructions
+    help:
+      request_form: |
+        A temporary password will be sent to your registered email address.
+        The temporary password is valid for 30 minutes.
+      verify_form: |
+        Please enter the temporary password received via email.
+        After logging in with the temporary password, you must change your password.
+      security_notice: |
+        For security reasons, we recommend changing to your regular password after logging in.
+        
+    # Troubleshooting
+    troubleshooting:
+      title: "If you don't receive the email"
+      steps:
+        - "Check your spam/junk mail folder"
+        - "Verify your email address is correct"
+        - "Wait a moment and try again"
+        - "Contact administrator if the problem persists"
+        
+    # Security related
+    security:
+      password_expires_in: "Temporary password expires in %{duration} minutes"
+      change_password_recommended: "For security, please change your password after logging in"
+      one_time_use: "Temporary password can only be used once"
+      
+    # Validation messages
+    validations:
+      email:
+        blank: "Please enter your email address"
+        invalid: "Please enter a valid email address"
+      temp_password:
+        blank: "Please enter the temporary password"
+        
+    # API related messages
+    api:
+      success: "Operation completed successfully"
+      error: "An error occurred"
+      invalid_request: "Invalid request"

@@ -15,12 +15,56 @@ RSpec.describe InventoryDecorator, type: :decorator do
       end
     end
 
-    context '在庫がある場合' do
+    context '在庫が少量の場合' do
+      let(:inventory) { create(:inventory, quantity: 3).decorate }
+
+      it '少量の警告バッジを返すこと' do
+        expect(inventory.alert_badge).to include('少量')
+        expect(inventory.alert_badge).to include('bg-warning')
+      end
+    end
+
+    context '在庫が正常の場合' do
       let(:inventory) { create(:inventory, quantity: 10).decorate }
 
       it 'OKのバッジを返すこと' do
         expect(inventory.alert_badge).to include('OK')
         expect(inventory.alert_badge).to include('bg-success')
+      end
+    end
+  end
+
+  # CLAUDE.md準拠: 新機能のテストケース追加
+  describe '#alert_level' do
+    context '在庫切れの場合' do
+      let(:inventory) { create(:inventory, quantity: 0).decorate }
+
+      it 'criticalレベルを返すこと' do
+        expect(inventory.alert_level).to eq('critical')
+      end
+    end
+
+    context '低在庫の場合' do
+      let(:inventory) { create(:inventory, quantity: 3).decorate }
+
+      it 'warningレベルを返すこと' do
+        expect(inventory.alert_level).to eq('warning')
+      end
+    end
+
+    context '正常在庫の場合' do
+      let(:inventory) { create(:inventory, quantity: 10).decorate }
+
+      it 'normalレベルを返すこと' do
+        expect(inventory.alert_level).to eq('normal')
+      end
+    end
+
+    context '閾値境界値の場合' do
+      let(:inventory) { create(:inventory, quantity: 5).decorate }
+
+      it '閾値以下なら警告レベルを返すこと' do
+        expect(inventory.alert_level).to eq('warning')
       end
     end
   end

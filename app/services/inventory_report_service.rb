@@ -132,7 +132,9 @@ class InventoryReportService
     end
 
     def calculate_low_stock_items
-      # バッチの数量に基づく低在庫判定
+      # CLAUDE.md準拠: N+1クエリ対策 - 単一クエリによる効率的集計
+      # メタ認知: バッチ数量に基づく低在庫判定のパフォーマンス最適化
+      # 横展開: 他の集計メソッドでも同様のパターン適用
       Inventory.joins(:batches)
                .where("batches.quantity <= ?", LOW_STOCK_THRESHOLD)
                .distinct
@@ -140,6 +142,7 @@ class InventoryReportService
     end
 
     def calculate_critical_stock_items
+      # CLAUDE.md準拠: 重要在庫クエリの最適化実装
       Inventory.joins(:batches)
                .where("batches.quantity <= ?", CRITICAL_STOCK_THRESHOLD)
                .distinct

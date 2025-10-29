@@ -6,9 +6,10 @@
 # 月次レポート生成のバックグラウンド処理
 # 大量データ処理・長時間実行ジョブの実装例
 #
-# TODO: ImportInventoriesJobのベストプラクティスを適用
-# Phase 1（優先度：高、推定：2-3日）
-# 関連: docs/design/job_processing_design.md
+# TODO: 🔴 Phase 1（緊急）- ImportInventoriesJobのベストプラクティスを適用
+#   推定期間: 2-3日
+#   関連: docs/design/job_processing_design.md
+#   横展開: ImportInventoriesJobと同等のセキュリティ・進捗管理パターン実装
 # ============================================
 # 1. セキュリティ強化
 #    - ジョブ引数の検証追加（validate_job_arguments）

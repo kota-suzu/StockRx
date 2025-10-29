@@ -1,0 +1,434 @@
+<%# CLAUDE.md準拠: CSVインポート進捗表示ページ %>
+<%# メタ認知: リアルタイム進捗表示によるユーザー体験向上 %>
+<% content_for :page_title, "CSVインポート進捗" %>
+
+<div class="container-fluid py-4">
+  <%# パンくずナビゲーション %>
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><%= link_to "ダッシュボード", admin_root_path %></li>
+      <li class="breadcrumb-item"><%= link_to "在庫管理", admin_inventories_path %></li>
+      <li class="breadcrumb-item"><%= link_to "CSVインポート", import_form_admin_inventories_path %></li>
+      <li class="breadcrumb-item active" aria-current="page">進捗確認</li>
+    </ol>
+  </nav>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-10">
+      <%# メインプログレスカード %>
+      <div class="card shadow-sm" id="progress-card">
+        <div class="card-header bg-info text-white">
+          <div class="row align-items-center">
+            <div class="col">
+              <h4 class="mb-0">
+                <i class="bi bi-gear-wide-connected me-2"></i>
+                CSVインポート進行状況
+              </h4>
+              <small class="opacity-75">ジョブID: <span id="job-id"><%= params[:id] %></span></small>
+            </div>
+            <div class="col-auto">
+              <span id="status-badge" class="badge bg-light text-dark">
+                <i class="bi bi-hourglass-split me-1"></i>
+                確認中...
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-body">
+          <%# メインプログレスバー %>
+          <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="mb-0">進捗状況</h6>
+              <span id="progress-percentage" class="text-info fw-bold">0%</span>
+            </div>
+            <div class="progress" style="height: 25px;">
+              <div id="progress-bar" 
+                   class="progress-bar progress-bar-striped progress-bar-animated bg-info" 
+                   role="progressbar" 
+                   style="width: 0%"
+                   aria-valuenow="0" 
+                   aria-valuemin="0" 
+                   aria-valuemax="100">
+                <span id="progress-text">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <%# 統計情報 %>
+          <div class="row text-center mb-4">
+            <div class="col-md-2">
+              <div class="card border-info">
+                <div class="card-body py-3">
+                  <i class="bi bi-file-earmark-text text-info fs-2"></i>
+                  <div class="fw-bold fs-5" id="file-name">-</div>
+                  <small class="text-muted">ファイル名</small>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-2">
+              <div class="card border-success">
+                <div class="card-body py-3">
+                  <i class="bi bi-check-circle text-success fs-2"></i>
+                  <div class="fw-bold fs-5 text-success" id="valid-count">0</div>
+                  <small class="text-muted">成功</small>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-2">
+              <div class="card border-danger">
+                <div class="card-body py-3">
+                  <i class="bi bi-x-circle text-danger fs-2"></i>
+                  <div class="fw-bold fs-5 text-danger" id="invalid-count">0</div>
+                  <small class="text-muted">エラー</small>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-3">
+              <div class="card border-info">
+                <div class="card-body py-3">
+                  <i class="bi bi-clock text-info fs-2"></i>
+                  <div class="fw-bold fs-5 text-info" id="duration">-</div>
+                  <small class="text-muted">経過時間</small>
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-3">
+              <div class="card border-primary">
+                <div class="card-body py-3">
+                  <i class="bi bi-person text-primary fs-2"></i>
+                  <div class="fw-bold fs-5 text-primary" id="admin-info">-</div>
+                  <small class="text-muted">実行者</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <%# ステータスメッセージ %>
+          <div id="status-message-area">
+            <div class="alert alert-info" id="status-message">
+              <i class="bi bi-info-circle me-2"></i>
+              <span id="current-message">ジョブのステータスを確認中...</span>
+            </div>
+          </div>
+
+          <%# エラー詳細（表示/非表示） %>
+          <div id="error-details" class="d-none">
+            <div class="alert alert-danger">
+              <h6 class="alert-heading">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                エラーが発生しました
+              </h6>
+              <p id="error-message" class="mb-0"></p>
+            </div>
+          </div>
+
+          <%# 完了時の詳細情報 %>
+          <div id="completion-details" class="d-none">
+            <div class="alert alert-success">
+              <h6 class="alert-heading">
+                <i class="bi bi-check-circle me-2"></i>
+                インポート完了
+              </h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <p class="mb-1"><strong>処理結果:</strong></p>
+                  <ul class="mb-0">
+                    <li>成功: <span id="final-valid-count">0</span>件</li>
+                    <li>エラー: <span id="final-invalid-count">0</span>件</li>
+                    <li>処理時間: <span id="final-duration">0</span>秒</li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <p class="mb-1"><strong>次のステップ:</strong></p>
+                  <ul class="mb-0">
+                    <li><%= link_to "在庫一覧で確認", admin_inventories_path, class: "text-decoration-none" %></li>
+                    <li><%= link_to "新しいインポート", import_form_admin_inventories_path, class: "text-decoration-none" %></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-footer">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <small class="text-muted">
+                <i class="bi bi-arrow-clockwise me-1"></i>
+                最終更新: <span id="last-updated">-</span>
+              </small>
+            </div>
+            <div>
+              <%= link_to import_form_admin_inventories_path, 
+                         class: "btn btn-outline-secondary btn-sm" do %>
+                <i class="bi bi-arrow-left me-1"></i>
+                戻る
+              <% end %>
+              
+              <button type="button" 
+                      class="btn btn-primary btn-sm ms-2"
+                      onclick="refreshStatus()"
+                      id="refresh-button">
+                <i class="bi bi-arrow-clockwise me-1"></i>
+                更新
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%# JavaScript実装 - CLAUDE.md準拠 %>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // ============================================
+  // CSVインポート進捗監視システム
+  // CLAUDE.md準拠: リアルタイムユーザビリティ向上
+  // ============================================
+  
+  const jobId = '<%= params[:id] %>';
+  let refreshInterval;
+  let retryCount = 0;
+  const maxRetries = 10;
+  
+  // DOM要素の取得
+  const elements = {
+    progressBar: document.getElementById('progress-bar'),
+    progressText: document.getElementById('progress-text'),
+    progressPercentage: document.getElementById('progress-percentage'),
+    statusBadge: document.getElementById('status-badge'),
+    statusMessage: document.getElementById('current-message'),
+    statusMessageArea: document.getElementById('status-message-area'),
+    errorDetails: document.getElementById('error-details'),
+    errorMessage: document.getElementById('error-message'),
+    completionDetails: document.getElementById('completion-details'),
+    fileName: document.getElementById('file-name'),
+    validCount: document.getElementById('valid-count'),
+    invalidCount: document.getElementById('invalid-count'),
+    duration: document.getElementById('duration'),
+    adminInfo: document.getElementById('admin-info'),
+    lastUpdated: document.getElementById('last-updated'),
+    refreshButton: document.getElementById('refresh-button')
+  };
+  
+  // 初期状態の設定
+  function initializeProgressDisplay() {
+    updateLastUpdated();
+    fetchJobStatus();
+    
+    // 定期更新の開始
+    refreshInterval = setInterval(fetchJobStatus, 3000); // 3秒間隔
+  }
+  
+  // ジョブステータスの取得
+  function fetchJobStatus() {
+    fetch(`/admin/job_statuses/${jobId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      updateProgressDisplay(data);
+      retryCount = 0; // 成功時はリトライカウントをリセット
+    })
+    .catch(error => {
+      console.error('Status fetch error:', error);
+      handleFetchError(error);
+    });
+  }
+  
+  // 進捗表示の更新
+  function updateProgressDisplay(data) {
+    const progress = Math.max(0, Math.min(100, data.progress || 0));
+    const status = data.status || 'unknown';
+    
+    // プログレスバーの更新
+    elements.progressBar.style.width = `${progress}%`;
+    elements.progressBar.setAttribute('aria-valuenow', progress);
+    elements.progressText.textContent = `${progress}%`;
+    elements.progressPercentage.textContent = `${progress}%`;
+    
+    // ステータスバッジの更新
+    updateStatusBadge(status);
+    
+    // 基本情報の更新
+    if (data.file_name) elements.fileName.textContent = data.file_name;
+    elements.validCount.textContent = data.valid_count || 0;
+    elements.invalidCount.textContent = data.invalid_count || 0;
+    
+    // 時間情報の更新
+    if (data.duration) {
+      elements.duration.textContent = `${Math.round(data.duration)}秒`;
+    }
+    
+    // ステータス別処理
+    handleStatusUpdate(status, data);
+    
+    updateLastUpdated();
+  }
+  
+  // ステータスバッジの更新
+  function updateStatusBadge(status) {
+    const badge = elements.statusBadge;
+    badge.className = 'badge'; // リセット
+    
+    switch (status) {
+      case 'running':
+      case 'processing':
+        badge.className += ' bg-primary text-white';
+        badge.innerHTML = '<i class="bi bi-gear-wide-connected me-1"></i>処理中';
+        break;
+      case 'completed':
+        badge.className += ' bg-success text-white';
+        badge.innerHTML = '<i class="bi bi-check-circle me-1"></i>完了';
+        break;
+      case 'failed':
+      case 'error':
+        badge.className += ' bg-danger text-white';
+        badge.innerHTML = '<i class="bi bi-x-circle me-1"></i>エラー';
+        break;
+      case 'not_found':
+        badge.className += ' bg-warning text-dark';
+        badge.innerHTML = '<i class="bi bi-question-circle me-1"></i>見つかりません';
+        break;
+      default:
+        badge.className += ' bg-secondary text-white';
+        badge.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>不明';
+    }
+  }
+  
+  // ステータス別の処理
+  function handleStatusUpdate(status, data) {
+    // エラー詳細の非表示
+    elements.errorDetails.classList.add('d-none');
+    elements.completionDetails.classList.add('d-none');
+    
+    switch (status) {
+      case 'running':
+      case 'processing':
+        elements.statusMessage.textContent = data.message || 'CSVファイルを処理中です...';
+        updateMessageAlert('info');
+        break;
+        
+      case 'completed':
+        elements.statusMessage.textContent = 'インポートが正常に完了しました！';
+        updateMessageAlert('success');
+        elements.completionDetails.classList.remove('d-none');
+        
+        // 完了詳細の更新
+        document.getElementById('final-valid-count').textContent = data.valid_count || 0;
+        document.getElementById('final-invalid-count').textContent = data.invalid_count || 0;
+        document.getElementById('final-duration').textContent = Math.round(data.duration || 0);
+        
+        stopAutoRefresh();
+        break;
+        
+      case 'failed':
+      case 'error':
+        elements.statusMessage.textContent = 'インポート中にエラーが発生しました。';
+        updateMessageAlert('danger');
+        
+        if (data.error_message) {
+          elements.errorMessage.textContent = data.error_message;
+          elements.errorDetails.classList.remove('d-none');
+        }
+        
+        stopAutoRefresh();
+        break;
+        
+      case 'not_found':
+        elements.statusMessage.textContent = 'ジョブが見つかりません。すでに完了または削除された可能性があります。';
+        updateMessageAlert('warning');
+        stopAutoRefresh();
+        break;
+        
+      default:
+        elements.statusMessage.textContent = data.message || 'ステータスを確認中...';
+        updateMessageAlert('info');
+    }
+  }
+  
+  // メッセージアラートの更新
+  function updateMessageAlert(type) {
+    const alertTypes = ['info', 'success', 'danger', 'warning'];
+    const alertElement = elements.statusMessageArea.querySelector('.alert');
+    
+    // 既存のクラスを削除
+    alertTypes.forEach(t => alertElement.classList.remove(`alert-${t}`));
+    
+    // 新しいクラスを追加
+    alertElement.classList.add(`alert-${type}`);
+  }
+  
+  // エラーハンドリング
+  function handleFetchError(error) {
+    retryCount++;
+    
+    if (retryCount >= maxRetries) {
+      elements.statusMessage.textContent = 'ステータスの取得に失敗しました。ページを更新してください。';
+      updateMessageAlert('danger');
+      stopAutoRefresh();
+    } else {
+      elements.statusMessage.textContent = `ステータス取得中... (${retryCount}/${maxRetries})`;
+      updateMessageAlert('warning');
+    }
+    
+    updateLastUpdated();
+  }
+  
+  // 自動更新の停止
+  function stopAutoRefresh() {
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+      refreshInterval = null;
+    }
+    
+    // リフレッシュボタンのテキストを変更
+    elements.refreshButton.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>再確認';
+  }
+  
+  // 最終更新時間の更新
+  function updateLastUpdated() {
+    const now = new Date();
+    elements.lastUpdated.textContent = now.toLocaleTimeString('ja-JP');
+  }
+  
+  // 手動更新
+  window.refreshStatus = function() {
+    elements.refreshButton.disabled = true;
+    elements.refreshButton.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>更新中...';
+    
+    fetchJobStatus();
+    
+    setTimeout(() => {
+      elements.refreshButton.disabled = false;
+      elements.refreshButton.innerHTML = '<i class="bi bi-arrow-clockwise me-1"></i>更新';
+    }, 1000);
+  };
+  
+  // 初期化
+  initializeProgressDisplay();
+  
+  // ページを離れる時のクリーンアップ
+  window.addEventListener('beforeunload', () => {
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+    }
+  });
+});
+</script>

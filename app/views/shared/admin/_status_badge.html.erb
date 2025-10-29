@@ -1,0 +1,150 @@
+<%# Unified Status Badge Component for Admin Interface %>
+
+<!--
+  Usage: 
+  render 'admin_controllers/shared/status_badge',
+         status: 'active',
+         text: 'アクティブ',
+         type: 'status' # or 'level', 'priority', 'custom'
+
+  Parameters:
+  - status: Status value (required) - used for determining color and icon
+  - text: Display text (optional, will use humanized status if not provided)
+  - type: Badge type (optional, default: 'status')
+  - icon: Custom icon (optional)
+  - size: Badge size (optional: 'sm', 'md', 'lg', default: 'md')
+-->
+
+<% 
+  # Set defaults
+  text ||= status.to_s.humanize
+  type ||= 'status'
+  size ||= 'md'
+  
+  # Determine badge class and icon based on status and type
+  case type
+  when 'status'
+    case status.to_s.downcase
+    when 'active', 'enabled', 'available', 'completed', 'success', 'normal', 'optimal'
+      badge_class = 'bg-success'
+      icon ||= 'bi-check-circle-fill'
+    when 'inactive', 'disabled', 'unavailable', 'pending', 'processing'
+      badge_class = 'bg-secondary'
+      icon ||= 'bi-clock-fill'
+    when 'warning', 'low', 'expiring_soon', 'critical'
+      badge_class = 'bg-warning text-dark'
+      icon ||= 'bi-exclamation-triangle-fill'
+    when 'danger', 'error', 'failed', 'expired', 'out_of_stock'
+      badge_class = 'bg-danger'
+      icon ||= 'bi-x-circle-fill'
+    when 'info', 'information', 'excess'
+      badge_class = 'bg-info text-dark'
+      icon ||= 'bi-info-circle-fill'
+    else
+      badge_class = 'bg-light text-dark'
+      icon ||= 'bi-circle-fill'
+    end
+  when 'level'
+    case status.to_s.downcase
+    when 'optimal', 'normal', 'good'
+      badge_class = 'bg-success'
+      icon ||= 'bi-check-circle-fill'
+    when 'low', 'warning'
+      badge_class = 'bg-warning text-dark'
+      icon ||= 'bi-exclamation-triangle-fill'
+    when 'critical', 'danger', 'out_of_stock'
+      badge_class = 'bg-danger'
+      icon ||= 'bi-x-circle-fill'
+    when 'excess', 'high'
+      badge_class = 'bg-info text-dark'
+      icon ||= 'bi-arrow-up-circle-fill'
+    else
+      badge_class = 'bg-secondary'
+      icon ||= 'bi-dash-circle-fill'
+    end
+  when 'priority'
+    case status.to_s.downcase
+    when 'emergency', 'urgent'
+      badge_class = 'bg-danger'
+      icon ||= 'bi-exclamation-triangle-fill'
+    when 'high'
+      badge_class = 'bg-warning text-dark'
+      icon ||= 'bi-arrow-up-circle-fill'
+    when 'normal', 'medium'
+      badge_class = 'bg-primary'
+      icon ||= 'bi-circle-fill'
+    when 'low'
+      badge_class = 'bg-secondary'
+      icon ||= 'bi-arrow-down-circle-fill'
+    else
+      badge_class = 'bg-light text-dark'
+      icon ||= 'bi-circle'
+    end
+  when 'store_type'
+    case status.to_s.downcase
+    when 'pharmacy'
+      badge_class = 'bg-admin-primary'
+      icon ||= 'bi-hospital'
+      text = '薬局'
+    when 'warehouse'
+      badge_class = 'bg-info'
+      icon ||= 'bi-building'
+      text = '倉庫'
+    when 'headquarters'
+      badge_class = 'bg-success'
+      icon ||= 'bi-building-check'
+      text = '本部'
+    else
+      badge_class = 'bg-secondary'
+      icon ||= 'bi-building'
+    end
+  else
+    # Custom type - use provided classes or defaults
+    badge_class = 'bg-secondary'
+    icon ||= 'bi-circle-fill'
+  end
+  
+  # Size classes
+  size_class = case size
+  when 'sm'
+    'badge-sm'
+  when 'lg'
+    'badge-lg'
+  else
+    ''
+  end
+%>
+
+<span class="badge <%= badge_class %> <%= size_class %> admin-badge" title="<%= text %>">
+  <% if icon.present? %>
+    <i class="<%= icon %> me-1" aria-hidden="true"></i>
+  <% end %>
+  <%= text %>
+</span>
+
+<%# Badge Size Styles %>
+<style>
+  .badge-sm {
+    font-size: 0.75em;
+    padding: 0.25em 0.5em;
+  }
+  
+  .badge-lg {
+    font-size: 1em;
+    padding: 0.5em 0.75em;
+  }
+  
+  .admin-badge {
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .admin-badge:hover {
+    transform: scale(1.05);
+  }
+  
+  .bg-admin-primary {
+    background-color: var(--admin-primary, #0d6efd) !important;
+    color: white;
+  }
+</style>

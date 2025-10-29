@@ -1,0 +1,548 @@
+/* ========================================== */
+/* ボタンコンポーネント統合スタイル */
+/* ========================================== */
+/* CLAUDE.md準拠: 統一されたボタンデザインシステム */
+/* メタ認知: 複数ファイルでのボタンスタイル重複を統合し、一貫性確保 */
+/* 横展開: 管理者・店舗・公開画面で統一されたボタン体験 */
+/* ========================================== */
+
+@import '../variables';
+@import '../mixins';
+
+// ========================================
+// ベースボタンスタイル（全ボタンの基盤）
+// ========================================
+
+.btn {
+  @include button-base();
+  @include smooth-transition();
+  @include focus-ring();
+  @include high-contrast-support();
+  @include reduced-motion-support();
+  
+  // デフォルトボタンサイズ調整
+  &.btn-sm {
+    @include button-base(0.25rem 0.5rem, var(--radius-sm));
+    font-size: 0.875rem;
+  }
+  
+  &.btn-lg {
+    @include button-base(0.5rem 1rem, var(--radius-lg));
+    font-size: 1.125rem;
+  }
+  
+  // アイコン付きボタンのスペーシング
+  i, .icon {
+    margin-right: 0.5rem;
+    
+    &:last-child {
+      margin-right: 0;
+      margin-left: 0.5rem;
+    }
+    
+    &:only-child {
+      margin: 0;
+    }
+  }
+}
+
+// ========================================
+// 管理者専用ボタン（admin_controllers.scssから統合）
+// ========================================
+
+.btn-admin {
+  @include button-variant(
+    var(--admin-accent),
+    var(--text-light),
+    var(--admin-accent),
+    darken(#e74c3c, 10%),
+    var(--text-light),
+    translateY(-2px)
+  );
+  
+  box-shadow: var(--shadow-xs);
+  
+  &:hover {
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+.btn-admin-primary {
+  @include button-variant(
+    var(--admin-primary),
+    var(--text-light),
+    var(--admin-primary),
+    darken(#3498db, 10%),
+    var(--text-light)
+  );
+}
+
+.btn-admin-accent {
+  @include button-variant(
+    var(--admin-accent),
+    var(--text-light),
+    var(--admin-accent),
+    darken(#e74c3c, 10%),
+    var(--text-light)
+  );
+}
+
+// ========================================
+// GitHubログインボタン（application.scssから統合）
+// ========================================
+
+.btn-github {
+  @include button-variant(
+    #24292e,
+    var(--text-light),
+    #24292e,
+    #1a1e23,
+    var(--text-light),
+    translateY(-1px)
+  );
+  
+  &:hover {
+    box-shadow: 0 2px 4px rgba(36, 41, 46, 0.2);
+  }
+}
+
+.github-login-btn {
+  @extend .btn-github;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  
+  .github-icon {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+    flex-shrink: 0;
+  }
+}
+
+// ========================================
+// グラデーションボタン（bootstrap_enhancements.scssから統合）
+// ========================================
+
+.btn-gradient-primary {
+  background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary));
+  border: none;
+  color: var(--text-light);
+  transition: var(--transition-normal);
+  
+  &:hover {
+    background: linear-gradient(135deg, var(--admin-secondary), var(--admin-primary));
+    color: var(--text-light);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+.btn-gradient-success {
+  background: linear-gradient(135deg, var(--bs-success), darken(#28a745, 10%));
+  border: none;
+  color: var(--text-light);
+  transition: var(--transition-normal);
+  
+  &:hover {
+    background: linear-gradient(135deg, darken(#28a745, 10%), var(--bs-success));
+    color: var(--text-light);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+// ========================================
+// モダンボタンバリアント（store_selection.scssから統合）
+// ========================================
+
+.btn-modern {
+  @include button-base(0.75rem 1.5rem, var(--radius-lg));
+  @include smooth-transition();
+  
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 2px solid transparent;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+  
+  &:hover::before {
+    left: 100%;
+  }
+  
+  &.btn-modern-primary {
+    @include button-variant(
+      var(--section-primary),
+      var(--text-light),
+      var(--section-primary)
+    );
+  }
+  
+  &.btn-modern-outline {
+    @include button-outline-variant(
+      var(--section-primary),
+      var(--section-primary),
+      var(--section-primary),
+      var(--text-light)
+    );
+  }
+}
+
+// ========================================
+// ホバーエフェクトボタン（application.scssから統合）
+// ========================================
+
+.btn-hover-lift {
+  @include hover-lift(translateY(-2px), var(--shadow-md));
+}
+
+.btn-hover-shadow {
+  transition: var(--transition-normal);
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+  }
+}
+
+.btn-hover-primary {
+  transition: var(--transition-normal);
+  
+  &:hover {
+    background-color: var(--section-primary) !important;
+    border-color: var(--section-primary) !important;
+    color: var(--text-light) !important;
+  }
+}
+
+// ========================================
+// フローティングアクションボタン
+// ========================================
+
+.btn-floating {
+  @include button-base(0, 50%);
+  @include center-content();
+  
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 56px;
+  height: 56px;
+  box-shadow: var(--shadow-md);
+  z-index: 1030;
+  background-color: var(--section-primary);
+  color: var(--text-light);
+  border: none;
+  
+  &:hover {
+    background-color: var(--section-primary);
+    color: var(--text-light);
+    transform: scale(1.05);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  i {
+    font-size: 1.5rem;
+    margin: 0;
+  }
+}
+
+// ========================================
+// 特殊用途ボタン
+// ========================================
+
+// 危険な操作用ボタン（削除など）
+.btn-danger-outline {
+  @include button-outline-variant(
+    var(--bs-danger),
+    var(--bs-danger),
+    var(--bs-danger),
+    var(--text-light)
+  );
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+  }
+}
+
+// 成功状態ボタン
+.btn-success-modern {
+  @include button-variant(
+    var(--bs-success),
+    var(--text-light),
+    var(--bs-success),
+    darken(#28a745, 10%),
+    var(--text-light)
+  );
+  
+  position: relative;
+  
+  &.loading {
+    color: transparent;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      margin: -10px 0 0 -10px;
+      border: 2px solid transparent;
+      border-top-color: var(--text-light);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// 情報表示ボタン
+.btn-info-modern {
+  @include button-variant(
+    var(--bs-info),
+    var(--text-light),
+    var(--bs-info),
+    darken(#17a2b8, 10%),
+    var(--text-light)
+  );
+}
+
+// ========================================
+// ボタングループ拡張
+// ========================================
+
+.btn-group-modern {
+  .btn {
+    border-radius: 0;
+    border-right-width: 0;
+    
+    &:first-child {
+      border-radius: var(--radius-md) 0 0 var(--radius-md);
+    }
+    
+    &:last-child {
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      border-right-width: 1px;
+    }
+    
+    &:only-child {
+      border-radius: var(--radius-md);
+      border-right-width: 1px;
+    }
+  }
+}
+
+// ========================================
+// ソーシャルログインボタン
+// ========================================
+
+.btn-social {
+  @include button-base(0.75rem 1.5rem, var(--radius-md));
+  @include smooth-transition();
+  
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  font-weight: 500;
+  
+  .social-icon {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  
+  &.btn-google {
+    background-color: #4285f4;
+    color: white;
+    border-color: #4285f4;
+    
+    &:hover {
+      background-color: #3367d6;
+      border-color: #3367d6;
+      color: white;
+    }
+  }
+  
+  &.btn-twitter {
+    background-color: #1da1f2;
+    color: white;
+    border-color: #1da1f2;
+    
+    &:hover {
+      background-color: #0c85d0;
+      border-color: #0c85d0;
+      color: white;
+    }
+  }
+}
+
+// ========================================
+// レスポンシブ対応
+// ========================================
+
+@media (max-width: 767.98px) {
+  .btn-floating {
+    bottom: 1rem;
+    right: 1rem;
+    width: 48px;
+    height: 48px;
+    
+    i {
+      font-size: 1.25rem;
+    }
+  }
+  
+  .github-login-btn {
+    font-size: 0.9rem;
+    padding: 0.65rem 1rem;
+    
+    .github-icon {
+      width: 18px;
+      height: 18px;
+    }
+  }
+  
+  .btn-modern {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .btn-group-modern {
+    flex-direction: column;
+    
+    .btn {
+      border-radius: var(--radius-md);
+      border-right-width: 1px;
+      border-bottom-width: 0;
+      margin-bottom: 1px;
+      
+      &:last-child {
+        margin-bottom: 0;
+        border-bottom-width: 1px;
+      }
+    }
+  }
+}
+
+// ========================================
+// アクセシビリティ強化
+// ========================================
+
+.btn {
+  // キーボードナビゲーション対応
+  &:focus-visible {
+    outline: 2px solid var(--section-primary);
+    outline-offset: 2px;
+  }
+  
+  // 触覚フィードバック（モバイル）
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+// スクリーンリーダー専用テキスト
+.btn-icon-only {
+  .sr-text {
+    @include sr-only();
+  }
+}
+
+// ========================================
+// プリント対応
+// ========================================
+
+@media print {
+  .btn {
+    border: 1px solid #000 !important;
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-decoration: underline;
+  }
+  
+  .btn-floating {
+    display: none !important;
+  }
+}
+
+// ========================================
+// 状態管理クラス
+// ========================================
+
+.btn {
+  &.loading {
+    position: relative;
+    color: transparent !important;
+    pointer-events: none;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 16px;
+      height: 16px;
+      margin: -8px 0 0 -8px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+  }
+  
+  &.success {
+    background-color: var(--bs-success) !important;
+    border-color: var(--bs-success) !important;
+    color: var(--text-light) !important;
+    
+    &::before {
+      content: '✓';
+      margin-right: 0.5rem;
+    }
+  }
+  
+  &.error {
+    background-color: var(--bs-danger) !important;
+    border-color: var(--bs-danger) !important;
+    color: var(--text-light) !important;
+    
+    &::before {
+      content: '✗';
+      margin-right: 0.5rem;
+    }
+  }
+}
+
+// ========================================
+// TODO: 🟡 Phase 3（重要）- 高度なボタン機能
+// 優先度: 中（基本ボタンシステム安定後）
+// 実装内容:
+//   - ボタンリップルエフェクト（マテリアルデザイン風）
+//   - 進捗表示付きボタン（ファイルアップロード等）
+//   - ボタン状態アニメーション（loading → success → reset）
+//   - ボタンツールチップ統合
+//   - ボタンバッジ機能（通知カウント表示）
+// 期待効果: ユーザーフィードバック向上、操作状態の可視化
+// 工数見積: 2-3日
+// 依存関係: JavaScript連携、アニメーションライブラリ
+// ========================================

@@ -4,13 +4,27 @@ class InventoryDecorator < Draper::Decorator
   delegate_all
 
   # 在庫状態に応じたアラートバッジを生成（Bootstrap 5版）
+  # CLAUDE.md準拠: InventoryStatisticsモジュールとの一貫性確保
   def alert_badge
-    if quantity <= 0
+    if out_of_stock?
       h.tag.span("要補充", class: "badge bg-danger")
-    elsif quantity < 10
+    elsif low_stock?
       h.tag.span("少量", class: "badge bg-warning")
     else
       h.tag.span("OK", class: "badge bg-success")
+    end
+  end
+
+  # アラートレベルを返す（status_badgeコンポーネント用）
+  # CLAUDE.md準拠: alert_badgeと同一ロジックで一貫性確保
+  # 横展開: InventoryStatisticsモジュールのメソッドを活用
+  def alert_level
+    if out_of_stock?
+      "critical"
+    elsif low_stock?
+      "warning"
+    else
+      "normal"
     end
   end
 

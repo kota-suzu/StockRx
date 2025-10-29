@@ -3,18 +3,15 @@
 module Auditable
   extend ActiveSupport::Concern
 
-  # TODO: パフォーマンス最適化
-  # - 大量の監査ログ蓄積時のクエリ最適化
-  # - 非同期ログ記録によるメイン処理への影響軽減
-  # - パーティション機能による古いログの効率的管理
-  #
-  # TODO: 機能拡張
-  # - JSON形式のdetailsフィールドの構造化検索機能
-  # - ログレベル（info, warning, critical）の導入
-  # - 操作前後の値変更の詳細トラッキング
+  DEFAULT_AUDITABLE_CONFIG = {
+    except: %w[created_at updated_at],
+    sensitive: []
+  }.freeze
 
   included do
-    has_many :audit_logs, as: :auditable, dependent: :destroy
+    class_attribute :auditable_config, instance_writer: false, default: DEFAULT_AUDITABLE_CONFIG
+
+    has_many :audit_logs, as: :auditable, dependent: :restrict_with_error
 
     # 監査ログを保存するコールバック
     after_create :log_create_action
@@ -25,10 +22,12 @@ module Auditable
 
   # 監査ログを記録するメソッド
   def audit_log(action, details = {})
+    sanitized_details = sanitize_audit_details(details)
+
     audit_logs.create!(
       user_id: defined?(Current) && Current.respond_to?(:user) ? Current.user&.id : nil,
       action: action,
-      details: details,
+      details: sanitized_details,
       ip_address: defined?(Current) && Current.respond_to?(:ip_address) ? Current.ip_address : nil,
       user_agent: defined?(Current) && Current.respond_to?(:user_agent) ? Current.user_agent : nil
     )
@@ -75,11 +74,11 @@ module Auditable
   # 更新時のログ記録
   def log_update_action
     # 変更内容を記録
-    changes_hash = saved_changes.except("updated_at", "created_at")
+    changes_hash = filtered_saved_changes
     return if changes_hash.empty?
 
     details = changes_hash.map do |attribute, (old_value, new_value)|
-      "#{attribute}: #{old_value.inspect} → #{new_value.inspect}"
+      format_audit_change(attribute, old_value, new_value)
     end.join(", ")
 
     create_audit_log("update", "レコードを更新しました", details)
@@ -109,10 +108,6 @@ module Auditable
     )
   rescue => e
     # ログ記録に失敗しても主処理は継続
-    # TODO: エラーハンドリングの改善
-    # - Sentry等の外部監視ツールへのエラー通知
-    # - ログ記録失敗回数の監視とアラート機能
-    # - フォールバック機能（ファイルベースログ等）
     Rails.logger.error("監査ログ記録エラー: #{e.message}")
   end
 
@@ -141,7 +136,66 @@ module Auditable
     defined?(Current) && Current.respond_to?(:operation_type) ? Current.operation_type : nil
   end
 
+  def filtered_saved_changes
+    saved_changes.except(*auditable_excluded_attributes)
+  end
+
+  def format_audit_change(attribute, old_value, new_value)
+    attr_name = attribute.to_s
+
+    if auditable_sensitive_attributes.include?(attr_name)
+      "#{attr_name}: [FILTERED]"
+    else
+      "#{attr_name}: #{old_value.inspect} → #{new_value.inspect}"
+    end
+  end
+
+  def auditable_excluded_attributes
+    Array(self.class.auditable_config[:except]).map(&:to_s)
+  end
+
+  def auditable_sensitive_attributes
+    Array(self.class.auditable_config[:sensitive]).map(&:to_s)
+  end
+
+  def sanitize_audit_details(details)
+    return details unless details.respond_to?(:each_pair)
+
+    sanitized = details.class.new
+    sanitized.default = details.default if sanitized.respond_to?(:default=)
+
+    details.each_pair do |key, value|
+      key_for_check = key.to_s
+      sanitized[key] = auditable_sensitive_attributes.include?(key_for_check) ? '[FILTERED]' : value
+    end
+
+    sanitized
+  end
+
   class_methods do
+    def auditable(options = {})
+      raise ArgumentError, 'auditable expects a hash of options' unless options.is_a?(Hash)
+
+      config = DEFAULT_AUDITABLE_CONFIG.deep_dup
+
+      if options.key?(:except)
+        config[:except] = (config[:except] + Array(options[:except]).map(&:to_s)).uniq
+      end
+
+      if options.key?(:sensitive)
+        config[:sensitive] = (config[:sensitive] + Array(options[:sensitive]).map(&:to_s)).uniq
+      end
+
+      other_options = options.except(:except, :sensitive)
+      config.merge!(other_options) if other_options.present?
+
+      self.auditable_config = config
+    end
+
+    def auditable_options
+      auditable_config.deep_dup
+    end
+
     # ユーザーの監査履歴を取得
     def audit_history(user_id, start_date = nil, end_date = nil)
       query = AuditLog.where(user_id: user_id)

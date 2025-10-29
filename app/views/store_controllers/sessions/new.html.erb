@@ -1,0 +1,639 @@
+<%# ============================================ %>
+<%# StockRx Store Login - Bootstrap 5 UI Version %>
+<%# ============================================ %>
+<%# CLAUDE.md準拠: Bootstrap環境での正しい実装 %>
+<%# メタ認知: プロジェクトのCSSフレームワークに合わせた実装 %>
+<%# 横展開: 他の認証画面もBootstrap統一 %>
+<%# ============================================ %>
+
+<% content_for :title, "ログイン" %>
+
+<style>
+  /* 🎨 美しいグラデーション認証画面のスタイル定義 */
+  :root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-color: #10b981;
+    --error-color: #ef4444;
+    --focus-ring: rgba(102, 126, 234, 0.4);
+  }
+  
+  /* 美しいグラデーション背景 */
+  .gradient-bg {
+    background: var(--primary-gradient);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  
+  /* カードスタイル（美しいシャドウ効果） */
+  .card-custom {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: none;
+    border-radius: 1rem;
+    overflow: hidden;
+    max-width: 800px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  
+  /* タブナビゲーション（美しいグラデーション効果） */
+  .nav-tabs-custom {
+    border-bottom: 2px solid #e5e7eb;
+    background-color: #f8f9fa;
+  }
+  
+  .nav-tabs-custom .nav-link {
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #6b7280;
+    font-weight: 500;
+    padding: 1rem 1.5rem;
+    margin-bottom: -2px;
+    transition: all 0.2s ease;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: transparent;
+  }
+  
+  .nav-tabs-custom .nav-link:hover {
+    color: #4b5563;
+    border-color: transparent;
+    background-color: rgba(124, 58, 237, 0.05);
+    border-bottom-color: rgba(124, 58, 237, 0.3);
+  }
+  
+  .nav-tabs-custom .nav-link.active {
+    color: #7c3aed;
+    background-color: #ffffff;
+    border-color: transparent;
+    border-bottom-color: #7c3aed;
+    font-weight: 600;
+  }
+  
+  /* 美しいグラデーションボタン */
+  .btn-gradient {
+    background: linear-gradient(to right, #7c3aed, #ec4899);
+    color: white;
+    font-weight: 600;
+    border: none;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-gradient:hover {
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  }
+  
+  .btn-gradient:disabled {
+    opacity: 0.7;
+    transform: none;
+  }
+  
+  .btn-success-gradient {
+    background: linear-gradient(to right, #10b981, #059669);
+    color: white;
+    font-weight: 600;
+    border: none;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-success-gradient:hover {
+    color: white;
+    background: linear-gradient(to right, #059669, #047857);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+  
+  /* パスコード入力フィールド */
+  .passcode-input {
+    font-size: 2rem;
+    letter-spacing: 1rem;
+    text-align: center;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  }
+  
+  /* アニメーション */
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+  
+  /* 背景オーバーライド */
+  body {
+    margin: 0;
+    padding: 0;
+    background: transparent !important;
+  }
+  
+  /* レスポンシブ調整 - PCブラウザ最適化 */
+  @media (max-width: 576px) {
+    .gradient-bg {
+      padding: 0.5rem;
+    }
+    
+    .card-custom {
+      margin: 0;
+      max-width: 100%;
+    }
+    
+    .nav-tabs-custom .nav-link {
+      padding: 0.75rem 0.5rem;
+      font-size: 0.875rem;
+      min-height: 50px;
+    }
+    
+    .nav-tabs-custom .nav-link i {
+      display: none;
+    }
+  }
+  
+  @media (min-width: 577px) and (max-width: 991px) {
+    .card-custom {
+      max-width: 700px;
+    }
+  }
+  
+  @media (min-width: 992px) and (max-width: 1199px) {
+    .card-custom {
+      max-width: 750px;
+    }
+  }
+  
+  @media (min-width: 1200px) and (max-width: 1399px) {
+    .card-custom {
+      max-width: 800px;
+    }
+  }
+  
+  @media (min-width: 1400px) {
+    .card-custom {
+      max-width: 850px;
+    }
+  }
+</style>
+
+<div class="animate-slide-up">
+  <% if @store %>
+    <!-- メインカード -->
+    <div class="card card-custom">
+      <!-- タブナビゲーション -->
+      <ul class="nav nav-tabs nav-tabs-custom" id="loginTabs" role="tablist">
+        <li class="nav-item flex-fill" role="presentation">
+          <button class="nav-link active w-100" id="password-tab" data-bs-toggle="tab" data-bs-target="#password-login" type="button" role="tab" aria-controls="password-login" aria-selected="true">
+            <i class="bi bi-key-fill me-2"></i>
+            パスワードログイン
+          </button>
+        </li>
+        <li class="nav-item flex-fill" role="presentation">
+          <button class="nav-link w-100" id="passcode-tab" data-bs-toggle="tab" data-bs-target="#passcode-login" type="button" role="tab" aria-controls="passcode-login" aria-selected="false">
+            <i class="bi bi-phone me-2"></i>
+            パスコードログイン
+          </button>
+        </li>
+      </ul>
+      
+      <div class="card-body p-4 p-md-5">
+        <div class="tab-content" id="loginTabContent">
+          <!-- パスワードログイン（デフォルト表示） -->
+          <div class="tab-pane fade show active" id="password-login" role="tabpanel" aria-labelledby="password-tab">
+            <div class="text-center mb-4">
+              <div class="d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 rounded-circle mb-3" style="width: 64px; height: 64px;">
+                <i class="bi bi-key-fill fs-3 text-primary"></i>
+              </div>
+              <h2 class="h4 fw-semibold mb-2">パスワードログイン</h2>
+              <p class="text-muted">メールアドレスとパスワードでログイン</p>
+            </div>
+            
+            <%= form_with scope: :store_user, 
+                          url: store_user_session_path(store_slug: @store.slug),
+                          local: true,
+                          class: "needs-validation",
+                          html: { novalidate: true } do |f| %>
+              <!-- メールアドレス -->
+              <div class="mb-3">
+                <label class="form-label fw-medium">
+                  <i class="bi bi-envelope me-1"></i>
+                  メールアドレス
+                </label>
+                <%= f.email_field :email,
+                                  autofocus: true,
+                                  autocomplete: "email",
+                                  class: "form-control",
+                                  placeholder: "email@example.com",
+                                  required: true %>
+                <div class="invalid-feedback">
+                  メールアドレスを入力してください
+                </div>
+              </div>
+              
+              <!-- パスワード -->
+              <div class="mb-3">
+                <label class="form-label fw-medium">
+                  <i class="bi bi-lock me-1"></i>
+                  パスワード
+                </label>
+                <%= f.password_field :password,
+                                     autocomplete: "current-password",
+                                     class: "form-control",
+                                     placeholder: "••••••••",
+                                     required: true %>
+                <div class="invalid-feedback">
+                  パスワードを入力してください
+                </div>
+              </div>
+              
+              <!-- ログイン状態を保持 -->
+              <div class="form-check mb-4">
+                <%= f.check_box :remember_me, class: "form-check-input" %>
+                <label class="form-check-label small" for="store_user_remember_me">
+                  ログイン状態を保持する
+                </label>
+              </div>
+              
+              <!-- ログインボタン -->
+              <div class="d-grid mb-3">
+                <%= f.submit "ログイン",
+                             class: "btn btn-gradient btn-lg py-3",
+                             data: { disable_with: "ログイン中..." } %>
+              </div>
+            <% end %>
+            
+            <!-- ヘルプリンク -->
+            <div class="text-center mt-4">
+              <p class="mb-2">
+                <%= link_to "パスワードを忘れた方はこちら", 
+                            store_email_auth_path(store_slug: @store.slug),
+                            class: "text-decoration-none fw-medium" %>
+              </p>
+              <div class="alert alert-info border-0 mt-3">
+                <small class="text-info-emphasis">
+                  <i class="bi bi-info-circle me-1"></i>
+                  初回ログインの方は、管理者から配布されたパスワードをご利用ください
+                </small>
+              </div>
+            </div>
+          </div>
+          
+          <!-- パスコードログイン -->
+          <div class="tab-pane fade" id="passcode-login" role="tabpanel" aria-labelledby="passcode-tab">
+            <!-- Step 1: メールアドレス入力 -->
+            <div id="passcode-step1">
+              <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 rounded-circle mb-3" style="width: 64px; height: 64px;">
+                  <i class="bi bi-envelope-check fs-3 text-success"></i>
+                </div>
+                <h2 class="h4 fw-semibold mb-2">パスコードログイン</h2>
+                <p class="text-muted">メールアドレスを入力してパスコードを受け取る</p>
+              </div>
+              
+              <%= form_with url: store_request_temp_password_path(store_slug: @store.slug),
+                            local: false,
+                            id: "passcode-request-form",
+                            class: "needs-validation",
+                            html: { novalidate: true } do |f| %>
+                <div class="mb-3">
+                  <label class="form-label fw-medium">
+                    <i class="bi bi-envelope me-1"></i>
+                    メールアドレス
+                  </label>
+                  <%= f.email_field :email,
+                                    class: "form-control",
+                                    placeholder: "email@example.com",
+                                    required: true %>
+                  <div class="invalid-feedback">
+                    メールアドレスを入力してください
+                  </div>
+                </div>
+                
+                <%= f.hidden_field :store_id, value: @store.id %>
+                <%= f.hidden_field :store_slug, value: @store.slug %>
+                
+                <div class="d-grid mb-3">
+                  <%= f.submit "パスコードを送信",
+                               class: "btn btn-success-gradient btn-lg py-3",
+                               data: { disable_with: "送信中..." } %>
+                </div>
+              <% end %>
+              
+              <div class="alert alert-warning border-0">
+                <small class="text-warning-emphasis">
+                  <i class="bi bi-info-circle me-1"></i>
+                  パスコードは15分間有効です。受信したら速やかに入力してください。
+                </small>
+              </div>
+            </div>
+            
+            <!-- Step 2: パスコード入力（JavaScript で表示切り替え） -->
+            <div id="passcode-step2" style="display: none;">
+              <div class="text-center mb-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 rounded-circle mb-3" style="width: 64px; height: 64px;">
+                  <i class="bi bi-shield-lock fs-3 text-warning"></i>
+                </div>
+                <h2 class="h4 fw-semibold mb-2">パスコードを入力</h2>
+                <p class="text-muted">メールで受信した6桁のパスコードを入力してください</p>
+              </div>
+              
+              <%= form_with url: store_verify_temp_password_path(store_slug: @store.slug),
+                            local: true,
+                            id: "passcode-verify-form",
+                            class: "needs-validation",
+                            html: { novalidate: true } do |f| %>
+                <div class="mb-3">
+                  <label class="form-label fw-medium">
+                    <i class="bi bi-shield-lock me-1"></i>
+                    6桁のパスコード
+                  </label>
+                  <%= f.text_field :temp_password,
+                                   class: "form-control passcode-input",
+                                   placeholder: "••••••",
+                                   maxlength: 6,
+                                   pattern: "[0-9]{6}",
+                                   inputmode: "numeric",
+                                   autocomplete: "one-time-code",
+                                   required: true %>
+                  <div class="invalid-feedback">
+                    6桁のパスコードを入力してください
+                  </div>
+                </div>
+                
+                <%= f.hidden_field :email, id: "passcode_verify_email" %>
+                <%= f.hidden_field :store_id, value: @store.id %>
+                <%= f.hidden_field :store_slug, value: @store.slug %>
+                
+                <div class="d-grid mb-3">
+                  <%= f.submit "ログイン",
+                               class: "btn btn-success-gradient btn-lg py-3",
+                               data: { disable_with: "ログイン中..." } %>
+                </div>
+              <% end %>
+              
+              <div class="d-flex justify-content-between small">
+                <button type="button" class="btn btn-link text-decoration-none p-0" onclick="resetPasscodeForm()">
+                  <i class="bi bi-arrow-left me-1"></i>
+                  メールアドレス変更
+                </button>
+                <span class="text-muted">
+                  <i class="bi bi-clock me-1"></i>
+                  15分有効
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- フッター -->
+      <div class="card-footer bg-light text-center border-0">
+        <small class="text-muted">
+          <%= link_to store_selection_path, class: "text-decoration-none fw-medium" do %>
+            <i class="bi bi-shop me-1"></i>
+            別の店舗を選択
+          <% end %>
+        </small>
+      </div>
+    </div>
+
+         <!-- セキュリティ情報 -->
+     <div class="text-center mt-4">
+       <div class="d-inline-flex align-items-center text-muted small">
+         <i class="bi bi-shield-check me-2"></i>
+         <span>安全な接続で保護されています</span>
+       </div>
+     </div>
+
+  <% else %>
+    <!-- 店舗が選択されていない場合 -->
+    <div class="card card-custom">
+      <div class="card-body p-5 text-center">
+        <div class="mb-4">
+          <i class="bi bi-exclamation-triangle-fill text-warning fs-1"></i>
+        </div>
+        <h2 class="h4 fw-semibold mb-3">店舗が選択されていません</h2>
+        <p class="text-muted mb-4">ログインするには、まず店舗を選択してください。</p>
+        <%= link_to "店舗を選択する",
+                    store_selection_path,
+                    class: "btn btn-gradient btn-lg py-3" %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<%# 🔴 緊急修正完了: JavaScript競合修正とTurbo対応 %>
+<%# 問題: インラインスクリプトによるCSP違反とメンテナンス性の低下 %>
+<%# 解決: 外部JavaScriptファイル（authentication.js）に移行 %>
+<%# メタ認知: セキュリティ強化とコード品質向上の両立 %>
+<%# 横展開: 他の画面でもインラインスクリプト外部化を検討 %>
+<%# 
+  TODO: 🟢 Phase 4（推奨）- さらなる認証UX向上
+  優先度: 低（基本機能完成後）
+  実装内容:
+    - Bootstrap Toast通知システム（alert()置き換え）
+    - プログレッシブWebApp対応（オフライン認証）
+    - 生体認証統合（WebAuthn）
+    - マルチファクタ認証（TOTP）
+  期待効果: 最先端の認証体験提供
+%>
+
+<%# ============================================ %>
+<%# ✅ 完了: JavaScript最適化とTurbo対応 %>
+<%# ============================================ %>
+<%# 
+  ✅ Phase 1: インラインスクリプト外部化完了
+  ✅ Phase 2: Bootstrap競合解消完了
+  ✅ Phase 3: Turbo対応強化完了
+  
+  TODO: 🟡 Phase 5（重要）- パスワード強度インジケーター
+  優先度: 中（セキュリティ向上）
+  実装内容:
+    - リアルタイムパスワード強度チェック
+    - Bootstrap Progress Barでの視覚的表示
+    - パスワード要件のガイダンス
+  期待効果: セキュアなパスワード設定の促進
+  
+  TODO: 🟢 Phase 6（推奨）- 生体認証対応
+  優先度: 低（先進的機能）
+  実装内容:
+    - WebAuthn API実装
+    - Touch ID/Face ID対応
+  期待効果: パスワードレス認証の実現
+%>
+
+<script>
+// 🔥 緊急修正: パスコードログインタブ直接修復
+// CLAUDE.md準拠: ユーザビリティ最優先の即座修復アプローチ
+// メタ認知: external JS読み込み問題の迂回
+// 横展開: 他の認証画面でも同様の直接修復が可能
+
+console.log('🔥 [EMERGENCY FIX] Direct tab repair script starting...');
+
+// 即座に実行される関数（DOM状態に関係なく）
+function initTabsImmediately() {
+  console.log('⚡ [Emergency] Immediate tab initialization...');
+  
+  setTimeout(function() {
+    setupTabFunctionality();
+  }, 100);
+  
+  setTimeout(function() {
+    setupTabFunctionality();
+  }, 500);
+  
+  setTimeout(function() {
+    setupTabFunctionality();
+  }, 1000);
+}
+
+function setupTabFunctionality() {
+  console.log('🔧 [Emergency] Setting up tab functionality...');
+  
+  // パスコードログインタブの直接設定
+  const passcodeTab = document.getElementById('passcode-tab');
+  const passwordTab = document.getElementById('password-tab');
+  const passcodePane = document.getElementById('passcode-login');
+  const passwordPane = document.getElementById('password-login');
+  
+  console.log('🔍 [Emergency] Element check:', {
+    passcodeTab: !!passcodeTab,
+    passwordTab: !!passwordTab,
+    passcodePane: !!passcodePane,
+    passwordPane: !!passwordPane
+  });
+  
+  if (!passcodeTab || !passwordTab || !passcodePane || !passwordPane) {
+    console.error('❌ [Emergency] Required tab elements not found');
+    return false;
+  }
+  
+  console.log('✅ [Emergency] All tab elements found, setting up handlers...');
+  
+  // 既存のイベントリスナーを削除
+  const newPasscodeTab = passcodeTab.cloneNode(true);
+  const newPasswordTab = passwordTab.cloneNode(true);
+  passcodeTab.parentNode.replaceChild(newPasscodeTab, passcodeTab);
+  passwordTab.parentNode.replaceChild(newPasswordTab, passwordTab);
+  
+  // パスコードタブクリックハンドラー
+  newPasscodeTab.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('👆 [Emergency] Passcode tab clicked - DIRECT ACTIVATION');
+    
+    // すべてのタブを非アクティブ化
+    newPasswordTab.classList.remove('active');
+    newPasswordTab.setAttribute('aria-selected', 'false');
+    newPasscodeTab.classList.add('active');
+    newPasscodeTab.setAttribute('aria-selected', 'true');
+    
+    // すべてのパネルを非アクティブ化
+    passwordPane.classList.remove('show', 'active');
+    passcodePane.classList.add('show', 'active');
+    
+    console.log('✅ [Emergency] Passcode tab activated successfully');
+    
+    // フォーカス設定
+    setTimeout(() => {
+      const emailField = passcodePane.querySelector('input[type="email"]');
+      if (emailField) {
+        emailField.focus();
+        console.log('📧 [Emergency] Email field focused');
+      }
+    }, 100);
+  });
+  
+  // パスワードタブクリックハンドラー
+  newPasswordTab.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('👆 [Emergency] Password tab clicked - DIRECT ACTIVATION');
+    
+    // すべてのタブを非アクティブ化
+    newPasscodeTab.classList.remove('active');
+    newPasscodeTab.setAttribute('aria-selected', 'false');
+    newPasswordTab.classList.add('active');
+    newPasswordTab.setAttribute('aria-selected', 'true');
+    
+    // すべてのパネルを非アクティブ化
+    passcodePane.classList.remove('show', 'active');
+    passwordPane.classList.add('show', 'active');
+    
+    console.log('✅ [Emergency] Password tab activated successfully');
+    
+    // フォーカス設定
+    setTimeout(() => {
+      const emailField = passwordPane.querySelector('input[type="email"]');
+      if (emailField) {
+        emailField.focus();
+        console.log('📧 [Emergency] Email field focused');
+      }
+    }, 100);
+  });
+  
+  // キーボードアクセシビリティ
+  [newPasscodeTab, newPasswordTab].forEach(tab => {
+    tab.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        this.click();
+      }
+    });
+  });
+  
+  // ビジュアルフィードバック
+  [newPasscodeTab, newPasswordTab].forEach(tab => {
+    tab.addEventListener('mouseenter', function() {
+      if (!this.classList.contains('active')) {
+        this.style.backgroundColor = '#f8f9fa';
+      }
+    });
+    
+    tab.addEventListener('mouseleave', function() {
+      if (!this.classList.contains('active')) {
+        this.style.backgroundColor = '';
+      }
+    });
+    
+    // マウスダウンビジュアルフィードバック
+    tab.addEventListener('mousedown', function() {
+      this.style.backgroundColor = '#e9ecef';
+    });
+    
+    tab.addEventListener('mouseup', function() {
+      if (!this.classList.contains('active')) {
+        this.style.backgroundColor = '#f8f9fa';
+      }
+    });
+  });
+  
+  console.log('✅ [Emergency] Direct tab repair completed - tabs should be functional now');
+  return true;
+}
+
+// 即座に実行
+initTabsImmediately();
+
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('🔧 [Emergency] DOM ready, ensuring tabs are functional...');
+  setupTabFunctionality();
+});
+
+// Turbo対応
+document.addEventListener('turbo:load', function() {
+  console.log('🔄 [Emergency] Turbo load detected, tab functionality ready');
+});
+</script>

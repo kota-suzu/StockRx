@@ -123,7 +123,7 @@ class SecurityMonitor
     return false unless redis
 
     blocked_keys = redis.keys("blocked:*:#{ip_address}")
-    blocked_keys.any? { |key| redis.exists?(key) }
+    blocked_keys.any? { |key| redis.exists(key) }
   end
 
   def block_ip(ip_address, reason, duration_minutes = nil)

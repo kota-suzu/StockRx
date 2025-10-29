@@ -20,11 +20,11 @@
         <i class="fas fa-download me-2"></i>CSVダウンロード
       <% end %>
       <% if @inventory %>
-        <%= link_to inventory_path(@inventory), class: "btn btn-outline-secondary" do %>
+        <%= link_to admin_inventory_path(@inventory), class: "btn btn-outline-secondary" do %>
           <i class="fas fa-arrow-left me-2"></i>在庫詳細に戻る
         <% end %>
       <% else %>
-        <%= link_to inventories_path, class: "btn btn-outline-secondary" do %>
+        <%= link_to admin_inventories_path, class: "btn btn-outline-secondary" do %>
           <i class="fas fa-arrow-left me-2"></i>在庫一覧に戻る
         <% end %>
       <% end %>
@@ -109,7 +109,7 @@
                   </small>
                 </td>
                 <td>
-                  <%= link_to log.inventory.name, inventory_path(log.inventory), 
+                  <%= link_to log.inventory.name, admin_inventory_path(log.inventory), 
                               class: "text-decoration-none fw-medium" %>
                 </td>
                 <td class="text-center">
@@ -177,7 +177,12 @@
           <%= @logs.offset_value + 1 %>-<%= [@logs.offset_value + @logs.limit_value, @logs.total_count].min %>件を表示
         </small>
       </div>
-      <%= paginate @logs %>
+      <% begin %>
+        <%= paginate @logs, theme: :custom_bootstrap_5 %>
+      <% rescue => e %>
+        <!-- 緊急時フォールバック: デフォルトページネーション -->
+        <%= paginate @logs %>
+      <% end %>
     </div>
   <% end %>
 </div>

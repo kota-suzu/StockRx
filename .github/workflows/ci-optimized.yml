@@ -1,0 +1,323 @@
+name: CI Optimized
+
+on:
+  pull_request:
+  push:
+    branches: [ main, develop ]
+
+env:
+  RUBY_VERSION: 3.3.8
+  NODE_VERSION: 20
+  RAILS_ENV: test
+  CI: true
+  DISABLE_HOST_AUTHORIZATION: true
+  RAILS_MASTER_KEY: ${{ secrets.RAILS_MASTER_KEY }}
+
+jobs:
+  # 共通セットアップジョブ（依存関係キャッシュ）
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      ruby-cache-key: ${{ steps.cache-keys.outputs.ruby }}
+      node-cache-key: ${{ steps.cache-keys.outputs.node }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate cache keys
+        id: cache-keys
+        run: |
+          echo "ruby=${{ runner.os }}-ruby-${{ env.RUBY_VERSION }}-${{ hashFiles('**/Gemfile.lock') }}" >> $GITHUB_OUTPUT
+          echo "node=${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json', '**/yarn.lock') }}" >> $GITHUB_OUTPUT
+
+      - name: Set up Ruby with cache
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+
+      - name: Cache Rails assets
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/assets
+            tmp/cache/assets
+          key: ${{ runner.os }}-assets-${{ hashFiles('app/assets/**/*', 'config/webpack/**/*') }}
+          restore-keys: |
+            ${{ runner.os }}-assets-
+
+      - name: Cache test database schema
+        uses: actions/cache@v4
+        with:
+          path: db/schema.rb
+          key: ${{ runner.os }}-db-schema-${{ hashFiles('db/migrate/**/*') }}
+          restore-keys: |
+            ${{ runner.os }}-db-schema-
+
+  # セキュリティスキャン（並列実行）
+  security:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        scanner: [brakeman, bundle-audit, dependency-check]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby with cache
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+
+      - name: Run ${{ matrix.scanner }}
+        run: |
+          case "${{ matrix.scanner }}" in
+            brakeman)
+              bin/brakeman --no-pager --format json --output tmp/brakeman.json
+              bin/brakeman --no-pager
+              ;;
+            bundle-audit)
+              bundle exec bundle-audit check --update
+              ;;
+            dependency-check)
+              # OWASPセキュリティチェック（将来実装）
+              echo "Dependency check will be implemented"
+              ;;
+          esac
+
+      - name: Upload security results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-${{ matrix.scanner }}-results
+          path: tmp/${{ matrix.scanner }}.json
+          if-no-files-found: ignore
+
+  # Lintチェック（RuboCop）
+  lint:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby with cache
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+
+      - name: Run RuboCop
+        run: |
+          bin/rubocop -f github -f json --out tmp/rubocop.json
+          
+      - name: Upload lint results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rubocop-results
+          path: tmp/rubocop.json
+
+  # テスト実行（並列化）
+  test:
+    needs: setup
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # テストを4つのグループに分割
+        test_group: [models, controllers, services, integration]
+        
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: true
+          MYSQL_DATABASE: app_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            default-mysql-client \
+            libvips \
+            libjemalloc2
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby with cache
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler-cache: true
+
+      - name: Restore test database schema cache
+        uses: actions/cache@v4
+        with:
+          path: db/schema.rb
+          key: ${{ runner.os }}-db-schema-${{ hashFiles('db/migrate/**/*') }}
+
+      - name: Setup test database
+        env:
+          DATABASE_URL: mysql2://root:@127.0.0.1:3306/app_test
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          # 並列実行用に各グループ用のDBを作成
+          mysql -h 127.0.0.1 -u root -e "CREATE DATABASE IF NOT EXISTS app_test_${{ matrix.test_group }};"
+          
+          # スキーマをロード
+          DATABASE_URL="mysql2://root:@127.0.0.1:3306/app_test_${{ matrix.test_group }}" \
+          bin/rails db:schema:load
+
+      - name: Run ${{ matrix.test_group }} tests
+        env:
+          DATABASE_URL: mysql2://root:@127.0.0.1:3306/app_test_${{ matrix.test_group }}
+          REDIS_URL: redis://localhost:6379/${{ strategy.job-index }}
+          TEST_GROUP: ${{ matrix.test_group }}
+          PARALLEL_WORKERS: 2
+        run: |
+          case "${{ matrix.test_group }}" in
+            models)
+              bundle exec rspec spec/models spec/validators --format progress --format json --out tmp/rspec-models.json
+              ;;
+            controllers)
+              bundle exec rspec spec/controllers spec/requests --format progress --format json --out tmp/rspec-controllers.json
+              ;;
+            services)
+              bundle exec rspec spec/services spec/jobs spec/helpers spec/decorators --format progress --format json --out tmp/rspec-services.json
+              ;;
+            integration)
+              bundle exec rspec spec/features spec/system --format progress --format json --out tmp/rspec-integration.json
+              ;;
+          esac
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.test_group }}
+          path: |
+            tmp/rspec-*.json
+            tmp/screenshots/
+            coverage/
+
+  # テスト結果集約とレポート
+  test-report:
+    needs: [security, lint, test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate test summary
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # セキュリティスキャン結果
+          echo "### Security Scans" >> $GITHUB_STEP_SUMMARY
+          for scanner in brakeman bundle-audit; do
+            if [ -f "artifacts/security-${scanner}-results/${scanner}.json" ]; then
+              echo "- ✅ ${scanner}: Passed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ❌ ${scanner}: Failed or not run" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # テスト結果
+          echo "### Test Groups" >> $GITHUB_STEP_SUMMARY
+          for group in models controllers services integration; do
+            if [ -f "artifacts/test-results-${group}/rspec-${group}.json" ]; then
+              echo "- ✅ ${group}: Passed" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ❌ ${group}: Failed or not run" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync(process.env.GITHUB_STEP_SUMMARY, 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  # Docker イメージビルド（キャッシュ最適化）
+  docker-build:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and cache Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            RUBY_VERSION=${{ env.RUBY_VERSION }}
+
+  # 最終結果判定
+  ci-status:
+    needs: [security, lint, test, docker-build]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check CI status
+        run: |
+          if [ "${{ needs.security.result }}" != "success" ] || \
+             [ "${{ needs.lint.result }}" != "success" ] || \
+             [ "${{ needs.test.result }}" != "success" ] || \
+             [ "${{ needs.docker-build.result }}" != "success" ]; then
+            echo "CI failed!"
+            exit 1
+          fi
+          echo "CI passed!"

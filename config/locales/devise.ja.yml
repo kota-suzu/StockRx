@@ -27,6 +27,18 @@ ja:
         updated_at: 更新日
     models:
       admin: 管理者
+      store_user: 店舗スタッフ
+    attributes:
+      store_user:
+        email: メールアドレス
+        password: パスワード
+        password_confirmation: パスワード（確認用）
+        name: 氏名
+        employee_code: 従業員コード
+        role: 権限
+        store: 所属店舗
+        current_password: 現在のパスワード
+        remember_me: ログインを記憶する
       
   errors:
     messages:
@@ -60,6 +72,9 @@ ja:
       timeout: セッションがタイムアウトしました。もう一度ログインしてください
       unauthenticated: アカウント登録もしくはログインしてください
       unconfirmed: メールアドレスの本人確認が必要です
+      store_user_unauthenticated: 店舗システムにアクセスするにはログインが必要です
+      store_selection_required: まず店舗を選択してください
+      expired: パスワードの有効期限が切れています。パスワードを変更してください
     mailer:
       confirmation_instructions:
         action: メールアドレスの確認

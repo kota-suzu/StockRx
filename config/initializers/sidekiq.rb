@@ -19,7 +19,13 @@ end
 Sidekiq::Web.use ActionDispatch::Cookies
 Sidekiq::Web.use ActionDispatch::Session::CookieStore,
   key: "_stockrx_session",
-  secret: Rails.application.secret_key_base,
+  secret: begin
+    Rails.application.secret_key_base
+  rescue => e
+    Rails.logger.warn "Secret key base not available for Sidekiq Web: #{e.message}"
+    # Sidekiq Web UIを使用しない場合でもアプリケーションが起動できるようにする
+    ENV["SECRET_KEY_BASE"] || SecureRandom.hex(64)
+  end,
   secure: Rails.env.production?,
   httponly: true,
   same_site: :lax
@@ -114,7 +120,9 @@ unless Rails.env.production?
 
   # テスト環境での認証ミドルウェア追加
   if Rails.env.test?
-    Sidekiq::Web.use Rack::Session::Cookie, secret: Rails.application.secret_key_base
+    # テスト環境では固定のシークレットキーを使用
+    test_secret = "test_secret_key_for_testing_only_not_for_production_use_12345678901234567890"
+    Sidekiq::Web.use Rack::Session::Cookie, secret: test_secret
 
     # テスト環境用の認証チェック
     Sidekiq::Web.use(Class.new do

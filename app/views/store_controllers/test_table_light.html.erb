@@ -1,0 +1,153 @@
+<%# テーブル背景色確認用テストページ - ライトバージョン %>
+<% content_for :title, "テーブルデザイン確認 - ライト版" %>
+
+<div class="page-header-modern">
+  <h1>テーブル背景色の確認（改善版）</h1>
+  <div class="breadcrumb-modern">
+    <a href="#">ホーム</a>
+    <span class="separator">/</span>
+    <span>テストページ</span>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row g-4">
+    <!-- 左側：現在のテーブルスタイル -->
+    <div class="col-md-6">
+      <h3 class="mb-3">現在のテーブルスタイル</h3>
+      
+      <!-- カードとの比較 -->
+      <div class="card-modern mb-4">
+        <div class="card-modern-header">
+          <h4>カードコンポーネント</h4>
+        </div>
+        <div class="card-modern-body">
+          <p>これはカードの背景色です。テーブルと比較してください。</p>
+        </div>
+      </div>
+      
+      <!-- 現在のテーブル -->
+      <div class="table-container-modern">
+        <table class="table-modern table-striped">
+          <thead>
+            <tr>
+              <th>商品名</th>
+              <th>在庫数</th>
+              <th>価格</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>アセトアミノフェン錠</td>
+              <td>150</td>
+              <td>¥1,200</td>
+            </tr>
+            <tr>
+              <td>イブプロフェン錠</td>
+              <td>45</td>
+              <td>¥980</td>
+            </tr>
+            <tr>
+              <td>ロキソプロフェンNa錠</td>
+              <td>230</td>
+              <td>¥1,500</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- 右側：より明るいテーブルスタイル案 -->
+    <div class="col-md-6">
+      <h3 class="mb-3">より明るいテーブルスタイル案</h3>
+      
+      <!-- カードとの比較 -->
+      <div class="card-modern mb-4">
+        <div class="card-modern-header">
+          <h4>カードコンポーネント</h4>
+        </div>
+        <div class="card-modern-body">
+          <p>これはカードの背景色です。テーブルと比較してください。</p>
+        </div>
+      </div>
+      
+      <!-- より明るいテーブル -->
+      <div class="table-container-modern">
+        <style>
+          .table-light-version thead {
+            background-color: #ffffff !important;
+            border-bottom: 2px solid #e2e8f0 !important;
+          }
+          
+          .table-light-version tbody tr {
+            background-color: #ffffff !important;
+          }
+          
+          .table-light-version tbody tr:nth-child(odd) {
+            background-color: rgba(248, 250, 252, 0.3) !important;
+          }
+          
+          .table-light-version tbody tr:hover {
+            background-color: rgba(241, 245, 249, 0.5) !important;
+          }
+          
+          .table-light-version tfoot {
+            background-color: #ffffff !important;
+            border-top: 2px solid #e2e8f0 !important;
+          }
+        </style>
+        <table class="table-modern table-light-version">
+          <thead>
+            <tr>
+              <th>商品名</th>
+              <th>在庫数</th>
+              <th>価格</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>アセトアミノフェン錠</td>
+              <td>150</td>
+              <td>¥1,200</td>
+            </tr>
+            <tr>
+              <td>イブプロフェン錠</td>
+              <td>45</td>
+              <td>¥980</td>
+            </tr>
+            <tr>
+              <td>ロキソプロフェンNa錠</td>
+              <td>230</td>
+              <td>¥1,500</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 背景色の詳細比較 -->
+  <div class="row mt-5">
+    <div class="col-12">
+      <h3>背景色の詳細</h3>
+      <div class="d-flex gap-3 flex-wrap">
+        <div class="p-3" style="background: var(--bg-surface); border: 1px solid #ddd;">
+          <strong>--bg-surface</strong><br>
+          現在のテーブルヘッダー背景
+        </div>
+        <div class="p-3" style="background: #ffffff; border: 1px solid #ddd;">
+          <strong>#ffffff</strong><br>
+          純白（提案）
+        </div>
+        <div class="p-3" style="background: rgba(248, 250, 252, 0.5); border: 1px solid #ddd;">
+          <strong>rgba(248, 250, 252, 0.5)</strong><br>
+          現在の縞模様
+        </div>
+        <div class="p-3" style="background: rgba(248, 250, 252, 0.3); border: 1px solid #ddd;">
+          <strong>rgba(248, 250, 252, 0.3)</strong><br>
+          より薄い縞模様（提案）
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -3,6 +3,29 @@
 require 'rails_helper'
 
 RSpec.describe Admin, type: :model do
+  describe 'アソシエーション' do
+    it { should have_many(:report_files).dependent(:destroy) }
+    it 'belongs to store optionally for headquarters admin' do
+      admin = Admin.new(role: 'headquarters_admin', email: 'test@example.com', password: 'password123')
+      expect(admin.store).to be_nil
+      admin.valid?
+      expect(admin.errors[:store]).to be_empty
+    end
+    it { should have_many(:requested_transfers).class_name('InterStoreTransfer').with_foreign_key('requested_by_id').dependent(:restrict_with_error) }
+    it { should have_many(:approved_transfers).class_name('InterStoreTransfer').with_foreign_key('approved_by_id').dependent(:restrict_with_error) }
+    it { should have_many(:compliance_audit_logs).dependent(:restrict_with_error) }
+    it { should have_many(:audit_logs).dependent(:restrict_with_error) }
+  end
+
+  describe 'Auditable concern' do
+    it 'includes Auditable module' do
+      expect(Admin.ancestors).to include(Auditable)
+    end
+
+    # TODO: Auditableのコールバックテストは環境依存の問題があるため、別途修正予定
+    # 現在はincludeされていることの確認のみ
+  end
+
   describe 'Devise設定' do
     it { should be_a(Devise::Models::DatabaseAuthenticatable) }
     it { should be_a(Devise::Models::Recoverable) }
@@ -20,7 +43,8 @@ RSpec.describe Admin, type: :model do
 
   describe 'ファクトリー' do
     it '有効なファクトリーが作成できること' do
-      admin = build(:admin)
+      store = create(:store)
+      admin = build(:admin, store: store)
       expect(admin).to be_valid
     end
   end
@@ -37,7 +61,8 @@ RSpec.describe Admin, type: :model do
       end
 
       it '強いパスワードは有効であること' do
-        admin = build(:admin, password: 'Password123!', password_confirmation: 'Password123!')
+        store = create(:store)
+        admin = build(:admin, store: store, password: 'Password123!', password_confirmation: 'Password123!')
         expect(admin).to be_valid
       end
     end
@@ -123,7 +148,7 @@ RSpec.describe Admin, type: :model do
 
   describe 'OAuthユーザーのパスワードバリデーション' do
     context 'providerとuidが存在する場合' do
-      let(:oauth_admin) { build(:admin, provider: 'github', uid: '123', password: nil, password_confirmation: nil) }
+      let(:oauth_admin) { build(:admin, provider: 'github', uid: '123', password: nil, password_confirmation: nil, role: 'headquarters_admin') }
 
       it 'パスワードバリデーションがスキップされること' do
         expect(oauth_admin).to be_valid
@@ -153,51 +178,571 @@ RSpec.describe Admin, type: :model do
     end
   end
 
-  describe '#display_name と #name メソッド' do
-    let(:admin) { build(:admin, email: 'john.doe@example.com') }
+  # ============================================
+  # 🔴 Phase 1: Multi-Store Management Tests
+  # ============================================
 
-    describe '#display_name' do
-      it 'emailのアットマーク前の部分を返すこと' do
-        expect(admin.display_name).to eq('john.doe')
-      end
+  describe 'multi-store associations' do
+    # storeの関連付けは条件付き必須（headquarters_admin以外は必須）
+    it 'has conditional store association' do
+      # 本部管理者の場合はstore不要
+      headquarters_admin = build(:admin, role: 'headquarters_admin', store: nil)
+      expect(headquarters_admin).to be_valid
 
-      context 'emailが複雑な形式の場合' do
-        let(:admin) { build(:admin, email: 'admin+test@sub.example.com') }
+      # 店舗ユーザーの場合はstore必須
+      store_user = build(:admin, role: 'store_user', store: nil)
+      expect(store_user).not_to be_valid
+      expect(store_user.errors[:store]).to include('本部管理者以外は店舗の指定が必要です')
 
-        it '正しく表示名を抽出すること' do
-          expect(admin.display_name).to eq('admin+test')
-        end
-      end
-
-      context 'emailがシンプルな形式の場合' do
-        let(:admin) { build(:admin, email: 'admin@example.com') }
-
-        it '正しく表示名を抽出すること' do
-          expect(admin.display_name).to eq('admin')
-        end
-      end
+      # 店舗ユーザーでstore指定があれば有効
+      store = create(:store)
+      store_user_with_store = build(:admin, role: 'store_user', store: store)
+      expect(store_user_with_store).to be_valid
     end
 
-    describe '#name' do
-      it 'display_nameと同じ値を返すこと（エイリアス）' do
-        expect(admin.name).to eq(admin.display_name)
-        expect(admin.name).to eq('john.doe')
-      end
-    end
-
-    # TODO: 🟡 Phase 2 - nameフィールド実装後のテスト
-    # 優先度: 中（UX改善）
-    # テスト内容:
-    #   - nameカラムが存在する場合の動作確認
-    #   - nameが空の場合のフォールバック処理
-    #   - GitHub OAuth認証時のname自動設定
-    # 期待効果: 適切な表示名管理によるUX向上
+    it { should have_many(:requested_transfers).class_name('InterStoreTransfer').with_foreign_key('requested_by_id') }
+    it { should have_many(:approved_transfers).class_name('InterStoreTransfer').with_foreign_key('approved_by_id') }
   end
 
-  # TODO: 将来実装予定の機能テスト
-  # 1. Userモデルとの連携（ユーザーの作成・管理権限）
-  # 2. 2要素認証（devise-two-factor）
-  # 3. 権限レベル（admin/super_admin）による機能制限
-  # 4. 🟡 Phase 3（中）- GitHub管理者の自動承認・権限設定テスト
-  # 5. 🟢 Phase 4（推奨）- ログイン通知機能テスト
+  describe 'multi-store validations' do
+    it { should validate_presence_of(:role) }
+    it { should validate_length_of(:name).is_at_most(50) }
+
+    describe 'role-based store validation' do
+      context 'non-headquarters admin' do
+        %w[store_user pharmacist store_manager].each do |role|
+          context "when role is #{role}" do
+            let(:admin) { build(:admin, role: role, store: nil) }
+
+            it 'requires store to be present' do
+              expect(admin).not_to be_valid
+              expect(admin.errors[:store]).to include('本部管理者以外は店舗の指定が必要です')
+            end
+
+            it 'is valid with store assigned' do
+              admin.store = create(:store)
+              expect(admin).to be_valid
+            end
+          end
+        end
+      end
+
+      context 'headquarters admin' do
+        let(:admin) { build(:admin, role: 'headquarters_admin', store: create(:store)) }
+
+        it 'cannot have store assigned' do
+          expect(admin).not_to be_valid
+          expect(admin.errors[:store]).to include('本部管理者は特定の店舗に所属できません')
+        end
+
+        it 'is valid without store' do
+          admin.store = nil
+          expect(admin).to be_valid
+        end
+      end
+    end
+  end
+
+  describe 'enums' do
+    it { should define_enum_for(:role).backed_by_column_of_type(:string).with_values(
+      store_user: 'store_user',
+      pharmacist: 'pharmacist',
+      store_manager: 'store_manager',
+      headquarters_admin: 'headquarters_admin'
+    ) }
+  end
+
+  describe 'scopes' do
+    let!(:active_admin) { create(:admin, :store_user, active: true) }
+    let!(:inactive_admin) { create(:admin, :store_user, active: false) }
+    let!(:pharmacist) { create(:admin, :pharmacist) }
+    let!(:store_manager) { create(:admin, :store_manager) }
+    let!(:headquarters_admin) { create(:admin, :headquarters_admin) }
+    let!(:store) { create(:store) }
+    let!(:store_admin) { create(:admin, :store_user, store: store) }
+
+    describe '.active' do
+      it 'returns only active admins' do
+        expect(Admin.active).to include(active_admin)
+        expect(Admin.active).not_to include(inactive_admin)
+      end
+    end
+
+    describe '.inactive' do
+      it 'returns only inactive admins' do
+        expect(Admin.inactive).to include(inactive_admin)
+        expect(Admin.inactive).not_to include(active_admin)
+      end
+    end
+
+    describe '.by_role' do
+      it 'returns admins with specified role' do
+        expect(Admin.by_role('pharmacist')).to include(pharmacist)
+        expect(Admin.by_role('pharmacist')).not_to include(store_manager)
+      end
+    end
+
+    describe '.by_store' do
+      it 'returns admins for specified store' do
+        expect(Admin.by_store(store)).to include(store_admin)
+        expect(Admin.by_store(store)).not_to include(headquarters_admin)
+      end
+    end
+
+    describe '.headquarters' do
+      it 'returns only headquarters admins' do
+        expect(Admin.headquarters).to include(headquarters_admin)
+        expect(Admin.headquarters).not_to include(store_manager, pharmacist)
+      end
+    end
+
+    describe '.store_staff' do
+      it 'returns store-level staff (excluding headquarters)' do
+        expect(Admin.store_staff).to include(pharmacist, store_manager, active_admin)
+        expect(Admin.store_staff).not_to include(headquarters_admin)
+      end
+    end
+  end
+
+  describe '#display_name' do
+    context 'when name field is present' do
+      let(:admin) { build(:admin, name: '田中太郎', email: 'tanaka@example.com') }
+
+      it 'returns the name field value' do
+        expect(admin.display_name).to eq('田中太郎')
+      end
+    end
+
+    context 'when name field is blank' do
+      let(:admin) { build(:admin, name: '', email: 'john.doe@example.com') }
+
+      it 'returns email prefix as fallback' do
+        expect(admin.display_name).to eq('john.doe')
+      end
+    end
+
+    context 'when name field is nil' do
+      let(:admin) { build(:admin, name: nil, email: 'admin@example.com') }
+
+      it 'returns email prefix as fallback' do
+        expect(admin.display_name).to eq('admin')
+      end
+    end
+
+    context 'complex email format' do
+      let(:admin) { build(:admin, name: nil, email: 'admin+test@sub.example.com') }
+
+      it 'correctly extracts display name from email' do
+        expect(admin.display_name).to eq('admin+test')
+      end
+    end
+  end
+
+  describe '#role_text' do
+    it 'returns Japanese text for each role' do
+      role_translations = {
+        'store_user' => '店舗ユーザー',
+        'pharmacist' => '薬剤師',
+        'store_manager' => '店舗管理者',
+        'headquarters_admin' => '本部管理者'
+      }
+
+      role_translations.each do |role, text|
+        admin = build(:admin, role: role)
+        expect(admin.role_text).to eq(text)
+      end
+    end
+  end
+
+  describe 'permission methods' do
+    let(:store1) { create(:store) }
+    let(:store2) { create(:store) }
+
+    describe '#can_access_all_stores?' do
+      it 'returns true for headquarters admin' do
+        admin = build(:admin, :headquarters_admin)
+        expect(admin.can_access_all_stores?).to be true
+      end
+
+      it 'returns false for store-level roles' do
+        %w[store_user pharmacist store_manager].each do |role|
+          admin = build(:admin, role: role, store: store1)
+          expect(admin.can_access_all_stores?).to be false
+        end
+      end
+    end
+
+    describe '#can_manage_store?' do
+      it 'allows headquarters admin to manage any store' do
+        admin = build(:admin, :headquarters_admin)
+        expect(admin.can_manage_store?(store1)).to be true
+        expect(admin.can_manage_store?(store2)).to be true
+      end
+
+      it 'allows store manager to manage their own store' do
+        admin = build(:admin, :store_manager, store: store1)
+        expect(admin.can_manage_store?(store1)).to be true
+        expect(admin.can_manage_store?(store2)).to be false
+      end
+
+      it 'denies store users and pharmacists from managing stores' do
+        %w[store_user pharmacist].each do |role|
+          admin = build(:admin, role: role, store: store1)
+          expect(admin.can_manage_store?(store1)).to be false
+          expect(admin.can_manage_store?(store2)).to be false
+        end
+      end
+    end
+
+    describe '#can_approve_transfers?' do
+      it 'allows store managers and headquarters admins to approve transfers' do
+        %w[store_manager headquarters_admin].each do |role|
+          admin = build(:admin, role: role)
+          expect(admin.can_approve_transfers?).to be true
+        end
+      end
+
+      it 'denies store users and pharmacists from approving transfers' do
+        %w[store_user pharmacist].each do |role|
+          admin = build(:admin, role: role, store: store1)
+          expect(admin.can_approve_transfers?).to be false
+        end
+      end
+    end
+
+    describe '#can_view_store?' do
+      it 'allows headquarters admin to view any store' do
+        admin = build(:admin, :headquarters_admin)
+        expect(admin.can_view_store?(store1)).to be true
+        expect(admin.can_view_store?(store2)).to be true
+      end
+
+      it 'allows store staff to view only their assigned store' do
+        %w[store_user pharmacist store_manager].each do |role|
+          admin = build(:admin, role: role, store: store1)
+          expect(admin.can_view_store?(store1)).to be true
+          expect(admin.can_view_store?(store2)).to be false
+        end
+      end
+    end
+
+    describe '#accessible_store_ids' do
+      before do
+        create_list(:store, 3, active: true)
+        create(:store, active: false) # inactive store should be excluded
+      end
+
+      it 'returns all active store IDs for headquarters admin' do
+        admin = build(:admin, :headquarters_admin)
+        expect(admin.accessible_store_ids).to match_array(Store.active.pluck(:id))
+      end
+
+      it 'returns only assigned store ID for store staff' do
+        admin = build(:admin, :store_user, store: store1)
+        expect(admin.accessible_store_ids).to eq([ store1.id ])
+      end
+
+      it 'returns empty array when no store assigned' do
+        admin = build(:admin, :headquarters_admin, store: nil)
+        admin.role = 'store_user' # This would be invalid, but testing the method logic
+        admin.store = nil
+        expect(admin.accessible_store_ids).to eq([])
+      end
+    end
+
+    describe '#manageable_stores' do
+      before do
+        create_list(:store, 2, active: true)
+        create(:store, active: false) # inactive store should be excluded
+      end
+
+      it 'returns all active stores for headquarters admin' do
+        admin = build(:admin, :headquarters_admin)
+        expect(admin.manageable_stores).to match_array(Store.active)
+      end
+
+      it 'returns assigned store for store manager' do
+        admin = build(:admin, :store_manager, store: store1)
+        expect(admin.manageable_stores).to eq([ store1 ])
+      end
+
+      it 'returns no stores for store users and pharmacists' do
+        %w[store_user pharmacist].each do |role|
+          admin = build(:admin, role: role, store: store1)
+          expect(admin.manageable_stores).to eq(Admin.none)
+        end
+      end
+
+      it 'returns no stores for store manager without assigned store' do
+        admin = build(:admin, :store_manager, store: nil)
+        expect(admin.manageable_stores).to eq(Admin.none)
+      end
+    end
+  end
+
+  # プライベートメソッドのテスト
+  describe 'private methods' do
+    describe '.update_existing_admin' do
+      let(:existing_admin) do
+        create(:admin, provider: 'github', uid: '123456',
+               email: 'old-email@example.com', sign_in_count: 5,
+               current_sign_in_ip: '192.168.1.1')
+      end
+
+      let(:auth_hash) do
+        OmniAuth::AuthHash.new({
+          provider: 'github',
+          uid: '123456',
+          info: { email: 'new-email@example.com' },
+          extra: { raw_info: { ip: '10.0.0.1' } }
+        })
+      end
+
+      it 'updates email and sign in information' do
+        result = Admin.send(:update_existing_admin, existing_admin, auth_hash)
+
+        expect(result.email).to eq('new-email@example.com')
+        expect(result.sign_in_count).to eq(6)
+        expect(result.last_sign_in_at).to be_present
+        expect(result.current_sign_in_at).to be_within(1.second).of(Time.current)
+        expect(result.last_sign_in_ip).to eq('192.168.1.1')
+        expect(result.current_sign_in_ip).to eq('10.0.0.1')
+      end
+    end
+
+    describe '.create_new_admin_from_oauth' do
+      let(:auth_hash) do
+        OmniAuth::AuthHash.new({
+          provider: 'github',
+          uid: '789456',
+          info: { email: 'new-admin@example.com' },
+          extra: { raw_info: { ip: '172.16.0.1' } }
+        })
+      end
+
+      it 'creates new admin with OAuth data' do
+        expect {
+          Admin.send(:create_new_admin_from_oauth, auth_hash)
+        }.to change(Admin, :count).by(1)
+
+        admin = Admin.last
+        expect(admin.provider).to eq('github')
+        expect(admin.uid).to eq('789456')
+        expect(admin.email).to eq('new-admin@example.com')
+        expect(admin.encrypted_password).to be_present
+        expect(admin.sign_in_count).to eq(1)
+        expect(admin.current_sign_in_ip).to eq('172.16.0.1')
+        expect(admin.role).to eq('headquarters_admin')
+      end
+    end
+
+    describe '.extract_ip_address' do
+      it 'extracts IP from request_ip' do
+        auth = OmniAuth::AuthHash.new({
+          extra: { raw_info: { request_ip: '203.0.113.1' } }
+        })
+        expect(Admin.send(:extract_ip_address, auth)).to eq('203.0.113.1')
+      end
+
+      it 'falls back to ip field' do
+        auth = OmniAuth::AuthHash.new({
+          extra: { raw_info: { ip: '198.51.100.1' } }
+        })
+        expect(Admin.send(:extract_ip_address, auth)).to eq('198.51.100.1')
+      end
+
+      it 'returns default IP when no IP found' do
+        auth = OmniAuth::AuthHash.new({})
+        expect(Admin.send(:extract_ip_address, auth)).to eq('127.0.0.1')
+      end
+    end
+
+    describe '#password_required?' do
+      context 'for OAuth user' do
+        let(:admin) { build(:admin, provider: 'github', uid: '123') }
+
+        it 'returns false' do
+          expect(admin.send(:password_required?)).to be false
+        end
+      end
+
+      context 'for regular user' do
+        let(:store) { create(:store) }
+        let(:admin) { build(:admin, provider: nil, uid: nil, store: store) }
+
+        it 'returns true for new record' do
+          expect(admin.send(:password_required?)).to be true
+        end
+
+        it 'returns false for persisted record without password' do
+          admin.save!
+          admin.password = nil
+          admin.password_confirmation = nil
+          expect(admin.send(:password_required?)).to be false
+        end
+
+        it 'returns true when password is set' do
+          admin.save!
+          admin.password = 'NewPassword123!'
+          expect(admin.send(:password_required?)).to be true
+        end
+      end
+    end
+
+    describe '#password_required_for_validation?' do
+      it 'returns false for OAuth users' do
+        admin = build(:admin, provider: 'github', uid: '123')
+        expect(admin.send(:password_required_for_validation?)).to be false
+      end
+
+      it 'returns true for regular users' do
+        admin = build(:admin)
+        expect(admin.send(:password_required_for_validation?)).to be true
+      end
+    end
+
+    describe '#store_required_for_non_headquarters_admin' do
+      it 'adds error when non-headquarters admin has no store' do
+        admin = build(:admin, role: 'store_user', store: nil)
+        admin.send(:store_required_for_non_headquarters_admin)
+        expect(admin.errors[:store]).to include('本部管理者以外は店舗の指定が必要です')
+      end
+
+      it 'does not add error for headquarters admin without store' do
+        admin = build(:admin, role: 'headquarters_admin', store: nil)
+        admin.send(:store_required_for_non_headquarters_admin)
+        expect(admin.errors[:store]).to be_empty
+      end
+
+      it 'does not add error when store is present' do
+        admin = build(:admin, role: 'store_user', store: create(:store))
+        admin.send(:store_required_for_non_headquarters_admin)
+        expect(admin.errors[:store]).to be_empty
+      end
+    end
+
+    describe '#store_must_be_nil_for_headquarters_admin' do
+      it 'adds error when headquarters admin has store' do
+        admin = build(:admin, role: 'headquarters_admin', store: create(:store))
+        admin.send(:store_must_be_nil_for_headquarters_admin)
+        expect(admin.errors[:store]).to include('本部管理者は特定の店舗に所属できません')
+      end
+
+      it 'does not add error for headquarters admin without store' do
+        admin = build(:admin, role: 'headquarters_admin', store: nil)
+        admin.send(:store_must_be_nil_for_headquarters_admin)
+        expect(admin.errors[:store]).to be_empty
+      end
+
+      it 'does not add error for non-headquarters admin with store' do
+        admin = build(:admin, role: 'store_user', store: create(:store))
+        admin.send(:store_must_be_nil_for_headquarters_admin)
+        expect(admin.errors[:store]).to be_empty
+      end
+    end
+  end
+
+  # 統合テスト
+  describe 'integration scenarios' do
+    describe 'multi-store staff workflow' do
+      let(:store1) { create(:store, name: '新宿店') }
+      let(:store2) { create(:store, name: '渋谷店') }
+      let(:hq_admin) { create(:admin, :headquarters_admin) }
+      let(:store_manager) { create(:admin, :store_manager, store: store1) }
+      let(:store_user) { create(:admin, :store_user, store: store1) }
+
+      it 'headquarters admin can access all stores' do
+        expect(hq_admin.can_access_all_stores?).to be true
+        expect(hq_admin.can_view_store?(store1)).to be true
+        expect(hq_admin.can_view_store?(store2)).to be true
+        expect(hq_admin.accessible_store_ids).to include(store1.id, store2.id)
+      end
+
+      it 'store manager can only manage their store' do
+        expect(store_manager.can_access_all_stores?).to be false
+        expect(store_manager.can_manage_store?(store1)).to be true
+        expect(store_manager.can_manage_store?(store2)).to be false
+        expect(store_manager.can_approve_transfers?).to be true
+      end
+
+      it 'store user has limited permissions' do
+        expect(store_user.can_access_all_stores?).to be false
+        expect(store_user.can_manage_store?(store1)).to be false
+        expect(store_user.can_approve_transfers?).to be false
+        expect(store_user.can_view_store?(store1)).to be true
+        expect(store_user.can_view_store?(store2)).to be false
+      end
+    end
+
+    describe 'OAuth login flow' do
+      let(:github_auth) do
+        OmniAuth::AuthHash.new({
+          provider: 'github',
+          uid: 'unique123',
+          info: { email: 'github@example.com' },
+          extra: { raw_info: { ip: '192.0.2.1' } }
+        })
+      end
+
+      it 'creates new admin on first login' do
+        expect {
+          admin = Admin.from_omniauth(github_auth)
+          expect(admin).to be_persisted
+          expect(admin.provider).to eq('github')
+          expect(admin.uid).to eq('unique123')
+        }.to change(Admin, :count).by(1)
+      end
+
+      it 'finds existing admin on subsequent login' do
+        first_admin = Admin.from_omniauth(github_auth)
+
+        expect {
+          second_admin = Admin.from_omniauth(github_auth)
+          expect(second_admin.id).to eq(first_admin.id)
+          expect(second_admin.sign_in_count).to eq(2)
+        }.not_to change(Admin, :count)
+      end
+    end
+  end
+
+  # TODO: Phase 2以降で実装予定のテスト
+  #
+  # 🔴 Phase 2 優先実装項目:
+  # 1. 店舗間移動申請・承認ワークフローテスト
+  #    - requested_transfers/approved_transfersアソシエーション
+  #    - 承認権限による移動申請処理フロー
+  #    - 権限レベル別の操作制限確認
+  #    期待効果: 安全で効率的な移動承認プロセス
+  #
+  # 2. 管理者通知機能テスト
+  #    - 移動申請・承認・完了時の通知送信
+  #    - 役割別通知設定（store_manager vs headquarters_admin）
+  #    - メール・管理画面通知の配信確認
+  #    期待効果: リアルタイムな情報共有とワークフロー促進
+  #
+  # 🟡 Phase 3 重要実装項目:
+  # 3. 詳細権限管理テスト
+  #    - 権限レベル（admin/super_admin）による機能制限
+  #    - リソースレベルでのアクセス制御
+  #    - 監査ログ・アクセス履歴記録
+  #    期待効果: 細かい権限制御による安全性向上
+  #
+  # 4. GitHub OAuth高度機能テスト
+  #    - GitHub組織メンバーシップ連携
+  #    - 自動権限付与・役割マッピング
+  #    - OAuth認証ログ・監査機能
+  #    期待効果: 組織管理との自動連携
+  #
+  # 🟢 Phase 4 推奨実装項目:
+  # 5. 2要素認証機能テスト
+  #    - devise-two-factor統合テスト
+  #    - QRコード生成・TOTPワンタイムパスワード
+  #    - バックアップコード・復旧プロセス
+  #    期待効果: セキュリティレベル大幅向上
+  #
+  # 6. ユーザーモデル連携テスト
+  #    - 一般スタッフ向けUserモデル統合
+  #    - 管理者によるユーザーアカウント管理
+  #    - 階層的権限管理（Admin > User）
+  #    期待効果: 包括的なアクセス管理システム
 end

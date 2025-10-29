@@ -12,15 +12,163 @@ class Inventory < ApplicationRecord
   include InventoryStatistics
   include Reportable
   include ShipmentManagement
+  include QueryOptimization  # 🚀 クエリ最適化機能
 
   # ステータス定義（Rails 8.0向けに更新）
-  enum :status, { active: 0, archived: 1 }
+  enum :status, {
+    active: 0,
+    archived: 1,
+    expiring_soon: 2,
+    out_of_stock: 3,
+    expired: 4
+  }
   STATUSES = statuses.keys.freeze # 不変保証
 
+  # 単位定義
+  enum :unit, { piece: 0, box: 1, bottle: 2, pack: 3, kg: 4, g: 5, l: 6, ml: 7 }
+
+  # CLAUDE.md準拠: QueryOptimization設定
+  # メタ認知: インデックス画面では大きなテキストカラムは不要
+  def self.unnecessary_columns_for_index
+    %w[description notes]
+  end
+
+  # 詳細画面で必要な全関連
+  def self.all_associations_for_show
+    [ :batches, :inventory_logs, :receipts, :shipments, :store_inventories, :stores ]
+  end
+
   # バリデーション
-  validates :name, presence: true
+  validates :name, presence: true, uniqueness: { case_sensitive: false }
   validates :price, numericality: { greater_than_or_equal_to: 0 }
   validates :quantity, numericality: { greater_than_or_equal_to: 0 }
+  validates :reserved_quantity, numericality: { greater_than_or_equal_to: 0 }, allow_nil: true
+  validates :safety_stock_level, numericality: { greater_than: 0 }
+
+  # カスタムバリデーション - 予約済み在庫が総在庫を超えないようにする
+  validate :reserved_quantity_within_available_quantity
+
+  # コールバック
+  before_save :normalize_name, :set_default_values
+
+  # アソシエーション
+  has_many :batches, dependent: :destroy
+  has_many :inventory_logs, dependent: :destroy
+  has_many :receipts, dependent: :destroy
+  has_many :shipments, dependent: :destroy
+
+  # スコープ
+  scope :expiring_soon, ->(days = 30) {
+    joins(:batches).where("batches.expires_on <= ?", days.days.from_now)
+  }
+
+  scope :with_available_stock, -> {
+    where("quantity > COALESCE(reserved_quantity, 0)")
+  }
+
+  # ============================================
+  # Multi-Store関連のアソシエーション
+  # ============================================
+  has_many :store_inventories, dependent: :destroy
+  has_many :stores, through: :store_inventories
+  has_many :inter_store_transfers, dependent: :destroy
+  # transfer_items should refer to the actual transfers through the join
+  has_many :transfer_items, through: :inter_store_transfers, source: :destination_store
+
+  # ============================================
+  # Multi-Store関連のメソッド
+  # ============================================
+
+  # 全店舗での総在庫数
+  def total_quantity_across_stores
+    store_inventories.sum(:quantity)
+  end
+
+  # 全店舗での利用可能在庫数
+  def total_available_quantity_across_stores
+    store_inventories.sum("quantity - reserved_quantity")
+  end
+
+  # 特定店舗での在庫数
+  def quantity_at_store(store)
+    store_inventories.find_by(store: store)&.quantity || 0
+  end
+
+  # 特定店舗での利用可能在庫数
+  def available_quantity_at_store(store)
+    store_inventory = store_inventories.find_by(store: store)
+    return 0 unless store_inventory
+
+    store_inventory.available_quantity
+  end
+
+  # 在庫を持つ店舗のリスト
+  def stores_with_stock
+    stores.joins(:store_inventories)
+          .where("store_inventories.quantity > 0")
+  end
+
+  # 低在庫の店舗のリスト
+  def stores_with_low_stock
+    stores.joins(:store_inventories)
+          .where("store_inventories.quantity <= store_inventories.safety_stock_level")
+  end
+
+  # 在庫移動の提案候補
+  def transfer_suggestions(target_store, required_quantity)
+    # 在庫の多い店舗から移動候補を提案
+    # 修正: 店舗在庫から直接取得し、利用可能在庫で並び替え
+    # CLAUDE.md準拠: Rails 7+ セキュリティ対策 - Arel.sql()使用
+    available_order = Arel.sql("(quantity - reserved_quantity) DESC")
+    store_inventories_list = store_inventories
+                            .includes(:store)
+                            .where.not(store_id: target_store.id)
+                            .where("quantity > 0")
+                            .order(available_order)
+
+    store_inventories_list.map do |store_inventory|
+      available = store_inventory.available_quantity
+      {
+        store: store_inventory.store,
+        available_quantity: available,
+        can_fulfill: available >= required_quantity
+      }
+    end
+  end
+
+  # 低在庫判定メソッド
+  # CLAUDE.md準拠: ベストプラクティス適用 - safety_stock_levelカラム追加完了
+  def low_stock?
+    quantity <= safety_stock_level
+  end
+
+  # 利用可能在庫数（総在庫 - 予約済み）
+  def available_quantity
+    quantity - (reserved_quantity || 0)
+  end
+
+  # 在庫状況レベル判定
+  def stock_status
+    if quantity <= 0
+      :out_of_stock
+    elsif quantity <= safety_stock_level
+      :low_stock
+    elsif available_quantity <= safety_stock_level
+      :reserved_heavy
+    else
+      :normal
+    end
+  end
+
+  # 期限切れのバッチ
+  def expired_batches
+    batches.where("expires_on < ?", Date.current)
+  end
+
+  # 期限切れが近いバッチ
+  def expiring_soon_batches(days = 30)
+    batches.where("expires_on <= ?", days.days.from_now)
+  end
 
   # ============================================
   # TODO: 在庫ログ機能の拡張
@@ -264,4 +412,26 @@ class Inventory < ApplicationRecord
   #    - シャーディング対応
   #    - インメモリキャッシュ最適化
   #    - データアーカイブ機能
+
+  private
+
+  def reserved_quantity_within_available_quantity
+    return if reserved_quantity.nil? || quantity.nil?
+
+    if reserved_quantity > quantity
+      errors.add(:reserved_quantity, "cannot exceed available quantity")
+    end
+  end
+
+  def normalize_name
+    if name.present?
+      # Strip whitespace and sanitize HTML tags
+      self.name = ActionView::Base.full_sanitizer.sanitize(name.strip)
+    end
+  end
+
+  def set_default_values
+    self.reserved_quantity ||= 0
+    self.safety_stock_level ||= 10
+  end
 end

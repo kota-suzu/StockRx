@@ -1,0 +1,259 @@
+<%# ============================================ %>
+<%# StockRx Password Reset - Bootstrap 5 UI %>
+<%# ============================================ %>
+<%# CLAUDE.md準拠: Phase 4 UI統一化対応 - Bootstrap 5ベース %>
+<%# メタ認知: ログイン画面と一貫性のあるデザインパターン適用 %>
+<%# 横展開: 統一されたフォームスタイル、カラーパレット使用 %>
+<%# ============================================ %>
+
+<% content_for :title, "パスワードリセット" %>
+
+<style>
+  /* 共通スタイル定義（Bootstrap 5ベース） */
+  :root {
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --success-color: #10b981;
+    --error-color: #ef4444;
+    --focus-ring: rgba(102, 126, 234, 0.4);
+  }
+  
+  .gradient-bg {
+    background: var(--primary-gradient);
+    min-height: 100vh;
+  }
+  
+  .card-custom-shadow {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  
+  .form-input-custom {
+    padding: 0.75rem 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+  }
+  
+  .form-input-custom:focus {
+    outline: none;
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px var(--focus-ring);
+  }
+  
+  .btn-gradient-primary {
+    background: linear-gradient(to right, #7c3aed, #ec4899);
+    color: white;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-gradient-primary:hover {
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  }
+  
+  .btn-gradient-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+</style>
+
+<div class="gradient-bg d-flex align-items-center justify-content-center px-4 py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-sm-10 col-md-8 col-lg-8 col-xl-7 col-xxl-6 animate-slide-up">
+        <!-- ロゴとタイトル -->
+        <div class="text-center mb-4">
+          <div class="d-inline-flex align-items-center justify-content-center bg-white rounded-circle shadow mb-3" style="width: 80px; height: 80px;">
+            <i class="bi bi-key-fill fs-1 text-primary"></i>
+          </div>
+          <h1 class="h2 fw-bold text-white mb-2">StockRx</h1>
+          <p class="text-white-50"><%= @store ? @store.name : "店舗パスワードリセット" %></p>
+        </div>
+        
+        <!-- メインカード -->
+        <div class="card border-0 rounded-3 card-custom-shadow">
+          <div class="card-body p-4 p-md-5">
+            <!-- ヘッダー -->
+            <div class="text-center mb-4">
+              <h2 class="h3 fw-semibold text-dark mb-2">パスワードリセット</h2>
+              <p class="text-muted">
+                登録されているメールアドレスを入力してください<br>
+                <span class="small">パスワードリセット用のリンクをお送りします</span>
+              </p>
+            </div>
+            
+            <%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :post, class: "needs-validation", novalidate: true }) do |f| %>
+              <%# 店舗情報を隠しフィールドで送信 %>
+              <%= hidden_field_tag :store_slug, @store.slug if @store %>
+              
+              <%# エラー表示 %>
+              <% if resource.errors.any? %>
+                <div class="alert alert-danger border-0 mb-4">
+                  <div class="d-flex">
+                    <i class="bi bi-exclamation-circle-fill text-danger me-2"></i>
+                    <div>
+                      <% resource.errors.full_messages.each do |message| %>
+                        <p class="mb-0 small"><%= message %></p>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              <% end %>
+              
+              <!-- メールアドレス入力 -->
+              <div class="mb-4">
+                <label class="form-label fw-medium text-dark">
+                  <i class="bi bi-envelope me-1"></i>
+                  メールアドレス
+                </label>
+                <%= f.email_field :email,
+                                  autofocus: true,
+                                  autocomplete: "email",
+                                  class: "form-control form-input-custom",
+                                  placeholder: "email@example.com",
+                                  required: true %>
+                <% if @store %>
+                  <div class="form-text">
+                    <%= @store.name %>で登録されているメールアドレスを入力してください
+                  </div>
+                <% end %>
+              </div>
+              
+              <!-- ヘルプテキスト -->
+              <div class="alert alert-info border-0 mb-4">
+                <div class="d-flex">
+                  <div class="flex-shrink-0">
+                    <i class="bi bi-info-circle text-info"></i>
+                  </div>
+                  <div class="ms-3">
+                    <p class="mb-0 small text-info-emphasis">
+                      パスワードリセット用のリンクをメールでお送りします。<br>
+                      リンクは24時間有効です。
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 送信ボタン -->
+              <div class="d-grid mb-3">
+                <%= f.submit "リセットリンクを送信",
+                             class: "btn btn-gradient-primary py-3",
+                             data: { disable_with: "送信中...", turbo: false } %>
+              </div>
+              
+              <!-- 戻るリンク -->
+              <div class="text-center">
+                <% if @store %>
+                  <%= link_to new_store_user_session_path(store_slug: @store.slug),
+                              class: "text-decoration-none fw-medium" do %>
+                    <i class="bi bi-arrow-left me-1"></i>
+                    ログイン画面に戻る
+                  <% end %>
+                <% else %>
+                  <%= link_to new_store_user_session_path,
+                              class: "text-decoration-none fw-medium" do %>
+                    <i class="bi bi-arrow-left me-1"></i>
+                    ログイン画面に戻る
+                  <% end %>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+          
+          <!-- フッター -->
+          <div class="card-footer bg-light text-center border-0">
+            <p class="mb-0 small text-muted">
+              <%= link_to store_selection_path, class: "text-decoration-none fw-medium" do %>
+                <i class="bi bi-shop me-1"></i>
+                別の店舗を選択
+              <% end %>
+            </p>
+          </div>
+        </div>
+        
+        <!-- セキュリティ情報 -->
+        <div class="text-center mt-4">
+          <div class="d-inline-flex align-items-center text-white-50 small">
+            <i class="bi bi-shield-check me-2"></i>
+            <span>安全な接続で保護されています</span>
+          </div>
+        </div>
+        
+        <!-- セキュリティ注意事項 -->
+        <div class="mt-3">
+          <div class="card bg-white bg-opacity-10 border-0 text-white">
+            <div class="card-body p-3">
+              <div class="d-flex">
+                <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+                <div>
+                  <p class="fw-medium mb-1 small">セキュリティのご注意</p>
+                  <ul class="list-unstyled mb-0 small text-white-75">
+                    <li class="mb-1">• リセットリンクは24時間で無効になります</li>
+                    <li class="mb-1">• 心当たりのないメールは無視してください</li>
+                    <li class="mb-0">• パスワードは定期的に変更することを推奨します</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Bootstrap 5のフォームバリデーション
+  const form = document.querySelector('.needs-validation');
+  if (form) {
+    form.addEventListener('submit', function(event) {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    });
+  }
+});
+</script>
+
+<%# ============================================ %>
+<%# TODO: Phase 5-6 の実装項目 %>
+<%# ============================================ %>
+<%# 
+  TODO: 🟢 Phase 5（推奨）- メールアドレス自動補完
+  優先度: 低（利便性向上）
+  実装内容:
+    - 最近使用したメールアドレスの候補表示
+    - ドメイン補完機能
+  期待効果: 入力効率の向上
+  
+  TODO: 🟢 Phase 6（推奨）- メール送信状態のリアルタイム表示
+  優先度: 低（UX向上）
+  実装内容:
+    - 送信完了後の確認画面
+    - メール到達確認機能
+  期待効果: ユーザー不安の解消
+%>

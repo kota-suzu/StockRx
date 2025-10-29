@@ -1,0 +1,277 @@
+<%# ========================================== %>
+<%# 統一フラッシュメッセージ - StockRx %>
+<%# ========================================== %>
+<%# CLAUDE.md準拠: 全レイアウトでの一貫したフラッシュメッセージ体験 %>
+<%# メタ認知: Bootstrap 5アラートシステムの統一活用 %>
+<%# 横展開: admin.html.erb、store.html.erb、application.html.erb等で共通利用 %>
+<%# ========================================== %>
+
+<% if flash.any? %>
+  <div class="flash-messages-container">
+    <div class="<%= content_for?(:container_class) ? yield(:container_class) : 'container' %> mt-3">
+      <% flash.each do |type, message| %>
+        <%# メッセージが配列の場合の対応 %>
+        <% messages = message.is_a?(Array) ? message : [message] %>
+        
+        <% messages.each do |msg| %>
+          <div class="alert <%= flash_alert_class(type) %> alert-dismissible fade show flash-message" 
+               role="alert"
+               data-flash-type="<%= type %>"
+               data-auto-dismiss="<%= content_for?(:disable_auto_dismiss) ? 'false' : 'true' %>">
+            
+            <%# アラート内容（アイコン + メッセージ） %>
+            <div class="d-flex align-items-start">
+              <%# アイコン部分 %>
+              <div class="flex-shrink-0 me-3">
+                <i class="<%= flash_icon_class(type) %> fs-5" aria-hidden="true"></i>
+              </div>
+              
+              <%# メッセージ部分 %>
+              <div class="flex-grow-1">
+                <%# メッセージタイトル（オプション） %>
+                <% if content_for?(:flash_titles) && flash_title = flash_title_for(type) %>
+                  <h6 class="alert-heading mb-1"><%= flash_title %></h6>
+                <% end %>
+                
+                <%# メッセージ本文 %>
+                <div class="flash-message-content">
+                  <%= msg.html_safe if msg.respond_to?(:html_safe) %>
+                </div>
+                
+                <%# 詳細情報（オプション） %>
+                <% if content_for?(:flash_details) && flash_detail = flash_detail_for(type, msg) %>
+                  <small class="text-muted d-block mt-1">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <%= flash_detail %>
+                  </small>
+                <% end %>
+              </div>
+              
+              <%# 閉じるボタン %>
+              <button type="button" 
+                      class="btn-close" 
+                      data-bs-dismiss="alert" 
+                      aria-label="<%= t('flash.close', default: '閉じる') %>"
+                      data-flash-close="<%= type %>">
+              </button>
+            </div>
+            
+            <%# プログレスバー（自動消失タイマー表示） %>
+            <% unless content_for?(:disable_auto_dismiss) %>
+              <div class="flash-progress-container mt-2">
+                <div class="progress" style="height: 3px;">
+                  <div class="progress-bar flash-auto-dismiss-progress"
+                       role="progressbar"
+                       style="width: 100%; animation: flashDismiss 5s linear;"
+                       aria-valuenow="100"
+                       aria-valuemin="0"
+                       aria-valuemax="100">
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+  
+  <%# フラッシュメッセージ用CSS（インライン） %>
+  <style>
+    .flash-messages-container {
+      position: relative;
+      z-index: 1040;
+    }
+    
+    .flash-message {
+      margin-bottom: 1rem;
+      border-radius: var(--radius-lg, 0.5rem);
+      border: none;
+      border-left: 4px solid;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .flash-message.show {
+      animation: flashSlideIn 0.3s ease-out;
+    }
+    
+    .flash-message:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* 自動消失プログレスバーのアニメーション */
+    @keyframes flashDismiss {
+      from { width: 100%; }
+      to { width: 0%; }
+    }
+    
+    /* フラッシュメッセージスライドイン */
+    @keyframes flashSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* レスポンシブ対応 */
+    @media (max-width: 767.98px) {
+      .flash-message {
+        margin-left: 1rem;
+        margin-right: 1rem;
+        border-radius: var(--radius-md, 0.375rem);
+      }
+      
+      .flash-message .fs-5 {
+        font-size: 1.1rem !important;
+      }
+    }
+    
+    /* ダークモード対応 */
+    @media (prefers-color-scheme: dark) {
+      .flash-message {
+        box-shadow: 0 2px 8px rgba(255, 255, 255, 0.1);
+      }
+    }
+    
+    /* 動作を減らす設定対応 */
+    @media (prefers-reduced-motion: reduce) {
+      .flash-message {
+        animation: none;
+        transition: none;
+      }
+      
+      .flash-auto-dismiss-progress {
+        animation: none;
+      }
+    }
+    
+    /* プリント時は非表示 */
+    @media print {
+      .flash-messages-container {
+        display: none !important;
+      }
+    }
+  </style>
+  
+  <%# フラッシュメッセージ用JavaScript（自動消失・エンハンスメント） %>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🔔 Flash messages system initialized');
+      
+      // 自動消失機能
+      const autoDismissMessages = document.querySelectorAll('.flash-message[data-auto-dismiss="true"]');
+      
+      autoDismissMessages.forEach(function(message) {
+        const type = message.dataset.flashType;
+        
+        // タイプ別の自動消失時間設定
+        let dismissTime = 5000; // デフォルト5秒
+        
+        switch(type) {
+          case 'alert':
+          case 'error':
+            dismissTime = 8000; // エラーは8秒
+            break;
+          case 'notice':
+          case 'success':
+            dismissTime = 4000; // 成功は4秒
+            break;
+          case 'warning':
+            dismissTime = 6000; // 警告は6秒
+            break;
+        }
+        
+        // 自動消失タイマー設定
+        setTimeout(function() {
+          const bsAlert = bootstrap.Alert.getOrCreateInstance(message);
+          if (bsAlert && message.classList.contains('show')) {
+            console.log(`🔔 Auto-dismissing flash message: ${type}`);
+            bsAlert.close();
+          }
+        }, dismissTime);
+      });
+      
+      // フラッシュメッセージ閉じるイベント（分析用）
+      document.addEventListener('click', function(e) {
+        if (e.target.matches('[data-flash-close]')) {
+          const flashType = e.target.dataset.flashClose;
+          console.log(`🔔 Flash message manually closed: ${flashType}`);
+        }
+      });
+      
+      // ホバー時に自動消失一時停止機能
+      autoDismissMessages.forEach(function(message) {
+        const progressBar = message.querySelector('.flash-auto-dismiss-progress');
+        
+        if (progressBar) {
+          message.addEventListener('mouseenter', function() {
+            progressBar.style.animationPlayState = 'paused';
+          });
+          
+          message.addEventListener('mouseleave', function() {
+            progressBar.style.animationPlayState = 'running';
+          });
+        }
+      });
+    });
+    
+    // Turbo対応（ページ遷移時の再初期化）
+    document.addEventListener('turbo:load', function() {
+      console.log('🔔 Flash messages re-initialized for Turbo navigation');
+    });
+  </script>
+<% end %>
+
+<%# ========================================== %>
+<%# 使用方法とカスタマイズ例 %>
+<%# ========================================== %>
+
+<%# 
+  基本使用方法（レイアウトファイル内）:
+  
+  <%= render 'shared/flash_messages' %>
+  
+  カスタムコンテナクラス指定:
+  
+  <% content_for :container_class do %>container-fluid<% end %>
+  <%= render 'shared/flash_messages' %>
+  
+  自動消失無効化:
+  
+  <% content_for :disable_auto_dismiss do %>true<% end %>
+  <%= render 'shared/flash_messages' %>
+  
+  フラッシュタイトル有効化:
+  
+  <% content_for :flash_titles do %>true<% end %>
+  <%= render 'shared/flash_messages' %>
+  
+  コントローラーでの複数メッセージ設定例:
+  
+  flash[:notice] = ['商品が正常に登録されました', '在庫データが更新されました']
+  flash[:alert] = '入力内容に誤りがあります'
+  
+  HTML含有メッセージ（安全に使用）:
+  
+  flash[:notice] = '商品登録が完了しました。<a href="/inventories">在庫一覧</a>で確認できます。'.html_safe
+%>
+
+<%# ========================================== %>
+<%# TODO: 🟡 Phase 3（重要）- 高度なフラッシュメッセージ機能 %>
+<%# 優先度: 中（基本統合完了後） %>
+<%# 実装内容: %>
+<%#   - トースト通知との統合 %>
+<%#   - アクション付きフラッシュメッセージ（Undo機能等） %>
+<%#   - 複数言語対応（i18n） %>
+<%#   - 音声通知対応（アクセシビリティ） %>
+<%#   - フラッシュメッセージ履歴機能 %>
+<%# 期待効果: ユーザビリティ向上、アクセシビリティ強化 %>
+<%# 工数見積: 2-3日 %>
+<%# 依存関係: i18n設定、音声API、localStorage管理 %>
+<%# ========================================== %>

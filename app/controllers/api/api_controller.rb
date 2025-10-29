@@ -4,6 +4,10 @@ module Api
   # API共通のベースコントローラ
   # すべてのAPIコントローラはこのクラスを継承する
   class ApiController < ApplicationController
+    # APIレート制限機能
+    include ApiRateLimiting
+    # API認証機能
+    include ApiAuthentication
     # CSRFチェックをスキップ（APIはトークン認証を使用するため）
     # 注意: 将来的には認証導入時にこのスキップを削除し、
     #      トークンベースのCSRF保護に置き換える
@@ -18,6 +22,28 @@ module Api
     # API用リクエスト情報をCurrentに設定
     before_action :set_api_request_info
 
+    # API用エラーハンドリング（ParameterSanitizationをオーバーライド）
+    rescue_from ActionController::ParameterMissing do |exception|
+      response = ApiResponse.error(
+        "必須パラメータが不足しています: #{exception.param}",
+        [],
+        400,
+        { type: "parameter_missing", missing_param: exception.param }
+      )
+      render json: response.to_h, status: response.status_code, headers: response.headers
+    end
+
+    rescue_from ActionController::UnpermittedParameters do |exception|
+      Rails.logger.warn "Unpermitted parameters detected: #{exception.params}"
+      response = ApiResponse.error(
+        "許可されていないパラメータが含まれています",
+        [],
+        400,
+        { type: "unpermitted_parameters", unpermitted: exception.params }
+      )
+      render json: response.to_h, status: response.status_code, headers: response.headers
+    end
+
     private
 
     # リクエストがJSONであることを確認
@@ -26,9 +52,15 @@ module Api
 
       # JSON以外のリクエストは拒否
       render json: {
-        code: "invalid_format",
-        message: "JSONリクエストのみ対応しています"
+        success: false,
+        error: {
+          type: "invalid_format",
+          message: "JSON形式でのリクエストが必要です"
+        },
+        message: "JSON形式でのリクエストが必要です"
       }, status: :not_acceptable
+      # double renderを防ぐため早期リターン
+      return
     end
 
     # デフォルトレスポンス形式をJSONに設定

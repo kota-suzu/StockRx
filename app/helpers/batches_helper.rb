@@ -1,23 +1,23 @@
 # frozen_string_literal: true
 
-# バッチ関連のヘルパーメソッド
+# ロット関連のヘルパーメソッド
 # admin_helpers/batches_helper.rbから移行
 module BatchesHelper
-  # バッチの状態に応じた行のスタイルクラスを返す
-  # @param batch [Batch] バッチオブジェクト
+  # ロットの状態に応じた行のスタイルクラスを返す
+  # @param batch [Batch] ロットオブジェクト
   # @return [String] CSSクラス
   def batch_row_class(batch)
     if batch.expired?
-      "bg-red-50"
+      "table-danger"
     elsif batch.expiring_soon?
-      "bg-yellow-50"
+      "table-warning"
     else
       ""
     end
   end
 
-  # バッチの状態バッジを生成
-  # @param batch [Batch] バッチオブジェクト
+  # ロットの状態バッジを生成
+  # @param batch [Batch] ロットオブジェクト
   # @return [SafeBuffer] HTMLバッジ
   def batch_status_badge(batch)
     if batch.expired?
@@ -30,7 +30,7 @@ module BatchesHelper
   end
 
   # 有効期限の表示
-  # @param batch [Batch] バッチオブジェクト
+  # @param batch [Batch] ロットオブジェクト
   # @return [SafeBuffer] フォーマットされた日付（または「設定なし」）
   def formatted_expires_on(batch)
     if batch.expires_on.present?

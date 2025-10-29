@@ -19,16 +19,23 @@ class ErrorsController < ActionController::Base
     @status = @code.to_i
 
     # サポートしていないステータスコードの場合は500に
-    @status = 500 unless [ 400, 403, 404, 422, 429, 500 ].include?(@status)
+    @status = 500 unless [ 400, 401, 403, 404, 406, 409, 413, 415, 422, 429, 500, 503, 504 ].include?(@status)
 
     # メッセージの設定（i18n対応）
     @message = t("errors.status.#{@status}", default: nil) ||
               Rack::Utils::HTTP_STATUS_CODES[@status] ||
               "エラーが発生しました"
 
+    # 追加のエラー詳細（バリデーションエラーなど）
+    @errors = params[:errors] if params[:errors].present?
+
     # TODO: 横展開確認 - render時にstatusオプションを明示的に設定
     # renderメソッドのstatusオプションで確実にステータスコードを設定
-    render "show", status: @status
+
+    respond_to do |format|
+      format.html { render "show", status: @status, layout: "error" }
+      format.json { render "show", status: @status }
+    end
   end
 
   private

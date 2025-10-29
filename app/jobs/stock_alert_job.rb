@@ -96,15 +96,14 @@ class StockAlertJob < ApplicationJob
   def find_low_stock_items(threshold)
     # パフォーマンス最適化：必要なフィールドのみ取得
     Inventory.where("quantity <= ?", threshold)
-             .select(:id, :name, :quantity, :price)
+             .where("quantity > ?", 0)
              .order(:quantity, :name)
   end
 
   def find_out_of_stock_items
     # 完全に在庫切れの商品
     Inventory.where(quantity: 0)
-             .select(:id, :name, :quantity, :price)
-             .order(:quantity, :name)
+             .order(:name)
   end
 
   def send_stock_alert(admin, low_stock_items, out_of_stock_items, threshold, enable_email)
@@ -130,10 +129,10 @@ class StockAlertJob < ApplicationJob
     ActionCable.server.broadcast("admin_#{admin.id}", {
       type: "stock_alert",
       message: I18n.t("jobs.stock_alert.message",
-                     count: low_stock_items.count + out_of_stock_items.count,
+                     count: low_stock_items.size + out_of_stock_items.size,
                      threshold: threshold),
-      items: format_items_for_notification(low_stock_items.limit(5) + out_of_stock_items.limit(5)),
-      total_count: low_stock_items.count + out_of_stock_items.count,
+      items: format_items_for_notification(low_stock_items.first(5) + out_of_stock_items.first(5)),
+      total_count: low_stock_items.size + out_of_stock_items.size,
       threshold: threshold,
       timestamp: Time.current.iso8601
     })

@@ -1,0 +1,83 @@
+<%# 🔴 重要タスク完了: 統一エラーメッセージコンポーネント %>
+<%# CLAUDE.md準拠: UI一貫性確保とメンテナンス性向上 %>
+<%# メタ認知: 3つの重複パーシャルを1つに統一 %>
+<%# 横展開: 全認証画面・フォームで共通使用 %>
+
+<%# Bootstrap 5 統一エラーメッセージコンポーネント - StockRx %>
+<% if resource.errors.any? %>
+  <div id="error_explanation" 
+       class="alert alert-danger alert-dismissible fade show mb-4" 
+       role="alert" 
+       aria-live="polite"
+       style="border-left: 4px solid #dc3545; background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);">
+    
+    <div class="d-flex align-items-start">
+      <%# エラーアイコン（視覚的インジケーター） %>
+      <div class="me-3">
+        <i class="fas fa-exclamation-triangle fa-lg text-danger" aria-hidden="true"></i>
+      </div>
+      
+      <%# エラーメッセージ本体 %>
+      <div class="flex-grow-1">
+        <h6 class="alert-heading mb-2 fw-bold text-danger">
+          <% if resource.errors.count == 1 %>
+            入力内容にエラーがあります
+          <% else %>
+            入力内容に <%= resource.errors.count %> 件のエラーがあります
+          <% end %>
+        </h6>
+        
+        <% if resource.errors.count == 1 %>
+          <%# 単一エラー: シンプル表示 %>
+          <p class="mb-0">
+            <%= resource.errors.full_messages.first %>
+          </p>
+        <% else %>
+          <%# 複数エラー: リスト表示 %>
+          <ul class="mb-0 ps-3" role="list">
+            <% resource.errors.full_messages.each do |message| %>
+              <li class="mb-1"><%= message %></li>
+            <% end %>
+          </ul>
+        <% end %>
+      </div>
+    </div>
+    
+    <%# 閉じるボタン（アクセシビリティ対応） %>
+    <button type="button" 
+            class="btn-close" 
+            data-bs-dismiss="alert" 
+            aria-label="エラーメッセージを閉じる"
+            title="エラーメッセージを閉じる"></button>
+  </div>
+
+  <%# 
+    TODO: 🟡 Phase 4（重要）- エラー解決ガイド機能
+    優先度: 中（ユーザビリティ向上）
+    実装内容:
+      - エラータイプ別の解決方法ヒント表示
+      - よくある問題の自動提案
+      - ヘルプリンクの動的生成
+    理由: ユーザーの自己解決能力向上
+    期待効果: サポート問い合わせ削減、ユーザー満足度向上
+    横展開: 管理者・店舗ユーザー両方で統一体験
+  %>
+<% end %>
+
+<%# ============================================ %>
+<%# 🎯 統一エラーメッセージの設計思想 %>
+<%# ============================================ %>
+<%# 
+  ✅ アクセシビリティ: ARIA属性、role、適切なセマンティック
+  ✅ 視覚デザイン: Bootstrap 5準拠、グラデーション効果
+  ✅ UX配慮: 単一/複数エラーで表示形式最適化
+  ✅ 保守性: 1ファイルで全画面対応
+  ✅ 国際化対応: 今後の多言語化に対応可能
+  
+  横展開確認項目:
+  - [ ] 管理者認証画面での表示確認
+  - [ ] 店舗認証画面での表示確認  
+  - [ ] Devise認証画面での表示確認
+  - [ ] フォーム送信エラー時の表示確認
+  - [ ] モバイル表示での視認性確認
+%>

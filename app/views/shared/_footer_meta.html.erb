@@ -1,0 +1,39 @@
+<%# ========================================== %>
+<%# フッターメタ情報部分 %>
+<%# ========================================== %>
+
+<div class="d-flex flex-column align-items-md-end">
+  <%# SSL・セキュリティ情報 %>
+  <div class="mb-2">
+    <small class="text-muted d-flex align-items-center <%= footer_meta_alignment %>">
+      <i class="bi bi-shield-check me-1 <%= footer_security_icon_color %>"></i>
+      <%= footer_security_text %>
+    </small>
+  </div>
+  
+  <%# 最終更新日（オプション） %>
+  <% if content_for?(:show_last_updated) %>
+    <div class="mb-2">
+      <small class="text-muted d-flex align-items-center <%= footer_meta_alignment %>">
+        <i class="bi bi-clock me-1"></i>
+        最終更新: <%= Date.current.strftime('%Y年%m月%d日') %>
+      </small>
+    </div>
+  <% end %>
+  
+  <%# コピーライト情報 %>
+  <small class="text-muted d-flex align-items-center <%= footer_meta_alignment %>">
+    <i class="bi bi-c-circle me-1"></i>
+    <%= Date.current.year %> <%= footer_copyright_holder %>. All rights reserved.
+  </small>
+  
+  <%# サポート情報（オプション） %>
+  <% if content_for?(:footer_support) %>
+    <div class="mt-2">
+      <small class="text-muted d-flex align-items-center <%= footer_meta_alignment %>">
+        <i class="bi bi-headset me-1"></i>
+        <%= yield(:footer_support) %>
+      </small>
+    </div>
+  <% end %>
+</div>

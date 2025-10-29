@@ -1,0 +1,316 @@
+// ============================================
+// Modern UI v2 - Glassmorphism Effects
+// ============================================
+// 半透明・ぼかし効果を使用したモダンな
+// ガラスモーフィズムコンポーネントスタイル
+// ============================================
+
+@import 'tokens';
+
+// ============================================
+// Base Glassmorphism Mixins
+// ============================================
+@mixin glassmorphism-base(
+  $blur: var(--glass-blur-md),
+  $bg: var(--glass-bg-solid),
+  $border: var(--glass-border),
+  $shadow: var(--glass-shadow-md)
+) {
+  background: $bg;
+  backdrop-filter: blur($blur);
+  -webkit-backdrop-filter: blur($blur);
+  border: 1px solid $border;
+  box-shadow: $shadow;
+  position: relative;
+  overflow: hidden;
+  
+  // Fallback for browsers without backdrop-filter support
+  @supports not (backdrop-filter: blur(10px)) {
+    background: var(--card-bg);
+  }
+}
+
+@mixin glassmorphism-hover {
+  transition: all var(--duration-normal) var(--motion-smooth);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--glass-shadow-lg);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+}
+
+@mixin glassmorphism-glow($color: var(--color-primary-400)) {
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+      circle at var(--x, 50%) var(--y, 50%),
+      rgba($color, 0.15),
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity var(--duration-normal) var(--motion-smooth);
+    pointer-events: none;
+  }
+  
+  &:hover::before {
+    opacity: 1;
+  }
+}
+
+// ============================================
+// Glass Components
+// ============================================
+
+// Basic Glass Surface
+.glass-surface {
+  @include glassmorphism-base();
+  border-radius: var(--radius-lg);
+}
+
+// Glass Card Component
+.glass-card {
+  @include glassmorphism-base();
+  @include glassmorphism-hover();
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  
+  &.glass-card-interactive {
+    @include glassmorphism-glow();
+    cursor: pointer;
+  }
+  
+  &.glass-card-minimal {
+    background: var(--glass-bg);
+    padding: var(--space-4);
+    border-radius: var(--radius-md);
+  }
+  
+  .glass-card-header {
+    margin-bottom: var(--space-4);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--glass-border);
+    
+    h1, h2, h3, h4, h5, h6 {
+      margin: 0;
+      background: var(--gradient-primary);
+      background-clip: text;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+  
+  .glass-card-body {
+    color: var(--text-secondary);
+  }
+  
+  .glass-card-footer {
+    margin-top: var(--space-4);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--glass-border);
+  }
+}
+
+// Glass Modal/Overlay
+.glass-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(var(--glass-blur-sm));
+  -webkit-backdrop-filter: blur(var(--glass-blur-sm));
+  z-index: var(--z-overlay);
+  
+  &.glass-overlay-light {
+    background: rgba(255, 255, 255, 0.4);
+  }
+}
+
+// Glass Navigation
+.glass-nav {
+  @include glassmorphism-base(
+    $blur: var(--glass-blur-xl),
+    $bg: var(--glass-bg-solid)
+  );
+  position: sticky;
+  top: 0;
+  z-index: var(--z-dropdown);
+  border-radius: 0;
+  border-left: none;
+  border-right: none;
+  
+  .glass-nav-brand {
+    font-weight: var(--font-bold);
+    font-size: var(--text-xl);
+    background: var(--gradient-primary);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .glass-nav-item {
+    padding: var(--space-2) var(--space-4);
+    border-radius: var(--radius-md);
+    transition: all var(--duration-fast) var(--motion-smooth);
+    
+    &:hover {
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur-sm));
+    }
+    
+    &.active {
+      background: var(--gradient-primary);
+      color: white;
+    }
+  }
+}
+
+// Glass Button
+.glass-button {
+  @include glassmorphism-base(
+    $blur: var(--glass-blur-sm),
+    $bg: var(--glass-bg)
+  );
+  @include glassmorphism-hover();
+  
+  padding: var(--space-3) var(--space-6);
+  border-radius: var(--radius-full);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  
+  // Gradient variant
+  &.glass-button-gradient {
+    background: var(--gradient-primary);
+    border: none;
+    color: white;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: inherit;
+      filter: blur(20px);
+      opacity: 0.4;
+      z-index: -1;
+    }
+  }
+  
+  // Size variants
+  &.glass-button-sm {
+    padding: var(--space-2) var(--space-4);
+    font-size: var(--text-sm);
+  }
+  
+  &.glass-button-lg {
+    padding: var(--space-4) var(--space-8);
+    font-size: var(--text-lg);
+  }
+}
+
+// Glass Input
+.glass-input {
+  @include glassmorphism-base(
+    $blur: var(--glass-blur-sm),
+    $bg: var(--input-bg)
+  );
+  
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  width: 100%;
+  transition: all var(--duration-fast) var(--motion-smooth);
+  
+  &:focus {
+    outline: none;
+    border-color: var(--input-focus-border);
+    box-shadow: 
+      var(--glass-shadow-md),
+      0 0 0 3px rgba(var(--color-primary-500), 0.1);
+    transform: translateY(-1px);
+  }
+  
+  &::placeholder {
+    color: var(--text-tertiary);
+    opacity: 0.7;
+  }
+}
+
+// Glass Table
+.glass-table {
+  @include glassmorphism-base();
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    
+    thead {
+      background: var(--glass-bg);
+      backdrop-filter: blur(var(--glass-blur-lg));
+      
+      th {
+        padding: var(--space-4);
+        text-align: left;
+        font-weight: var(--font-semibold);
+        color: var(--text-primary);
+        border-bottom: 2px solid var(--glass-border);
+      }
+    }
+    
+    tbody {
+      tr {
+        transition: all var(--duration-fast) var(--motion-smooth);
+        
+        &:hover {
+          background: var(--glass-bg);
+        }
+        
+        td {
+          padding: var(--space-4);
+          border-bottom: 1px solid var(--glass-border);
+        }
+      }
+    }
+  }
+}
+
+// ============================================
+// Animated Glass Effects
+// ============================================
+@keyframes glass-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.glass-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: glass-shimmer 2s infinite;
+}
+
+// TODO: Phase 4 - 高度なGlassmorphism効果
+// - 3D Glass効果（transform-style: preserve-3d）
+// - 動的なブラー強度調整
+// - パフォーマンス最適化（will-change, contain）

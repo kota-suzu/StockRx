@@ -1,8 +1,25 @@
-// Bootstrap 5カスタマイズ設定
+/* ========================================== */
+/* StockRx メインスタイルシート */
+/* ========================================== */
+/* CLAUDE.md準拠: 統一デザインシステムによる重複解消とメンテナンス性向上 */
+/* メタ認知: ファイル構造の階層化により、開発効率とコード品質を向上 */
+/* 横展開: 全セクション（管理者・店舗・公開）で一貫したスタイル体験 */
+/* ========================================== */
 
-// カスタム変数（Bootstrap変数をインポート前にオーバーライド）
-$primary: #3498db;
-$secondary: #6c757d;
+// ========================================
+// 統一デザインシステムのコア要素
+// ========================================
+
+@import "variables";      // 統一カラーシステム・デザイントークン
+@import "mixins";         // 共通ミックスイン・ユーティリティ関数
+
+// ========================================
+// Bootstrap 5設定とインポート
+// ========================================
+
+// Bootstrap変数のオーバーライド（統一カラーを適用）
+$primary: $brand-primary;
+$secondary: $brand-secondary;
 $success: #28a745;
 $danger: #dc3545;
 $warning: #ffc107;
@@ -10,194 +27,1108 @@ $info: #17a2b8;
 $light: #f8f9fa;
 $dark: #343a40;
 
-// カスタムカラー
-$admin-primary: #2c3e50;
-$admin-secondary: #34495e;
-$admin-accent: #3498db;
-$admin-background: #f5f7fa;
-
-// Bootstrap設定をインポート
+// Bootstrap本体をインポート
 @import "bootstrap";
 
-// CSS変数として追加定義
-:root {
-  --admin-primary: #{$admin-primary};
-  --admin-secondary: #{$admin-secondary};
-  --admin-accent: #{$admin-accent};
-  --admin-background: #{$admin-background};
-}
+// ========================================
+// 統合コンポーネントスタイル
+// ========================================
 
-// ベーススタイル
+@import "components/cards";          // カードコンポーネント統合
+@import "components/buttons";        // ボタンコンポーネント統合
+@import "components/modern_cards";   // モダンカードコンポーネント（WCAG AA準拠）
+@import "mobile_enhancements";       // モバイル対応強化（Phase 2追加）
+
+// ========================================
+// レガシーコンポーネント（段階的移行対象）
+// ========================================
+
+@import "store_selection";       // 店舗選択専用スタイル（移行対象）
+@import "bootstrap_enhancements"; // Bootstrap拡張（統合後削除予定）
+@import "admin_dashboard";       // 管理画面ダッシュボード専用スタイル
+
+// ========================================
+// モダンUIシステム（2024年最新）
+// ========================================
+@import "store_modern";          // 店舗画面用モダンUIシステム
+
+// ========================================
+// ベーススタイル（グローバル適用）
+// ========================================
+
 body {
   font-family: 'Helvetica Neue', Arial, sans-serif;
-  background-color: var(--admin-background);
-  color: #333;
+  background-color: var(--bg-page);  // 階層システム: ページレベル背景（純白）
+  color: var(--text-primary);
+  line-height: 1.6;
+  font-size: 16px;  // ベースフォントサイズを明示
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-// カスタムBootstrapクラス拡張
-.bg-admin-primary {
-  background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-secondary) 100%) !important;
-}
-
-.btn-admin {
-  background-color: var(--admin-accent);
-  border-color: var(--admin-accent);
-  color: white;
-  
-  &:hover {
-    background-color: #2980b9;
-    border-color: #2980b9;
-    color: white;
+// メインコンテンツエリアのセクション背景
+.container,
+.container-fluid {
+  &.content-section {
+    background-color: var(--bg-section);
+    padding: var(--spacing-4);
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-4);
   }
+}
+
+// ベースレイアウトの統一
+.min-vh-100 {
+  min-height: 100vh;
+}
+
+// フレックスレイアウトの基本設定
+.d-flex.flex-column.min-vh-100 {
+  min-height: 100vh;
+}
+
+// ========================================
+// 統一フォームスタイル
+// ========================================
+
+.form-control,
+.form-select {
+  @include form-control-base();
+}
+
+.form-group,
+.mb-3 {
+  @include form-group-spacing();
+}
+
+// ========================================
+// 統一アラート・メッセージスタイル
+// ========================================
+
+.alert {
+  @include alert-base();
+  
+  &.alert-success {
+    @include alert-variant(#d1edff, #0c5460, var(--bs-success));
+  }
+  
+  &.alert-danger {
+    @include alert-variant(#f8d7da, #721c24, var(--bs-danger));
+  }
+  
+  &.alert-warning {
+    @include alert-variant(#fff3cd, #856404, var(--bs-warning));
+  }
+  
+  &.alert-info {
+    @include alert-variant(#d1ecf1, #0c5460, var(--bs-info));
+  }
+}
+
+// ========================================
+// 統一テーブルスタイル
+// ========================================
+
+.table {
+  @include table-modern();
+  background-color: #ffffff !important; // 強制的に白背景
+  
+  // テーブルヘッダーの強化
+  thead {
+    &.bg-light {
+      background-color: #f8f9fa !important; // 明るいグレー背景
+    }
+    
+    th {
+      background-color: #f8f9fa !important; // ヘッダーの明るい背景
+      border-bottom: 2px solid #dee2e6 !important; // 薄いグレーボーダー
+      font-weight: 600 !important;
+      color: #495057 !important; // 濃いグレーテキスト
+      
+      // ヘッダー内のリンクとアイコン
+      a {
+        color: #495057 !important;
+
+// ========================================
+// リストグループスタイル
+// ========================================
+
+.list-group {
+  background-color: #ffffff !important; // 白い背景
+  
+  .list-group-item {
+    background-color: #ffffff !important; // 各アイテムも白い背景
+    color: #333333 !important; // 読みやすいダークグレーテキスト
+    border-color: #e5e7eb !important; // 薄いグレーボーダー
+    
+    &:hover {
+      background-color: #f8f9fa !important; // ホバー時は薄いグレー
+    }
+    
+    // テキストスタイルの強化
+    .fw-bold {
+      color: #1a1a1a !important; // 太字テキストはより濃く
+    }
+    
+    .text-muted {
+      color: #6b7280 !important; // ミュートテキストも読みやすく
+    }
+    
+    // バッジスタイル
+    .badge {
+      &.bg-warning {
+        background-color: #fbbf24 !important; // より明るい警告色
+        color: #1f2937 !important; // 濃いテキスト
+      }
+      
+      &.bg-success {
+        background-color: #10b981 !important; // より明るい成功色
+        color: #ffffff !important; // 白いテキスト
+      }
+      
+      &.bg-primary {
+        background-color: #3b82f6 !important; // より明るいプライマリ色
+        color: #ffffff !important; // 白いテキスト
+      }
+    }
+  }
+}
+
+// ========================================
+// 管理画面テキストコントラスト改善
+// ========================================
+
+.card {
+  background-color: #ffffff !important; // カードの白い背景を強制
+  
+  .card-body {
+    background-color: #ffffff !important; // カードボディも白い背景
+    color: #1a1a1a !important; // 濃いテキスト色
+    
+    // 見出しテキストの強化
+    h1, h2, h3, h4, h5, h6 {
+      color: #1a1a1a !important; // すべての見出しを濃い色に
+    }
+    
+    // 段落テキストの強化
+    p {
+      color: #333333 !important; // 段落テキストも読みやすく
+    }
+    
+    // 強調テキスト
+    .fw-bold, .fw-medium {
+      color: #111827 !important; // 太字は特に濃く
+    }
+    
+    // ミュートテキストの改善
+    .text-muted {
+      color: #6b7280 !important; // 読みやすいグレー
+    }
+    
+    // 小さなテキストの改善
+    small {
+      color: #6b7280 !important; // 小さなテキストも読みやすく
+    }
+  }
+  
+  // カードヘッダーの改善
+  .card-header {
+    background-color: #f8f9fa !important; // 薄いグレー背景
+    color: #1a1a1a !important; // 濃いテキスト
+    border-bottom: 1px solid #e5e7eb !important; // 薄いボーダー
+  }
+}
+
+// 管理画面特有のスタイル改善
+.admin-layout {
+  // すべてのテキストのベースコントラストを向上
+  color: #1a1a1a !important;
+  
+  .text-dark {
+    color: #111827 !important; // より濃い黒
+  }
+  
+  .text-secondary {
+    color: #6b7280 !important; // 読みやすいセカンダリ色
+  }
+}
+        
+        &:hover {
+          color: #2563eb !important;
+        }
+        
+        i {
+          &.text-primary { color: #2563eb !important; }
+          &.text-success { color: #28a745 !important; }
+          &.text-info { color: #17a2b8 !important; }
+          &.text-warning { color: #ffc107 !important; }
+          &.text-danger { color: #dc3545 !important; }
+          &.text-secondary { color: #6c757d !important; }
+          &.text-muted { color: #6c757d !important; }
+        }
+      }
+      
+      span.fw-semibold {
+        color: #495057 !important;
+      }
+    }
+  }
+  
+  // 縞模様パターン（軽減版）
+  tbody {
+    background-color: #ffffff !important;
+    
+    tr {
+      background-color: #ffffff !important; // 純白背景
+      border-bottom: 1px solid #dee2e6 !important; // 薄いグレーボーダー
+      transition: all 0.2s ease-in-out !important; // スムーズなトランジション
+      
+      // 奇数行に背景色（極薄）
+      &:nth-child(odd) {
+        background-color: #fafbfc !important; // 極薄グレー
+      }
+      
+      // ホバー効果（青系）
+      &:hover {
+        background-color: #e3f2fd !important; // 薄い青
+        border-left: 3px solid #2563eb !important; // 左側に青いアクセント
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15) !important; // 青い影
+        transform: translateX(2px) !important; // 軽微な右移動効果
+        cursor: pointer !important; // カーソルをポインターに
+      }
+    }
+    
+    td {
+      vertical-align: middle;
+      padding: 0.75rem 1rem; // 適切なパディング
+      color: #495057 !important; // 濃いグレーテキスト
+      background-color: transparent !important;
+      
+      // テキスト要素の色強制
+      .fw-bold, .text-dark {
+        color: #212529 !important;
+      }
+      
+      .text-muted, small {
+        color: #6c757d !important;
+      }
+      
+      .text-success, .h5 {
+        color: #28a745 !important;
+      }
+      
+      // リンクの色
+      a.text-dark {
+        color: #212529 !important;
+        
+        &:hover {
+          color: #2563eb !important;
+        }
+      }
+    }
+  }
+}
+
+// レスポンシブテーブル
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  
+  .table {
+    margin-bottom: 0;
+    border: none;
+  }
+}
+
+// ========================================
+// 統一ナビゲーションスタイル
+// ========================================
+
+.navbar {
+  @include navbar-base();
+  
+  .navbar-brand {
+    @include navbar-brand();
+  }
+  
+  .nav-link {
+    @include navbar-nav-link();
+  }
+}
+
+// ナビゲーション（管理者画面）
+.navbar-admin {
+  @include navbar-base(
+    linear-gradient(135deg, var(--admin-primary), var(--admin-secondary))
+  );
+}
+
+// ========================================
+// 統一ドロップダウンスタイル
+// ========================================
+
+.dropdown-menu {
+  @include dropdown-modern();
+}
+
+// ========================================
+// アイコンラッパーシステム
+// ========================================
+
+.icon-wrapper {
+  @include icon-wrapper();
+  
+  &.icon-primary {
+    @include icon-wrapper(40px, rgba(var(--section-primary), 0.1), var(--section-primary));
+  }
+  
+  &.icon-success {
+    @include icon-wrapper(40px, rgba(40, 167, 69, 0.1), var(--bs-success));
+  }
+  
+  &.icon-warning {
+    @include icon-wrapper(40px, rgba(255, 193, 7, 0.1), var(--bs-warning));
+  }
+  
+  &.icon-danger {
+    @include icon-wrapper(40px, rgba(220, 53, 69, 0.1), var(--bs-danger));
+  }
+}
+
+// ========================================
+// モバイルファーストレスポンシブ
+// ========================================
+
+// モバイル最適化は各コンポーネントで個別に適用
+
+// グリッドシステム拡張
+.responsive-grid {
+  @include responsive-grid();
+}
+
+// ========================================
+// アクセシビリティ強化
+// ========================================
+
+// フォーカスリング統一
+.form-control,
+.btn,
+.nav-link,
+.dropdown-item {
+  @include focus-ring();
+}
+
+// ハイコントラスト対応
+@include high-contrast-support();
+
+// 動作軽減対応
+@include reduced-motion-support();
+
+// スクリーンリーダー対応
+.sr-only,
+.visually-hidden {
+  @include sr-only();
+}
+
+// ========================================
+// パフォーマンス最適化
+// ========================================
+
+// GPU加速によるアニメーション最適化
+.card,
+.btn,
+.navbar,
+.alert {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+// ========================================
+// プリント対応
+// ========================================
+
+@media print {
+  .navbar,
+  .footer,
+  .btn,
+  .alert {
+    display: none !important;
+  }
+  
+  .card {
+    border: 1px solid #000 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
+// ========================================
+// 環境別スタイル調整
+// ========================================
+
+// 開発環境でのデバッグ支援（環境変数チェック削除）
+.debug-info {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 3px;
+  font-size: 12px;
+  z-index: 9999;
+  display: none; // デフォルトで非表示
+}
+
+// ========================================
+// レガシー互換性（段階的削除予定）
+// ========================================
+
+// 旧カラー定義（後方互換性のためのエイリアス）
+:root {
+  // 旧システムとの互換性
+  --admin-primary: var(--brand-primary);
+  --admin-secondary: var(--brand-secondary);
+  --admin-accent: var(--admin-accent, var(--brand-primary));
+  --admin-background: var(--bg-secondary);
+  
+  // 旧クラス名のサポート（非推奨）
+  --primary-500: var(--brand-primary);
+  --bs-admin-primary: var(--admin-primary);
+}
+
+// 旧ボタンクラスのエイリアス（非推奨 - 削除予定）
+.btn-admin {
+  @extend .btn-gradient-primary;
 }
 
 .btn-github {
-  background-color: #24292e;
-  border-color: #24292e;
-  color: white;
+  @include button-variant(
+    #24292e,
+    var(--text-light),
+    #24292e,
+    #1a1e23,
+    var(--text-light),
+    translateY(-1px)
+  );
+}
+
+// 旧カードクラスのエイリアス（非推奨 - 削除予定）
+.dashboard-card {
+  @extend .card;
+  @include card-hover-effect();
+}
+
+// ========================================
+// TODO: 🔴 Phase 2（緊急）- レガシーファイル段階的統合
+// 優先度: 高（メンテナンス性向上）
+// 実装内容:
+//   - store_selection.scssをcomponents/に移行
+//   - bootstrap_enhancements.scssの機能をコンポーネントに分散
+//   - admin_controllers.scssとの統合
+//   - 重複スタイルの完全除去
+// 期待効果: ファイル数30%削減、メンテナンス性向上
+// 工数見積: 2-3日
+// ========================================
+
+// ========================================
+// TODO: 🟡 Phase 3（重要）- CSS Grid統合
+// 優先度: 中（レイアウトシステム現代化）
+// 実装内容:
+//   - CSS Gridレスポンシブミックスイン
+//   - Flexboxとの使い分け指針
+//   - IE11サポート終了対応
+// 期待効果: より柔軟なレイアウト、コード簡素化
+// 工数見積: 1-2日
+// ========================================
+
+// ========================================
+// TODO: 🟢 Phase 4（推奨）- CSS-in-JS統合検討
+// 優先度: 低（技術スタック現代化）
+// 実装内容:
+//   - Styled Componentsまたは類似ライブラリ検討
+//   - コンポーネント単位でのスタイル管理
+//   - Reactコンポーネントとの統合
+// 期待効果: コンポーネント再利用性向上、型安全性
+// 工数見積: 1-2週間
+// 依存関係: フロントエンド技術スタック決定
+// ========================================
+
+// ============================================
+// 🛠️ ログイン画面UI修正: バランスの取れたレイアウト
+// 目的: 42%幅での縦長表示を解決し、適切なレイアウトに修正
+// ============================================
+
+// ログイン画面専用の調整
+.gradient-bg {
+  // カードの適切なサイズとレスポンシブ対応
+  .card-custom {
+    max-width: 650px !important; // 🛠️ 適度な最大幅設定
+    min-height: auto !important; // 🛠️ 自然な高さ
+    
+    // 画面サイズ別の幅調整
+    @media (min-width: 992px) {
+      min-width: 500px !important; // 🛠️ 大画面での最小幅確保
+    }
+  }
   
-  &:hover {
-    background-color: #1a1e23;
-    border-color: #1a1e23;
-    color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(36, 41, 46, 0.3);
+  // タブナビゲーションの修正
+  .nav-tabs-custom {
+    .nav-link {
+      min-height: 50px !important; // 🛠️ タブの最小高さ設定
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 0.75rem 1rem !important; // 🛠️ 適度なパディング
+      white-space: nowrap !important; // 🛠️ テキストの改行防止
+      
+      @media (min-width: 768px) {
+        min-height: 60px !important; // 🛠️ タブレット以上で高さ増加
+        padding: 1rem 1.5rem !important;
+      }
+      
+      // アイコンとテキストの間隔調整
+      i {
+        margin-right: 0.5rem !important;
+        flex-shrink: 0 !important; // 🛠️ アイコンサイズ固定
+      }
+    }
+  }
+  
+  // カードボディの調整
+  .card-body {
+    // レスポンシブパディング（より控えめに）
+    padding: 1.5rem !important; // 🛠️ 基本パディング
+    
+    @media (min-width: 768px) {
+      padding: 2rem !important; // 🛠️ タブレット以上
+    }
+    
+    @media (min-width: 992px) {
+      padding: 2.5rem !important; // 🛠️ デスクトップ
+    }
+  }
+  
+  // フォーム要素の最適化
+  .form-control {
+    min-height: 48px !important; // 🛠️ 十分な高さ確保
+    padding: 0.75rem 1rem !important; // 🛠️ 適度なパディング
+    font-size: 1rem !important; // 🛠️ 読みやすいフォントサイズ
+    
+    @media (min-width: 768px) {
+      min-height: 52px !important;
+      padding: 1rem 1.25rem !important;
+    }
+  }
+  
+  // ボタンサイズの調整
+  .btn-lg {
+    min-height: 50px !important; // 🛠️ ボタンの最小高さ
+    padding: 0.875rem 2rem !important; // 🛠️ 適度なパディング
+    font-size: 1.1rem !important; // 🛠️ 適切なフォントサイズ
+    
+    @media (min-width: 768px) {
+      min-height: 56px !important;
+      padding: 1rem 2.5rem !important;
+      font-size: 1.125rem !important;
+    }
+  }
+  
+  // コンテンツの縦方向スペーシング調整
+  .tab-content {
+    .text-center {
+      margin-bottom: 1.5rem !important; // 🛠️ セクション間の適度な間隔
+    }
+    
+    .mb-3 {
+      margin-bottom: 1rem !important; // 🛠️ フォーム要素間隔
+    }
+    
+    .mb-4 {
+      margin-bottom: 1.5rem !important; // 🛠️ セクション間隔
+    }
+  }
+  
+  // アイコン円形背景の調整
+  .rounded-circle {
+    flex-shrink: 0 !important; // 🛠️ アイコンサイズ固定
+  }
+  
+  // ラベルとフォームの間隔調整
+  .form-label {
+    margin-bottom: 0.5rem !important; // 🛠️ ラベルとフィールドの間隔
+    font-weight: 500 !important;
+  }
+  
+  // チェックボックスエリアの調整
+  .form-check {
+    margin-bottom: 1.5rem !important; // 🛠️ チェックボックス下部余白
+  }
+  
+  // アラートエリアの調整
+  .alert {
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+    padding: 0.75rem 1rem !important; // 🛠️ コンパクトなアラート
   }
 }
 
-// カード要素のスタイル強化
-.card {
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-  transition: all 0.3s ease;
+// ========================================
+// ページネーション統一スタイル（全画面適用）
+// ========================================
+
+// Kaminariページネーションの統一スタイル
+.pagination {
+  .page-link {
+    background-color: #ffffff !important;
+    color: #2563eb !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 0.5rem 0.75rem !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease-in-out !important;
+    
+    &:hover {
+      background-color: #f1f5f9 !important;
+      color: #1d4ed8 !important;
+      border-color: #cbd5e1 !important;
+      text-decoration: none !important;
+      transform: translateY(-1px) !important;
+    }
+    
+    &:focus {
+      background-color: #ffffff !important;
+      border-color: #2563eb !important;
+      box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25) !important;
+      outline: none !important;
+    }
+  }
   
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+  .page-item.active .page-link {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2) !important;
+    
+    &:hover {
+      background-color: #1d4ed8 !important;
+      border-color: #1d4ed8 !important;
+      transform: none !important;
+    }
+  }
+  
+  .page-item.disabled .page-link {
+    background-color: #f8fafc !important;
+    color: #94a3b8 !important;
+    border-color: #e2e8f0 !important;
+    cursor: not-allowed !important;
+    
+    &:hover {
+      background-color: #f8fafc !important;
+      color: #94a3b8 !important;
+      transform: none !important;
+    }
+  }
+  
+  // アイコンの調整
+  .page-link i {
+    font-size: 0.875rem !important;
   }
 }
 
-// GitHub認証ボタン専用スタイル
-.github-login-btn {
+// ページネーション周辺の調整
+.pagination-wrapper {
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  transition: all 0.3s ease;
+  align-items: center;
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
-.github-icon {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
-  flex-shrink: 0;
-}
-
-// ナビゲーション強化
-.navbar-admin {
-  background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-secondary) 100%);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-}
-
-.navbar-brand {
-  font-weight: bold;
-  color: white !important;
-  
-  &:hover {
-    color: var(--admin-accent) !important;
+// レスポンシブ対応
+@media (max-width: 576px) {
+  .pagination {
+    .page-link {
+      padding: 0.375rem 0.5rem !important;
+      font-size: 0.875rem !important;
+    }
   }
 }
 
-// フォーム要素の強化
-.form-control {
-  border-radius: 8px;
-  border: 1px solid #ddd;
-  transition: all 0.3s ease;
+// ========================================
+// シンプルで見やすいデザインシステム
+// ========================================
+
+// ベースレイアウト - クリーンな背景
+body {
+  background-color: #f8f9fa !important; // 薄いグレー背景
+  min-height: 100vh;
+  color: #333333 !important; // 読みやすい濃いグレー
+}
+
+// カード全般 - シンプルな外観
+.card {
+  border: 1px solid #e9ecef !important; // 薄いボーダー
+  border-radius: 8px !important; // 控えめな角丸
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important; // 軽い影
+  background-color: #ffffff !important; // 純白背景
+  transition: box-shadow 0.2s ease !important;
+  
+  &:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important; // 軽いホバー効果
+  }
+  
+  .card-header {
+    background-color: #ffffff !important; // 白ヘッダー
+    border-bottom: 2px solid #2563eb !important; // 青いアクセント
+    color: #333333 !important; // 濃いグレーテキスト
+    padding: 1.25rem !important;
+    
+    h1, h2, h3, h4, h5, h6 {
+      color: #2563eb !important; // 青見出し
+      margin-bottom: 0 !important;
+    }
+    
+    .text-muted {
+      color: #6c757d !important; // 薄いグレー
+    }
+  }
+  
+  .card-body {
+    background-color: #ffffff !important; // 純白背景
+    padding: 1.5rem !important;
+  }
+  
+  .card-footer {
+    background-color: #f8f9fa !important; // 薄いグレー背景
+    border-top: 1px solid #e9ecef !important; // 薄いボーダー
+    color: #6c757d !important; // 薄いグレーテキスト
+  }
+}
+
+// ナビゲーション - シンプルで見やすく
+.navbar {
+  background-color: #2563eb !important; // 単色の青背景
+  border: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important; // 軽い影
+  
+  .navbar-brand {
+    color: white !important;
+    font-weight: 600 !important;
+  }
+  
+  .nav-link {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-weight: 500 !important;
+    
+    &:hover {
+      color: white !important;
+      background-color: rgba(255, 255, 255, 0.1) !important;
+      border-radius: 4px !important;
+    }
+    
+    &.active {
+      color: white !important;
+      background-color: rgba(255, 255, 255, 0.2) !important;
+      border-radius: 4px !important;
+    }
+  }
+}
+
+// ボタン - シンプルで機能的
+.btn {
+  border-radius: 6px !important; // 控えめな角丸
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important; // 適度なパディング
+  transition: all 0.2s ease !important; // 短いトランジション
+  
+  &.btn-primary {
+    background-color: #2563eb !important; // 単色の青
+    border: 1px solid #2563eb !important;
+    color: white !important;
+    
+    &:hover {
+      background-color: #1d4ed8 !important;
+      border-color: #1d4ed8 !important;
+      box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3) !important;
+    }
+  }
+  
+  &.btn-success {
+    background-color: #16a34a !important; // 単色の緑
+    border: 1px solid #16a34a !important;
+    color: white !important;
+    
+    &:hover {
+      background-color: #15803d !important;
+      border-color: #15803d !important;
+      box-shadow: 0 2px 4px rgba(22, 163, 74, 0.3) !important;
+    }
+  }
+  
+  &.btn-warning {
+    background-color: #ea580c !important; // 単色のオレンジ
+    border: 1px solid #ea580c !important;
+    color: white !important;
+    
+    &:hover {
+      background-color: #dc2626 !important;
+      border-color: #dc2626 !important;
+      box-shadow: 0 2px 4px rgba(234, 88, 12, 0.3) !important;
+    }
+  }
+  
+  &.btn-info {
+    background-color: #0891b2 !important; // 単色のシアン
+    border: 1px solid #0891b2 !important;
+    color: white !important;
+    
+    &:hover {
+      background-color: #0e7490 !important;
+      border-color: #0e7490 !important;
+      box-shadow: 0 2px 4px rgba(8, 145, 178, 0.3) !important;
+    }
+  }
+  
+  &.btn-outline-primary {
+    border: 2px solid #2563eb !important;
+    color: #2563eb !important;
+    background-color: transparent !important;
+    
+    &:hover {
+      background-color: #2563eb !important;
+      color: white !important;
+    }
+  }
+  
+  &.btn-outline-secondary {
+    border: 2px solid #6b7280 !important;
+    color: #6b7280 !important;
+    background-color: transparent !important;
+    
+    &:hover {
+      background-color: #6b7280 !important;
+      color: white !important;
+    }
+  }
+}
+
+// フォーム要素 - シンプルで使いやすく
+.form-control,
+.form-select {
+  border-radius: 6px !important; // 控えめな角丸
+  border: 1px solid #d1d5db !important; // 薄いグレーボーダー
+  padding: 0.75rem 1rem !important;
+  transition: border-color 0.2s ease !important; // シンプルなトランジション
+  background: #ffffff !important; // 純白背景
+  color: #374151 !important; // 読みやすい濃いグレー
   
   &:focus {
-    border-color: var(--admin-accent);
-    box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    border-color: #2563eb !important; // 青ボーダー
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important; // 軽いフォーカスリング
+    outline: none !important;
+  }
+  
+  &::placeholder {
+    color: #9ca3af !important; // 薄いグレーのプレースホルダー
   }
 }
 
-// アラート・フラッシュメッセージ
+// アラート - 見やすく情報伝達
 .alert {
-  border: none;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-// ダッシュボードカード
-.dashboard-card {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-  transition: all 0.3s ease;
-  border: 1px solid #e9ecef;
+  border: 1px solid transparent !important;
+  border-radius: 8px !important; // 控えめな角丸
+  padding: 1rem 1.25rem !important;
   
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+  &.alert-success {
+    background-color: #d1fae5 !important; // 薄い緑背景
+    color: #065f46 !important; // 濃い緑テキスト
+    border-color: #a7f3d0 !important; // 緑ボーダー
+  }
+  
+  &.alert-warning {
+    background-color: #fef3c7 !important; // 薄い黄背景
+    color: #92400e !important; // 濃い黄テキスト
+    border-color: #fde68a !important; // 黄ボーダー
+  }
+  
+  &.alert-danger {
+    background-color: #fee2e2 !important; // 薄い赤背景
+    color: #991b1b !important; // 濃い赤テキスト
+    border-color: #fecaca !important; // 赤ボーダー
+  }
+  
+  &.alert-info {
+    background-color: #dbeafe !important; // 薄い青背景
+    color: #1e40af !important; // 濃い青テキスト
+    border-color: #bfdbfe !important; // 青ボーダー
   }
 }
 
-// アイコンスタイル
-.icon-lg {
-  font-size: 2.5rem;
-  opacity: 0.8;
-}
-
-// HR テキスト区切り線
-.hr-text {
-  position: relative;
-  border: none;
-  height: 1px;
-  background: #dee2e6;
-  margin: 1rem 0;
+// モーダル - シンプルで機能的
+.modal-content {
+  border: 1px solid #e5e7eb !important; // 薄いグレーボーダー
+  border-radius: 8px !important; // 控えめな角丸
+  background: #ffffff !important; // 純白背景
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important; // 軽い影
   
-  &::before {
-    content: attr(data-content);
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: white;
-    padding: 0 1rem;
-    color: #6c757d;
-    font-size: 0.875rem;
+  .modal-header {
+    background-color: #f9fafb !important; // 薄いグレー背景
+    color: #374151 !important; // 濃いグレーテキスト
+    border-bottom: 1px solid #e5e7eb !important; // 薄いボーダー
+    padding: 1.25rem !important;
+    
+    .modal-title {
+      color: #1f2937 !important; // 濃いグレー
+      font-weight: 600 !important;
+    }
+  }
+  
+  .modal-body {
+    padding: 1.5rem !important;
+  }
+  
+  .modal-footer {
+    border-top: 1px solid #e5e7eb !important; // 薄いボーダー
+    background-color: #f9fafb !important; // 薄いグレー背景
+    padding: 1rem 1.5rem !important;
   }
 }
 
-// GitHub icon helper (SVGアイコン用)
-.github-icon {
-  width: 20px;
-  height: 20px;
-  fill: currentColor;
-  flex-shrink: 0;
+// バッジ - 情報を明確に伝達
+.badge {
+  border-radius: 6px !important; // 控えめな角丸
+  padding: 0.375rem 0.75rem !important;
+  font-weight: 500 !important;
+  font-size: 0.875rem !important;
+  
+  &.bg-primary {
+    background-color: #2563eb !important; // 単色の青
+    color: white !important;
+  }
+  
+  &.bg-success {
+    background-color: #16a34a !important; // 単色の緑
+    color: white !important;
+  }
+  
+  &.bg-warning {
+    background-color: #ea580c !important; // 単色のオレンジ
+    color: white !important;
+  }
+  
+  &.bg-info {
+    background-color: #0891b2 !important; // 単色のシアン
+    color: white !important;
+  }
+  
+  &.bg-danger {
+    background-color: #dc2626 !important; // 単色の赤
+    color: white !important;
+  }
+  
+  &.bg-secondary {
+    background-color: #6b7280 !important; // 単色のグレー
+    color: white !important;
+  }
 }
 
-// レスポンシブ調整
+// プログレスバー - 進捗の明確な表示
+.progress {
+  height: 8px !important; // 控えめな高さ
+  border-radius: 4px !important; // 軽い角丸
+  background-color: #e5e7eb !important; // 薄いグレー背景
+  overflow: hidden !important;
+  
+  .progress-bar {
+    border-radius: 4px !important;
+    transition: width 0.3s ease !important;
+    
+    &.bg-success {
+      background-color: #16a34a !important; // 単色の緑
+    }
+    
+    &.bg-primary {
+      background-color: #2563eb !important; // 単色の青
+    }
+    
+    &.bg-warning {
+      background-color: #ea580c !important; // 単色のオレンジ
+    }
+    
+    &.bg-info {
+      background-color: #0891b2 !important; // 単色のシアン
+    }
+    
+    &.bg-danger {
+      background-color: #dc2626 !important; // 単色の赤
+    }
+  }
+}
+
+// スクロールバー - シンプルで機能的
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #f3f4f6;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #9ca3af;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #6b7280;
+}
+
+// レスポンシブ対応 - モバイルファースト
 @media (max-width: 768px) {
-  .github-login-btn {
-    font-size: 0.9rem;
-    padding: 0.65rem 1rem;
+  .card {
+    margin-bottom: 1rem !important;
+    border-radius: 6px !important; // より小さな角丸
+    
+    &:hover {
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1) !important; // 軽いホバー効果
+    }
   }
   
-  .github-icon {
-    width: 18px;
-    height: 18px;
+  .btn {
+    padding: 0.75rem 1rem !important; // モバイル向けパディング
+    font-size: 0.875rem !important;
   }
   
-  .navbar-nav {
-    text-align: center;
+  // フォーム要素のモバイル最適化
+  .form-control,
+  .form-select {
+    padding: 0.875rem 1rem !important; // タッチしやすいサイズ
+    font-size: 1rem !important; // iOS zoom防止
   }
 }
 
-// TODO: 🟢 Phase 4（推奨）- 他ソーシャルログインボタン用スタイル
-// 優先度: 低（GitHub認証が安定してから）
-// 実装内容: Google、Twitter、Microsoft等のブランドカラー対応
-// 理由: 統一されたソーシャルログインUI、ブランド識別性向上
-// 期待効果: ユーザー認識の向上、選択しやすいUI
-// 工数見積: 各プロバイダー30分
-// 依存関係: 各ソーシャルログインプロバイダー実装後
+// ========================================
+// シンプルで見やすいデザインシステム完了
+// ========================================
+// CLAUDE.md準拠: 読みやすさと使いやすさを最優先
+// メタ認知: ユーザビリティとアクセシビリティ重視
+// 横展開: 全画面で一貫したシンプルデザイン
+//
+// 特徴:
+// - 単色ベースの配色（グラデーション排除）
+// - 控えめな角丸とシャドウ
+// - 高コントラストによる視認性確保
+// - モバイルファーストレスポンシブ
+// - アクセシビリティ対応
+// ========================================

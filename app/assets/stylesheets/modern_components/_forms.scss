@@ -1,0 +1,427 @@
+// ============================================
+// モダンフォームコンポーネント
+// ============================================
+// Material Design 3 + Tailwind Forms inspired
+
+// フォームグループ
+.form-group-modern {
+  margin-bottom: var(--space-6);
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// ラベル
+.form-label-modern {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+  
+  // 必須マーク
+  &.required::after {
+    content: ' *';
+    color: var(--text-error);
+  }
+}
+
+// ベース入力フィールドスタイル
+.form-control-modern {
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: var(--font-normal);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+  background-color: var(--bg-surface);
+  background-clip: padding-box;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  transition: all var(--transition-default);
+  appearance: none;
+  
+  // プレースホルダー
+  &::placeholder {
+    color: var(--text-muted);
+    opacity: 1;
+  }
+  
+  // フォーカス状態
+  &:focus {
+    outline: none;
+    border-color: var(--text-accent);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    background-color: var(--bg-surface);
+  }
+  
+  // 無効化状態
+  &:disabled,
+  &[readonly] {
+    background-color: var(--bg-hover);
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  
+  // エラー状態
+  &.is-invalid,
+  &:invalid {
+    border-color: var(--text-error);
+    
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+  }
+  
+  // 成功状態
+  &.is-valid {
+    border-color: var(--text-success);
+    
+    &:focus {
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+    }
+  }
+}
+
+// テキストエリア
+.form-textarea-modern {
+  @extend .form-control-modern;
+  min-height: 100px;
+  resize: vertical;
+}
+
+// セレクトボックス
+.form-select-modern {
+  @extend .form-control-modern;
+  padding-right: var(--space-10);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right var(--space-3) center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  
+  &:focus {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%232563eb' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  }
+}
+
+// チェックボックス & ラジオボタン
+.form-check-modern {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: var(--space-3);
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+  
+  input[type="checkbox"],
+  input[type="radio"] {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.125rem;
+    margin-right: var(--space-3);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    
+    &:checked {
+      background-color: var(--text-accent);
+      border-color: var(--text-accent);
+      background-position: center;
+      background-repeat: no-repeat;
+    }
+    
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+  
+  input[type="checkbox"] {
+    border-radius: var(--radius-md);
+    
+    &:checked {
+      background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+    }
+  }
+  
+  input[type="radio"] {
+    border-radius: var(--radius-full);
+    
+    &:checked {
+      background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3ccircle cx='8' cy='8' r='3'/%3e%3c/svg%3e");
+    }
+  }
+  
+  label {
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+  }
+}
+
+// スイッチ（トグル）
+.form-switch-modern {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  
+  input[type="checkbox"] {
+    position: relative;
+    width: 3rem;
+    height: 1.75rem;
+    margin-right: var(--space-3);
+    background-color: var(--border-strong);
+    border: none;
+    border-radius: var(--radius-full);
+    transition: all var(--transition-default);
+    cursor: pointer;
+    appearance: none;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      width: 1.25rem;
+      height: 1.25rem;
+      top: 0.25rem;
+      left: 0.25rem;
+      background-color: var(--bg-surface);
+      border-radius: var(--radius-full);
+      transition: transform var(--transition-default);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    &:checked {
+      background-color: var(--text-accent);
+      
+      &::before {
+        transform: translateX(1.25rem);
+      }
+    }
+    
+    &:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+  
+  label {
+    font-size: var(--text-base);
+    color: var(--text-primary);
+  }
+}
+
+// 入力グループ
+.input-group-modern {
+  display: flex;
+  width: 100%;
+  
+  .input-group-text {
+    display: flex;
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-base);
+    font-weight: var(--font-normal);
+    color: var(--text-secondary);
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-default);
+    
+    &:first-child {
+      border-right: 0;
+      border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+    }
+    
+    &:last-child {
+      border-left: 0;
+      border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+    }
+  }
+  
+  .form-control-modern {
+    &:not(:first-child) {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+    
+    &:not(:last-child) {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+  }
+}
+
+// ヘルプテキスト
+.form-help-text {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+// エラーメッセージ
+.form-error-text {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-error);
+}
+
+// 成功メッセージ
+.form-success-text {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-success);
+}
+
+// フローティングラベル
+.form-floating-modern {
+  position: relative;
+  
+  .form-control-modern {
+    padding-top: var(--space-6);
+    padding-bottom: var(--space-2);
+    
+    &::placeholder {
+      color: transparent;
+    }
+    
+    &:focus,
+    &:not(:placeholder-shown) {
+      padding-top: var(--space-6);
+      padding-bottom: var(--space-2);
+      
+      ~ label {
+        top: var(--space-2);
+        font-size: var(--text-xs);
+        color: var(--text-accent);
+      }
+    }
+  }
+  
+  label {
+    position: absolute;
+    top: var(--space-4);
+    left: var(--space-4);
+    font-size: var(--text-base);
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: all var(--transition-default);
+  }
+}
+
+// ファイルアップロード
+.form-file-modern {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  
+  input[type="file"] {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+  
+  .file-label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-6);
+    font-size: var(--text-base);
+    font-weight: var(--font-medium);
+    color: var(--text-primary);
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    transition: all var(--transition-default);
+    
+    &:hover {
+      background-color: var(--bg-hover);
+      border-color: var(--border-strong);
+    }
+  }
+  
+  &.file-selected {
+    .file-label {
+      color: var(--text-accent);
+      border-color: var(--text-accent);
+      background-color: var(--bg-selected);
+    }
+  }
+}
+
+// レンジスライダー
+.form-range-modern {
+  width: 100%;
+  height: 0.5rem;
+  padding: 0;
+  background-color: var(--bg-hover);
+  border-radius: var(--radius-full);
+  appearance: none;
+  
+  &::-webkit-slider-thumb {
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: var(--text-accent);
+    border: 2px solid var(--bg-surface);
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    appearance: none;
+    transition: all var(--transition-fast);
+    
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+  
+  &::-moz-range-thumb {
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: var(--text-accent);
+    border: 2px solid var(--bg-surface);
+    border-radius: var(--radius-full);
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    appearance: none;
+    transition: all var(--transition-fast);
+    
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+  
+  &:focus {
+    outline: none;
+  }
+}
+
+// モバイルレスポンシブ
+@media (max-width: $breakpoint-sm) {
+  .form-control-modern,
+  .form-select-modern,
+  .form-textarea-modern {
+    font-size: 16px; // iOS zoom防止
+  }
+}
+
+// TODO: ダークモード対応
+// - 背景色の調整
+// - ボーダー色の調整
+// - フォーカス効果の最適化

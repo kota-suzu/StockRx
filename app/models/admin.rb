@@ -17,10 +17,39 @@ class Admin < ApplicationRecord
 
   # アソシエーション
   has_many :report_files, dependent: :destroy
+  belongs_to :store, optional: true
 
+  # 店舗間移動関連
+  has_many :requested_transfers, class_name: "InterStoreTransfer", foreign_key: "requested_by_id", dependent: :restrict_with_error
+  has_many :approved_transfers, class_name: "InterStoreTransfer", foreign_key: "approved_by_id", dependent: :restrict_with_error
+
+  # 監査ログ関連
+  # CLAUDE.md準拠: ベストプラクティス - ポリモーフィック関連による柔軟な監査ログ管理
+  # メタ認知: ComplianceAuditLogのuser関連付けがポリモーフィックなので、
+  # 　　　　　Adminからも、StoreUserからも、as: :userで関連付け可能
+  # 横展開: StoreUserモデルでも同様の関連付けパターン適用
+  has_many :compliance_audit_logs, as: :user, dependent: :restrict_with_error
+
+  # ============================================
+  # enum定義
+  # ============================================
+  enum :role, {
+    store_user: "store_user",           # 一般店舗ユーザー
+    pharmacist: "pharmacist",           # 薬剤師
+    store_manager: "store_manager",     # 店舗管理者
+    headquarters_admin: "headquarters_admin"  # 本部管理者
+  }
+
+  # ============================================
+  # バリデーション
+  # ============================================
   # Deviseのデフォルトバリデーション（:validatable）に加えて
   # 独自のパスワード強度チェックを追加（OAuthユーザーは除外）
   validates :password, password_strength: true, if: :password_required_for_validation?
+  validates :role, presence: true
+  validates :name, length: { maximum: 50 }, allow_blank: true
+  validate :store_required_for_non_headquarters_admin
+  validate :store_must_be_nil_for_headquarters_admin
 
   # GitHubソーシャルログイン用のクラスメソッド
   # OmniAuthプロバイダーから返される認証情報を処理
@@ -34,13 +63,40 @@ class Admin < ApplicationRecord
     end
   end
 
+  # ============================================
+  # 権限システム設計指針（CLAUDE.md準拠）
+  # ============================================
+  #
+  # 🔒 現在の権限階層（上位→下位）:
+  #    headquarters_admin > store_manager > pharmacist > store_user
+  #
+  # 📋 各権限の責任範囲:
+  #    - headquarters_admin: 全店舗管理、監査ログ、システム設定
+  #    - store_manager: 担当店舗管理、移動承認、スタッフ管理
+  #    - pharmacist: 薬事関連業務、在庫確認、品質管理
+  #    - store_user: 基本在庫操作、日常業務
+  #
+  # ✅ 実装済み権限メソッド:
+  #    - headquarters_admin?  # 最高権限（監査ログアクセス可能）
+  #    - store_manager?       # 店舗管理権限
+  #    - pharmacist?          # 薬剤師権限
+  #    - store_user?          # 基本ユーザー権限
+  #    - can_access_all_stores?, can_manage_store?, can_approve_transfers?
+  #
   # TODO: 認証・認可関連機能
   # 1. ユーザーモデルの実装（一般スタッフ向け）
   #    - Userモデルの作成と権限管理
   #    - 管理者によるユーザーアカウント管理機能
-  # 2. 管理者権限レベルの実装
-  #    - admin/super_admin権限区分の追加
+  # 2. 🟡 Phase 5（将来拡張）- 管理者権限レベルの細分化
+  #    - super_admin権限区分の追加（システム設定・緊急対応専用）
+  #    - admin権限区分の追加（本部管理者の細分化）
   #    - 画面アクセス制御の詳細化
+  #    優先度: 中（現在のheadquarters_adminで要件充足）
+  #    実装内容:
+  #      - enum roleにsuper_admin, adminを追加
+  #      - 権限階層: super_admin > admin > headquarters_admin > store_manager > pharmacist > store_user
+  #    横展開: AuditLogsController等で権限チェック拡張
+  #    メタ認知: 過度な権限分割を避け、必要時のみ実装（YAGNI原則）
   # 3. 2要素認証の導入
   #    - devise-two-factor gemを利用
   #    - QRコード生成とTOTPワンタイムパスワード
@@ -53,16 +109,79 @@ class Admin < ApplicationRecord
   # 工数見積: 1日（マイグレーション + 管理画面での名前入力UI追加）
   # 依存関係: 新規登録・編集画面の更新が必要
 
-  # 表示名を返すメソッド（nameフィールドが実装されるまでの暫定対応）
+  # ============================================
+  # スコープ
+  # ============================================
+  scope :active, -> { where(active: true) }
+  scope :inactive, -> { where(active: false) }
+  scope :by_role, ->(role) { where(role: role) }
+  scope :by_store, ->(store) { where(store: store) }
+  scope :headquarters, -> { where(role: "headquarters_admin") }
+  scope :store_staff, -> { where(role: [ "store_user", "pharmacist", "store_manager" ]) }
+
+  # ============================================
+  # インスタンスメソッド
+  # ============================================
+
+  # 表示名を返すメソッド（nameフィールド実装済み）
   def display_name
-    # GitHub認証の場合はGitHubユーザー名を使用する可能性があるが、
-    # 現在はemailから生成
+    return name if name.present?
+
+    # nameが未設定の場合はemailから生成（後方互換性）
     email.split("@").first
   end
 
-  # name メソッドをdisplay_nameにエイリアス
-  # ビューの互換性のため
-  alias_method :name, :display_name
+  # 役割の日本語表示
+  def role_text
+    case role
+    when "store_user" then "店舗ユーザー"
+    when "pharmacist" then "薬剤師"
+    when "store_manager" then "店舗管理者"
+    when "headquarters_admin" then "本部管理者"
+    end
+  end
+
+  # 権限チェック用メソッド
+  def can_access_all_stores?
+    headquarters_admin?
+  end
+
+  def can_manage_store?(target_store)
+    return true if headquarters_admin?
+    return false unless store_manager?
+
+    store == target_store
+  end
+
+  def can_approve_transfers?
+    store_manager? || headquarters_admin?
+  end
+
+  def can_view_store?(target_store)
+    return true if headquarters_admin?
+
+    store == target_store
+  end
+
+  # アクセス可能な店舗IDのリスト
+  def accessible_store_ids
+    if headquarters_admin?
+      Store.active.pluck(:id)
+    else
+      store_id ? [ store_id ] : []
+    end
+  end
+
+  # 管理可能な店舗のリスト
+  def manageable_stores
+    if headquarters_admin?
+      Store.active
+    elsif store_manager? && store
+      [ store ]
+    else
+      []
+    end
+  end
 
   private
 
@@ -94,7 +213,16 @@ class Admin < ApplicationRecord
       sign_in_count: 1,
       current_sign_in_at: Time.current,
       last_sign_in_at: Time.current,
-      current_sign_in_ip: extract_ip_address(auth)
+      current_sign_in_ip: extract_ip_address(auth),
+      # TODO: 🔴 Phase 1（緊急）- GitHub認証ユーザーのデフォルト権限を最小権限に変更
+      # 優先度: 高（セキュリティ要件）
+      # 実装内容: デフォルトをstore_userに変更、管理者承認後に権限昇格
+      # 理由: 権限昇格攻撃のリスク軽減
+      # 期待効果: ゼロトラストセキュリティモデルの実現
+      # 工数見積: 1日（承認フロー含む）
+      # 暫定的に本部管理者として作成（store_idバリデーション回避のため）
+      # TODO: 承認フロー実装後にstore_userに変更
+      role: "headquarters_admin"
     )
 
     # TODO: 🟡 Phase 3（中）- GitHub管理者の自動承認・権限設定
@@ -110,8 +238,15 @@ class Admin < ApplicationRecord
   end
 
   # OAuthデータから安全にIPアドレスを取得
+  # セキュリティ: 実際のリクエストIPを使用（コントローラーから注入）
+  # ✅ Phase 1完了 - IPアドレス取得ロジックの修正
+  # 実装内容: コントローラーからrequest.remote_ipを注入
+  # 効果: 正確な監査証跡の記録、偽装攻撃対策
   def self.extract_ip_address(auth)
-    auth.extra&.raw_info&.ip || "127.0.0.1"
+    # 優先順位: コントローラーから注入されたIP > OAuthプロバイダーのIP > フォールバック
+    auth.extra&.raw_info&.request_ip ||
+      auth.extra&.raw_info&.ip ||
+      "127.0.0.1"  # ローカル開発環境のデフォルトIP
   end
 
   # パスワードが必要なケースかどうかを判定
@@ -127,5 +262,23 @@ class Admin < ApplicationRecord
   def password_required_for_validation?
     return false if provider.present? && uid.present?
     password_required?
+  end
+
+  # 本部管理者以外は店舗が必須
+  def store_required_for_non_headquarters_admin
+    return if headquarters_admin?
+
+    if store_id.blank?
+      errors.add(:store, "本部管理者以外は店舗の指定が必要です")
+    end
+  end
+
+  # 本部管理者は店舗を指定できない
+  def store_must_be_nil_for_headquarters_admin
+    return unless headquarters_admin?
+
+    if store_id.present?
+      errors.add(:store, "本部管理者は特定の店舗に所属できません")
+    end
   end
 end

@@ -1,0 +1,32 @@
+ja:
+  store_auth_mailer:
+    temp_password_notification:
+      subject: "%{store_name} - 一時パスワード通知"
+      greeting: "%{name}様"
+      message: "%{store_name}のログイン用一時パスワードを発行いたしました。"
+      instructions: "以下の一時パスワードを使用してログインしてください。"
+      password_label: "一時パスワード"
+      expires_info: "有効期限: %{expires_at} まで（約%{minutes}分間有効）"
+      login_button: "ログインページへ"
+      important_notes:
+        title: "重要な注意事項"
+        single_use: "この一時パスワードは1回限りの使用です"
+        expires: "有効期限は%{minutes}分間です"
+        change_password: "ログイン後、必ず新しいパスワードに変更してください"
+        do_not_share: "このメールは第三者に転送しないでください"
+      security_info:
+        title: "セキュリティについて"
+        unknown_request: "このメールに心当たりがない場合は、すぐに管理者にご連絡ください"
+        password_management: "パスワードは安全な場所で管理し、他人と共有しないでください"
+        regular_updates: "定期的なパスワード変更をお勧めします"
+      footer:
+        system_name: "StockRx 在庫管理システム"
+        auto_generated: "このメールは自動送信されています。返信はできません。"
+        generated_at: "発行日時: %{timestamp}"
+        contact_info: "ご不明な点がございましたら、システム管理者までお問い合わせください。"
+    
+    password_changed_notification:
+      subject: "%{store_name} - パスワード変更完了通知"
+      
+    security_alert_notification:
+      subject: "%{store_name} - セキュリティアラート: %{alert_type}"

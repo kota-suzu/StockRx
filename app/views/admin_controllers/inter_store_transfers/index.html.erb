@@ -1,0 +1,279 @@
+<%# frozen_string_literal: true %>
+<%# 店舗間移動一覧ページ %>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <%# ヘッダーセクション %>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h1 class="h2 mb-2">
+            <i class="bi bi-truck me-2"></i>店舗間移動管理
+          </h1>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><%= link_to "ダッシュボード", admin_root_path %></li>
+              <li class="breadcrumb-item active" aria-current="page">移動管理</li>
+            </ol>
+          </nav>
+        </div>
+        
+        <%# アクションボタン %>
+        <div>
+          <%= link_to new_admin_inter_store_transfer_path, class: "btn btn-primary" do %>
+            <i class="bi bi-plus-circle me-1"></i>新規移動申請
+          <% end %>
+          
+          <% if current_admin.headquarters_admin? %>
+            <%= link_to analytics_admin_inter_store_transfers_path, class: "btn btn-outline-info ms-2" do %>
+              <i class="bi bi-graph-up me-1"></i>分析ダッシュボード
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+
+      <%# 統計カード %>
+      <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+          <div class="card border-primary">
+            <div class="card-body">
+              <h6 class="text-primary mb-1">総移動件数</h6>
+              <h3 class="mb-0"><%= number_with_delimiter(@stats[:total_transfers]) %></h3>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+          <div class="card border-warning">
+            <div class="card-body">
+              <h6 class="text-warning mb-1">承認待ち</h6>
+              <h3 class="mb-0">
+                <%= @stats[:pending_count] %>
+                <% if @stats[:urgent_pending] > 0 || @stats[:emergency_pending] > 0 %>
+                  <small class="text-danger ms-2">
+                    緊急: <%= @stats[:urgent_pending] + @stats[:emergency_pending] %>
+                  </small>
+                <% end %>
+              </h3>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+          <div class="card border-success">
+            <div class="card-body">
+              <h6 class="text-success mb-1">本日完了</h6>
+              <h3 class="mb-0"><%= @stats[:completed_today] %></h3>
+            </div>
+          </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+          <div class="card border-info">
+            <div class="card-body">
+              <h6 class="text-info mb-1">平均処理時間</h6>
+              <h3 class="mb-0"><%= @stats[:average_processing_time] %> 時間</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <%# 検索・フィルター %>
+      <%= form_with url: admin_inter_store_transfers_path, method: :get, local: true, class: "mb-4" do |f| %>
+        <div class="card">
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <%= f.text_field :search, 
+                    value: params[:search],
+                    class: "form-control", 
+                    placeholder: "商品名・店舗名で検索..." %>
+              </div>
+              
+              <div class="col-md-2">
+                <%= f.select :status, 
+                    options_for_select([
+                      ["すべてのステータス", ""],
+                      ["承認待ち", "pending"],
+                      ["承認済み", "approved"],
+                      ["却下", "rejected"],
+                      ["移動中", "in_transit"],
+                      ["完了", "completed"],
+                      ["キャンセル", "cancelled"]
+                    ], params[:status]),
+                    {}, 
+                    class: "form-select" %>
+              </div>
+              
+              <div class="col-md-2">
+                <%= f.select :priority, 
+                    options_for_select([
+                      ["すべての優先度", ""],
+                      ["通常", "normal"],
+                      ["緊急", "urgent"],
+                      ["非常時", "emergency"]
+                    ], params[:priority]),
+                    {}, 
+                    class: "form-select" %>
+              </div>
+              
+              <div class="col-md-2">
+                <%= f.select :store_id, 
+                    options_for_select([["すべての店舗", ""]] + 
+                      Store.active.accessible_to_admin(current_admin).map { |s| [s.name, s.id] }, 
+                      params[:store_id]),
+                    {}, 
+                    class: "form-select" %>
+              </div>
+              
+              <div class="col-md-2">
+                <%= f.submit "検索", class: "btn btn-primary w-100" %>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% end %>
+
+      <%# 移動申請一覧 %>
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">移動申請一覧</h5>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">
+                    <i class="bi bi-calendar3 me-2 text-primary"></i>申請日
+                  </th>
+                  <th scope="col">
+                    <i class="bi bi-arrow-left-right me-2 text-primary"></i>移動内容
+                  </th>
+                  <th scope="col">
+                    <i class="bi bi-box me-2 text-primary"></i>商品・数量
+                  </th>
+                  <th scope="col">
+                    <i class="bi bi-activity me-2 text-primary"></i>ステータス
+                  </th>
+                  <th scope="col">
+                    <i class="bi bi-person me-2 text-primary"></i>申請者
+                  </th>
+                  <th scope="col" class="text-center">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if @transfers.any? %>
+                  <% @transfers.each do |transfer| %>
+                    <tr>
+                      <td>
+                        <div class="fw-medium">
+                          <%= l(transfer.requested_at, format: "%m/%d") %>
+                        </div>
+                        <small class="text-muted">
+                          <%= l(transfer.requested_at, format: "%H:%M") %>
+                        </small>
+                      </td>
+                      <td>
+                        <div class="d-flex align-items-center mb-1">
+                          <span class="me-2"><%= transfer.source_store.name %></span>
+                          <i class="bi bi-arrow-right mx-1 text-muted"></i>
+                          <span class="ms-2"><%= transfer.destination_store.name %></span>
+                        </div>
+                        <% if transfer.priority != "normal" %>
+                          <% case transfer.priority %>
+                          <% when "emergency" %>
+                            <span class="badge bg-danger small">
+                              <i class="bi bi-exclamation-triangle-fill me-1"></i><%= transfer.priority_text %>
+                            </span>
+                          <% when "urgent" %>
+                            <span class="badge bg-warning text-dark small">
+                              <i class="bi bi-exclamation-circle me-1"></i><%= transfer.priority_text %>
+                            </span>
+                          <% end %>
+                        <% end %>
+                      </td>
+                      <td>
+                        <div class="fw-medium mb-1"><%= transfer.inventory.name %></div>
+                        <span class="badge bg-primary">
+                          <%= number_with_delimiter(transfer.quantity) %> 個
+                        </span>
+                      </td>
+                      <td>
+                        <% case transfer.status %>
+                        <% when "pending" %>
+                          <span class="badge bg-warning text-dark">
+                            <i class="bi bi-clock me-1"></i><%= transfer.status_text %>
+                          </span>
+                        <% when "approved" %>
+                          <span class="badge bg-info text-dark">
+                            <i class="bi bi-check-circle me-1"></i><%= transfer.status_text %>
+                          </span>
+                        <% when "in_transit" %>
+                          <span class="badge bg-primary">
+                            <i class="bi bi-truck me-1"></i><%= transfer.status_text %>
+                          </span>
+                        <% when "completed" %>
+                          <span class="badge bg-success">
+                            <i class="bi bi-check-all me-1"></i><%= transfer.status_text %>
+                          </span>
+                        <% when "rejected" %>
+                          <span class="badge bg-danger">
+                            <i class="bi bi-x-circle me-1"></i><%= transfer.status_text %>
+                          </span>
+                        <% when "cancelled" %>
+                          <span class="badge bg-secondary">
+                            <i class="bi bi-dash-circle me-1"></i><%= transfer.status_text %>
+                          </span>
+                        <% end %>
+                      </td>
+                      <td>
+                        <div class="fw-medium"><%= transfer.requested_by.display_name %></div>
+                        <small class="text-muted"><%= transfer.source_store.name %></small>
+                      </td>
+                      <td class="text-center">
+                        <div class="btn-group btn-group-sm">
+                          <%= link_to admin_inter_store_transfer_path(transfer), 
+                                      class: "btn btn-outline-primary",
+                                      title: "詳細表示" do %>
+                            <i class="bi bi-eye"></i>
+                          <% end %>
+                          
+                          <% if transfer.pending? && current_admin.can_approve_transfers? %>
+                            <%= link_to admin_inter_store_transfer_path(transfer), 
+                                        class: "btn btn-outline-success",
+                                        title: "承認・却下" do %>
+                              <i class="bi bi-check-lg"></i>
+                            <% end %>
+                          <% end %>
+                        </div>
+                      </td>
+                    </tr>
+                  <% end %>
+                <% else %>
+                  <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">
+                      <i class="bi bi-inbox display-4 d-block mb-2"></i>
+                      移動申請がありません
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <% if @transfers.any? %>
+          <div class="card-footer">
+            <% begin %>
+              <%= paginate @transfers, theme: :custom_bootstrap_5 %>
+            <% rescue => e %>
+              <!-- 緊急時フォールバック: デフォルトページネーション -->
+              <%= paginate @transfers %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+

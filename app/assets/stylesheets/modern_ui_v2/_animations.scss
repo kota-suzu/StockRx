@@ -1,0 +1,381 @@
+// ============================================
+// Modern UI v2 - Animation System
+// ============================================
+// マイクロインタラクションとモーション
+// デザインのための統一アニメーションシステム
+// ============================================
+
+@import 'tokens';
+
+// ============================================
+// Base Animation Keyframes
+// ============================================
+
+// Fade Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+// Slide Animations
+@keyframes slideInUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+// Scale Animations
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes scaleOut {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+// Bounce Animation
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+// Pulse Animation
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+// Ripple Effect
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+// Spin Animation
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Gradient Animation
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+// Float Animation
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+// ============================================
+// Animation Utility Classes
+// ============================================
+
+// Fade Animations
+.animate-fadeIn {
+  animation: fadeIn var(--duration-normal) var(--motion-smooth) both;
+}
+
+.animate-fadeOut {
+  animation: fadeOut var(--duration-normal) var(--motion-smooth) both;
+}
+
+// Slide Animations
+.animate-slideInUp {
+  animation: slideInUp var(--duration-normal) var(--motion-smooth) both;
+}
+
+.animate-slideInDown {
+  animation: slideInDown var(--duration-normal) var(--motion-smooth) both;
+}
+
+.animate-slideInLeft {
+  animation: slideInLeft var(--duration-normal) var(--motion-smooth) both;
+}
+
+.animate-slideInRight {
+  animation: slideInRight var(--duration-normal) var(--motion-smooth) both;
+}
+
+// Scale Animations
+.animate-scaleIn {
+  animation: scaleIn var(--duration-normal) var(--motion-smooth) both;
+}
+
+.animate-scaleOut {
+  animation: scaleOut var(--duration-normal) var(--motion-smooth) both;
+}
+
+// Special Effects
+.animate-bounce {
+  animation: bounce var(--duration-slow) var(--motion-bounce) infinite;
+}
+
+.animate-pulse {
+  animation: pulse 2s var(--motion-smooth) infinite;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.animate-float {
+  animation: float 3s var(--motion-smooth) infinite;
+}
+
+// ============================================
+// Animation Delays
+// ============================================
+@for $i from 1 through 10 {
+  .animate-delay-#{$i} {
+    animation-delay: calc(#{$i} * 100ms);
+  }
+}
+
+// ============================================
+// Hover Animations
+// ============================================
+.hover-lift {
+  transition: transform var(--duration-fast) var(--motion-smooth);
+  
+  &:hover {
+    transform: translateY(-4px);
+  }
+}
+
+.hover-grow {
+  transition: transform var(--duration-fast) var(--motion-smooth);
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.hover-shrink {
+  transition: transform var(--duration-fast) var(--motion-smooth);
+  
+  &:hover {
+    transform: scale(0.95);
+  }
+}
+
+.hover-rotate {
+  transition: transform var(--duration-normal) var(--motion-smooth);
+  
+  &:hover {
+    transform: rotate(5deg);
+  }
+}
+
+// ============================================
+// Ripple Effect Component
+// ============================================
+.ripple-container {
+  position: relative;
+  overflow: hidden;
+  
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(0);
+    animation: ripple var(--duration-slow) var(--motion-smooth);
+    pointer-events: none;
+  }
+  
+  &.ripple-dark .ripple {
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+// ============================================
+// Loading Animations
+// ============================================
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--glass-border);
+  border-top-color: var(--color-primary-500);
+  border-radius: 50%;
+  animation: spin var(--duration-slow) linear infinite;
+}
+
+.loading-dots {
+  display: inline-flex;
+  gap: var(--space-1);
+  
+  span {
+    width: 8px;
+    height: 8px;
+    background: var(--color-primary-500);
+    border-radius: 50%;
+    animation: bounce var(--duration-slow) var(--motion-bounce) infinite;
+    
+    &:nth-child(2) {
+      animation-delay: 100ms;
+    }
+    
+    &:nth-child(3) {
+      animation-delay: 200ms;
+    }
+  }
+}
+
+// ============================================
+// Page Transitions
+// ============================================
+.page-transition-enter {
+  animation: slideInUp var(--duration-normal) var(--motion-smooth) both;
+}
+
+.page-transition-exit {
+  animation: fadeOut var(--duration-fast) var(--motion-smooth) both;
+}
+
+// ============================================
+// Skeleton Loading
+// ============================================
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  display: inline-block;
+  height: 1em;
+  position: relative;
+  overflow: hidden;
+  background-color: var(--glass-bg);
+  background-image: linear-gradient(
+    90deg,
+    var(--glass-bg),
+    rgba(255, 255, 255, 0.2),
+    var(--glass-bg)
+  );
+  background-size: 200px 100%;
+  background-repeat: no-repeat;
+  border-radius: var(--radius-sm);
+  animation: skeleton-loading 1.2s ease-in-out infinite;
+}
+
+// ============================================
+// Performance Optimizations
+// ============================================
+.will-animate {
+  will-change: transform, opacity;
+}
+
+.gpu-accelerated {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+// TODO: Phase 4 - 高度なアニメーション
+// - Lottie/Rive統合
+// - スクロール連動アニメーション
+// - パララックス効果
+// - View Transitions API活用

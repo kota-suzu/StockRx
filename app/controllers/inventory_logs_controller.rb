@@ -1,3 +1,11 @@
+# TODO: 🟡 Phase 3 - 管理画面への統合（CLAUDE.md準拠）
+# 優先度: 中（URL構造の一貫性向上）
+# 実装内容:
+#   - このコントローラーを AdminControllers::InventoryLogsController に移行
+#   - ルーティングを /inventory_logs → /admin/inventory_logs に変更
+#   - AuditLogとの機能統合検討
+# 期待効果: 管理機能の一元化、権限管理の強化
+# 移行期間: 2025年Q1目標（旧URLは301リダイレクト設定）
 class InventoryLogsController < ApplicationController
   before_action :set_inventory, only: [ :index, :show ]
   PER_PAGE = 20  # 1ページあたりの表示件数

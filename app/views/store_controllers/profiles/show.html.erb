@@ -1,0 +1,193 @@
+<% content_for :title, "プロフィール" %>
+<% content_for :breadcrumbs do %>
+  <li class="breadcrumb-item active">プロフィール</li>
+<% end %>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card mb-4 shadow-sm bg-white">
+      <div class="card-header bg-gradient-primary text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-person-circle me-2"></i>
+          基本情報
+        </h5>
+      </div>
+      <div class="card-body bg-white text-dark">
+        <dl class="row mb-0">
+          <dt class="col-sm-3 text-dark fw-bold text-primary" style="color: #2563eb !important;">氏名</dt>
+          <dd class="col-sm-9 text-dark fs-5 fw-medium" style="color: #1a1a1a !important;"><%= @user.name %></dd>
+          
+          <dt class="col-sm-3 text-dark fw-bold text-primary" style="color: #2563eb !important;">メールアドレス</dt>
+          <dd class="col-sm-9 text-dark" style="color: #1a1a1a !important;"><%= @user.email %></dd>
+          
+          <dt class="col-sm-3 text-dark fw-bold text-primary" style="color: #2563eb !important;">従業員コード</dt>
+          <dd class="col-sm-9 text-dark" style="color: #1a1a1a !important;"><%= @user.employee_code || "-" %></dd>
+          
+          <dt class="col-sm-3 text-dark fw-bold text-primary" style="color: #2563eb !important;">所属店舗</dt>
+          <dd class="col-sm-9 text-dark" style="color: #1a1a1a !important;">
+            <%= current_store.display_name %>
+            <span class="badge bg-info ms-1"><%= current_store.store_type_text %></span>
+          </dd>
+          
+          <dt class="col-sm-3 text-dark fw-bold text-primary" style="color: #2563eb !important;">権限</dt>
+          <dd class="col-sm-9 text-dark" style="color: #1a1a1a !important;">
+            <% if @user.manager? %>
+              <span class="badge bg-gradient-primary fs-6">店舗管理者</span>
+            <% else %>
+              <span class="badge bg-gradient-secondary fs-6">スタッフ</span>
+            <% end %>
+          </dd>
+          
+          <dt class="col-sm-3 text-dark fw-bold text-primary" style="color: #2563eb !important;">アカウント状態</dt>
+          <dd class="col-sm-9 text-dark" style="color: #1a1a1a !important;">
+            <% if @user.active? %>
+              <span class="badge bg-gradient-success fs-6">有効</span>
+            <% else %>
+              <span class="badge bg-gradient-danger fs-6">無効</span>
+            <% end %>
+          </dd>
+        </dl>
+        
+        <div class="mt-4 pt-3 border-top">
+          <%= link_to edit_store_profile_path, class: "btn btn-primary d-flex align-items-center justify-content-center" do %>
+            <i class="bi bi-pencil-square me-2"></i>
+            プロフィール編集
+          <% end %>
+        </div>
+      </div>
+    </div>
+    
+    <%# ログイン履歴 %>
+    <div class="card shadow-sm bg-white">
+      <div class="card-header bg-gradient-info text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-clock-history me-2"></i>
+          ログイン履歴
+        </h5>
+      </div>
+      <div class="card-body bg-white text-dark">
+        <dl class="row mb-0">
+          <dt class="col-sm-4 text-dark fw-bold text-info" style="color: #0284c7 !important;">現在のログイン</dt>
+          <dd class="col-sm-8 text-dark">
+            <% if @login_history[:current_sign_in_at] %>
+              <span class="fw-medium"><%= @login_history[:current_sign_in_at].strftime("%Y/%m/%d %H:%M") %></span>
+              <small class="text-secondary d-block">
+                <i class="bi bi-geo-alt me-1"></i>IP: <%= format_ip_address(@login_history[:current_sign_in_ip]) %>
+              </small>
+            <% else %>
+              <span class="text-muted">-</span>
+            <% end %>
+          </dd>
+          
+          <dt class="col-sm-4 text-dark fw-bold text-info" style="color: #0284c7 !important;">前回のログイン</dt>
+          <dd class="col-sm-8 text-dark">
+            <% if @login_history[:last_sign_in_at] %>
+              <span class="fw-medium"><%= @login_history[:last_sign_in_at].strftime("%Y/%m/%d %H:%M") %></span>
+              <small class="text-secondary d-block">
+                <i class="bi bi-geo-alt me-1"></i>IP: <%= format_ip_address(@login_history[:last_sign_in_ip]) %>
+              </small>
+            <% else %>
+              <span class="text-muted">-</span>
+            <% end %>
+          </dd>
+          
+          <dt class="col-sm-4 text-dark fw-bold text-info" style="color: #0284c7 !important;">ログイン回数</dt>
+          <dd class="col-sm-8 text-dark fw-medium"><%= @login_history[:sign_in_count] %>回</dd>
+          
+          <dt class="col-sm-4 text-dark fw-bold text-info" style="color: #0284c7 !important;">失敗回数</dt>
+          <dd class="col-sm-8 text-dark">
+            <span class="fw-medium"><%= @login_history[:failed_attempts] %>回</span>
+            <% if @login_history[:failed_attempts] >= 3 %>
+              <span class="badge bg-gradient-warning ms-2"><i class="bi bi-exclamation-triangle me-1"></i>注意</span>
+            <% end %>
+          </dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <%# セキュリティ設定 %>
+    <div class="card shadow-sm bg-white">
+      <div class="card-header bg-gradient-success text-white">
+        <h5 class="mb-0">
+          <i class="bi bi-shield-check me-2"></i>
+          セキュリティ設定
+        </h5>
+      </div>
+      <div class="card-body bg-white text-dark">
+        <%# パスワード %>
+        <div class="mb-4 p-3 bg-light rounded">
+          <h6 class="text-success fw-bold mb-3" style="color: #059669 !important;"><i class="bi bi-key me-2"></i>パスワード</h6>
+          <% if @security_settings[:password_changed_at] %>
+            <p class="mb-2 text-dark">
+              <i class="bi bi-calendar-check me-1 text-success"></i>
+              最終変更: <span class="fw-medium"><%= @security_settings[:password_changed_at].strftime("%Y/%m/%d") %></span>
+            </p>
+            <% if @password_expires_in %>
+              <p class="mb-3 <%= password_strength_class(@password_expires_in) %>">
+                <i class="bi bi-hourglass-split me-1"></i>
+                有効期限: あと<span class="fw-bold"><%= @password_expires_in %></span>日
+              </p>
+            <% end %>
+          <% else %>
+            <p class="text-warning mb-3"><i class="bi bi-exclamation-triangle me-1"></i>未設定</p>
+          <% end %>
+          
+          <% if @user.must_change_password? %>
+            <%# CLAUDE.md準拠: ルーティングヘルパーの正しい命名規則 %>
+            <%# メタ認知: singular resourceのmember routeは action_namespace_resource_path %>
+            <%# 横展開: 他のstore profileビューでも同様のパターンを確認 %>
+            <%= link_to change_password_store_profile_path, 
+                        class: "btn btn-gradient-warning w-100 fw-medium" do %>
+              <i class="bi bi-key me-2"></i>
+              パスワード変更（必須）
+            <% end %>
+          <% else %>
+            <%= link_to change_password_store_profile_path, 
+                        class: "btn btn-outline-primary w-100 fw-medium" do %>
+              <i class="bi bi-key me-2"></i>
+              パスワードを変更
+            <% end %>
+          <% end %>
+        </div>
+        
+        <%# アカウントロック %>
+        <div class="mb-4 p-3 bg-light rounded">
+          <h6 class="text-success fw-bold mb-3" style="color: #059669 !important;"><i class="bi bi-lock me-2"></i>アカウントロック</h6>
+          <% if @security_settings[:locked_at] %>
+            <div class="alert alert-danger d-flex align-items-center mb-0" role="alert">
+              <i class="bi bi-lock-fill me-2"></i>
+              <span class="fw-medium">ロック中</span>
+            </div>
+          <% else %>
+            <div class="alert alert-success d-flex align-items-center mb-0" role="alert">
+              <i class="bi bi-unlock-fill me-2"></i>
+              <span class="fw-medium">正常</span>
+            </div>
+          <% end %>
+        </div>
+        
+        <%# 二要素認証 %>
+        <div class="p-3 bg-light rounded">
+          <h6 class="text-success fw-bold mb-3" style="color: #059669 !important;"><i class="bi bi-shield-check me-2"></i>二要素認証</h6>
+          <% if @security_settings[:two_factor_enabled] %>
+            <div class="alert alert-success d-flex align-items-center mb-0" role="alert">
+              <i class="bi bi-check-circle-fill me-2"></i>
+              <span class="fw-medium">有効</span>
+            </div>
+          <% else %>
+            <div class="alert alert-secondary d-flex align-items-center mb-2" role="alert">
+              <i class="bi bi-x-circle me-2"></i>
+              <span class="fw-medium">無効</span>
+            </div>
+            <small class="text-muted d-block">
+              <i class="bi bi-info-circle me-1"></i>
+              ※Phase 5で実装予定
+            </small>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -438,20 +438,53 @@ RSpec.describe ReportPdfGenerator, type: :lib do
       skip 'PDFメタデータ検証機能の実装が必要'
     end
 
-    # TODO: 🔴 Phase 1（緊急）- PDF内容の詳細検証実装
-    # 優先度: 高（テスト品質向上）
-    # 実装内容:
-    #   - テキスト内容の検証（タイトル、データ値、推奨事項）
-    #   - レイアウト確認（ヘッダー、フッター、セクション）
-    #   - フォント・スタイル確認
-    # 理由: 生成されたPDFファイルの内容品質保証が重要
+    # ✅ Phase 2完了 - PDF品質向上機能実装
+    describe 'PDF品質向上機能（generate_enhanced）' do
+      let(:enhanced_result) { generator.generate_enhanced }
 
-    it 'PDF内容の詳細検証', skip: 'Phase 1で実装予定: PDF内容検証機能の詳細実装' do
-      # 実装予定の検証項目:
-      # - PDF内のテキスト内容検証
-      # - レイアウト要素の配置確認
-      # - カラーパレットの適用確認
-      # - フォント設定の検証
+      it '高品質PDF生成が成功すること' do
+        expect(enhanced_result[:success]).to be true
+        expect(enhanced_result[:pdf_data]).to be_present
+        expect(enhanced_result[:validation]).to be_present
+        expect(enhanced_result[:debug_info]).to be_present
+      end
+
+      it 'PDFデータが有効なPDF形式であること' do
+        expect(enhanced_result[:pdf_data]).to start_with('%PDF-')
+      end
+
+      it '品質検証結果が含まれること' do
+        validation = enhanced_result[:validation]
+        expect(validation[:valid]).to be true
+        expect(validation[:metadata][:page_count]).to be > 0
+        expect(validation[:quality_score]).to be_between(0, 100)
+      end
+
+      it 'デバッグ情報が適切に含まれること' do
+        debug_info = enhanced_result[:debug_info]
+        expect(debug_info[:generator_version]).to eq('1.0.0')
+        expect(debug_info[:prawn_version]).to be_present
+        expect(debug_info[:page_count]).to be > 0
+      end
+
+      context 'PDF品質スコアリング' do
+        it '品質スコアが適切な範囲にあること' do
+          score = enhanced_result[:validation][:quality_score]
+          expect(score).to be >= 60  # 最低品質基準
+        end
+      end
+    end
+
+    describe 'PdfQualityValidator統合' do
+      let(:validator) { PdfQualityValidator.new }
+
+      it 'PDF品質検証機能が統合されていること' do
+        enhanced_result = generator.generate_enhanced
+        validation_result = validator.validate_pdf_data(enhanced_result[:pdf_data])
+
+        expect(validation_result[:valid]).to be true
+        expect(validation_result[:overall_score]).to be > 0
+      end
     end
   end
 
