@@ -58,8 +58,8 @@ class ApiRateLimiter
     # 両方の制限をクリアした場合
     {
       allowed: true,
-      remaining: [hourly_check[:remaining], minute_check[:remaining]].min,
-      reset_at: [hourly_check[:reset_at], minute_check[:reset_at]].max,
+      remaining: [ hourly_check[:remaining], minute_check[:remaining] ].min,
+      reset_at: [ hourly_check[:reset_at], minute_check[:reset_at] ].max,
       retry_after: nil,
       hourly_remaining: hourly_check[:remaining],
       minute_remaining: minute_check[:remaining]
@@ -128,7 +128,7 @@ class ApiRateLimiter
   def check_hourly_limit
     count = get_counter(hourly_key)
     limit = limits[:requests_per_hour]
-    remaining = [limit - count, 0].max
+    remaining = [ limit - count, 0 ].max
     reset_at = Time.current + ttl(hourly_key).seconds
 
     {
@@ -144,7 +144,7 @@ class ApiRateLimiter
   def check_minute_limit
     count = get_counter(minute_key)
     limit = limits[:requests_per_minute]
-    remaining = [limit - count, 0].max
+    remaining = [ limit - count, 0 ].max
     reset_at = Time.current + ttl(minute_key).seconds
 
     {

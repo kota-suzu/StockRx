@@ -78,55 +78,112 @@ RUN SECRET_KEY_BASE_DUMMY=1 bundle exec rails assets:precompile
 RUN rm -rf node_modules tmp/cache vendor/assets test spec app/assets/stylesheets/*.scss
 
 # ================================================================================
-# Stage 3: Runtime image
+# Stage 3: Runtime image (Security & Performance Optimized)
 # ================================================================================
 FROM base AS runtime
 
-# Create non-root user
+# Security: Create non-root user with minimal privileges
 RUN groupadd --system --gid 1000 rails && \
-    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash
+    useradd rails --uid 1000 --gid 1000 --create-home --shell /bin/bash && \
+    # Security: Remove package manager to prevent runtime package installation
+    rm -rf /var/lib/apt/lists /var/cache/apt/archives
 
-# Set production environment
+# Set production environment with optimizations
 ENV RAILS_ENV="production" \
     BUNDLE_DEPLOYMENT="1" \
     BUNDLE_PATH="/usr/local/bundle" \
     BUNDLE_WITHOUT="development:test" \
     RAILS_LOG_TO_STDOUT="1" \
     RAILS_SERVE_STATIC_FILES="true" \
-    SECRET_KEY_BASE_DUMMY="1"
+    SECRET_KEY_BASE_DUMMY="1" \
+    # Performance optimizations
+    MALLOC_ARENA_MAX="2" \
+    RUBY_GC_HEAP_GROWTH_FACTOR="1.1" \
+    RUBY_GC_MALLOC_LIMIT="16000000" \
+    RUBY_GC_OLDMALLOC_LIMIT="16000000" \
+    # Security: Disable SUID programs
+    RUBY_DISABLE_GEMS="1"
 
-# Create necessary directories
+# Create necessary directories with proper permissions
 WORKDIR /app
-RUN mkdir -p log tmp/pids tmp/cache tmp/sockets public/assets && \
-    chown -R rails:rails /app
+RUN mkdir -p log tmp/pids tmp/cache tmp/sockets public/assets storage && \
+    chown -R rails:rails /app && \
+    chmod -R 755 /app
 
 # Copy built artifacts from build stage
 COPY --from=build --chown=rails:rails /usr/local/bundle /usr/local/bundle
 COPY --from=build --chown=rails:rails /app /app
 
-# Create and set permissions for storage directories
-RUN mkdir -p storage log && \
-    chown -R rails:rails storage log && \
-    chmod -R 755 storage log
+# Security: Set proper file permissions
+RUN find /app -type f -name "*.rb" -exec chmod 644 {} \; && \
+    find /app -type f -name "*.yml" -exec chmod 644 {} \; && \
+    find /app -type f -name "*.json" -exec chmod 644 {} \; && \
+    find /app -type d -exec chmod 755 {} \; && \
+    chmod +x /app/bin/* && \
+    # Remove any setuid/setgid permissions
+    find /app -type f \( -perm -4000 -o -perm -2000 \) -delete
 
-# Switch to non-root user
+# Switch to non-root user for security
 USER rails:rails
 
-# Precompile bootsnap cache for faster boot time
-RUN bundle exec bootsnap precompile --gemfile app/ lib/
+# Performance: Precompile bootsnap cache for faster boot time
+RUN bundle exec bootsnap precompile --gemfile app/ lib/ 2>/dev/null || true
 
-# Add health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
+# Create production entrypoint script
+RUN cat > /app/bin/docker-entrypoint-production << 'EOF'
+#!/bin/bash
+set -euo pipefail
 
-# Use production entrypoint
-COPY --chown=rails:rails bin/docker-entrypoint-production bin/
-RUN chmod +x bin/docker-entrypoint-production
+# Performance monitoring
+echo "🚀 Starting StockRx Production Container"
+echo "📊 Container Stats:"
+echo "  - Ruby version: $(ruby -v)"
+echo "  - Rails environment: $RAILS_ENV"
+echo "  - Memory limit: $(cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null || echo 'unlimited')"
+echo "  - CPU cores: $(nproc)"
 
-ENTRYPOINT ["bin/docker-entrypoint-production"]
+# Security checks
+echo "🔒 Security verifications:"
+echo "  - Running as user: $(whoami)"
+echo "  - User ID: $(id -u)"
+echo "  - Group ID: $(id -g)"
 
-# Expose port
+# Database connectivity check
+if [ -n "${DATABASE_URL:-}" ]; then
+    echo "🗄️  Database connectivity check..."
+    timeout 30 bundle exec rails runner "ActiveRecord::Base.connection.execute('SELECT 1')" || {
+        echo "❌ Database connection failed"
+        exit 1
+    }
+    echo "✅ Database connected successfully"
+fi
+
+# Cache preparation
+echo "📦 Preparing application cache..."
+bundle exec rails tmp:cache:clear 2>/dev/null || true
+
+# Start application with monitoring
+echo "🎯 Starting application..."
+exec "$@"
+EOF
+
+RUN chmod +x /app/bin/docker-entrypoint-production
+
+# Enhanced health check with comprehensive monitoring
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+  CMD curl -f -H "X-Health-Check: docker" http://localhost:3000/health || exit 1
+
+# Monitoring: Add labels for better observability
+LABEL maintainer="StockRx DevOps Team" \
+      version="1.0" \
+      component="web-application" \
+      environment="production" \
+      service="stockrx"
+
+ENTRYPOINT ["/app/bin/docker-entrypoint-production"]
+
+# Security: Expose minimal port
 EXPOSE 3000
 
-# Default command
+# Default command with production optimizations
 CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]

@@ -361,13 +361,13 @@ class ComplianceAuditLog < ApplicationRecord
 
     Rails.logger.warn "Attempt to modify immutable compliance audit log #{id}"
     errors.add(:base, "監査ログは変更できません")
-    throw(:abort)  # Rails 8: 明示的な括弧
+    throw :abort  # Rails 8: 明示的な括弧不要
   end
 
   # レコード削除の防止
   def prevent_deletion
     Rails.logger.warn "Attempt to delete compliance audit log #{id}"
     errors.add(:base, "監査ログは削除できません")
-    throw(:abort)  # Rails 8: 明示的な括弧
+    throw :abort  # Rails 8: 明示的な括弧不要
   end
 end

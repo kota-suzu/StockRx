@@ -37,19 +37,41 @@ class ImportInventoriesJob < ApplicationJob
   ALLOWED_EXTENSIONS = %w[.csv].freeze
   REQUIRED_CSV_HEADERS = %w[name quantity price].freeze
 
-  # バッチ処理設定
-  IMPORT_BATCH_SIZE = 1000
-  PROGRESS_REPORT_INTERVAL = 10 # 進捗報告の間隔（％）
+  # バッチ処理設定 - パフォーマンス最適化
+  IMPORT_BATCH_SIZE = ENV.fetch("IMPORT_BATCH_SIZE", 1000).to_i
+  PROGRESS_REPORT_INTERVAL = 5 # 進捗報告の間隔（％）- よりリアルタイムに
+
+  # メモリ管理設定
+  MEMORY_LIMIT_MB = ENV.fetch("MEMORY_LIMIT_MB", 500).to_i
+  GC_INTERVAL = 100 # レコード処理ごとのGC実行間隔
 
   # Redis TTL設定（秒単位）
   PROGRESS_TTL = 1.hour.to_i
   COMPLETED_TTL = 24.hours.to_i
 
   # ============================================
-  # Sidekiq設定
+  # Sidekiq設定 - 最適化版
   # ============================================
   queue_as :imports
-  sidekiq_options retry: 3, backtrace: true, queue: :imports
+  sidekiq_options(
+    retry: 3,
+    backtrace: true,
+    queue: :imports,
+    dead: false, # デッドキューに移動させない
+    retry_queue: :imports_retry # 専用リトライキュー
+  )
+
+  # エラー時のリトライ戦略
+  sidekiq_retry_in do |retry_count, exception|
+    case exception
+    when SecurityError, ArgumentError
+      false # セキュリティ・引数エラーはリトライしない
+    when ActiveRecord::ConnectionNotEstablished
+      (retry_count + 1) * 30 # DB接続エラーは段階的に間隔を延ばす
+    else
+      (retry_count + 1) * 10 # その他は短い間隔でリトライ
+    end
+  end
 
   # ============================================
   # コールバック
@@ -75,12 +97,19 @@ class ImportInventoriesJob < ApplicationJob
     @job_id = job_id || generate_job_id
     @start_time = Time.current
 
+    # パフォーマンス監視の初期化
+    @performance_monitor = PerformanceMonitor.new(@job_id)
+    @memory_monitor = MemoryMonitor.new(MEMORY_LIMIT_MB)
+
     # Redis接続と基本情報を事前に設定（エラー時でもステータス更新のため）
     setup_basic_tracking
 
     with_error_handling do
       validate_and_import_csv
     end
+  ensure
+    # 最終的なクリーンアップ
+    perform_final_cleanup
   end
 
   private
@@ -267,6 +296,104 @@ class ImportInventoriesJob < ApplicationJob
     Rails.logger.warn "Failed to cleanup temp file: #{e.message}"
   end
 
+  # 最終クリーンアップ処理
+  def perform_final_cleanup
+    cleanup_temp_file
+    finalize_progress_tracking
+
+    # パフォーマンス監視の終了
+    @performance_monitor&.stop_monitoring
+
+    # メモリ最適化の最終実行
+    perform_final_memory_cleanup
+
+    Rails.logger.info({
+      event: "csv_import_cleanup_completed",
+      job_id: @job_id,
+      total_duration: calculate_duration
+    }.to_json)
+  end
+
+  # メモリ最適化処理
+  def perform_memory_optimization
+    Rails.logger.info({
+      event: "csv_import_memory_optimization",
+      job_id: @job_id,
+      memory_usage: @memory_monitor.current_memory_usage
+    }.to_json)
+
+    # 強制ガベージコレクション
+    GC.start
+
+    # ActiveRecordコネクションプールのクリア
+    ActiveRecord::Base.connection_handler.clear_active_connections!
+
+    # キャッシュの部分的クリア
+    Rails.cache.cleanup if Rails.cache.respond_to?(:cleanup)
+  end
+
+  # 最終メモリクリーンアップ
+  def perform_final_memory_cleanup
+    # 全てのActiveRecordコネクションを解放
+    ActiveRecord::Base.connection_handler.clear_all_connections!
+
+    # 最終ガベージコレクション
+    GC.start
+
+    Rails.logger.info({
+      event: "csv_import_final_memory_cleanup",
+      job_id: @job_id,
+      final_memory_usage: @memory_monitor&.current_memory_usage
+    }.to_json)
+  end
+
+  # 最適なバッチサイズの計算
+  def calculate_optimal_batch_size
+    # 利用可能メモリに基づいて動的に調整
+    available_memory = @memory_monitor.available_memory_mb
+
+    if available_memory > 1000
+      IMPORT_BATCH_SIZE
+    elsif available_memory > 500
+      IMPORT_BATCH_SIZE / 2
+    else
+      [ IMPORT_BATCH_SIZE / 4, 100 ].max
+    end
+  end
+
+  # 総レコード数の推定
+  def estimate_total_records
+    return 0 unless File.exist?(@file_path)
+
+    # 🛡️ セキュリティ対策: コマンドインジェクション防止
+    # ファイルパスの検証とサニタイゼーション
+    return 0 unless safe_file_path?(@file_path)
+
+    # ファイルの行数を安全にカウント（Rubyの標準ライブラリ使用）
+    File.foreach(@file_path).count - 1 # ヘッダー行を除く
+  rescue => e
+    Rails.logger.warn "Failed to count file lines: #{e.message}"
+    # fallback: CSVを読んで行数を数える
+    CSV.foreach(@file_path, headers: true).count
+  rescue => e
+    Rails.logger.error "Failed to estimate total records: #{e.message}"
+    0
+  end
+
+  # エラー時のパフォーマンスログ
+  def log_performance_on_error(error)
+    @performance_monitor&.record_error(error)
+
+    Rails.logger.error({
+      event: "csv_import_performance_on_error",
+      job_id: @job_id,
+      error_class: error.class.name,
+      processed_count: @processed_count,
+      memory_usage: @memory_monitor&.current_memory_usage,
+      duration: calculate_duration
+    }.to_json)
+  end
+
   # ============================================
   # 進捗追跡
   # ============================================
@@ -338,25 +465,50 @@ class ImportInventoriesJob < ApplicationJob
   def execute_csv_import
     log_import_start
 
-    # CLAUDE.md準拠: CsvImportableとの統合
+    # パフォーマンス監視開始
+    @performance_monitor.start_monitoring
+
+    # CLAUDE.md準拠: CsvImportableとの統合 - 最適化版
     # メタ認知: 既存のConcernを活用して一貫性を保つ
     csv_options = {
-      batch_size: IMPORT_BATCH_SIZE,
+      batch_size: calculate_optimal_batch_size,
       skip_invalid: @import_options[:skip_invalid] || false,
       update_existing: @import_options[:update_existing] || false,
-      unique_key: @import_options[:unique_key] || "name"
+      unique_key: @import_options[:unique_key] || "name",
+      memory_limit: MEMORY_LIMIT_MB
     }
 
-    # バッチ処理でCSVをインポート（進捗報告付き）
-    result = Inventory.import_from_csv(@file_path, csv_options) do |progress|
-      # 進捗更新（PROGRESS_REPORT_INTERVAL%ごとに通知）
-      if progress % PROGRESS_REPORT_INTERVAL == 0
-        update_import_progress(progress)
+    @processed_count = 0
+    @total_count = estimate_total_records
+
+    # バッチ処理でCSVをインポート（最適化版進捗報告付き）
+    result = Inventory.import_from_csv(@file_path, csv_options) do |progress, batch_size|
+      @processed_count += batch_size
+
+      # メモリ監視と調整
+      if @memory_monitor.memory_usage_high?
+        perform_memory_optimization
       end
+
+      # 進捗更新（PROGRESS_REPORT_INTERVAL%ごとに通知）
+      if progress % PROGRESS_REPORT_INTERVAL == 0 || progress == 100
+        update_import_progress(progress, "処理済み: #{@processed_count}/#{@total_count}")
+      end
+
+      # GCを定期実行してメモリを管理
+      if (@processed_count % GC_INTERVAL).zero?
+        GC.start
+      end
+
+      # パフォーマンスメトリクスを更新
+      @performance_monitor.record_batch_completion(batch_size)
     end
 
     log_import_complete(result)
     result
+  rescue => e
+    log_performance_on_error(e)
+    raise
   end
 
   def log_import_start
@@ -620,4 +772,33 @@ class ImportInventoriesJob < ApplicationJob
   #    - メール通知（大規模インポート時）
   #    - Slack/Teams連携
   #    - 詳細レポートの生成
+
+  # ============================================
+  # セキュリティ関連メソッド
+  # ============================================
+
+  # 🛡️ セキュリティ対策: ファイルパスの安全性検証
+  def safe_file_path?(file_path)
+    return false if file_path.blank?
+
+    # Realpath で正規化（シンボリックリンク解決）
+    begin
+      real_path = File.realpath(file_path)
+    rescue SystemCallError
+      Rails.logger.warn "Invalid file path: #{file_path}"
+      return false
+    end
+
+    # 許可されたディレクトリ内かどうか確認
+    allowed_dirs = [
+      Rails.root.join("tmp").to_s,
+      Rails.root.join("storage").to_s,
+      "/tmp"
+    ].map { |dir| File.realpath(dir) rescue nil }.compact
+
+    allowed_dirs.any? { |dir| real_path.start_with?(dir) }
+  rescue => e
+    Rails.logger.error "File path validation error: #{e.message}"
+    false
+  end
 end

@@ -279,8 +279,9 @@
         </div>
         
         <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-hover mb-0 table-modern">
+          <div class="table-responsive" data-bs-smooth-scroll="true">
+            <!-- モバイル最適化：パフォーマンス向上 -->
+            <table class="table table-hover mb-0 table-modern store-inventory-table" role="table" aria-label="店舗在庫一覧テーブル">
               <thead class="bg-light">
                 <tr>
                   <th class="border-0 py-3 px-4">
@@ -340,7 +341,12 @@
               <tbody>
                 <% if @store_inventories.present? %>
                   <% @store_inventories.each_with_index do |store_inventory, index| %>
-                    <tr class="border-bottom">
+                    <tr class="border-bottom store-inventory-row" 
+                        role="row" 
+                        aria-rowindex="<%= index + 1 %>"
+                        tabindex="0"
+                        data-inventory-id="<%= store_inventory.inventory.id %>"
+                        aria-describedby="store-inventory-row-desc-<%= store_inventory.inventory.id %>">
                       <td class="py-3 px-4">
                         <div class="d-flex align-items-center">
                           <div class="bg-light text-primary rounded-circle p-2 me-3 border border-primary border-opacity-25">
@@ -588,15 +594,143 @@
 </div>
 
 
-<!-- Bootstrap 5 JavaScript初期化 -->
+<!-- Bootstrap 5 JavaScript初期化 + アクセシビリティ強化 -->
 <script>
-  // Tooltip初期化
   document.addEventListener('DOMContentLoaded', function() {
+    // Tooltip初期化
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
       return new bootstrap.Tooltip(tooltipTriggerEl);
     });
     
+    // キーボードナビゲーション機能
+    const tableRows = document.querySelectorAll('.store-inventory-row');
+    let currentRowIndex = -1;
+    
+    // キーボードイベントリスナー
+    document.addEventListener('keydown', function(e) {
+      // テーブルがフォーカスされている時のみ
+      if (document.activeElement.closest('.store-inventory-table')) {
+        switch(e.key) {
+          case 'ArrowDown':
+            e.preventDefault();
+            navigateRow(1);
+            break;
+          case 'ArrowUp':
+            e.preventDefault();
+            navigateRow(-1);
+            break;
+          case 'Enter':
+            e.preventDefault();
+            if (currentRowIndex >= 0 && tableRows[currentRowIndex]) {
+              const detailButton = tableRows[currentRowIndex].querySelector('.btn-primary');
+              if (detailButton) detailButton.click();
+            }
+            break;
+          case 'Escape':
+            // フォーカス解除
+            if (currentRowIndex >= 0 && tableRows[currentRowIndex]) {
+              tableRows[currentRowIndex].classList.remove('table-active');
+              tableRows[currentRowIndex].blur();
+              currentRowIndex = -1;
+            }
+            break;
+        }
+      }
+    });
+    
+    function navigateRow(direction) {
+      // 現在の行のフォーカスを外す
+      if (currentRowIndex >= 0 && tableRows[currentRowIndex]) {
+        tableRows[currentRowIndex].classList.remove('table-active');
+      }
+      
+      // 新しい行のインデックスを計算
+      currentRowIndex += direction;
+      if (currentRowIndex < 0) currentRowIndex = 0;
+      if (currentRowIndex >= tableRows.length) currentRowIndex = tableRows.length - 1;
+      
+      // 新しい行をフォーカス
+      if (tableRows[currentRowIndex]) {
+        tableRows[currentRowIndex].classList.add('table-active');
+        tableRows[currentRowIndex].focus();
+        
+        // スクロール位置調整（スムーズスクロール）
+        tableRows[currentRowIndex].scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest'
+        });
+      }
+    }
+    
+    // 行クリック時のフォーカス更新
+    tableRows.forEach((row, index) => {
+      row.addEventListener('click', function(e) {
+        // リンクやボタンのクリックは除外
+        if (e.target.closest('a, button')) return;
+        
+        if (currentRowIndex >= 0 && tableRows[currentRowIndex]) {
+          tableRows[currentRowIndex].classList.remove('table-active');
+        }
+        currentRowIndex = index;
+        this.classList.add('table-active');
+        this.focus();
+      });
+      
+      // フォーカス時のスタイル更新
+      row.addEventListener('focus', function() {
+        if (currentRowIndex >= 0 && tableRows[currentRowIndex] && tableRows[currentRowIndex] !== this) {
+          tableRows[currentRowIndex].classList.remove('table-active');
+        }
+        currentRowIndex = index;
+        this.classList.add('table-active');
+      });
+    });
+    
+    // スマートフォン/タブレット対応：スワイプ操作改善
+    let startX = null;
+    let startY = null;
+    
+    const tableContainer = document.querySelector('.table-responsive');
+    if (tableContainer) {
+      tableContainer.addEventListener('touchstart', function(e) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      }, { passive: true });
+      
+      tableContainer.addEventListener('touchmove', function(e) {
+        if (!startX || !startY) return;
+        
+        const endX = e.touches[0].clientX;
+        const endY = e.touches[0].clientY;
+        
+        const deltaX = Math.abs(startX - endX);
+        const deltaY = Math.abs(startY - endY);
+        
+        // 水平スクロールが主体の場合、縦スクロールを抑制
+        if (deltaX > deltaY && deltaX > 15) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      tableContainer.addEventListener('touchend', function() {
+        startX = null;
+        startY = null;
+      }, { passive: true });
+    }
+    
+    // パフォーマンス監視（開発時のみ）
+    if (window.location.hostname === 'localhost') {
+      const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+          if (entry.entryType === 'measure' && entry.name.includes('table-scroll')) {
+            console.log(`📊 Table scroll performance: ${entry.duration.toFixed(2)}ms`);
+          }
+        });
+      });
+      observer.observe({entryTypes: ['measure']});
+    }
   });
 </script>
 
@@ -612,13 +746,55 @@
     justify-content: center;
   }
   
-  .table-modern tbody tr {
-    transition: all 0.2s ease-in-out;
+  /* スクロールパフォーマンス最適化 */
+  .table-responsive {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    transform: translateZ(0);
+    will-change: scroll-position;
   }
   
-  .table-modern tbody tr:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  .store-inventory-table {
+    contain: layout style paint;
+  }
+  
+  /* レスポンシブ最適化：デスクトップでのホバー効果 */
+  @media (hover: hover) and (pointer: fine) {
+    .table-modern tbody tr {
+      transition: all 0.2s ease-in-out;
+    }
+    
+    .table-modern tbody tr:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+  }
+  
+  /* タッチデバイス最適化 */
+  @media (hover: none) and (pointer: coarse) {
+    .store-inventory-row {
+      cursor: pointer;
+      min-height: 60px; /* タッチ領域確保 */
+    }
+    
+    .store-inventory-row:active {
+      background-color: rgba(37, 99, 235, 0.1);
+      transition: background-color 0.1s ease;
+    }
+    
+    /* ボタンのタッチ領域拡大 */
+    .btn-sm {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+  
+  /* キーボードフォーカス表示 */
+  .store-inventory-row:focus,
+  .store-inventory-row.table-active {
+    outline: 2px solid #2563eb;
+    outline-offset: -2px;
+    background-color: rgba(37, 99, 235, 0.05);
   }
   
   .pagination-wrapper .pagination {

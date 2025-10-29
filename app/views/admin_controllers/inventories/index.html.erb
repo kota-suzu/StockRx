@@ -243,9 +243,10 @@
       </div>
 
       <% if @inventories.any? %>
-        <div class="table-responsive">
-          <table class="table table-hover mb-0" style="min-width: 900px;">
-            <thead class="table-light">
+        <div class="table-responsive" data-bs-spy="scroll" data-bs-target="#navbarNav" data-bs-smooth-scroll="true">
+          <!-- モバイル対応：仮想スクロール最適化 -->
+          <table class="table table-hover mb-0 inventory-table" style="min-width: 900px;" role="table" aria-label="在庫一覧テーブル">
+            <thead class="table-light" role="rowgroup">
               <tr>
                 <th scope="col" class="text-center" style="width: 50px;">
                   <div class="form-check">
@@ -304,9 +305,14 @@
                 </th>
               </tr>
             </thead>
-            <tbody>
-              <% @inventories.each do |inventory| %>
-                <tr class="<%= inventory_row_class(inventory) %>" data-inventory-id="<%= inventory.id %>">
+            <tbody role="rowgroup">
+              <% @inventories.each_with_index do |inventory, index| %>
+                <tr class="<%= inventory_row_class(inventory) %>" 
+                    data-inventory-id="<%= inventory.id %>" 
+                    role="row" 
+                    aria-rowindex="<%= index + 1 %>"
+                    tabindex="0"
+                    aria-describedby="inventory-row-desc-<%= inventory.id %>">
                   <%# 選択チェックボックス %>
                   <td class="text-center align-middle">
                     <div class="form-check">
@@ -420,6 +426,11 @@
               <% end %>
             </tbody>
           </table>
+          
+          <!-- アクセシビリティ：テーブル操作説明 -->
+          <div class="visually-hidden" id="table-help">
+            キーボードでの操作: 矢印キーで行を移動、Enterで行を選択、Tabでアクションボタンに移動できます。
+          </div>
         </div>
       <% else %>
         <%# 空状態表示 %>
@@ -599,6 +610,39 @@
     }
   }
   
+  /* モバイル最適化：スクロールパフォーマンス向上 */
+  .table-responsive {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    /* GPU加速によるスムーズスクロール */
+    transform: translateZ(0);
+    will-change: scroll-position;
+  }
+  
+  .inventory-table {
+    /* モバイルでの描画最適化 */
+    contain: layout style paint;
+  }
+  
+  /* モバイル対応：行ホバー効果の最適化 */
+  @media (hover: hover) and (pointer: fine) {
+    .table-hover tbody tr:hover {
+      --bs-table-hover-bg: rgba(0, 0, 0, 0.075);
+      transition: background-color 0.15s ease-in-out;
+    }
+  }
+  
+  /* タッチデバイス：行の選択範囲拡大 */
+  @media (hover: none) and (pointer: coarse) {
+    .table tbody tr {
+      cursor: pointer;
+    }
+    
+    .table tbody tr:active {
+      background-color: rgba(13, 110, 253, 0.1);
+    }
+  }
+
   /* ボタン固有のスタイル */
   .detail-btn {
     background-color: var(--bs-primary);
@@ -688,9 +732,105 @@
   <%# 期待効果: アクセシビリティ向上、WCAG準拠、ユーザー層拡大 %>
 </style>
 
-<%# バルクアクション JavaScript - Phase 3 Interactive Elements %>
+<%# アクセシビリティ・モバイル最適化 JavaScript %>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // キーボードナビゲーション機能
+  const tableRows = document.querySelectorAll('.inventory-table tbody tr');
+  let currentRowIndex = -1;
+  
+  // キーボードイベントリスナー
+  document.addEventListener('keydown', function(e) {
+    // テーブルがフォーカスされている時のみ
+    if (document.activeElement.closest('.inventory-table')) {
+      switch(e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          navigateRow(1);
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          navigateRow(-1);
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (currentRowIndex >= 0 && tableRows[currentRowIndex]) {
+            const detailButton = tableRows[currentRowIndex].querySelector('.detail-btn');
+            if (detailButton) detailButton.click();
+          }
+          break;
+        case 'Space':
+          e.preventDefault();
+          if (currentRowIndex >= 0 && tableRows[currentRowIndex]) {
+            const checkbox = tableRows[currentRowIndex].querySelector('.inventory-checkbox');
+            if (checkbox) checkbox.click();
+          }
+          break;
+      }
+    }
+  });
+  
+  function navigateRow(direction) {
+    // 現在の行のフォーカスを外す
+    if (currentRowIndex >= 0 && tableRows[currentRowIndex]) {
+      tableRows[currentRowIndex].classList.remove('table-active');
+    }
+    
+    // 新しい行のインデックスを計算
+    currentRowIndex += direction;
+    if (currentRowIndex < 0) currentRowIndex = 0;
+    if (currentRowIndex >= tableRows.length) currentRowIndex = tableRows.length - 1;
+    
+    // 新しい行をフォーカス
+    if (tableRows[currentRowIndex]) {
+      tableRows[currentRowIndex].classList.add('table-active');
+      tableRows[currentRowIndex].focus();
+      
+      // スクロール位置調整
+      tableRows[currentRowIndex].scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest'
+      });
+    }
+  }
+  
+  // 行クリック時のフォーカス更新
+  tableRows.forEach((row, index) => {
+    row.addEventListener('click', function() {
+      if (currentRowIndex >= 0 && tableRows[currentRowIndex]) {
+        tableRows[currentRowIndex].classList.remove('table-active');
+      }
+      currentRowIndex = index;
+      this.classList.add('table-active');
+    });
+  });
+  
+  // タッチ/スワイプ操作最適化
+  let touchStartX = null;
+  let touchStartY = null;
+  
+  const tableContainer = document.querySelector('.table-responsive');
+  if (tableContainer) {
+    tableContainer.addEventListener('touchstart', function(e) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+    
+    tableContainer.addEventListener('touchmove', function(e) {
+      if (!touchStartX || !touchStartY) return;
+      
+      const touchEndX = e.touches[0].clientX;
+      const touchEndY = e.touches[0].clientY;
+      
+      const deltaX = touchStartX - touchEndX;
+      const deltaY = touchStartY - touchEndY;
+      
+      // 水平スクロールが優先される場合は縦スクロールを抑制
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+        e.preventDefault();
+      }
+    }, { passive: false });
+  }
   const checkboxes = document.querySelectorAll('.inventory-checkbox');
   const bulkActionsCard = document.getElementById('bulkActionsCard');
   const selectedCountSpan = document.getElementById('selectedCount');

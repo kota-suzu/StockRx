@@ -15,9 +15,15 @@ class Inventory < ApplicationRecord
   include QueryOptimization  # 🚀 クエリ最適化機能
 
   # ステータス定義（Rails 8.0向けに更新）
-  enum :status, { active: 0, archived: 1 }
+  enum :status, {
+    active: 0,
+    archived: 1,
+    expiring_soon: 2,
+    out_of_stock: 3,
+    expired: 4
+  }
   STATUSES = statuses.keys.freeze # 不変保証
-  
+
   # 単位定義
   enum :unit, { piece: 0, box: 1, bottle: 2, pack: 3, kg: 4, g: 5, l: 6, ml: 7 }
 
@@ -41,23 +47,23 @@ class Inventory < ApplicationRecord
 
   # カスタムバリデーション - 予約済み在庫が総在庫を超えないようにする
   validate :reserved_quantity_within_available_quantity
-  
+
   # コールバック
   before_save :normalize_name, :set_default_values
-  
+
   # アソシエーション
   has_many :batches, dependent: :destroy
   has_many :inventory_logs, dependent: :destroy
   has_many :receipts, dependent: :destroy
   has_many :shipments, dependent: :destroy
-  
+
   # スコープ
   scope :expiring_soon, ->(days = 30) {
-    joins(:batches).where('batches.expires_on <= ?', days.days.from_now)
+    joins(:batches).where("batches.expires_on <= ?", days.days.from_now)
   }
-  
+
   scope :with_available_stock, -> {
-    where('quantity > COALESCE(reserved_quantity, 0)')
+    where("quantity > COALESCE(reserved_quantity, 0)")
   }
 
   # ============================================
@@ -111,19 +117,21 @@ class Inventory < ApplicationRecord
   # 在庫移動の提案候補
   def transfer_suggestions(target_store, required_quantity)
     # 在庫の多い店舗から移動候補を提案
-    candidate_stores = stores_with_stock
-                      .where.not(id: target_store.id)
-                      .joins(:store_inventories)
-                      .where("store_inventories.quantity - store_inventories.reserved_quantity >= ?", required_quantity)
-                      .includes(:store_inventories)
-                      .order("store_inventories.quantity DESC")
+    # 修正: 店舗在庫から直接取得し、利用可能在庫で並び替え
+    # CLAUDE.md準拠: Rails 7+ セキュリティ対策 - Arel.sql()使用
+    available_order = Arel.sql("(quantity - reserved_quantity) DESC")
+    store_inventories_list = store_inventories
+                            .includes(:store)
+                            .where.not(store_id: target_store.id)
+                            .where("quantity > 0")
+                            .order(available_order)
 
-    candidate_stores.map do |store|
-      store_inventory = store.store_inventories.find_by(inventory: self)
+    store_inventories_list.map do |store_inventory|
+      available = store_inventory.available_quantity
       {
-        store: store,
-        available_quantity: store_inventory.available_quantity,
-        can_fulfill: store_inventory.available_quantity >= required_quantity
+        store: store_inventory.store,
+        available_quantity: available,
+        can_fulfill: available >= required_quantity
       }
     end
   end
@@ -154,12 +162,12 @@ class Inventory < ApplicationRecord
 
   # 期限切れのバッチ
   def expired_batches
-    batches.where('expires_on < ?', Date.current)
+    batches.where("expires_on < ?", Date.current)
   end
-  
+
   # 期限切れが近いバッチ
   def expiring_soon_batches(days = 30)
-    batches.where('expires_on <= ?', days.days.from_now)
+    batches.where("expires_on <= ?", days.days.from_now)
   end
 
   # ============================================
@@ -414,14 +422,14 @@ class Inventory < ApplicationRecord
       errors.add(:reserved_quantity, "cannot exceed available quantity")
     end
   end
-  
+
   def normalize_name
     if name.present?
       # Strip whitespace and sanitize HTML tags
       self.name = ActionView::Base.full_sanitizer.sanitize(name.strip)
     end
   end
-  
+
   def set_default_values
     self.reserved_quantity ||= 0
     self.safety_stock_level ||= 10

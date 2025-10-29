@@ -52,6 +52,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
       mailhog:
         condition: service_healthy  # MailHog準備完了後に有効化
     networks:

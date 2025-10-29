@@ -54,8 +54,15 @@ class EmailAuthService
 
   # 一時パスワード生成とメール送信の統合処理
   def generate_and_send_temp_password(store_user, admin_id: nil, request_metadata: {})
+    request_metadata ||= {}
+
+    begin
+      validate_rate_limit(store_user.email, request_metadata[:ip_address])
+    rescue RateLimitExceededError => e
+      return handle_rate_limit_exceeded(e, store_user, request_metadata)
+    end
+
     # Phase 1: バリデーション（早期失敗）
-    validate_rate_limit(store_user.email, request_metadata[:ip_address])
     validate_user_eligibility(store_user)
 
     begin
@@ -79,6 +86,8 @@ class EmailAuthService
         delivery_result: delivery_result
       }
 
+    rescue RateLimitExceededError => e
+      handle_rate_limit_exceeded(e, store_user, request_metadata)
     rescue TempPasswordGenerationError => e
       handle_generation_error(e, store_user, admin_id, request_metadata)
     rescue EmailDeliveryError => e
@@ -444,6 +453,27 @@ class EmailAuthService
     }
   end
 
+  def handle_rate_limit_exceeded(error, store_user, request_metadata)
+    Rails.logger.warn "[EmailAuthService] Rate limit exceeded: #{error.message}"
+
+    log_security_event(
+      "temp_password_rate_limit_exceeded",
+      store_user,
+      {
+        error_class: error.class.name,
+        error_message: error.message,
+        ip_address: request_metadata[:ip_address],
+        user_agent: request_metadata[:user_agent]
+      }
+    )
+
+    {
+      success: false,
+      error: "rate_limit_exceeded",
+      details: error.message
+    }
+  end
+
   def handle_unexpected_error(error, store_user, admin_id, request_metadata)
     log_security_event(
       "temp_password_service_error",
@@ -508,30 +538,41 @@ class EmailAuthService
   def redis_increment_with_expiry(key, expiry_time)
     # TODO: 🟡 Phase 2重要 - Redis統合実装
     # 暫定実装（メモリベース）
-    @rate_limit_cache ||= {}
-    @rate_limit_cache[key] ||= { count: 0, expires_at: Time.current + expiry_time }
+    rate_limit_cache_mutex.synchronize do
+      entry = rate_limit_cache[key]
 
-    if @rate_limit_cache[key][:expires_at] < Time.current
-      @rate_limit_cache[key] = { count: 1, expires_at: Time.current + expiry_time }
-    else
-      @rate_limit_cache[key][:count] += 1
+      if entry.nil? || entry[:expires_at] < Time.current
+        rate_limit_cache[key] = { count: 1, expires_at: Time.current + expiry_time }
+      else
+        entry[:count] += 1
+      end
+
+      rate_limit_cache[key][:count]
     end
-
-    @rate_limit_cache[key][:count]
   end
 
   def get_rate_limit_count(key)
     # TODO: 🟡 Phase 2重要 - Redis統合実装
     # 暫定実装（メモリベース）
-    @rate_limit_cache ||= {}
-    return 0 unless @rate_limit_cache[key]
+    rate_limit_cache_mutex.synchronize do
+      entry = rate_limit_cache[key]
+      return 0 unless entry
 
-    if @rate_limit_cache[key][:expires_at] < Time.current
-      @rate_limit_cache[key] = { count: 0, expires_at: Time.current }
-      return 0
+      if entry[:expires_at] < Time.current
+        rate_limit_cache[key] = { count: 0, expires_at: Time.current }
+        return 0
+      end
+
+      entry[:count]
     end
+  end
 
-    @rate_limit_cache[key][:count]
+  def rate_limit_cache
+    @rate_limit_cache ||= {}
+  end
+
+  def rate_limit_cache_mutex
+    @rate_limit_cache_mutex ||= Mutex.new
   end
 
   def log_security_event(event_type, user, metadata = {})

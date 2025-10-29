@@ -520,7 +520,9 @@ RSpec.describe Api::V1::InventoriesController, type: :controller do
   describe "error handling integration" do
     context "JSON format enforcement" do
       it "rejects non-JSON requests" do
-        get :index, format: :html
+        expect {
+          get :index, format: :html
+        }.not_to raise_error
 
         expect(response).to have_http_status(:not_acceptable)
         json_response = JSON.parse(response.body)

@@ -19,7 +19,7 @@ RSpec.describe MonthlyReportJob, type: :job do
     # 在庫データ作成
     @inventory1 = create(:inventory, name: "Medicine A", quantity: 100, price: 500, status: 'active')
     @inventory2 = create(:inventory, name: "Equipment B", quantity: 5, price: 10000, status: 'active')
-    @inventory3 = create(:inventory, name: "Supply C", quantity: 0, price: 100, status: 'discontinued')
+    @inventory3 = create(:inventory, :archived, name: "Supply C", quantity: 0, price: 100)
 
     # バッチデータ作成（期限管理テスト用）
     @batch1 = create(:batch, inventory: @inventory1, lot_code: 'LOT001', expires_on: 30.days.from_now, quantity: 50)
@@ -474,8 +474,8 @@ RSpec.describe MonthlyReportJob, type: :job do
 
     describe "#expired_items_count" do
       it "既に期限切れのアイテム数を計算する" do
-        # 過去の期限切れバッチを作成
-        create(:batch, inventory: @inventory3, expires_on: 1.day.ago, quantity: 10)
+                # 過去の期限切れバッチを作成
+                create(:batch, :expired, inventory: @inventory3, quantity: 10)
 
         count = job.send(:expired_items_count)
         expect(count).to eq(1)

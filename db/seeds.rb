@@ -303,19 +303,19 @@ categories.each_with_index do |(category, items), category_index|
     # 単位を商品名に基づいて設定
     unit = case item_data[:name]
     when /錠|カプセル|坐剤/
-      "錠"
+      "piece"  # 錠剤は piece として扱う
     when /ml|液|シロップ/
       "ml"
     when /g|軟膏|クリーム|細粒|顆粒/
       "g"
     when /本|注射/
-      "本"
+      "bottle"  # 注射は bottle として扱う
     when /袋|包/
-      "袋"
+      "pack"    # 袋は pack として扱う
     when /個|マスク|手袋/
-      "個"
+      "piece"   # 個は piece として扱う
     else
-      "個"
+      "piece"
     end
 
     inventory = Inventory.create!(

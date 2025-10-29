@@ -20,17 +20,15 @@ RSpec.describe ExpiryCheckJob, type: :job do
     @inventory3 = create(:inventory, name: "Supply C", quantity: 30, price: 200, status: 'active')
 
     # バッチデータ（期限管理テスト用）
-    @expired_batch = create(:batch,
+    @expired_batch = create(:batch, :expired,
       inventory: @inventory1,
       lot_code: 'EXPIRED001',
-      expires_on: 2.days.ago,
       quantity: 20
     )
 
-    @expiring_batch = create(:batch,
+    @expiring_batch = create(:batch, :expiring_soon,
       inventory: @inventory2,
       lot_code: 'EXPIRING001',
-      expires_on: 15.days.from_now,
       quantity: 25
     )
 

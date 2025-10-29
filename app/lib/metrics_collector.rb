@@ -133,7 +133,7 @@ class MetricsCollector
     gauge("inventory_total_value", calculate_total_inventory_value)
     gauge("inventory_low_stock_count", Inventory.low_stock.count)
     gauge("inventory_out_of_stock_count", Inventory.out_of_stock.count)
-    
+
     # カテゴリ別在庫
     inventory_by_category.each do |category, count|
       gauge("inventory_items_by_category", count, category: category)
@@ -144,7 +144,7 @@ class MetricsCollector
   def record_store_metrics
     Store.find_each do |store|
       labels = { store_id: store.id, store_name: store.name }
-      
+
       gauge("store_inventory_value", store.total_inventory_value, labels)
       gauge("store_low_stock_items", store.low_stock_items_count, labels)
       gauge("store_pending_transfers", store.pending_transfers_count, labels)
@@ -169,7 +169,7 @@ class MetricsCollector
   # メモリ使用量
   def record_memory_metrics
     memory_info = get_memory_info
-    
+
     gauge("memory_usage_bytes", memory_info[:rss])
     gauge("memory_heap_allocated_bytes", memory_info[:heap_allocated])
     gauge("memory_heap_free_bytes", memory_info[:heap_free])
@@ -247,17 +247,17 @@ class MetricsCollector
   # メトリクスの集計（定期実行用）
   def aggregate_metrics(interval = :short)
     interval_seconds = AGGREGATION_INTERVALS[interval]
-    
+
     @mutex.synchronize do
       @aggregated_metrics[interval] ||= {}
-      
+
       # ヒストグラムとサマリーの統計計算
       @metrics.each do |key, metric|
         next unless metric[:type] == :histogram
-        
+
         values = metric[:values] || []
         next if values.empty?
-        
+
         stats = calculate_statistics(values)
         @aggregated_metrics[interval][key] = {
           count: values.size,
@@ -269,7 +269,7 @@ class MetricsCollector
           p95: stats[:p95],
           p99: stats[:p99]
         }
-        
+
         # 古いデータをクリア
         metric[:values] = []
       end
@@ -290,7 +290,7 @@ class MetricsCollector
   def record_metric(type, name, value, labels)
     @mutex.synchronize do
       key = metric_key(name, labels)
-      
+
       @metrics[key] ||= {
         type: type,
         name: name,
@@ -299,7 +299,7 @@ class MetricsCollector
         values: [],
         updated_at: Time.current
       }
-      
+
       case type
       when :counter
         @metrics[key][:value] += value
@@ -308,7 +308,7 @@ class MetricsCollector
       when :histogram, :summary
         @metrics[key][:values] << value
       end
-      
+
       @metrics[key][:updated_at] = Time.current
     end
   end
@@ -320,8 +320,8 @@ class MetricsCollector
 
   def normalize_path(path)
     # パスを正規化（IDなどを置換）
-    path.gsub(/\/\d+/, '/:id')
-        .gsub(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/, ':uuid')
+    path.gsub(/\/\d+/, "/:id")
+        .gsub(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/, ":uuid")
   end
 
   def extract_query_type(sql)
@@ -355,12 +355,12 @@ class MetricsCollector
     # カテゴリ別在庫数（カテゴリカラムが追加されるまでは暫定実装）
     Rails.cache.fetch("metrics:inventory_by_category", expires_in: 5.minutes) do
       categories = Hash.new(0)
-      
+
       Inventory.find_each do |item|
         category = ApplicationHelper.categorize_by_name(item.name)
         categories[category] += item.quantity
       end
-      
+
       categories
     end
   end
@@ -387,7 +387,7 @@ class MetricsCollector
   def calculate_error_rate
     total = get_metric("http_requests_total") || 0
     return 0.0 if total == 0
-    
+
     errors = get_metric("http_requests_total", status: "500") || 0
     (errors.to_f / total * 100).round(2)
   end
@@ -396,13 +396,13 @@ class MetricsCollector
     # 最近の集計データから平均レスポンスタイムを計算
     recent_stats = @aggregated_metrics[:short]
     return 0 unless recent_stats
-    
+
     response_times = recent_stats.select { |k, _| k.include?("http_request_duration_seconds") }
     return 0 if response_times.empty?
-    
+
     total_sum = response_times.values.sum { |v| v[:sum] || 0 }
     total_count = response_times.values.sum { |v| v[:count] || 0 }
-    
+
     return 0 if total_count == 0
     (total_sum / total_count * 1000).round(2) # ミリ秒に変換
   end
@@ -416,7 +416,7 @@ class MetricsCollector
   def calculate_statistics(values)
     sorted = values.sort
     count = sorted.size
-    
+
     {
       sum: sorted.sum,
       avg: sorted.sum.to_f / count,
@@ -430,10 +430,10 @@ class MetricsCollector
 
   def percentile(sorted_array, percentile)
     return nil if sorted_array.empty?
-    
+
     k = (percentile * (sorted_array.length - 1)).to_i
     f = (percentile * (sorted_array.length - 1)) % 1
-    
+
     return sorted_array[k] if f == 0
     sorted_array[k] + (sorted_array[k + 1] - sorted_array[k]) * f
   end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_06_25_120000) do
+ActiveRecord::Schema[8.0].define(version: 2025_06_27_000002) do
   create_table "admin_notification_settings", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "admin_id", null: false
     t.string "notification_type", null: false, comment: "通知タイプ（csv_import, stock_alert等）"
@@ -250,9 +250,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_25_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id"
+    t.bigint "store_id", comment: "操作が行われた店舗"
+    t.text "notes", comment: "操作に関する備考"
     t.index ["created_at"], name: "index_inventory_logs_on_created_at"
     t.index ["inventory_id"], name: "index_inventory_logs_on_inventory_id"
     t.index ["operation_type"], name: "index_inventory_logs_on_operation_type"
+    t.index ["store_id", "created_at"], name: "idx_store_logs"
+    t.index ["store_id"], name: "index_inventory_logs_on_store_id"
     t.index ["user_id"], name: "index_inventory_logs_on_user_id"
   end
 
@@ -333,8 +337,13 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_25_120000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "reorder_level", comment: "発注レベル（この数量以下で発注が必要）"
+    t.decimal "daily_usage_rate", precision: 10, scale: 2, default: "0.0", comment: "推定日次使用量"
+    t.integer "max_stock_level", comment: "最大在庫レベル"
+    t.integer "lead_time_days", default: 7, comment: "リードタイム（日数）"
+    t.index ["daily_usage_rate"], name: "index_store_inventories_on_daily_usage_rate"
     t.index ["inventory_id"], name: "index_store_inventories_on_inventory_id"
     t.index ["last_updated_at"], name: "index_store_inventories_on_last_updated_at", comment: "最終更新日時検索最適化"
+    t.index ["quantity", "reorder_level"], name: "idx_reorder_check"
     t.index ["quantity", "safety_stock_level", "reserved_quantity"], name: "idx_store_inv_stock_analysis", comment: "Store inventory analysis optimization"
     t.index ["quantity", "safety_stock_level"], name: "idx_stock_levels", comment: "在庫レベル検索最適化"
     t.index ["store_id", "inventory_id"], name: "uniq_store_inventory", unique: true, comment: "店舗・商品組み合わせ一意制約"
@@ -435,6 +444,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_25_120000) do
   add_foreign_key "inter_store_transfers", "stores", column: "destination_store_id", on_delete: :cascade
   add_foreign_key "inter_store_transfers", "stores", column: "source_store_id", on_delete: :cascade
   add_foreign_key "inventory_logs", "inventories"
+  add_foreign_key "inventory_logs", "stores"
   add_foreign_key "receipts", "inventories"
   add_foreign_key "report_files", "admins"
   add_foreign_key "shipments", "inventories"

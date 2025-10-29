@@ -67,7 +67,14 @@ class SensitiveDataFilter
     def filter(data)
       return data unless data.is_a?(Hash) || data.is_a?(ActionController::Parameters)
 
-      deep_filter(data.to_unsafe_h)
+      # ActionController::Parametersの場合は to_unsafe_h、Hashの場合はそのまま
+      hash_data = if data.is_a?(ActionController::Parameters)
+                    data.to_unsafe_h
+      else
+                    data
+      end
+
+      deep_filter(hash_data)
     end
 
     # 文字列内の機密情報マスキング

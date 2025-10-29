@@ -93,6 +93,13 @@ module StoreControllers
     # 在庫調整フォーム表示
     def adjust_form
       @store_inventory = current_store.store_inventories.find_by!(inventory: @inventory)
+
+      # 在庫調整履歴の取得（最新20件）
+      @adjustment_history = @inventory.inventory_logs
+                                     .where(operation_type: [ "adjust", "adjustment" ])
+                                     .includes(:admin)
+                                     .order(created_at: :desc)
+                                     .limit(20)
     end
 
     # 在庫調整実行（リファクタリング済み）
@@ -200,7 +207,7 @@ module StoreControllers
         [ "衛生用品", "hygiene" ]
       ]
       # メーカー一覧の取得（空文字・nil除外、重複排除）
-      @manufacturers = Inventory.where.not(manufacturer: [nil, ""])
+      @manufacturers = Inventory.where.not(manufacturer: [ nil, "" ])
                                 .distinct
                                 .pluck(:manufacturer)
                                 .compact
@@ -209,10 +216,18 @@ module StoreControllers
 
     # ソート設定
     helper_method :sort_column, :sort_direction
-    
+
     def sort_column
-      valid_columns = %w[name quantity safety_stock_level]
-      params[:sort].in?(valid_columns) ? params[:sort] : "name"
+      # 🛡️ セキュリティ対策: テーブル名修飾でSQL曖昧性エラー解決
+      # メタ認知: JOIN時の同名カラム衝突回避のためテーブル名を明示
+      # 横展開: 他のJOINクエリでも同様のテーブル名修飾を適用
+      valid_columns = {
+        "name" => "inventories.name",
+        "quantity" => "store_inventories.quantity",
+        "safety_stock_level" => "store_inventories.safety_stock_level"
+      }
+      column_key = params[:sort]
+      valid_columns.key?(column_key) ? valid_columns[column_key] : "inventories.name"
     end
 
     def sort_direction

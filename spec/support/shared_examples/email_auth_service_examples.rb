@@ -126,7 +126,7 @@ RSpec.shared_examples "error handler behavior" do |handler_method, error_class, 
 
   it "returns proper error structure" do
     error = error_class.new("Test error message")
-    
+
     result = service.send(
       handler_method,
       error,
@@ -158,7 +158,7 @@ RSpec.shared_examples "error handler behavior" do |handler_method, error_class, 
 
   it "includes error metadata in response" do
     error = error_class.new("Test error message")
-    
+
     result = service.send(
       handler_method,
       error,
@@ -215,12 +215,12 @@ end
 RSpec.shared_examples "memory-safe operation" do |operation_block, memory_limit_mb = 10|
   it "operates within memory constraints" do
     initial_memory = get_memory_usage
-    
+
     operation_block.call
-    
+
     final_memory = get_memory_usage
     memory_increase = final_memory - initial_memory
-    
+
     expect(memory_increase).to be < (memory_limit_mb * 1024 * 1024)
   end
 
@@ -242,10 +242,10 @@ RSpec.shared_examples "concurrent operation safety" do |operation_block, thread_
     end
 
     results = threads.map(&:value)
-    
+
     # All operations should complete without error
     expect(results).to all(be_present)
-    
+
     # Results should be consistent (specific checks depend on operation)
     expect(results.size).to eq(thread_count)
   end
@@ -292,10 +292,10 @@ RSpec.shared_examples "rate limit cache management" do
 
   it "handles expired entries correctly" do
     key = "expired_test_key"
-    
+
     # Create expired entry
     service.send(:redis_increment_with_expiry, key, -1.hour)
-    
+
     # Access should return 0 and clean up
     count = service.send(:get_rate_limit_count, key)
     expect(count).to eq(0)
@@ -337,8 +337,8 @@ end
 # end
 #
 # # エラーハンドラーテスト
-# include_examples "error handler behavior", 
-#   :handle_generation_error, 
+# include_examples "error handler behavior",
+#   :handle_generation_error,
 #   EmailAuthService::TempPasswordGenerationError,
 #   "temp_password_generation_failed"
 #

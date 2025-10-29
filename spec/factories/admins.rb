@@ -3,8 +3,8 @@
 FactoryBot.define do
   factory :admin do
     sequence(:email) { |n| "admin-#{SecureRandom.hex(4)}-#{n}@example.com" }
-    password { "Password1234!" }
-    password_confirmation { "Password1234!" }
+    password { "Password123!" }
+    password_confirmation { "Password123!" }
     role { 'store_user' }
     sequence(:name) { |n| "管理者#{n}" }
     active { true }

@@ -8,6 +8,12 @@
 # ============================================
 class RateLimiter
   LIMITS = {
+    # デフォルト（一般的な操作）
+    default: {
+      limit: 60,
+      period: 1.hour,
+      block_duration: 15.minutes
+    },
     # ログイン試行
     login: {
       limit: 5,

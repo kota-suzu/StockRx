@@ -5,9 +5,12 @@ module AdminControllers
   # Phase 2: Multi-Store Management
   class StoresController < BaseController
     include DatabaseAgnosticSearch  # 🔧 MySQL/PostgreSQL両対応検索機能
+    include SecurityHeaders
+    include RateLimitable
 
     before_action :set_store, only: [ :show, :edit, :update, :destroy, :dashboard ]
     before_action :ensure_multi_store_permissions, except: [ :index, :dashboard ]
+    before_action :set_rate_limit_headers, only: %i[create update destroy]
 
     def index
       # 🔍 パフォーマンス最適化: Counter Cacheを活用（CLAUDE.md準拠）
@@ -140,6 +143,20 @@ module AdminControllers
     end
 
     private
+
+    # ============================================
+    # レート制限設定
+    # ============================================
+
+    # レート制限対象のアクション
+    def rate_limited_actions
+      [ :create, :update, :destroy ]
+    end
+
+    # レート制限のキータイプ
+    def rate_limit_key_type
+      :default
+    end
 
     def set_store
       # CLAUDE.md準拠: パフォーマンス最適化 - アクション別に必要な関連データのみを読み込み

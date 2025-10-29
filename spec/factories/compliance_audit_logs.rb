@@ -23,8 +23,8 @@ FactoryBot.define do
     # ============================================================================
 
     event_type { 'data_access' }
-    compliance_standard { 'PCI_DSS' }
-    severity { 'medium' }
+    compliance_standard { :pci_dss }
+    severity { :medium }
 
     # 暗号化された詳細情報（テスト用）
     encrypted_details do
@@ -55,7 +55,7 @@ FactoryBot.define do
 
     # コンプライアンス標準別
     trait :pci_dss do
-      compliance_standard { 'PCI_DSS' }
+      compliance_standard { :pci_dss }
       event_type { 'card_data_access' }
 
       encrypted_details do
@@ -70,7 +70,7 @@ FactoryBot.define do
     end
 
     trait :gdpr do
-      compliance_standard { 'GDPR' }
+      compliance_standard { :gdpr }
       event_type { 'personal_data_access' }
 
       encrypted_details do
@@ -85,7 +85,7 @@ FactoryBot.define do
     end
 
     trait :sox do
-      compliance_standard { 'SOX' }
+      compliance_standard { :sox }
       event_type { 'financial_data_access' }
 
       encrypted_details do
@@ -100,7 +100,7 @@ FactoryBot.define do
     end
 
     trait :hipaa do
-      compliance_standard { 'HIPAA' }
+      compliance_standard { :hipaa }
       event_type { 'health_data_access' }
 
       encrypted_details do
@@ -115,7 +115,7 @@ FactoryBot.define do
     end
 
     trait :iso27001 do
-      compliance_standard { 'ISO27001' }
+      compliance_standard { :iso27001 }
       event_type { 'security_event' }
 
       encrypted_details do
@@ -131,22 +131,22 @@ FactoryBot.define do
 
     # 重要度レベル別
     trait :low_severity do
-      severity { 'low' }
+      severity { :low }
       event_type { 'routine_access' }
     end
 
     trait :medium_severity do
-      severity { 'medium' }
+      severity { :medium }
       event_type { 'data_export' }
     end
 
     trait :high_severity do
-      severity { 'high' }
+      severity { :high }
       event_type { 'unauthorized_access_attempt' }
     end
 
     trait :critical_severity do
-      severity { 'critical' }
+      severity { :critical }
       event_type { 'data_breach' }
 
       encrypted_details do
@@ -196,7 +196,7 @@ FactoryBot.define do
     # セキュリティイベント別
     trait :login_attempt do
       event_type { 'login_attempt' }
-      severity { 'medium' }
+      severity { :medium }
 
       encrypted_details do
         details = {
@@ -212,8 +212,8 @@ FactoryBot.define do
 
     trait :data_breach_event do
       event_type { 'data_breach' }
-      severity { 'critical' }
-      compliance_standard { 'GDPR' }
+      severity { :critical }
+      compliance_standard { :gdpr }
 
       encrypted_details do
         details = {
@@ -230,7 +230,7 @@ FactoryBot.define do
 
     trait :compliance_violation do
       event_type { 'compliance_violation' }
-      severity { 'high' }
+      severity { :high }
 
       encrypted_details do
         details = {
@@ -263,7 +263,7 @@ FactoryBot.define do
 
     trait :expired_retention do
       created_at { 2.years.ago }
-      compliance_standard { 'PCI_DSS' } # 1年保持期間なので期限切れ
+      compliance_standard { :pci_dss } # 1年保持期間なので期限切れ
     end
 
     # 整合性関連

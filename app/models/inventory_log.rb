@@ -20,7 +20,7 @@ class InventoryLog < ApplicationRecord
   validates :current_quantity, presence: true, numericality: { greater_than_or_equal_to: 0 }
 
   # 操作種別の定数定義
-  OPERATION_TYPES = %w[add remove adjust ship receive].freeze
+  OPERATION_TYPES = %w[add remove adjust ship receive reserve release adjustment].freeze
 
   # 操作種別のenum定義（Rails 8 対応：位置引数使用）
   enum :operation_type, {
@@ -28,7 +28,10 @@ class InventoryLog < ApplicationRecord
     remove: "remove",
     adjust: "adjust",
     ship: "ship",
-    receive: "receive"
+    receive: "receive",
+    reserve: "reserve",
+    release: "release",
+    adjustment: "adjustment"
   }
 
   # スコープ

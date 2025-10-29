@@ -45,6 +45,8 @@ class StoreInventory < ApplicationRecord
   scope :overstocked, -> { where("store_inventories.quantity > store_inventories.safety_stock_level * 3") }
   scope :by_store, ->(store) { where(store: store) }
   scope :by_inventory, ->(inventory) { where(inventory: inventory) }
+  scope :recent, -> { order(created_at: :desc) }
+  scope :needs_reorder, -> { where("store_inventories.quantity <= store_inventories.reorder_level") }
 
   # ============================================
   # インスタンスメソッド
@@ -94,7 +96,7 @@ class StoreInventory < ApplicationRecord
   # 在庫日数計算（簡易版）
   # TODO: Phase 3で売上データと連携した精密な計算を実装
   def days_of_stock_remaining(daily_usage_override = nil)
-    usage = daily_usage_override || estimated_daily_usage
+    usage = daily_usage_override || daily_usage_rate || estimated_daily_usage
     return Float::INFINITY if usage.zero?
 
     available_quantity.to_f / usage
@@ -117,38 +119,119 @@ class StoreInventory < ApplicationRecord
 
   # 在庫予約処理
   def reserve(amount)
-    return false if amount > available_quantity
+    if amount > available_quantity
+      errors.add(:base, "予約可能数量を超えています（利用可能: #{available_quantity}）")
+      return false
+    end
 
-    self.reserved_quantity += amount
-    save
+    transaction do
+      self.reserved_quantity += amount
+      if save
+        # InventoryLogの作成
+        inventory.inventory_logs.create!(
+          operation_type: "reserve",
+          delta: -amount,
+          previous_quantity: quantity,
+          current_quantity: quantity,
+          store_id: store_id,
+          user_id: Current.user&.id,
+          note: "予約: #{amount}個"
+        )
+        true
+      else
+        false
+      end
+    end
+  rescue => e
+    errors.add(:base, "予約処理中にエラーが発生しました: #{e.message}")
+    false
   end
 
   # 予約解除処理
   def release_reservation(amount)
-    return false if amount > reserved_quantity
+    if amount > reserved_quantity
+      errors.add(:base, "予約数量を超えています（予約済み: #{reserved_quantity}）")
+      return false
+    end
 
-    self.reserved_quantity -= amount
-    save
+    transaction do
+      self.reserved_quantity -= amount
+      if save
+        # InventoryLogの作成
+        inventory.inventory_logs.create!(
+          operation_type: "release",
+          delta: amount,
+          previous_quantity: quantity,
+          current_quantity: quantity,
+          store_id: store_id,
+          user_id: Current.user&.id,
+          note: "予約解除: #{amount}個"
+        )
+        true
+      else
+        false
+      end
+    end
+  rescue => e
+    errors.add(:base, "予約解除処理中にエラーが発生しました: #{e.message}")
+    false
   end
 
   # 在庫調整処理
   def adjust_quantity(delta, reason: nil)
     new_quantity = quantity + delta
-    return false if new_quantity < 0
 
-    self.quantity = new_quantity
-    # 予約数が新しい在庫数を超える場合は調整
-    if reserved_quantity > quantity
-      self.reserved_quantity = quantity
+    if new_quantity < 0
+      errors.add(:base, "在庫数量を負にすることはできません")
+      return false
     end
 
-    save
+    if new_quantity < reserved_quantity
+      errors.add(:base, "新しい在庫数量が予約済み数量を下回ります")
+      return false
+    end
+
+    transaction do
+      self.quantity = new_quantity
+      if save
+        # InventoryLogの作成
+        sanitized_reason = reason ? ActionController::Base.helpers.sanitize(reason) : nil
+        inventory.inventory_logs.create!(
+          operation_type: "adjustment",
+          delta: delta,
+          previous_quantity: quantity - delta,
+          current_quantity: quantity,
+          store_id: store_id,
+          user_id: Current.user&.id,
+          note: sanitized_reason || "在庫調整: #{delta > 0 ? '+' : ''}#{delta}個"
+        )
+        true
+      else
+        false
+      end
+    end
+  rescue => e
+    errors.add(:base, "在庫調整処理中にエラーが発生しました: #{e.message}")
+    false
   end
 
   # 発注が必要かどうか
   def needs_reorder?
     return false unless reorder_level.present?
-    quantity <= reorder_level
+    available_quantity <= reorder_level
+  end
+
+  # 発注数量の計算
+  def reorder_quantity
+    return 0 unless max_stock_level.present? && lead_time_days.present?
+
+    # リードタイム中の予想消費量
+    lead_time_usage = (daily_usage_rate || estimated_daily_usage) * lead_time_days
+
+    # 最大在庫レベルに達するための必要数量 + リードタイム中の消費量
+    needed = max_stock_level - quantity + lead_time_usage
+
+    [ needed, 0 ].max
   end
 
   # ============================================

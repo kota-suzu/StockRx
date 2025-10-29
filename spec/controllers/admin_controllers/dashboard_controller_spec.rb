@@ -22,28 +22,28 @@ RSpec.describe AdminControllers::DashboardController, type: :controller do
 
     # 🆕 基本認証テストの適用
     include_examples 'controller authentication tests', :admin
-    
+
     # 🆕 管理者認可テストの適用
     include_examples 'admin authorization tests'
-    
+
     # 🆕 セッションタイムアウトテストの適用
     include_examples 'session timeout tests', :admin
-    
+
     # 🆕 CSRF保護テストの適用（読み取り専用なのでGETのみ）
     context 'CSRF protection for GET requests' do
       before { sign_in admin, scope: :admin }
-      
+
       it 'allows GET request without CSRF token' do
         expect { get :index }.not_to raise_error
       end
     end
-    
+
     # 🆕 セキュリティヘッダー検証の適用
     include_examples 'secure headers validation'
-    
+
     # 🆕 認証エラーハンドリングテストの適用
     include_examples 'error handling with authentication', :admin
-    
+
     # 🆕 認証パフォーマンステストの適用
     include_examples 'authentication performance tests'
 

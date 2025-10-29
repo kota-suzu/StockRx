@@ -327,6 +327,32 @@ class SecureArgumentSanitizer
       filtered_string
     end
 
+    # ActiveRecordオブジェクトのinspect出力の特別処理
+    def filter_activerecord_inspect(inspect_string, options)
+      # ActiveRecordオブジェクトのinspect出力パターン: #<User:0x... @email="user@example.com">
+      filtered = inspect_string.dup
+
+      # メールアドレス属性のフィルタリング
+      filtered.gsub!(/@email\s*=\s*"[^"]*"/i, '@email="[EMAIL_FILTERED]"')
+
+      # パスワードハッシュのフィルタリング
+      filtered.gsub!(/@password_digest\s*=\s*"[^"]*"/i, '@password_digest="[FILTERED]"')
+
+      # トークン属性のフィルタリング
+      filtered.gsub!(/@(\w*token\w*)\s*=\s*"[^"]*"/i) do |match|
+        attr_name = $1
+        "@#{attr_name}=\"[TOKEN_FILTERED]\""
+      end
+
+      # クレジットカード情報のフィルタリング
+      filtered.gsub!(/@(\w*(?:card|credit)\w*)\s*=\s*"[^"]*"/i) do |match|
+        attr_name = $1
+        "@#{attr_name}=\"[CARD_FILTERED]\""
+      end
+
+      filtered
+    end
+
     # JSON文字列内の機密情報フィルタリング
     def filter_json_string(json_string, options)
       begin

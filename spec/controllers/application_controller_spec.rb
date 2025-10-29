@@ -63,8 +63,178 @@ RSpec.describe ApplicationController, type: :controller do
     end
   end
 
+  describe "セキュリティ監視" do
+    describe "#monitor_request_security" do
+      context "本番環境" do
+        before do
+          allow(Rails.env).to receive(:test?).and_return(false)
+        end
+
+        it "ブロックされたIPからのアクセスを拒否する" do
+          allow(SecurityMonitor).to receive(:is_blocked?).with("192.168.1.1").and_return(true)
+          request.env["REMOTE_ADDR"] = "192.168.1.1"
+
+          get :index
+
+          expect(response).to have_http_status(:forbidden)
+          expect(response.body).to eq("Access Denied")
+        end
+
+        it "正常なIPからのアクセスを許可する" do
+          allow(SecurityMonitor).to receive(:is_blocked?).and_return(false)
+          allow(SecurityMonitor).to receive(:analyze_request).and_return([])
+
+          get :index
+
+          expect(response).to have_http_status(:ok)
+        end
+
+        it "疑わしいパターンを検出した場合ログに記録する" do
+          allow(SecurityMonitor).to receive(:is_blocked?).and_return(false)
+          allow(SecurityMonitor).to receive(:analyze_request).and_return([ "sql_injection", "xss_attempt" ])
+
+          expect(Rails.logger).to receive(:warn).with(
+            hash_including(
+              event: "suspicious_request_detected",
+              patterns: [ "sql_injection", "xss_attempt" ]
+            ).to_json
+          )
+
+          get :index
+        end
+      end
+
+      context "テスト環境" do
+        it "セキュリティチェックをスキップする" do
+          expect(SecurityMonitor).not_to receive(:is_blocked?)
+          expect(SecurityMonitor).not_to receive(:analyze_request)
+
+          get :index
+
+          expect(response).to have_http_status(:ok)
+        end
+      end
+    end
+
+    describe "#track_response_metrics" do
+      context "本番環境" do
+        before do
+          allow(Rails.env).to receive(:test?).and_return(false)
+          allow(SecurityMonitor).to receive(:is_blocked?).and_return(false)
+          allow(SecurityMonitor).to receive(:analyze_request).and_return([])
+        end
+
+        it "遅いレスポンスを検出してログに記録する" do
+          controller.instance_variable_set(:@request_start_time, 10.seconds.ago)
+          stub_const("SecurityMonitor::SUSPICIOUS_THRESHOLDS", { response_time: 5 })
+
+          expect(Rails.logger).to receive(:warn).with(
+            hash_including(
+              event: "slow_response_detected",
+              response_time_seconds: be > 5
+            ).to_json
+          )
+
+          get :index
+        end
+
+        it "通常のレスポンス時間ではログを記録しない" do
+          controller.instance_variable_set(:@request_start_time, 0.1.seconds.ago)
+          stub_const("SecurityMonitor::SUSPICIOUS_THRESHOLDS", { response_time: 5 })
+
+          expect(Rails.logger).not_to receive(:warn)
+
+          get :index
+        end
+
+        it "@request_start_timeが設定されていない場合は何もしない" do
+          expect(Rails.logger).not_to receive(:warn)
+
+          get :index
+        end
+      end
+
+      context "テスト環境" do
+        it "メトリクス追跡をスキップする" do
+          controller.instance_variable_set(:@request_start_time, 10.seconds.ago)
+
+          expect(Rails.logger).not_to receive(:warn)
+
+          get :index
+        end
+      end
+    end
+  end
+
   describe "エラーハンドリング" do
+    describe "#handle_security_error" do
+      controller do
+        def show
+          raise SecurityError, "Test security error"
+        end
+      end
+
+      context "HTMLフォーマット" do
+        it "SecurityErrorを適切に処理する" do
+          allow(Rails.logger).to receive(:error)
+          allow(SensitiveDataFilter).to receive(:filter_log_message).and_return("Filtered error message")
+
+          get :show
+
+          expect(response).to have_http_status(:forbidden)
+          expect(response.body).to eq("Security Error")
+          expect(Rails.logger).to have_received(:error).with("Filtered error message")
+        end
+      end
+
+      context "JSONフォーマット" do
+        it "JSON形式でエラーを返す" do
+          allow(Rails.logger).to receive(:error)
+          allow(SensitiveDataFilter).to receive(:filter_log_message).and_return("Filtered error message")
+
+          get :show, format: :json
+
+          expect(response).to have_http_status(:forbidden)
+          expect(JSON.parse(response.body)).to eq({ "error" => "Security Error" })
+        end
+      end
+    end
+
+    describe "#handle_csrf_error" do
+      controller do
+        skip_before_action :verify_authenticity_token, only: :create
+        def create
+          raise ActionController::InvalidAuthenticityToken
+        end
+      end
+
+      it "CSRFエラーを適切に処理する（HTML）" do
+        allow(Rails.logger).to receive(:warn)
+
+        post :create
+
+        expect(response).to redirect_to(root_path)
+        expect(flash[:alert]).to include("セキュリティトークンが無効です")
+        expect(Rails.logger).to have_received(:warn).with(/CSRF token verification failed/)
+      end
+
+      it "CSRFエラーを適切に処理する（JSON）" do
+        allow(Rails.logger).to receive(:warn)
+
+        post :create, format: :json
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(JSON.parse(response.body)).to eq({ "error" => "Invalid authenticity token" })
+      end
+    end
+
     context "ActiveRecord::RecordNotFound" do
+      controller do
+        def show
+          raise ActiveRecord::RecordNotFound
+        end
+      end
+
       it "404エラーを返す" do
         get :show, params: { id: 1 }
         expect(response).to have_http_status(:not_found)
@@ -104,7 +274,61 @@ RSpec.describe ApplicationController, type: :controller do
     end
   end
 
+  describe "機密情報フィルタリング" do
+    describe "#configure_sensitive_data_filtering" do
+      it "フィルターパラメータを設定する" do
+        get :index
+
+        filter_params = Rails.application.config.filter_parameters
+        expect(filter_params).to include(:password, :token, :api_key, :secret, :credit_card)
+        expect(filter_params).to include(:cvv, :ssn, :email, :phone, :address)
+      end
+
+      it "カスタムログフォーマッターを設定する" do
+        logger = double("Logger", formatter: nil)
+        allow(logger).to receive(:respond_to?).with(:formatter=).and_return(true)
+        allow(logger).to receive(:formatter=)
+        allow(Rails).to receive(:logger).and_return(logger)
+
+        get :index
+
+        expect(logger).to have_received(:formatter=).with(instance_of(SensitiveLogFormatter))
+      end
+
+      it "フォーマッター設定メソッドがない場合はスキップする" do
+        logger = double("Logger")
+        allow(logger).to receive(:respond_to?).with(:formatter=).and_return(false)
+        allow(Rails).to receive(:logger).and_return(logger)
+
+        expect { get :index }.not_to raise_error
+      end
+    end
+  end
+
   describe "Current属性の設定" do
+    describe "#set_current_attributes" do
+      it "リクエスト情報をCurrentに設定する" do
+        expect(Current).to receive(:reset)
+        expect(Current).to receive(:set_request_info).with(request)
+
+        get :index
+      end
+
+      context "current_userメソッドが定義されている場合" do
+        let(:user) { double("User") }
+
+        before do
+          allow(controller).to receive(:respond_to?).with(:current_user).and_return(true)
+          allow(controller).to receive(:current_user).and_return(user)
+        end
+
+        it "Currentにユーザーを設定する（将来の実装用）" do
+          # 現在はコメントアウトされているが、実装時のテスト
+          get :index
+        end
+      end
+    end
+
     context "管理者としてログイン" do
       before { sign_in admin }
 

@@ -643,6 +643,116 @@ RSpec.describe AdminControllers::InventoriesController, type: :controller do
           unique_key: "code"
         )
       end
+
+      it "サニタイゼーションエラー時は例外を再発生させる" do
+        params = ActionController::Parameters.new({})
+        allow(controller).to receive(:csv_import_params_with_sanitization)
+          .and_raise(ArgumentError, "Invalid parameter")
+
+        expect {
+          controller.send(:build_import_options, params)
+        }.to raise_error(ArgumentError, "Invalid parameter")
+      end
+    end
+
+    describe "#set_inventory" do
+      context "異なるアクションでの最適化" do
+        it "showアクション以外でelseブランチが実行される" do
+          allow(controller).to receive(:action_name).and_return("unknown_action")
+          controller.params = { id: inventory.id }
+
+          expect(Inventory).to receive(:find).with(inventory.id.to_s).and_return(inventory)
+          controller.send(:set_inventory)
+          expect(assigns(:inventory)).to eq(inventory.decorate)
+        end
+      end
+    end
+
+    describe "#inventory_params" do
+      context "サニタイゼーションエラー時" do
+        before do
+          allow(controller).to receive(:inventory_params_with_sanitization)
+            .and_raise(ArgumentError, "Invalid parameter format")
+        end
+
+        it "エラーメッセージをフラッシュに設定してリダイレクトする" do
+          controller.params = { inventory: { name: "test" } }
+          controller.request = request
+
+          expect(controller).to receive(:redirect_back)
+            .with(fallback_location: admin_inventories_path)
+            .and_return(true)
+
+          result = controller.send(:inventory_params)
+          expect(controller.flash[:alert]).to eq("Invalid parameter format")
+        end
+      end
+    end
+
+    describe "#cleanup_temp_file" do
+      let(:temp_file_path) { Rails.root.join("tmp", "test_file.csv") }
+
+      context "ファイルが存在しない場合" do
+        it "エラーを発生させない" do
+          expect {
+            controller.send(:cleanup_temp_file, nil)
+            controller.send(:cleanup_temp_file, "non_existent_file.csv")
+          }.not_to raise_error
+        end
+      end
+
+      context "ファイル削除でエラーが発生した場合" do
+        before do
+          allow(File).to receive(:exist?).with(temp_file_path).and_return(true)
+          allow(File).to receive(:delete).with(temp_file_path)
+            .and_raise(Errno::EACCES, "Permission denied")
+        end
+
+        it "エラーをログに記録して続行する" do
+          expect(Rails.logger).to receive(:warn).with(/一時ファイルの削除に失敗/)
+
+          expect {
+            controller.send(:cleanup_temp_file, temp_file_path)
+          }.not_to raise_error
+        end
+      end
+    end
+
+    describe "#validate_uploaded_csv_file" do
+      context "CSV読み込み時の一般的なエラー" do
+        let(:error_csv_file) do
+          file = double("UploadedFile")
+          allow(file).to receive(:size).and_return(1.megabyte)
+          allow(file).to receive(:content_type).and_return("text/csv")
+          allow(file).to receive(:original_filename).and_return("test.csv")
+          allow(file).to receive(:read).and_raise(StandardError, "Read error")
+          file
+        end
+
+        it "一般的なエラーを適切に処理する" do
+          result = controller.send(:validate_uploaded_csv_file, error_csv_file)
+          expect(result[:valid]).to be false
+          expect(result[:error_message]).to eq("ファイルの読み込みに失敗しました。")
+        end
+      end
+    end
+
+    describe "#check_running_import_jobs" do
+      it "空の配列を返す（現在は未実装）" do
+        expect(controller.send(:check_running_import_jobs)).to eq([])
+      end
+    end
+
+    describe "#rate_limit_key_type" do
+      it "destroyアクションでdefaultタイプを返す" do
+        allow(controller).to receive(:action_name).and_return("destroy")
+        expect(controller.send(:rate_limit_key_type)).to eq(:default)
+      end
+
+      it "未定義のアクションでdefaultタイプを返す" do
+        allow(controller).to receive(:action_name).and_return("unknown")
+        expect(controller.send(:rate_limit_key_type)).to eq(:default)
+      end
     end
   end
 
@@ -754,6 +864,47 @@ RSpec.describe AdminControllers::InventoriesController, type: :controller do
       it "CSV import画面への認証なしアクセスは拒否される" do
         get :import_form
         expect(response).to redirect_to(new_admin_session_path)
+      end
+    end
+
+    context "セキュリティヘッダー検証" do
+      it "CSRF保護ヘッダーが設定される" do
+        get :index
+        expect(response.headers["X-Frame-Options"]).to eq("DENY")
+        expect(response.headers["X-Content-Type-Options"]).to eq("nosniff")
+        expect(response.headers["X-XSS-Protection"]).to eq("1; mode=block")
+      end
+
+      it "Content Security Policyが設定される" do
+        get :index
+        expect(response.headers["Content-Security-Policy"]).to include("default-src 'self'")
+      end
+
+      it "アプリケーション識別ヘッダーが設定される" do
+        get :index
+        expect(response.headers["X-Application-Name"]).to eq("StockRx")
+        expect(response.headers["X-Security-Version"]).to eq("5.3")
+      end
+    end
+
+    context "レート制限テスト" do
+      before do
+        allow(controller).to receive(:check_rate_limit!).and_call_original
+      end
+
+      it "レート制限対象アクションでヘッダーが設定される" do
+        post :create, params: { inventory: valid_attributes }
+        expect(response.headers).to have_key("X-RateLimit-Limit")
+        expect(response.headers).to have_key("X-RateLimit-Remaining")
+      end
+
+      it "レート制限設定が正しく定義される" do
+        expect(controller.send(:rate_limited_actions)).to include(:create, :update, :destroy, :import)
+      end
+
+      it "インポートアクションは file_upload レート制限タイプを使用" do
+        allow(controller).to receive(:action_name).and_return("import")
+        expect(controller.send(:rate_limit_key_type)).to eq(:file_upload)
       end
     end
 

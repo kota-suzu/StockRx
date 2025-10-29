@@ -38,6 +38,14 @@ class SensitiveLogFormatter < ActiveSupport::Logger::SimpleFormatter
     @tags.dup
   end
 
+  # Tagged logging compatibility for Rails 8
+  def tagged(*tags)
+    push_tags(*tags)
+    yield
+  ensure
+    pop_tags(tags.size)
+  end
+
   private
 
   def tags_text

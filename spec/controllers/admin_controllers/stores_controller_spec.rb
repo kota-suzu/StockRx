@@ -90,6 +90,16 @@ RSpec.describe AdminControllers::StoresController, type: :controller do
         get :index, params: { search: "test" }
       end
 
+      it "フィルタパラメータがある場合はフィルタリングを適用する" do
+        expect(controller).to receive(:apply_store_filters)
+        get :index, params: { filter: "active" }
+      end
+
+      it "検索・フィルタパラメータがない場合はフィルタリングを適用しない" do
+        expect(controller).not_to receive(:apply_store_filters)
+        get :index
+      end
+
       it "ページネーションを適用する" do
         get :index, params: { page: 2 }
         expect(assigns(:stores)).to respond_to(:current_page)
@@ -307,6 +317,30 @@ RSpec.describe AdminControllers::StoresController, type: :controller do
           delete :destroy, params: { id: store_to_delete.id }
           expect(response).to redirect_to(admin_stores_path)
           expect(flash[:alert]).to eq("削除中にエラーが発生しました。")
+        end
+      end
+
+      context "destroyメソッドがfalseを返す場合" do
+        before do
+          allow_any_instance_of(Store).to receive(:destroy).and_return(false)
+        end
+
+        it "handle_destroy_errorが呼ばれる" do
+          expect(controller).to receive(:handle_destroy_error).with(store_to_delete.display_name)
+          delete :destroy, params: { id: store_to_delete.id }
+        end
+      end
+
+      context "一般的な依存関係エラーメッセージの場合" do
+        before do
+          allow_any_instance_of(Store).to receive(:destroy)
+            .and_raise(ActiveRecord::InvalidForeignKey, "Cannot delete record because dependent records exist")
+        end
+
+        it "一般的な依存関係エラーメッセージを表示する" do
+          delete :destroy, params: { id: store_to_delete.id }
+          expect(response).to redirect_to(admin_stores_path)
+          expect(flash[:alert]).to include("関連する記録が存在するため削除できません")
         end
       end
     end
@@ -674,6 +708,46 @@ RSpec.describe AdminControllers::StoresController, type: :controller do
       it "dashboard画面への認証なしアクセスは拒否される" do
         get :dashboard, params: { id: store.id }
         expect(response).to redirect_to(new_admin_session_path)
+      end
+    end
+
+    context "セキュリティヘッダー検証" do
+      before { sign_in headquarters_admin }
+
+      it "CSRF保護ヘッダーが設定される" do
+        get :index
+        expect(response.headers["X-Frame-Options"]).to eq("DENY")
+        expect(response.headers["X-Content-Type-Options"]).to eq("nosniff")
+        expect(response.headers["X-XSS-Protection"]).to eq("1; mode=block")
+      end
+
+      it "Content Security Policyが設定される" do
+        get :index
+        expect(response.headers["Content-Security-Policy"]).to include("default-src 'self'")
+      end
+
+      it "アプリケーション識別ヘッダーが設定される" do
+        get :index
+        expect(response.headers["X-Application-Name"]).to eq("StockRx")
+        expect(response.headers["X-Security-Version"]).to eq("5.3")
+      end
+    end
+
+    context "レート制限テスト" do
+      before { sign_in headquarters_admin }
+
+      it "レート制限対象アクションでヘッダーが設定される" do
+        post :create, params: { store: valid_attributes }
+        expect(response.headers).to have_key("X-RateLimit-Limit")
+        expect(response.headers).to have_key("X-RateLimit-Remaining")
+      end
+
+      it "レート制限設定が正しく定義される" do
+        expect(controller.send(:rate_limited_actions)).to include(:create, :update, :destroy)
+      end
+
+      it "デフォルトのレート制限タイプを使用" do
+        expect(controller.send(:rate_limit_key_type)).to eq(:default)
       end
     end
 

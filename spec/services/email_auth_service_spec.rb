@@ -6,7 +6,7 @@ RSpec.describe EmailAuthService do
   # ============================================================================
   # 🟢 Phase 3推奨 - shared_examples活用による保守性向上
   # ============================================================================
-  
+
   # shared_examplesを読み込み
   require_relative '../support/shared_examples/email_auth_service_examples'
   let(:service) { described_class.new }
@@ -137,18 +137,19 @@ RSpec.describe EmailAuthService do
           .and_raise(EmailAuthService::RateLimitExceededError, "Rate limit exceeded")
       end
 
-      it "raises rate limit error" do
-        expect {
-          service.generate_and_send_temp_password(store_user, request_metadata: request_metadata)
-        }.to raise_error(EmailAuthService::RateLimitExceededError, "Rate limit exceeded")
+      it "returns structured rate limit error response" do
+        result = service.generate_and_send_temp_password(store_user, request_metadata: request_metadata)
+
+        expect(result[:success]).to be false
+        expect(result[:error]).to eq("rate_limit_exceeded")
+        expect(result[:details]).to include("Rate limit exceeded")
       end
 
       it "logs rate limit violation" do
         expect(Rails.logger).to receive(:warn).with(/Rate limit exceeded/)
 
-        expect {
-          service.generate_and_send_temp_password(store_user, request_metadata: request_metadata)
-        }.to raise_error(EmailAuthService::RateLimitExceededError)
+        result = service.generate_and_send_temp_password(store_user, request_metadata: request_metadata)
+        expect(result[:error]).to eq("rate_limit_exceeded")
       end
     end
 
@@ -1094,7 +1095,7 @@ RSpec.describe EmailAuthService do
       service.send(:get_rate_limit_count, "expired_key_1")
 
       current_cache = service.instance_variable_get(:@rate_limit_cache) || {}
-      
+
       # Cache should clean up expired entries
       expect(current_cache.size).to be >= initial_size
       expect(current_cache["expired_key_1"][:count]).to eq(0)  # Expired entry reset
@@ -1115,7 +1116,7 @@ RSpec.describe EmailAuthService do
         it "continues when rate limit validation passes" do
           allow(service).to receive(:validate_rate_limit)
           allow(service).to receive(:validate_user_eligibility)
-          allow(TempPassword).to receive(:generate_for_user).and_return([temp_password, plain_password])
+          allow(TempPassword).to receive(:generate_for_user).and_return([ temp_password, plain_password ])
           allow(service).to receive(:deliver_temp_password_email).and_return({ success: true })
 
           result = service.generate_and_send_temp_password(
@@ -1136,12 +1137,13 @@ RSpec.describe EmailAuthService do
           expect(service).not_to receive(:validate_user_eligibility)
           expect(TempPassword).not_to receive(:generate_for_user)
 
-          expect {
-            service.generate_and_send_temp_password(
-              store_user,
-              request_metadata: request_metadata
-            )
-          }.to raise_error(EmailAuthService::RateLimitExceededError)
+          result = service.generate_and_send_temp_password(
+            store_user,
+            request_metadata: request_metadata
+          )
+
+          expect(result[:success]).to be false
+          expect(result[:error]).to eq("rate_limit_exceeded")
         end
       end
 
@@ -1152,7 +1154,7 @@ RSpec.describe EmailAuthService do
 
         it "continues when user eligibility validation passes" do
           allow(service).to receive(:validate_user_eligibility)
-          allow(TempPassword).to receive(:generate_for_user).and_return([temp_password, plain_password])
+          allow(TempPassword).to receive(:generate_for_user).and_return([ temp_password, plain_password ])
           allow(service).to receive(:deliver_temp_password_email).and_return({ success: true })
 
           result = service.generate_and_send_temp_password(
@@ -1189,7 +1191,7 @@ RSpec.describe EmailAuthService do
 
       describe "successful generation branch" do
         it "processes to email delivery when generation succeeds" do
-          allow(TempPassword).to receive(:generate_for_user).and_return([temp_password, plain_password])
+          allow(TempPassword).to receive(:generate_for_user).and_return([ temp_password, plain_password ])
           allow(service).to receive(:deliver_temp_password_email).and_return({ success: true })
 
           result = service.generate_and_send_temp_password(
@@ -1230,7 +1232,7 @@ RSpec.describe EmailAuthService do
       before do
         allow(service).to receive(:validate_rate_limit)
         allow(service).to receive(:validate_user_eligibility)
-        allow(TempPassword).to receive(:generate_for_user).and_return([temp_password, plain_password])
+        allow(TempPassword).to receive(:generate_for_user).and_return([ temp_password, plain_password ])
       end
 
       describe "successful delivery branch" do
@@ -1304,7 +1306,7 @@ RSpec.describe EmailAuthService do
       before do
         allow(service).to receive(:validate_rate_limit)
         allow(service).to receive(:validate_user_eligibility)
-        allow(TempPassword).to receive(:generate_for_user).and_return([temp_password, plain_password])
+        allow(TempPassword).to receive(:generate_for_user).and_return([ temp_password, plain_password ])
         allow(service).to receive(:deliver_temp_password_email).and_return({ success: true })
       end
 
@@ -1879,7 +1881,7 @@ RSpec.describe EmailAuthService do
           end
 
           results = threads.map(&:value)
-          
+
           # 全ての操作が完了し、カウンターが正しく更新されることを確認
           expect(results).to all(be_a(Integer))
           expect(results.max).to eq(5)  # 最後のスレッドは5になるはず
@@ -1895,12 +1897,12 @@ RSpec.describe EmailAuthService do
           threads = 3.times.map do |i|
             Thread.new do
               user = build_stubbed(:store_user, email: "test#{i}@example.com", store: store)
-              
+
               # モック化して実際のDB操作を避ける
               allow(service).to receive(:validate_rate_limit)
               allow(service).to receive(:validate_user_eligibility)
               allow(TempPassword).to receive(:generate_for_user)
-                .and_return([build_stubbed(:temp_password), "12345678"])
+                .and_return([ build_stubbed(:temp_password), "12345678" ])
               allow(service).to receive(:deliver_temp_password_email)
                 .and_return({ success: true })
 
@@ -1915,7 +1917,7 @@ RSpec.describe EmailAuthService do
           successful_results = results.count { |r| r[:success] }
 
           expect(successful_results).to be > 0
-          
+
           # 設定を元に戻す
           service.config.max_attempts_per_hour = original_limit
         end
@@ -1929,7 +1931,7 @@ RSpec.describe EmailAuthService do
             ip_address: "192.168.1.100",
             user_agent: "A" * 1000,  # 1KB user agent
             referer: "https://example.com/" + "very_long_path/" * 50,
-            custom_headers: (1..100).map { |i| ["header_#{i}", "value_#{i}" * 10] }.to_h
+            custom_headers: (1..100).map { |i| [ "header_#{i}", "value_#{i}" * 10 ] }.to_h
           }
 
           # メモリ使用量を監視しながらテスト実行
@@ -1938,7 +1940,7 @@ RSpec.describe EmailAuthService do
           allow(service).to receive(:validate_rate_limit)
           allow(service).to receive(:validate_user_eligibility)
           allow(TempPassword).to receive(:generate_for_user)
-            .and_return([build_stubbed(:temp_password), "12345678"])
+            .and_return([ build_stubbed(:temp_password), "12345678" ])
           allow(service).to receive(:deliver_temp_password_email)
             .and_return({ success: true })
 
@@ -1981,7 +1983,7 @@ RSpec.describe EmailAuthService do
           allow(service).to receive(:validate_rate_limit)
           allow(service).to receive(:validate_user_eligibility)
           allow(TempPassword).to receive(:generate_for_user)
-            .and_return([build_stubbed(:temp_password), "12345678"])
+            .and_return([ build_stubbed(:temp_password), "12345678" ])
           allow(service).to receive(:deliver_temp_password_email)
             .and_return({ success: true })
 
@@ -2000,7 +2002,7 @@ RSpec.describe EmailAuthService do
 
           allow(service).to receive(:validate_user_eligibility)
           allow(TempPassword).to receive(:generate_for_user)
-            .and_return([build_stubbed(:temp_password), "12345678"])
+            .and_return([ build_stubbed(:temp_password), "12345678" ])
           allow(service).to receive(:deliver_temp_password_email)
             .and_return({ success: true })
 
@@ -2021,7 +2023,7 @@ RSpec.describe EmailAuthService do
 
           allow(service).to receive(:validate_user_eligibility)
           allow(TempPassword).to receive(:generate_for_user)
-            .and_return([build_stubbed(:temp_password), "12345678"])
+            .and_return([ build_stubbed(:temp_password), "12345678" ])
           allow(service).to receive(:deliver_temp_password_email)
             .and_return({ success: true })
 
@@ -2056,11 +2058,11 @@ RSpec.describe EmailAuthService do
       describe "email service exhaustion branch" do
         it "handles email service rate limits gracefully" do
           smtp_error = Net::SMTPServerBusy.new("Service temporarily unavailable")
-          
+
           allow(service).to receive(:validate_rate_limit)
           allow(service).to receive(:validate_user_eligibility)
           allow(TempPassword).to receive(:generate_for_user)
-            .and_return([build_stubbed(:temp_password), "12345678"])
+            .and_return([ build_stubbed(:temp_password), "12345678" ])
           allow(service).to receive(:deliver_temp_password_email)
             .and_raise(EmailAuthService::EmailDeliveryError.new(smtp_error.message))
 
@@ -2083,8 +2085,8 @@ RSpec.describe EmailAuthService do
   # レート制限バリデーション共通テスト
   describe "rate limit validation (shared examples)" do
     include_examples "rate limit validation behavior", :validate_rate_limit, EmailAuthService::RateLimitExceededError
-    
-    include_examples "configuration-dependent behavior", 
+
+    include_examples "configuration-dependent behavior",
       :rate_limit_enabled,
       ->(service) {
         expect(service).to receive(:redis_increment_with_expiry).at_least(:once)
@@ -2137,7 +2139,7 @@ RSpec.describe EmailAuthService do
       allow(service).to receive(:validate_rate_limit)
       allow(service).to receive(:validate_user_eligibility)
       allow(TempPassword).to receive(:generate_for_user)
-        .and_return([build_stubbed(:temp_password), "12345678"])
+        .and_return([ build_stubbed(:temp_password), "12345678" ])
       allow(service).to receive(:deliver_temp_password_email)
         .and_return({ success: true })
 
@@ -2157,13 +2159,15 @@ RSpec.describe EmailAuthService do
 
   # 並行処理安全性共通テスト
   describe "concurrent operation safety (shared examples)" do
+    let(:test_service) { service }
+
     include_examples "concurrent operation safety", ->(i) {
-      service.rate_limit_check("user#{i}@example.com", "192.168.1.#{100 + i}")
+      EmailAuthService.new.rate_limit_check("user#{i}@example.com", "192.168.1.#{100 + i}")
     }, 5  # 5 threads
 
     include_examples "concurrent operation safety", ->(i) {
       key = "concurrent_test_#{i}"
-      service.send(:redis_increment_with_expiry, key, 1.hour)
+      EmailAuthService.new.send(:redis_increment_with_expiry, key, 1.hour)
     }, 10  # 10 threads for cache operations
   end
 
@@ -2205,7 +2209,7 @@ RSpec.describe EmailAuthService do
         allow(service).to receive(:validate_rate_limit)
         allow(service).to receive(:validate_user_eligibility)
         allow(TempPassword).to receive(:generate_for_user)
-          .and_return([build_stubbed(:temp_password), plain_password])
+          .and_return([ build_stubbed(:temp_password), plain_password ])
         allow(service).to receive(:deliver_temp_password_email)
           .and_return({ success: true })
 

@@ -21,15 +21,20 @@ class CsvHeaderNormalizer
       normalized = raw_headers.map do |header|
         next nil if header.nil? || header.strip.empty?
 
-        # 1. 空白を正規化
-        normalized_header = header.strip
+        # 1. BOM除去と空白を正規化
+        normalized_header = remove_bom(header).strip
 
-        # 2. 多言語マッピングを適用
+        # 2. 特殊文字を含むヘッダーをクリーンアップ
+        cleaned_header = clean_header(normalized_header)
+
+        # 3. 多言語マッピングを適用
         mapped_header = header_mapping[normalized_header] ||
+                       header_mapping[cleaned_header] ||
                        header_mapping[normalized_header.downcase] ||
-                       normalized_header.downcase
+                       header_mapping[cleaned_header.downcase] ||
+                       cleaned_header.downcase
 
-        # 3. 必要なヘッダーのみを残す（指定されている場合）
+        # 4. 必要なヘッダーのみを残す（指定されている場合）
         if required_headers
           required_headers.include?(mapped_header) ? mapped_header : nil
         else
@@ -74,9 +79,14 @@ class CsvHeaderNormalizer
       cache_key = "csv.header_mappings.#{mapping_key}"
 
       @mapping_cache[cache_key] ||= begin
-        raw_mapping = I18n.t(cache_key, default: {})
-        # シンボルキーを文字列キーに変換（I18n設定との互換性確保）
-        raw_mapping.transform_keys(&:to_s)
+        begin
+          raw_mapping = I18n.t(cache_key, default: {})
+          # シンボルキーを文字列キーに変換（I18n設定との互換性確保）
+          raw_mapping.transform_keys(&:to_s)
+        rescue I18n::MissingTranslationData, StandardError
+          # I18nエラーが発生した場合は空のハッシュを返す
+          {}
+        end
       end
     end
 
@@ -88,6 +98,28 @@ class CsvHeaderNormalizer
       # Unicode文字クラスを使用して日本語を検出
       japanese_headers = mapping.keys.select { |key| key.match?(/[\p{Han}\p{Hiragana}\p{Katakana}]/) }
       japanese_headers.take(3).join(", ")
+    end
+
+    # BOM（Byte Order Mark）を除去
+    # @param text [String] 処理対象の文字列
+    # @return [String] BOM除去済みの文字列
+    def remove_bom(text)
+      # UTF-8 BOM: \xEF\xBB\xBF
+      # UTF-16 BE BOM: \xFE\xFF
+      # UTF-16 LE BOM: \xFF\xFE
+      # UTF-32 BE BOM: \x00\x00\xFE\xFF
+      # UTF-32 LE BOM: \xFF\xFE\x00\x00
+      # 文字列をdupして変更可能にする
+      text.dup.force_encoding("UTF-8").sub(/\A\xEF\xBB\xBF/, "")
+    end
+
+    # ヘッダーから特殊文字を除去してクリーンにする
+    # @param header [String] 処理対象のヘッダー
+    # @return [String] クリーンアップ済みのヘッダー
+    def clean_header(header)
+      # 括弧内の内容を除去（例: "Price (¥)" → "Price"）
+      # 余分な空白も正規化
+      header.gsub(/\s*\([^)]*\)\s*/, "").strip
     end
   end
 end

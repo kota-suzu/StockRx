@@ -217,7 +217,35 @@ ja:
         "値段": "price"
         "料金": "price"
         
+        # 説明の表記ゆれ対応
+        "説明": "description"
+        "詳細": "description"
+        "備考": "description"
+        
+        # カテゴリの表記ゆれ対応
+        "カテゴリ": "category"
+        "カテゴリー": "category"
+        "分類": "category"
+        
         # 英語ヘッダー（既存互換性保持）
+        "Product Name": "name"
         "name": "name"
+        "Quantity": "quantity"
         "quantity": "quantity"
-        "price": "price" 
+        "Stock Quantity": "quantity"
+        "Price": "price"
+        "price": "price"
+        "Description": "description"
+        "description": "description"
+        
+      user:
+        # ユーザー名の表記ゆれ対応
+        "ユーザー名": "username"
+        "User Name": "username"
+        
+        # メールアドレスの表記ゆれ対応
+        "メールアドレス": "email"
+        "Email": "email"
+        
+        # 名前の表記ゆれ対応
+        "名前": "name" 

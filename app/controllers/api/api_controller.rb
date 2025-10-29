@@ -52,9 +52,15 @@ module Api
 
       # JSON以外のリクエストは拒否
       render json: {
-        code: "invalid_format",
-        message: "JSONリクエストのみ対応しています"
+        success: false,
+        error: {
+          type: "invalid_format",
+          message: "JSON形式でのリクエストが必要です"
+        },
+        message: "JSON形式でのリクエストが必要です"
       }, status: :not_acceptable
+      # double renderを防ぐため早期リターン
+      return
     end
 
     # デフォルトレスポンス形式をJSONに設定

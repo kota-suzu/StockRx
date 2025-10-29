@@ -5,7 +5,12 @@ require 'rails_helper'
 RSpec.describe Admin, type: :model do
   describe 'アソシエーション' do
     it { should have_many(:report_files).dependent(:destroy) }
-    it { should belong_to(:store).optional }
+    it 'belongs to store optionally for headquarters admin' do
+      admin = Admin.new(role: 'headquarters_admin', email: 'test@example.com', password: 'password123')
+      expect(admin.store).to be_nil
+      admin.valid?
+      expect(admin.errors[:store]).to be_empty
+    end
     it { should have_many(:requested_transfers).class_name('InterStoreTransfer').with_foreign_key('requested_by_id').dependent(:restrict_with_error) }
     it { should have_many(:approved_transfers).class_name('InterStoreTransfer').with_foreign_key('approved_by_id').dependent(:restrict_with_error) }
     it { should have_many(:compliance_audit_logs).dependent(:restrict_with_error) }

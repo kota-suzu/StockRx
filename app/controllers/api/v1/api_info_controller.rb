@@ -6,8 +6,8 @@ module Api
     # CLAUDE.md準拠: API利用者向けの情報提供機能
     class ApiInfoController < Api::ApiController
       # ヘルスチェックとレート制限状況はAPIキー不要
-      skip_before_action :check_rate_limit!, only: [:health]
-      
+      skip_before_action :check_rate_limit!, only: [ :health ]
+
       # API基本情報
       def show
         response = ApiResponse.success(
@@ -17,11 +17,11 @@ module Api
             description: "在庫管理システムのREST API",
             status: "active",
             documentation_url: "#{request.base_url}/api/docs",
-            supported_formats: ["json"],
+            supported_formats: [ "json" ],
             authentication: {
-              supported_methods: ["API Key", "Bearer Token"],
+              supported_methods: [ "API Key", "Bearer Token" ],
               required: false,
-              header_names: ["X-API-Key", "Authorization"]
+              header_names: [ "X-API-Key", "Authorization" ]
             },
             rate_limiting: {
               anonymous: ApiRateLimiter::LIMITS[:anonymous],
@@ -35,7 +35,7 @@ module Api
           },
           "API情報を取得しました"
         )
-        
+
         render json: response.to_h, status: response.status_code, headers: response.headers
       end
 
@@ -43,9 +43,9 @@ module Api
       def health
         database_status = check_database_health
         redis_status = check_redis_health
-        
+
         overall_status = database_status[:healthy] && redis_status[:healthy] ? "healthy" : "unhealthy"
-        
+
         health_data = {
           status: overall_status,
           timestamp: Time.current.iso8601,
@@ -61,9 +61,9 @@ module Api
             }
           }
         }
-        
+
         status_code = overall_status == "healthy" ? 200 : 503
-        
+
         response = if overall_status == "healthy"
           ApiResponse.success(health_data, "システムは正常に動作しています")
         else
@@ -74,7 +74,7 @@ module Api
             { type: "health_check_failed" }
           )
         end
-        
+
         render json: response.to_h, status: response.status_code, headers: response.headers
       end
 
@@ -83,7 +83,7 @@ module Api
         if api_authenticated?
           limiter = api_rate_limiter
           usage = limiter.usage_info
-          
+
           rate_limit_data = {
             authenticated: true,
             user_type: api_authenticated_admin? ? "admin" : "store_user",
@@ -107,9 +107,9 @@ module Api
             }
           }
         end
-        
+
         response = ApiResponse.success(rate_limit_data, "レート制限情報を取得しました")
-        
+
         render json: response.to_h, status: response.status_code, headers: response.headers
       end
 
@@ -118,12 +118,12 @@ module Api
       # データベースの健全性チェック
       def check_database_health
         start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        
+
         begin
           # 簡単なクエリを実行
           ActiveRecord::Base.connection.execute("SELECT 1")
           response_time = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time) * 1000).round(2)
-          
+
           {
             healthy: true,
             response_time: "#{response_time}ms",
@@ -141,12 +141,12 @@ module Api
       # Redisの健全性チェック
       def check_redis_health
         start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        
+
         begin
           # 簡単なRedis操作を実行
           Redis.current.ping
           response_time = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time) * 1000).round(2)
-          
+
           {
             healthy: true,
             response_time: "#{response_time}ms",
@@ -167,7 +167,7 @@ module Api
         begin
           start_time = Time.current - Process.clock_gettime(Process::CLOCK_UPTIME)
           uptime_seconds = Process.clock_gettime(Process::CLOCK_UPTIME).to_i
-          
+
           {
             seconds: uptime_seconds,
             human_readable: "#{uptime_seconds / 3600}時間#{(uptime_seconds % 3600) / 60}分#{uptime_seconds % 60}秒"
@@ -184,28 +184,28 @@ module Api
       # レート制限の推奨事項を生成
       def generate_rate_limit_recommendations(usage)
         recommendations = []
-        
+
         hourly = usage[:hourly]
         minute = usage[:minute]
-        
+
         # 時間別使用率をチェック
         hourly_usage_percent = (hourly[:used].to_f / hourly[:limit]) * 100
         minute_usage_percent = (minute[:used].to_f / minute[:limit]) * 100
-        
+
         if hourly_usage_percent > 80
           recommendations << "時間別制限の80%を使用しています。リクエスト頻度を調整することをお勧めします。"
         end
-        
+
         if minute_usage_percent > 70
           recommendations << "分別制限の70%を使用しています。リクエスト間隔を空けることをお勧めします。"
         end
-        
+
         if hourly_usage_percent < 50 && minute_usage_percent < 50
           recommendations << "制限に余裕があります。必要に応じてリクエスト頻度を増やせます。"
         end
-        
+
         recommendations << "バッチ処理には bulk エンドポイントの使用をお勧めします。"
-        
+
         recommendations
       end
     end

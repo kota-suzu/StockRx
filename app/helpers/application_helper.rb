@@ -314,6 +314,73 @@ module ApplicationHelper
     "ms-2 badge bg-light text-dark"
   end
 
+  # ============================================
+  # 🔴 Phase 1: 未定義ヘルパーメソッド実装（緊急対応）
+  # ============================================
+
+  # 在庫レベルバッジ表示
+  # @param store_inventory [StoreInventory] 店舗在庫オブジェクト
+  # @return [Hash] バッジ情報ハッシュ { class: "CSSクラス", text: "表示テキスト" }
+  def stock_level_badge(store_inventory)
+    quantity = store_inventory.quantity
+    safety_level = store_inventory.safety_stock_level
+
+    case
+    when quantity == 0
+      { class: "badge bg-danger", text: "在庫切れ" }
+    when quantity <= safety_level
+      { class: "badge bg-warning text-dark", text: "在庫少" }
+    when quantity <= safety_level * 2
+      { class: "badge bg-info", text: "通常" }
+    else
+      { class: "badge bg-success", text: "在庫充分" }
+    end
+  end
+
+  # 在庫回転日数計算
+  # @param store_inventory [StoreInventory] 店舗在庫オブジェクト
+  # @return [String] 回転日数文字列
+  def turnover_days(store_inventory)
+    return "N/A" if store_inventory.quantity <= 0
+
+    # 簡易計算：安全在庫レベルベースの推定
+    # TODO: 🟡 Phase 3 - 実際の消費履歴データを使用した精密計算
+    daily_consumption = [ store_inventory.safety_stock_level / 30.0, 1.0 ].max
+    days = (store_inventory.quantity / daily_consumption).round
+
+    "#{days}日"
+  end
+
+  # IPアドレスフォーマット（セキュリティ考慮）
+  # @param ip [String] IPアドレス
+  # @return [String] フォーマット済みIPアドレス
+  def format_ip_address(ip)
+    return "不明" if ip.blank?
+
+    # セキュリティ考慮：最後のオクテットをマスク
+    ip.to_s.gsub(/\.\d+$/, ".***")
+  end
+
+  # パスワード強度CSSクラス
+  # @param days_until_expiry [Integer] 有効期限までの日数
+  # @return [String] CSSクラス名
+  def password_strength_class(days_until_expiry)
+    case days_until_expiry
+    when 0..7
+      "text-danger"
+    when 8..30
+      "text-warning"
+    else
+      "text-success"
+    end
+  end
+
+  # ソート方向ヘルパー
+  # @return [String] asc または desc
+  def sort_direction
+    params[:direction] == "desc" ? "desc" : "asc"
+  end
+
   # TODO: 🟡 Phase 6（重要）- 高度なヘルパー機能
   # 優先度: 中（UI/UX向上）
   # 実装内容:

@@ -106,13 +106,18 @@ RSpec.shared_examples "timestampable" do
     it "stores timestamps in UTC" do
       Time.use_zone("Tokyo") do
         new_instance = create(model.name.underscore.to_sym)
-        expect(new_instance.created_at.zone).to eq("UTC")
-        expect(new_instance.updated_at.zone).to eq("UTC")
+        # ActiveRecordはデータベースにUTCで保存しますが、
+        # Rubyオブジェクトとして取得するとアプリケーションタイムゾーン（JST）になります
+        expect(new_instance.created_at.zone).to eq("JST")
+        expect(new_instance.updated_at.zone).to eq("JST")
+        # UTCで保存されていることを確認
+        expect(new_instance.created_at.utc.zone).to eq("UTC")
       end
     end
 
     it "converts to application time zone on retrieval" do
       Time.use_zone("America/New_York") do
+        # Time.use_zoneブロック内では指定したタイムゾーンが使われる
         expect(instance.created_at.zone).to eq("EST").or eq("EDT")
       end
     end

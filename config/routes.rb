@@ -7,6 +7,11 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
 
+  # セキュリティ関連エンドポイント
+  post "csp-report" => "security#csp_report"
+  get "security-info" => "security#security_info"
+  get "security-audit" => "security#audit_summary"
+
   # Render dynamic PWA files from app/views/pwa/*
   get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
   get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
@@ -22,7 +27,12 @@ Rails.application.routes.draw do
 
     # Test routes for UI development
     get "test_table_light", to: "store_controllers/test#table_light", as: :test_table_light
+  end
 
+  # ============================================
+  # UI Demo Pages (開発・テスト環境)
+  # ============================================
+  if Rails.env.development? || Rails.env.test?
     # Modern UI v2 Demo Page
     # CLAUDE.md準拠: 最新UIトレンドに対応した新デザインシステムのデモ
     get "modern_ui_demo", to: "static#modern_ui_demo", as: :modern_ui_demo
@@ -188,7 +198,7 @@ Rails.application.routes.draw do
              controllers: {
                sessions: "admin_controllers/sessions",
                passwords: "admin_controllers/passwords",
-               omniauth_callbacks: "admins/omniauth_callbacks"
+               omniauth_callbacks: "admin_controllers/omniauth_callbacks"
              }
 
   # ============================================
@@ -366,29 +376,29 @@ Rails.application.routes.draw do
           patch :bulk_update   # 一括更新
           delete :bulk_destroy # 一括削除
         end
-        
+
         member do
           get :batches         # バッチ情報取得
           get :logs            # 履歴情報取得
         end
       end
-      
+
       # APIキー管理（管理者用）
       resources :api_keys, only: [ :index, :show, :create, :destroy ] do
         member do
           patch :revoke  # APIキーの失効
         end
       end
-      
+
       # APIメタ情報
-      get 'info', to: 'api_info#show'           # API情報取得
-      get 'health', to: 'api_info#health'       # ヘルスチェック
-      get 'rate_limit', to: 'api_info#rate_limit' # レート制限状況
+      get "info", to: "api_info#show"           # API情報取得
+      get "health", to: "api_info#health"       # ヘルスチェック
+      get "rate_limit", to: "api_info#rate_limit" # レート制限状況
     end
-    
+
     # APIドキュメント
-    mount Rswag::Ui::Engine => '/docs'
-    mount Rswag::Api::Engine => '/api-docs'
+    mount Rswag::Ui::Engine => "/docs"
+    mount Rswag::Api::Engine => "/api-docs"
   end
 
   # Phase 5-3: CSP違反レポート収集

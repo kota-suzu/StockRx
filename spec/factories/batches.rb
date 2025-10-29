@@ -11,12 +11,7 @@ FactoryBot.define do
     trait :expired do
       expires_on { 1.day.ago }
 
-      # Override factory to skip validation for expired batches
-      after(:build) do |batch|
-        def batch.new_record?
-          false  # Pretend it's not a new record to skip validation
-        end
-      end
+      to_create { |instance| instance.save(validate: false) }
     end
 
     trait :expiring_soon do

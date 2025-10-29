@@ -71,17 +71,17 @@ module ApiRateLimiting
     # CustomError::RateLimitExceededを使用
     error = CustomError::RateLimitExceeded.new(
       result[:message],
-      ["再試行まで#{result[:retry_after]}秒お待ちください"]
+      [ "再試行まで#{result[:retry_after]}秒お待ちください" ]
     )
-    
+
     # ApiResponseを使用してエラーレスポンスを生成
     api_response = ApiResponse.rate_limited(
       result[:message],
       result[:retry_after]
     )
-    
-    render json: api_response.to_h, 
-           status: api_response.status_code, 
+
+    render json: api_response.to_h,
+           status: api_response.status_code,
            headers: api_response.headers
   end
 
@@ -96,15 +96,15 @@ module ApiRateLimiting
     # デフォルトの実装を提供
     base_apply_rate_limiting? && !@skip_rate_limit
   end
-  
+
   # ベースの適用ロジック
   def base_apply_rate_limiting?
     # 開発環境ではデフォルトで無効化（環境変数で有効化可能）
     return false if Rails.env.development? && !ENV["ENABLE_API_RATE_LIMIT"]
-    
+
     # テスト環境では無効化
     return false if Rails.env.test?
-    
+
     # APIコントローラーでのみ有効化
     is_a?(Api::ApiController) || self.class.ancestors.include?(Api::ApiController)
   end

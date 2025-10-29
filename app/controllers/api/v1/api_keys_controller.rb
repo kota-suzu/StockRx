@@ -7,7 +7,7 @@ module Api
     class ApiKeysController < Api::ApiController
       # 管理者認証必須
       before_action :authenticate_api_admin!
-      before_action :set_api_key, only: [:show, :destroy, :revoke]
+      before_action :set_api_key, only: [ :show, :destroy, :revoke ]
 
       # GET /api/v1/api_keys
       def index
@@ -37,8 +37,8 @@ module Api
       def show
         response = ApiResponse.success(
           @api_key.as_json(include: {
-            admin: { only: [:id, :email, :role] },
-            store_user: { only: [:id, :email, :name] }
+            admin: { only: [ :id, :email, :role ] },
+            store_user: { only: [ :id, :email, :name ] }
           }),
           "APIキー情報を取得しました"
         )

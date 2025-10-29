@@ -78,14 +78,14 @@ RSpec.describe ApplicationJob, type: :job do
   class PerformanceMonitoringTestJob < ApplicationJob
     def perform(processing_time = 0.1, memory_usage = :normal)
       sleep(processing_time) if processing_time > 0
-      
+
       case memory_usage
       when :large
         @large_data = Array.new(100000) { |i| "Memory test data #{i}" }
       when :huge
         @huge_data = Array.new(1000000) { |i| "Huge memory test #{i}" }
       end
-      
+
       Rails.logger.info "Performance test completed"
     end
   end
@@ -134,13 +134,13 @@ RSpec.describe ApplicationJob, type: :job do
   before do
     # ApplicationJobのセキュアロギングを有効化
     ApplicationJob.secure_logging_enabled = true
-    
+
     # Rails.loggerをテスト用にモック化
     allow(Rails.logger).to receive(:info)
     allow(Rails.logger).to receive(:error)
     allow(Rails.logger).to receive(:warn)
     allow(Rails.logger).to receive(:debug)
-    
+
     # 時間測定の基準時刻
     allow(Time).to receive(:current).and_return(Time.zone.parse('2025-06-26 10:00:00'))
   end
@@ -170,7 +170,7 @@ RSpec.describe ApplicationJob, type: :job do
     it 'セキュアロギングの有効/無効を切り替えできる' do
       ApplicationJob.secure_logging_enabled = false
       expect(ApplicationJob.secure_logging_enabled).to be false
-      
+
       ApplicationJob.secure_logging_enabled = true
       expect(ApplicationJob.secure_logging_enabled).to be true
     end
@@ -178,7 +178,7 @@ RSpec.describe ApplicationJob, type: :job do
     it 'インスタンスメソッドでセキュアロギング状態を取得できる' do
       job = TestApplicationJob.new
       expect(job.secure_logging_enabled?).to be true
-      
+
       ApplicationJob.secure_logging_enabled = false
       expect(job.secure_logging_enabled?).to be false
     end
@@ -193,8 +193,8 @@ RSpec.describe ApplicationJob, type: :job do
       it 'StandardErrorで3回リトライする（指数バックオフ）' do
         # リトライ設定の確認
         retry_jobs = ApplicationJob.retry_on_patterns
-        standard_error_config = retry_jobs.find { |config| config[:on] == [StandardError] }
-        
+        standard_error_config = retry_jobs.find { |config| config[:on] == [ StandardError ] }
+
         expect(standard_error_config).not_to be_nil
         expect(standard_error_config[:attempts]).to eq(3)
         expect(standard_error_config[:wait]).to eq(:exponentially_longer)
@@ -202,8 +202,8 @@ RSpec.describe ApplicationJob, type: :job do
 
       it 'ActiveRecord::Deadlockedで3回リトライする（5秒間隔）' do
         deadlock_config = ApplicationJob.retry_on_patterns
-                                      .find { |config| config[:on] == [ActiveRecord::Deadlocked] }
-        
+                                      .find { |config| config[:on] == [ ActiveRecord::Deadlocked ] }
+
         expect(deadlock_config).not_to be_nil
         expect(deadlock_config[:attempts]).to eq(3)
         expect(deadlock_config[:wait]).to eq(5.seconds)
@@ -211,8 +211,8 @@ RSpec.describe ApplicationJob, type: :job do
 
       it 'ActiveRecord::ConnectionTimeoutErrorで3回リトライする（10秒間隔）' do
         timeout_config = ApplicationJob.retry_on_patterns
-                                     .find { |config| config[:on] == [ActiveRecord::ConnectionTimeoutError] }
-        
+                                     .find { |config| config[:on] == [ ActiveRecord::ConnectionTimeoutError ] }
+
         expect(timeout_config).not_to be_nil
         expect(timeout_config[:attempts]).to eq(3)
         expect(timeout_config[:wait]).to eq(10.seconds)
@@ -223,7 +223,7 @@ RSpec.describe ApplicationJob, type: :job do
       it 'ActiveJob::DeserializationErrorは即座に破棄される' do
         discard_jobs = ApplicationJob.discard_on_patterns
         deserialization_config = discard_jobs.include?(ActiveJob::DeserializationError)
-        
+
         expect(deserialization_config).to be true
       end
 
@@ -246,11 +246,11 @@ RSpec.describe ApplicationJob, type: :job do
   describe 'ログ機能の分岐テスト' do
     let(:job) { TestApplicationJob.new }
     let(:job_id) { SecureRandom.uuid }
-    
+
     before do
       allow(job).to receive(:job_id).and_return(job_id)
       allow(job).to receive(:queue_name).and_return('test')
-      allow(job).to receive(:arguments).and_return([:normal, 'test_arg'])
+      allow(job).to receive(:arguments).and_return([ :normal, 'test_arg' ])
     end
 
     describe '#log_job_start' do
@@ -264,7 +264,7 @@ RSpec.describe ApplicationJob, type: :job do
           expect(parsed_data).to have_key('arguments')
           expect(parsed_data).to have_key('timestamp')
         end
-        
+
         job.send(:log_job_start)
       end
 
@@ -272,15 +272,15 @@ RSpec.describe ApplicationJob, type: :job do
         sensitive_job = SecureSanitizationTestJob.new
         allow(sensitive_job).to receive(:job_id).and_return(job_id)
         allow(sensitive_job).to receive(:queue_name).and_return('test')
-        allow(sensitive_job).to receive(:arguments).and_return([sensitive_test_data])
-        
+        allow(sensitive_job).to receive(:arguments).and_return([ sensitive_test_data ])
+
         expect(Rails.logger).to receive(:info) do |log_data|
           expect(log_data).not_to include('test_live_secret123456789')
           expect(log_data).not_to include('super_secret_password')
           expect(log_data).not_to include('4111-1111-1111-1111')
           expect(log_data).to include('[FILTERED]')
         end
-        
+
         sensitive_job.send(:log_job_start)
       end
 
@@ -299,7 +299,7 @@ RSpec.describe ApplicationJob, type: :job do
             expect(SecureJobPerformanceMonitor).to receive(:start_monitoring)
                                                   .with('ApplicationJobSpec::TestApplicationJob', job_id, 2)
           end
-          
+
           job.send(:log_job_start)
         end
       end
@@ -313,7 +313,7 @@ RSpec.describe ApplicationJob, type: :job do
           if defined?(SecureJobPerformanceMonitor)
             expect(SecureJobPerformanceMonitor).not_to receive(:start_monitoring)
           end
-          
+
           job.send(:log_job_start)
         end
       end
@@ -333,17 +333,17 @@ RSpec.describe ApplicationJob, type: :job do
           expect(log_data['duration']).to be > 0
           expect(log_data).to have_key('timestamp')
         end
-        
+
         job.send(:log_job_success)
       end
 
       it '@start_timeが設定されていない場合でもエラーにならない' do
         job.instance_variable_set(:@start_time, nil)
-        
+
         expect(Rails.logger).to receive(:info) do |log_data|
           expect(log_data['duration']).to be_nil
         end
-        
+
         expect { job.send(:log_job_success) }.not_to raise_error
       end
 
@@ -360,7 +360,7 @@ RSpec.describe ApplicationJob, type: :job do
             expect(SecureJobPerformanceMonitor).to receive(:end_monitoring)
                                                   .with({ started_at: Time.current }, success: true)
           end
-          
+
           job.send(:log_job_success)
         end
       end
@@ -368,8 +368,8 @@ RSpec.describe ApplicationJob, type: :job do
 
     describe '#log_job_error' do
       let(:test_error) { StandardError.new('Test error message') }
-      let(:backtrace) { ['line1', 'line2', 'line3'] }
-      
+      let(:backtrace) { [ 'line1', 'line2', 'line3' ] }
+
       before do
         job.instance_variable_set(:@start_time, Time.current - 2.0)
         allow(test_error).to receive(:backtrace).and_return(backtrace)
@@ -385,13 +385,13 @@ RSpec.describe ApplicationJob, type: :job do
           expect(log_data['error_backtrace']).to eq(backtrace.first(10))
           expect(log_data['duration']).to be_a(Float)
         end
-        
+
         expect { job.send(:log_job_error, test_error) }.to raise_error(StandardError)
       end
 
       it 'エラーを再発生させる（Sidekiqリトライのため）' do
         allow(Rails.logger).to receive(:error)
-        
+
         expect { job.send(:log_job_error, test_error) }.to raise_error(StandardError, 'Test error message')
       end
 
@@ -406,11 +406,11 @@ RSpec.describe ApplicationJob, type: :job do
         it 'パフォーマンス監視をエラー情報と共に終了する' do
           if defined?(SecureJobPerformanceMonitor)
             expect(SecureJobPerformanceMonitor).to receive(:end_monitoring)
-                                                  .with({ started_at: Time.current }, 
-                                                        success: false, 
+                                                  .with({ started_at: Time.current },
+                                                        success: false,
                                                         error: test_error)
           end
-          
+
           expect { job.send(:log_job_error, test_error) }.to raise_error(StandardError)
         end
       end
@@ -418,12 +418,12 @@ RSpec.describe ApplicationJob, type: :job do
       it 'backtraceが10行を超える場合は10行に制限される' do
         long_backtrace = Array.new(20) { |i| "line#{i + 1}" }
         allow(test_error).to receive(:backtrace).and_return(long_backtrace)
-        
+
         expect(Rails.logger).to receive(:error) do |log_data|
           expect(log_data['error_backtrace'].size).to eq(10)
           expect(log_data['error_backtrace']).to eq(long_backtrace.first(10))
         end
-        
+
         expect { job.send(:log_job_error, test_error) }.to raise_error(StandardError)
       end
     end
@@ -435,10 +435,10 @@ RSpec.describe ApplicationJob, type: :job do
 
   describe 'SecureArgumentSanitizer統合分岐テスト' do
     let(:job) { SecureSanitizationTestJob.new }
-    
+
     before do
       allow(job).to receive(:job_id).and_return('test-job-id')
-      allow(job).to receive(:arguments).and_return([sensitive_test_data])
+      allow(job).to receive(:arguments).and_return([ sensitive_test_data ])
     end
 
     describe '#sanitize_arguments' do
@@ -446,8 +446,8 @@ RSpec.describe ApplicationJob, type: :job do
         before { ApplicationJob.secure_logging_enabled = true }
 
         it '機密情報を適切にフィルタリングする' do
-          result = job.send(:sanitize_arguments, [sensitive_test_data])
-          
+          result = job.send(:sanitize_arguments, [ sensitive_test_data ])
+
           expect(result[0][:api_token]).to eq('[FILTERED]')
           expect(result[0][:user_email]).to eq('[FILTERED]')
           expect(result[0][:password]).to eq('[FILTERED]')
@@ -456,16 +456,16 @@ RSpec.describe ApplicationJob, type: :job do
         end
 
         it 'ネストした構造の機密情報もフィルタリングする' do
-          result = job.send(:sanitize_arguments, [sensitive_test_data])
-          
+          result = job.send(:sanitize_arguments, [ sensitive_test_data ])
+
           expect(result[0][:nested_sensitive][:level1][:api_key]).to eq('[FILTERED]')
           expect(result[0][:nested_sensitive][:level1][:credentials][:secret]).to eq('[FILTERED]')
         end
 
         it '非機密情報は保持する' do
           test_data = { public_id: 123, name: 'Test Item', status: 'active' }
-          result = job.send(:sanitize_arguments, [test_data])
-          
+          result = job.send(:sanitize_arguments, [ test_data ])
+
           expect(result[0][:public_id]).to eq(123)
           expect(result[0][:name]).to eq('Test Item')
           expect(result[0][:status]).to eq('active')
@@ -476,8 +476,8 @@ RSpec.describe ApplicationJob, type: :job do
         before { ApplicationJob.secure_logging_enabled = false }
 
         it '引数をそのまま返す' do
-          result = job.send(:sanitize_arguments, [sensitive_test_data])
-          expect(result).to eq([sensitive_test_data])
+          result = job.send(:sanitize_arguments, [ sensitive_test_data ])
+          expect(result).to eq([ sensitive_test_data ])
         end
       end
 
@@ -498,8 +498,8 @@ RSpec.describe ApplicationJob, type: :job do
         end
 
         it '引数をそのまま返す' do
-          result = job.send(:sanitize_arguments, [sensitive_test_data])
-          expect(result).to eq([sensitive_test_data])
+          result = job.send(:sanitize_arguments, [ sensitive_test_data ])
+          expect(result).to eq([ sensitive_test_data ])
         end
       end
 
@@ -515,15 +515,15 @@ RSpec.describe ApplicationJob, type: :job do
             expect(log_data['error_class']).to eq('StandardError')
             expect(log_data['error_message']).to eq('Sanitization failed')
           end
-          
-          job.send(:sanitize_arguments, [sensitive_test_data])
+
+          job.send(:sanitize_arguments, [ sensitive_test_data ])
         end
 
         it '安全な代替値を返す' do
           allow(Rails.logger).to receive(:error)
-          result = job.send(:sanitize_arguments, [sensitive_test_data])
-          
-          expect(result).to eq(['[SANITIZATION_FAILED]'])
+          result = job.send(:sanitize_arguments, [ sensitive_test_data ])
+
+          expect(result).to eq([ '[SANITIZATION_FAILED]' ])
         end
 
         it 'パフォーマンス情報も記録する' do
@@ -532,8 +532,8 @@ RSpec.describe ApplicationJob, type: :job do
             expect(log_data).to have_key('args_count')
             expect(log_data['args_count']).to eq(1)
           end
-          
-          job.send(:sanitize_arguments, [sensitive_test_data])
+
+          job.send(:sanitize_arguments, [ sensitive_test_data ])
         end
       end
 
@@ -544,7 +544,7 @@ RSpec.describe ApplicationJob, type: :job do
           if defined?(SecureJobPerformanceMonitor)
             allow(SecureJobPerformanceMonitor).to receive(:monitor_sanitization)
                                                 .and_yield
-                                                .and_return(['[FILTERED]'])
+                                                .and_return([ '[FILTERED]' ])
           end
         end
 
@@ -553,8 +553,8 @@ RSpec.describe ApplicationJob, type: :job do
             expect(SecureJobPerformanceMonitor).to receive(:monitor_sanitization)
                                                   .with('ApplicationJobSpec::SecureSanitizationTestJob', 1)
           end
-          
-          job.send(:sanitize_arguments, [sensitive_test_data])
+
+          job.send(:sanitize_arguments, [ sensitive_test_data ])
         end
       end
     end
@@ -566,32 +566,32 @@ RSpec.describe ApplicationJob, type: :job do
       end
 
       it '文字列要素を適切にクォートする' do
-        args = ['string1', 'string2']
+        args = [ 'string1', 'string2' ]
         result = job.send(:safe_arguments_to_string, args)
         expect(result).to eq('["string1", "string2"]')
       end
 
       it 'フィルタリング済みマーカーを認識する' do
-        args = ['[FILTERED]', '[ADMIN_ID_12345]']
+        args = [ '[FILTERED]', '[ADMIN_ID_12345]' ]
         result = job.send(:safe_arguments_to_string, args)
         expect(result).to eq('[[FILTERED], [ADMIN_ID_12345]]')
       end
 
       it 'ハッシュを適切に文字列化する' do
-        args = [{ key: 'value', filtered: '[FILTERED]' }]
+        args = [ { key: 'value', filtered: '[FILTERED]' } ]
         result = job.send(:safe_arguments_to_string, args)
         expect(result).to include('"key" => "value"')
         expect(result).to include('"filtered" => [FILTERED]')
       end
 
       it 'ネストした配列を適切に処理する' do
-        args = [['nested1', 'nested2']]
+        args = [ [ 'nested1', 'nested2' ] ]
         result = job.send(:safe_arguments_to_string, args)
         expect(result).to eq('[["nested1", "nested2"]]')
       end
 
       it '数値、ブール値、nilを適切に処理する' do
-        args = [123, true, false, nil]
+        args = [ 123, true, false, nil ]
         result = job.send(:safe_arguments_to_string, args)
         expect(result).to eq('[123, true, false, ]')
       end
@@ -650,7 +650,7 @@ RSpec.describe ApplicationJob, type: :job do
             allow(SecureJobPerformanceMonitor).to receive(:start_monitoring)
                                                 .and_return({ started_at: Time.current })
           end
-          allow(performance_job).to receive(:arguments).and_return(['test', 'args'])
+          allow(performance_job).to receive(:arguments).and_return([ 'test', 'args' ])
         end
 
         it 'SecureJobPerformanceMonitor.start_monitoringを呼び出す' do
@@ -701,7 +701,7 @@ RSpec.describe ApplicationJob, type: :job do
             allow(SecureJobPerformanceMonitor).to receive(:start_monitoring)
                                                 .and_raise(StandardError, 'Monitoring failed')
           end
-          allow(performance_job).to receive(:arguments).and_return(['test'])
+          allow(performance_job).to receive(:arguments).and_return([ 'test' ])
         end
 
         it '警告ログを出力してnilを返す' do
@@ -869,7 +869,7 @@ RSpec.describe ApplicationJob, type: :job do
     context '破棄対象エラー（リトライしない）' do
       # 注意：破棄対象エラーはActiveJobの仕組みでキャッチされるため、
       # 実際のエラーレイズ確認は困難。ここでは設定の確認に留める。
-      
+
       it 'ActiveJob::DeserializationErrorは破棄設定に含まれる' do
         discard_patterns = ApplicationJob.discard_on_patterns
         expect(discard_patterns).to include(ActiveJob::DeserializationError)
@@ -915,12 +915,12 @@ RSpec.describe ApplicationJob, type: :job do
           else
             log_content = JSON.generate(log_data)
           end
-          
+
           # 機密情報が含まれていないことを確認
           expect(log_content).not_to include('test_live_secret123456789')
           expect(log_content).not_to include('super_secret_password')
           expect(log_content).not_to include('4111-1111-1111-1111')
-          
+
           # フィルタリングマーカーが含まれていることを確認
           expect(log_content).to include('[FILTERED]')
         end
@@ -1007,7 +1007,7 @@ RSpec.describe ApplicationJob, type: :job do
     before do
       allow(job_instance).to receive(:job_id).and_return('test-job-id')
       allow(job_instance).to receive(:queue_name).and_return('test')
-      allow(job_instance).to receive(:arguments).and_return(['test_arg'])
+      allow(job_instance).to receive(:arguments).and_return([ 'test_arg' ])
     end
 
     it "#{job_class}でログ開始メソッドが正しく動作する" do
@@ -1070,7 +1070,7 @@ RSpec.describe ApplicationJob, type: :job do
     end
 
     it "#{job_class}で機密情報が適切にサニタイズされる" do
-      result = job_instance.send(:sanitize_arguments, [sensitive_data])
+      result = job_instance.send(:sanitize_arguments, [ sensitive_data ])
 
       expect(result[0][:api_token]).to eq('[FILTERED]')
       expect(result[0][:user_email]).to eq('[FILTERED]')
@@ -1080,8 +1080,8 @@ RSpec.describe ApplicationJob, type: :job do
     it "#{job_class}でセキュアロギング無効時は引数がそのまま返される" do
       ApplicationJob.secure_logging_enabled = false
 
-      result = job_instance.send(:sanitize_arguments, [sensitive_data])
-      expect(result).to eq([sensitive_data])
+      result = job_instance.send(:sanitize_arguments, [ sensitive_data ])
+      expect(result).to eq([ sensitive_data ])
     end
 
     it "#{job_class}でサニタイズエラー時に安全な代替値が返される" do
@@ -1089,8 +1089,8 @@ RSpec.describe ApplicationJob, type: :job do
       allow(SecureArgumentSanitizer).to receive(:sanitize).and_raise(StandardError, 'Sanitization failed')
       allow(Rails.logger).to receive(:error)
 
-      result = job_instance.send(:sanitize_arguments, [sensitive_data])
-      expect(result).to eq(['[SANITIZATION_FAILED]'])
+      result = job_instance.send(:sanitize_arguments, [ sensitive_data ])
+      expect(result).to eq([ '[SANITIZATION_FAILED]' ])
     end
   end
 
@@ -1123,7 +1123,7 @@ RSpec.describe ApplicationJob, type: :job do
   describe '将来的な拡張機能のテスト準備' do
     # TODO: 🔴 緊急 - Phase 1（推定1日）- 高度セキュリティ機能テスト
     # 優先度: 高（GDPR/PCI DSS準拠の基本要件）
-    # 実装内容: 
+    # 実装内容:
     #   - GDPR準拠の個人情報保護機能テスト
     #   - PCI DSS準拠のクレジットカード情報保護テスト
     #   - タイミング攻撃対策テスト

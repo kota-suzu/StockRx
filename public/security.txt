@@ -1,0 +1,52 @@
+# StockRx Security Policy
+# ======================
+# セキュリティ脆弱性の報告とセキュリティポリシー
+
+Contact: mailto:security@stockrx.example.com
+Contact: https://stockrx.example.com/security-contact
+Expires: 2025-12-31T23:59:59.000Z
+Encryption: https://stockrx.example.com/pgp-key.txt
+Acknowledgments: https://stockrx.example.com/security-acknowledgments
+Policy: https://stockrx.example.com/security-policy
+Hiring: https://stockrx.example.com/careers
+
+# 脆弱性報告について
+# ==================
+# セキュリティ脆弱性を発見された場合は、以下の手順に従って報告してください：
+#
+# 1. 上記のContactに記載されたメールアドレスまたはWebフォームから報告
+# 2. 可能な限り詳細な情報（再現手順、影響範囲、修正提案など）を含める
+# 3. 公開されるまで脆弱性を第三者に開示しない
+# 4. 24時間以内に受領確認を送信します
+# 5. 修正まで最大90日間の猶予期間を設けます
+
+# 報奨金プログラム
+# ================
+# 重要な脆弱性の報告には、以下の報奨金を提供します：
+# - 重大（Critical）: $1,000 - $5,000
+# - 高（High）: $500 - $1,000
+# - 中（Medium）: $100 - $500
+# - 低（Low）: $50 - $100
+
+# 対象範囲
+# ========
+# 以下のドメインとサービスが対象です：
+# - *.stockrx.example.com
+# - StockRx モバイルアプリ
+# - StockRx API
+
+# 対象外
+# ======
+# 以下は対象外です：
+# - 物理的なセキュリティ
+# - ソーシャルエンジニアリング
+# - DDoS攻撃
+# - 開発・テスト環境（*.dev.stockrx.example.com）
+
+# 責任ある開示
+# ============
+# セキュリティ研究者の皆様へ：
+# - テストは必要最小限に留めてください
+# - サービスの可用性に影響を与えないでください
+# - 他のユーザーのデータにアクセスしないでください
+# - 発見した脆弱性は責任をもって開示してください

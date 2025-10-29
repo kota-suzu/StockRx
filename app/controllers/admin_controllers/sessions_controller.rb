@@ -28,6 +28,21 @@ module AdminControllers
       new_admin_session_path
     end
 
+    def create
+      self.resource = warden.authenticate(auth_options)
+
+      if resource
+        set_flash_message!(:notice, :signed_in)
+        sign_in(resource_name, resource)
+        respond_with resource, location: after_sign_in_path_for(resource)
+      else
+        self.resource = resource_class.new(sign_in_params)
+        clean_up_passwords(resource)
+        flash.now[:alert] = sanitized_failure_message
+        respond_with_navigational(resource) { render :new, status: :unprocessable_entity }
+      end
+    end
+
     # TODO: 将来的な機能拡張
     # - ログイン履歴の記録と表示
     # - ブルートフォース攻撃対策の強化
@@ -42,6 +57,13 @@ module AdminControllers
     # セッションタイムアウト対応
     def auth_options
       { scope: :admin, recall: "#{controller_path}#new" }
+    end
+
+    private
+
+    def sanitized_failure_message
+      raw_message = I18n.t('devise.failure.invalid', authentication_keys: Admin.human_attribute_name(:email))
+      ERB::Util.html_escape(raw_message)
     end
   end
 end

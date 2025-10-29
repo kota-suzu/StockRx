@@ -6,7 +6,7 @@ module Api
       # API認証（オプショナル）でレート制限を緊和
       before_action :authenticate_api_key
       # 管理者権限が必要なアクション
-      before_action :ensure_admin_permissions!, only: [:create, :update, :destroy]
+      before_action :ensure_admin_permissions!, only: [ :create, :update, :destroy ]
       protect_from_forgery with: :null_session
       before_action :set_inventory, only: %i[show update destroy]
 
@@ -151,20 +151,20 @@ module Api
       # GET /api/v1/inventories/bulk
       def bulk
         # 大量データ取得用（最大1000件）
-        per_page = [params[:per_page].to_i, 1000].min
+        per_page = [ params[:per_page].to_i, 1000 ].min
         per_page = 100 if per_page <= 0
-        
+
         search_builder = SearchQueryBuilder
           .build(Inventory.includes(:batches))
           .filter_by_name(params[:name])
           .filter_by_status(params[:status])
           .order_by(params[:sort] || "updated_at", params[:direction] || "desc")
-        
+
         search_result = search_builder.execute(
           page: params[:page] || 1,
           per_page: per_page
         )
-        
+
         response = ApiResponse.paginated(
           search_result,
           "在庫データを一括取得しました（#{search_result.total_count}件中#{search_result.size}件）",
@@ -174,14 +174,14 @@ module Api
             search_conditions: search_result.conditions_summary
           }
         )
-        
+
         render json: response.to_h, status: response.status_code, headers: response.headers
       end
 
       # POST /api/v1/inventories/bulk_create
       def bulk_create
         inventories_params = params.require(:inventories)
-        
+
         unless inventories_params.is_a?(Array)
           response = ApiResponse.error(
             "一括作成データはinventories配列で指定してください",
@@ -192,7 +192,7 @@ module Api
           render json: response.to_h, status: response.status_code, headers: response.headers
           return
         end
-        
+
         if inventories_params.length > 100
           response = ApiResponse.error(
             "一度に作成できるのは100件までです",
@@ -203,13 +203,13 @@ module Api
           render json: response.to_h, status: response.status_code, headers: response.headers
           return
         end
-        
+
         results = { created: [], failed: [] }
-        
+
         Inventory.transaction do
           inventories_params.each_with_index do |inventory_params, index|
             inventory = Inventory.new(permitted_params(inventory_params))
-            
+
             if inventory.save
               results[:created] << { index: index, inventory: inventory.decorate }
             else
@@ -220,13 +220,13 @@ module Api
               }
             end
           end
-          
+
           # ひとつでも失敗したらロールバック
           if results[:failed].any?
             raise ActiveRecord::Rollback
           end
         end
-        
+
         if results[:failed].any?
           response = ApiResponse.error(
             "一括作成に失敗しました",
@@ -240,14 +240,14 @@ module Api
             "#{results[:created].size}件の在庫が正常に作成されました"
           )
         end
-        
+
         render json: response.to_h, status: response.status_code, headers: response.headers
       end
-      
+
       # PATCH /api/v1/inventories/bulk_update
       def bulk_update
         updates_params = params.require(:updates)
-        
+
         unless updates_params.is_a?(Array)
           response = ApiResponse.error(
             "一括更新データはupdates配列で指定してください",
@@ -258,7 +258,7 @@ module Api
           render json: response.to_h, status: response.status_code, headers: response.headers
           return
         end
-        
+
         if updates_params.length > 100
           response = ApiResponse.error(
             "一度に更新できるのは100件までです",
@@ -269,25 +269,25 @@ module Api
           render json: response.to_h, status: response.status_code, headers: response.headers
           return
         end
-        
+
         results = { updated: [], failed: [] }
-        
+
         Inventory.transaction do
           updates_params.each_with_index do |update_params, index|
             inventory_id = update_params[:id]
-            
+
             unless inventory_id
               results[:failed] << {
                 index: index,
                 data: update_params,
-                errors: ["IDが指定されていません"]
+                errors: [ "IDが指定されていません" ]
               }
               next
             end
-            
+
             begin
               inventory = Inventory.find(inventory_id)
-              
+
               if inventory.update(permitted_params(update_params.except(:id)))
                 results[:updated] << { index: index, inventory: inventory.reload.decorate }
               else
@@ -301,17 +301,17 @@ module Api
               results[:failed] << {
                 index: index,
                 data: update_params,
-                errors: ["ID #{inventory_id}の在庫が見つかりません"]
+                errors: [ "ID #{inventory_id}の在庫が見つかりません" ]
               }
             end
           end
-          
+
           # ひとつでも失敗したらロールバック
           if results[:failed].any?
             raise ActiveRecord::Rollback
           end
         end
-        
+
         if results[:failed].any?
           response = ApiResponse.error(
             "一括更新に失敗しました",
@@ -325,14 +325,14 @@ module Api
             "#{results[:updated].size}件の在庫が正常に更新されました"
           )
         end
-        
+
         render json: response.to_h, status: response.status_code, headers: response.headers
       end
-      
+
       # DELETE /api/v1/inventories/bulk_destroy
       def bulk_destroy
         ids = params.require(:ids)
-        
+
         unless ids.is_a?(Array)
           response = ApiResponse.error(
             "一括削除のIDはids配列で指定してください",
@@ -343,7 +343,7 @@ module Api
           render json: response.to_h, status: response.status_code, headers: response.headers
           return
         end
-        
+
         if ids.length > 50
           response = ApiResponse.error(
             "一度に削除できるのは50件までです",
@@ -354,9 +354,9 @@ module Api
           render json: response.to_h, status: response.status_code, headers: response.headers
           return
         end
-        
+
         results = { deleted: [], failed: [] }
-        
+
         Inventory.transaction do
           ids.each_with_index do |id, index|
             begin
@@ -367,23 +367,23 @@ module Api
               results[:failed] << {
                 index: index,
                 id: id,
-                errors: ["ID #{id}の在庫が見つかりません"]
+                errors: [ "ID #{id}の在庫が見つかりません" ]
               }
             rescue ActiveRecord::DeleteRestrictionError, ActiveRecord::RecordNotDestroyed => e
               results[:failed] << {
                 index: index,
                 id: id,
-                errors: ["削除制約により削除できません"]
+                errors: [ "削除制約により削除できません" ]
               }
             end
           end
-          
+
           # ひとつでも失敗したらロールバック
           if results[:failed].any?
             raise ActiveRecord::Rollback
           end
         end
-        
+
         if results[:failed].any?
           response = ApiResponse.error(
             "一括削除に失敗しました",
@@ -496,7 +496,7 @@ module Api
       def inventory_params
         params.require(:inventory).permit(:name, :quantity, :price, :status, :lock_version)
       end
-      
+
       # バルク操作用のパラメーター許可
       def permitted_params(param_hash)
         ActionController::Parameters.new(param_hash).permit(:name, :quantity, :price, :status, :lock_version)

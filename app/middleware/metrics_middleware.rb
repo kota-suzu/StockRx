@@ -29,15 +29,15 @@ class MetricsMiddleware
 
     # リクエスト開始時刻を記録
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    
+
     begin
       # アプリケーションを実行
       status, headers, response = @app.call(env)
-      
+
       # メトリクスを記録
       record_request_metrics(env, status, start_time)
-      
-      [status, headers, response]
+
+      [ status, headers, response ]
     rescue => e
       # エラーメトリクスを記録
       record_request_metrics(env, 500, start_time)
@@ -66,7 +66,7 @@ class MetricsMiddleware
 
   def record_request_metrics(env, status, start_time)
     duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-    
+
     MetricsCollector.instance.record_http_request(
       method: env["REQUEST_METHOD"],
       path: env["PATH_INFO"],
@@ -94,7 +94,7 @@ module DatabaseMetrics
       next if payload[:sql]&.match?(/^(BEGIN|COMMIT|ROLLBACK|PRAGMA)/i)
 
       duration = finish - start
-      
+
       MetricsCollector.instance.record_db_query(
         sql: payload[:sql],
         name: payload[:name],
@@ -120,7 +120,7 @@ module CacheMetrics
     ActiveSupport::Notifications.subscribe("cache_read.active_support") do |_name, start, finish, _id, payload|
       duration = finish - start
       hit = payload[:hit] || false
-      
+
       MetricsCollector.instance.record_cache_operation(
         operation: :read,
         hit: hit,
@@ -133,7 +133,7 @@ module CacheMetrics
     # キャッシュ書き込みを監視
     ActiveSupport::Notifications.subscribe("cache_write.active_support") do |_name, start, finish, _id, _payload|
       duration = finish - start
-      
+
       MetricsCollector.instance.record_cache_operation(
         operation: :write,
         hit: true,
@@ -154,10 +154,10 @@ module SidekiqMetrics
   class Middleware
     def call(worker, job, queue)
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      
+
       begin
         yield
-        
+
         # 成功時のメトリクス
         duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
         record_job_metrics(worker, job, queue, :success, duration)
@@ -195,21 +195,21 @@ class CollectMetricsJob < ApplicationJob
 
   def perform
     collector = MetricsCollector.instance
-    
+
     # システムメトリクス
     collector.record_memory_metrics
     collector.record_thread_metrics
     collector.record_gc_metrics
-    
+
     # ビジネスメトリクス
     collector.record_inventory_metrics
     collector.record_store_metrics
-    
+
     # 集計処理
     collector.aggregate_metrics(:short)
     collector.aggregate_metrics(:medium) if Time.current.min % 5 == 0
     collector.aggregate_metrics(:long) if Time.current.min == 0
-    
+
     Rails.logger.info "Metrics collection completed"
   rescue => e
     Rails.logger.error "Failed to collect metrics: #{e.message}"

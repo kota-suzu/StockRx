@@ -7,6 +7,7 @@ module AdminControllers
     include ErrorHandlers
     include AdminAuthorization  # 🔒 権限チェック機能の統一
     include SecurityCompliance  # 🛡️ セキュリティコンプライアンス機能
+    include SecurityHeaders     # 🛡️ セキュリティヘッダー統合
     include DatabaseOptimization  # 🚀 データベース最適化機能
 
     # AdminControllers用ヘルパーのインクルード

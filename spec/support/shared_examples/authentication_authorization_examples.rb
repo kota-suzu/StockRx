@@ -9,7 +9,7 @@
 #
 # 🆕 実装完了 (2025年6月26日):
 # ✅ controller authentication tests: 基本認証フロー検証
-# ✅ admin authorization tests: 階層的権限制御検証  
+# ✅ admin authorization tests: 階層的権限制御検証
 # ✅ session timeout tests: セッション管理検証（実装待ち部分あり）
 # ✅ CSRF protection tests: CSRF攻撃防止検証
 # ✅ secure headers validation: セキュリティヘッダー検証
@@ -96,9 +96,9 @@ RSpec.shared_examples 'controller authentication tests' do |namespace = :admin|
         # 期待効果: 認証コンテキストの統一管理
         # 工数見積: 1日
         # 依存関係: ApplicationControllerの実装状況
-        
+
         skip "実装確認必要: ApplicationControllerでのCurrent設定統合"
-        
+
         # 将来実装時のテストコード例
         # subject
         # case namespace
@@ -179,7 +179,7 @@ RSpec.shared_examples 'admin authorization tests' do
         # 期待効果: 権限昇格攻撃の防止
         # 工数見積: 2-3日
         # 依存関係: 各コントローラーの認可ロジック実装状況
-        
+
         skip "実装予定: 店舗間アクセス制御テスト - コントローラー固有の認可ロジックに依存"
       end
     end
@@ -193,7 +193,7 @@ RSpec.shared_examples 'admin authorization tests' do
       subject
       # レスポンスはコントローラーの実装に依存
       # 一般的には forbidden または redirect が期待される
-      expect(response.status).to be_in([200, 302, 403])
+      expect(response.status).to be_in([ 200, 302, 403 ])
     end
   end
 end
@@ -238,9 +238,9 @@ RSpec.shared_examples 'session timeout tests' do |namespace = :admin|
       # 期待効果: セキュリティコンプライアンス確保
       # 工数見積: 1日
       # 依存関係: Devise設定の現在の実装状況
-      
+
       skip "実装確認必要: Deviseセッションタイムアウト設定に依存"
-      
+
       # 将来実装時のテストコード例
       # Timecop.travel(Time.current + 35.minutes) do
       #   subject
@@ -262,9 +262,9 @@ RSpec.shared_examples 'session timeout tests' do |namespace = :admin|
       # 期待効果: セキュリティコンプライアンス確保
       # 工数見積: 1日
       # 依存関係: Devise設定の現在の実装状況
-      
+
       skip "実装確認必要: Deviseセッション更新設定に依存"
-      
+
       # 将来実装時のテストコード例
       # Timecop.travel(Time.current + 25.minutes) do
       #   subject # 最初のアクセスでタイムアウトリセット
@@ -343,7 +343,7 @@ RSpec.shared_examples 'CSRF protection tests' do |namespace = :admin|
             # 期待効果: セキュリティテストカバレッジ向上
             # 工数見積: 1-2日
             # 依存関係: コントローラーアクション実装状況
-            
+
             skip "実装予定: 有効CSRFトークンでの正常系テスト - form_authenticity_token活用"
           end
         end
@@ -416,7 +416,7 @@ RSpec.shared_examples 'secure headers validation' do
       # 期待効果: セキュリティレベルの向上
       # 工数見積: 2-3日
       # 依存関係: CSP設定の実装状況
-      
+
       skip "実装予定: CSPヘッダー詳細検証 - ディレクティブ別の確認"
       # subject
       # expect(response.headers['Content-Security-Policy']).to be_present
@@ -478,7 +478,7 @@ RSpec.shared_examples 'error handling with authentication' do |namespace = :admi
 
       it 'returns appropriate error status' do
         subject
-        expect(response.status).to be_in([302, 403]) # Redirect or Forbidden
+        expect(response.status).to be_in([ 302, 403 ]) # Redirect or Forbidden
       end
 
       it 'logs security event appropriately' do
@@ -489,9 +489,9 @@ RSpec.shared_examples 'error handling with authentication' do |namespace = :admi
         # 期待効果: 不正アクセス検知能力向上
         # 工数見積: 1-2日
         # 依存関係: SecurityAuditLogger実装状況
-        
+
         skip "実装予定: セキュリティイベントログ機能"
-        
+
         # 将来実装時のテストコード例
         # expect { subject }.not_to raise_error
         # expect(SecurityAuditLogger).to have_received(:log_authorization_failure)
@@ -524,7 +524,7 @@ RSpec.shared_examples 'authentication performance tests' do
       start_time = Time.current
       subject
       elapsed_time = Time.current - start_time
-      
+
       # 認証処理込みで500ms以内の応答を期待
       expect(elapsed_time).to be < 0.5
     end

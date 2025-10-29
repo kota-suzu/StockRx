@@ -1,13 +1,24 @@
 #!/bin/bash
+
+# ================================================================================
+# StockRx Production Deployment Script
+# Enhanced with Blue/Green deployment, comprehensive monitoring, and rollback support
+# Usage: ./deploy.sh <environment> <image_tag>
+# DevOps optimized for zero-downtime deployment with full observability
+# ================================================================================
+
 set -euo pipefail
 
-# ================================================================================
-# StockRx Deployment Script
-# Usage: ./deploy.sh <environment> <image_tag>
-# ================================================================================
+# Configuration
+ENVIRONMENT="${1:-staging}"
+IMAGE_TAG="${2:-latest}"
+DEPLOY_DIR="/app"
+BACKUP_DIR="/app/backups"
+HEALTH_CHECK_URL="http://localhost:3000/health"
+MAX_HEALTH_CHECKS=30
+HEALTH_CHECK_INTERVAL=10
+METRICS_ENDPOINT="http://localhost:3000/metrics"
 
-ENVIRONMENT=${1:-staging}
-IMAGE_TAG=${2:-latest}
 COMPOSE_FILE="docker-compose.${ENVIRONMENT}.yml"
 ENV_FILE=".env.${ENVIRONMENT}"
 

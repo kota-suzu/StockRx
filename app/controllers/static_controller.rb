@@ -8,6 +8,9 @@
 # ============================================
 
 class StaticController < ApplicationController
+  # CSRF保護を明示的に有効化（テスト対応）
+  protect_from_forgery with: :exception
+
   # 認証をスキップ（デモページアクセスのため）
   # NOTE: ApplicationControllerにauthenticate_admin!が定義されていないため、
   # skip_before_actionはコメントアウトしています

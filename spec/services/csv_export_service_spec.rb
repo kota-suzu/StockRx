@@ -139,6 +139,57 @@ RSpec.describe CsvExportService, type: :service do
     end
   end
 
+  describe "#generate_inventory_csv_stream" do
+    context "ストリーミングCSV生成" do
+      it "Enumeratorを返す（ブロックなし）" do
+        store_inventories = StoreInventory.where(id: [ @store_inventory1.id, @store_inventory2.id ])
+        result = service.generate_inventory_csv_stream(store_inventories)
+
+        expect(result).to be_a(Enumerator)
+        lines = result.to_a
+        expect(lines.first).to include("店舗名,商品ID,商品名")
+        expect(lines.size).to eq(3) # ヘッダー + 2データ行
+      end
+
+      it "ブロック付きで呼び出される場合" do
+        store_inventories = StoreInventory.where(id: [ @store_inventory1.id, @store_inventory2.id ])
+        lines = []
+
+        service.generate_inventory_csv_stream(store_inventories) do |line|
+          lines << line
+        end
+
+        expect(lines.first).to include("店舗名,商品ID,商品名")
+        expect(lines.size).to eq(3) # ヘッダー + 2データ行
+      end
+
+      it "大量データでGCが呼ばれる" do
+        # バッチサイズを小さくしてテスト
+        allow(service).to receive(:batch_size).and_return(2)
+        store_inventories = StoreInventory.where(id: [ @store_inventory1.id, @store_inventory2.id ])
+
+        expect(GC).to receive(:start).at_least(:once)
+
+        service.generate_inventory_csv_stream(store_inventories).to_a
+      end
+
+      it "監査ログが記録される" do
+        store_inventories = StoreInventory.where(id: [ @store_inventory1.id ])
+
+        expect(Rails.logger).to receive(:info).with(
+          hash_including(
+            event: "csv_export",
+            user_id: admin.id,
+            store_id: store.id,
+            record_count: 1
+          ).to_json
+        )
+
+        service.generate_inventory_csv_stream(store_inventories).to_a
+      end
+    end
+  end
+
   describe "#generate_filename" do
     it "デフォルトのプレフィックスでファイル名を生成する" do
       allow(Time).to receive(:current).and_return(Time.parse("2024-12-25 14:30:45"))
@@ -308,6 +359,73 @@ RSpec.describe CsvExportService, type: :service do
 
         notes = service.send(:format_notes, @store_inventory1)
         expect(notes).to eq("")
+      end
+    end
+
+    describe "#build_csv_row" do
+      it "nilの場合はフォールバック行を返す" do
+        row = service.send(:build_csv_row, nil)
+        expect(row).to eq(Array.new(12, "N/A"))
+      end
+
+      it "inventoryがnilの場合はフォールバック行を返す" do
+        store_inventory = double(inventory: nil, store: store)
+        row = service.send(:build_csv_row, store_inventory)
+        expect(row).to eq(Array.new(12, "N/A"))
+      end
+
+      it "storeがnilの場合はフォールバック行を返す" do
+        inventory = double(name: "Test")
+        store_inventory = double(inventory: inventory, store: nil)
+        row = service.send(:build_csv_row, store_inventory)
+        expect(row).to eq(Array.new(12, "N/A"))
+      end
+
+      it "正常なデータで適切な行を返す" do
+        row = service.send(:build_csv_row, @store_inventory1)
+        expect(row.size).to eq(12)
+        expect(row[0]).to eq("テスト店舗")
+        expect(row[1]).to eq(@inventory1.id)
+        expect(row[2]).to eq("風邪薬カプセル")
+      end
+    end
+
+    describe "#build_fallback_csv_row" do
+      it "12個のN/A要素を持つ配列を返す" do
+        row = service.send(:build_fallback_csv_row)
+        expect(row).to eq(Array.new(12, "N/A"))
+        expect(row.size).to eq(12)
+      end
+    end
+
+    describe "#process_inventories_in_batches" do
+      it "ActiveRecord::Relationの場合はfind_in_batchesを使用する" do
+        store_inventories = StoreInventory.where(id: [ @store_inventory1.id, @store_inventory2.id ])
+        csv = CSV.new("")
+
+        expect(store_inventories).to receive(:find_in_batches).and_call_original
+
+        service.send(:process_inventories_in_batches, store_inventories, csv)
+      end
+
+      it "配列の場合はeach_sliceを使用する" do
+        store_inventories = [ @store_inventory1, @store_inventory2 ]
+        csv = CSV.new("")
+
+        # each_sliceが呼ばれることを確認
+        expect(store_inventories).to receive(:each_slice).and_call_original
+
+        service.send(:process_inventories_in_batches, store_inventories, csv)
+      end
+
+      it "バッチサイズに達した場合GCが呼ばれる（配列）" do
+        allow(service).to receive(:batch_size).and_return(2)
+        store_inventories = [ @store_inventory1, @store_inventory2 ]
+        csv = CSV.new("")
+
+        expect(GC).to receive(:start).at_least(:once)
+
+        service.send(:process_inventories_in_batches, store_inventories, csv)
       end
     end
 
