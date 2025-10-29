@@ -356,6 +356,22 @@ RSpec.describe InterStoreTransfer, type: :model do
           transfer.update!(status: :approved)
         }.to change { source_store.reload.pending_outgoing_transfers_count }.by(-1)
       end
+
+      it 'updates counts on destroy' do
+        transfer = create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          requested_by: admin_user
+        )
+
+        expect(source_store.reload.pending_outgoing_transfers_count).to eq(1)
+        expect(destination_store.reload.pending_incoming_transfers_count).to eq(1)
+
+        expect {
+          transfer.destroy!
+        }.to change { source_store.reload.pending_outgoing_transfers_count }.by(-1)
+          .and change { destination_store.reload.pending_incoming_transfers_count }.by(-1)
+      end
     end
   end
 
@@ -668,6 +684,24 @@ RSpec.describe InterStoreTransfer, type: :model do
           expect(result).to be true
         }.to change { transfer.reload.status }.from('pending').to('cancelled')
           .and change { source_inventory.reload.reserved_quantity }.from(30).to(0)
+      end
+
+      it 'records cancelling admin in cancelled_by' do
+        transfer.cancel_by!(admin_user)
+        expect(transfer.reload.cancelled_by).to eq(admin_user)
+      end
+
+      it 'keeps cancelled_by nil when store user cancels' do
+        store_transfer = create(:inter_store_transfer,
+          source_store: source_store,
+          destination_store: destination_store,
+          inventory: inventory,
+          quantity: 10,
+          requested_by: store_user
+        )
+
+        expect(store_transfer.cancel_by!(store_user)).to be true
+        expect(store_transfer.reload.cancelled_by).to be_nil
       end
 
       it 'returns false if not cancellable by user' do
